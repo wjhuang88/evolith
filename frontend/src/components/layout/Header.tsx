@@ -1,4 +1,7 @@
-'use client';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -24,6 +27,9 @@ export function Header() {
       </div>
       
       <div className="flex items-center gap-4">
+        <ThemeToggle />
+        <UserMenu />
+      </div>
         <UserMenu />
       </div>
     </header>
