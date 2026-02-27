@@ -8,9 +8,9 @@ use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use api::configure_routes;
+use api::handlers::auth_handlers::AuthState;
 use common::error::Result;
 use infra::config::AppConfig;
-
 #[actix_web::main]
 async fn main() -> Result<()> {
     // Load configuration
@@ -24,6 +24,9 @@ async fn main() -> Result<()> {
         config.server.host, config.server.port
     );
 
+    // Create auth state
+    let auth_state = AuthState::new(&config.jwt);
+
     // Create HTTP server
     let host = config.server.host.clone();
     let port = config.server.port;
@@ -31,6 +34,7 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(config.clone()))
+            .app_data(web::Data::new(auth_state.clone()))
             .wrap(middleware::Logger::default())
             .wrap(cors_configuration())
             .configure(configure_routes)

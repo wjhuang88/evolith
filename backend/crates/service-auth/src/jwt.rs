@@ -36,6 +36,7 @@ pub struct TokenData {
 }
 
 /// JWT handler for token generation and validation
+#[derive(Clone)]
 pub struct JwtHandler {
     secret: Vec<u8>,
     expiration: Duration,

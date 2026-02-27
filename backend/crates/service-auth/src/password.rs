@@ -36,6 +36,7 @@ impl From<PasswordError> for common::error::AppError {
 ///
 /// Argon2id is the recommended algorithm for password hashing as of 2024,
 /// providing resistance against GPU cracking attacks and side-channel attacks.
+#[derive(Clone)]
 pub struct Argon2Hasher {
     hasher: Argon2<'static>,
 }
