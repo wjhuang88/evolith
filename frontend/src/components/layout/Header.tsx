@@ -1,11 +1,10 @@
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useAuthStore } from '@/stores';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: DashboardIcon },
@@ -16,20 +15,18 @@ const navigation = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-background px-6 shadow-sm">
       <div className="flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
             <span className="text-white font-bold text-sm">E</span>
           </div>
-          <span className="text-xl font-semibold text-gray-900 dark:text-white">Evolith</span>
+          <span className="text-xl font-semibold text-foreground">Evolith</span>
         </Link>
       </div>
       
       <div className="flex items-center gap-4">
         <ThemeToggle />
-        <UserMenu />
-      </div>
         <UserMenu />
       </div>
     </header>
@@ -38,36 +35,64 @@ export function Header() {
 
 function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuthStore();
   
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+  
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name.charAt(0).toUpperCase();
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href="/login"
+        className="rounded-full border border-border bg-muted px-4 py-2 text-sm font-medium hover:bg-muted/80"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+        className="flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-2 text-sm hover:bg-muted/80"
       >
-        <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
-          <span className="text-xs font-medium text-indigo-600">U</span>
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+          <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
+            {getInitials(user?.username)}
+          </span>
         </div>
-        <span className="text-gray-700 dark:text-gray-300">User</span>
+        <span className="text-foreground">{user?.username || 'User'}</span>
       </button>
       
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <div className="absolute right-0 mt-2 w-48 rounded-md border border-border bg-card py-1 shadow-lg">
           <Link
             href="/profile"
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
+            onClick={() => setIsOpen(false)}
           >
             Profile
           </Link>
           <Link
             href="/settings"
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
+            onClick={() => setIsOpen(false)}
           >
             Settings
           </Link>
-          <hr className="my-1 border-gray-200 dark:border-gray-700" />
+          <hr className="my-1 border-border" />
           <button
-            className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
+            onClick={handleLogout}
+            className="block w-full px-4 py-2 text-left text-sm text-error hover:bg-muted"
           >
             Sign out
           </button>
@@ -81,7 +106,7 @@ export function Sidebar() {
   const pathname = usePathname();
   
   return (
-    <aside className="hidden w-64 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900 md:flex">
+    <aside className="hidden w-64 flex-col border-r border-border bg-muted md:flex">
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -91,8 +116,8 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
-                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                  ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400'
+                  : 'text-foreground hover:bg-muted/80'
               }`}
             >
               <item.icon className="h-5 w-5" />
@@ -113,13 +138,13 @@ export function MobileNav() {
     <div className="md:hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+        className="p-2 text-muted-foreground hover:bg-muted"
       >
         <MenuIcon className="h-6 w-6" />
       </button>
       
       {isOpen && (
-        <div className="absolute left-0 top-16 z-50 w-full border-b border-gray-200 bg-white py-4 shadow-lg dark:border-gray-800 dark:bg-gray-900">
+        <div className="absolute left-0 top-16 z-50 w-full border-b border-border bg-card py-4 shadow-lg">
           <nav className="space-y-1 px-4">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
@@ -130,8 +155,8 @@ export function MobileNav() {
                   onClick={() => setIsOpen(false)}
                   className={`block rounded-lg px-3 py-2 text-base font-medium ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                      ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400'
+                      : 'text-foreground hover:bg-muted'
                   }`}
                 >
                   {item.name}
