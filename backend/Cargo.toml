@@ -1,3 +1,24 @@
+[package]
+name = "evolith"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "evolith"
+path = "src/main.rs"
+
+[dependencies]
+api.workspace = true
+common.workspace = true
+infra.workspace = true
+actix-web.workspace = true
+actix-cors.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+
 [workspace]
 resolver = "2"
 members = [

@@ -25,6 +25,9 @@ async fn main() -> Result<()> {
     );
 
     // Create HTTP server
+    let host = config.server.host.clone();
+    let port = config.server.port;
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(config.clone()))
@@ -32,7 +35,7 @@ async fn main() -> Result<()> {
             .wrap(cors_configuration())
             .configure(configure_routes)
     })
-    .bind((config.server.host.as_str(), config.server.port))?
+    .bind((host.as_str(), port))?
     .run()
     .await?;
 
