@@ -213,11 +213,11 @@ Completed:
 完成:
 - [x] P2-001: Multi-tenant support (see docs/multi-tenant.md)
 - [x] P2-002: User authentication (register, login, logout)
+- [x] P2-003: Tool CRUD operations
+- [x] P2-004: Skill CRUD operations
+- [x] P2-005: Snippet CRUD operations
 
 待实现:
-- P2-003: Tool CRUD operations
-- P2-004: Skill CRUD operations
-- P2-005: Snippet CRUD operations
 - P2-006: MCP protocol implementation
 
 ## Links
