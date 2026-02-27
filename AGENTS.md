@@ -208,11 +208,13 @@ Completed:
 - [x] P1-011: API client
 - [x] P1-012: Auth state
 
-**Phase 2: Business Logic** - PENDING
+**Phase 2: Business Logic** - In Progress
+
+完成:
+- [x] P2-001: Multi-tenant support (see docs/multi-tenant.md)
+- [x] P2-002: User authentication (register, login, logout)
 
 待实现:
-- P2-001: Multi-tenant support (see docs/multi-tenant.md)
-- P2-002: User authentication (register, login, logout)
 - P2-003: Tool CRUD operations
 - P2-004: Skill CRUD operations
 - P2-005: Snippet CRUD operations
