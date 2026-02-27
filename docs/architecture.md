@@ -304,6 +304,93 @@ frontend/
 
 ## 5. 数据模型
 
+### 5.1 多租户架构
+
+Evolith 采用**共享数据库 + 租户ID**的多租户架构，详见 [多租户设计](./multi-tenant.md)。
+
+**租户识别方式**：
+- 子域名：`{tenant}.evolith.io`
+- 请求头：`X-Tenant-ID`
+- JWT Token 中的 `tenant_id`
+
+### 5.2 核心实体
+
+```rust
+// Tenant (租户)
+struct Tenant {
+    id: Uuid,
+    name: String,
+    slug: String,              // URL友好标识
+    plan: Plan,                 // free, pro, enterprise
+    owner_id: Uuid,
+    settings: TenantSettings,
+    created_at: DateTime,
+    updated_at: DateTime,
+}
+
+// Tool (工具)
+struct Tool {
+    id: Uuid,
+    tenant_id: Uuid,            // 租户ID
+    name: String,
+    description: String,
+    input_schema: JsonValue,      // JSON Schema
+    output_schema: JsonValue,
+    handler: HandlerConfig,
+    owner_id: Uuid,
+    visibility: Visibility,
+    created_at: DateTime,
+    updated_at: DateTime,
+}
+
+// Skill (技能)
+struct Skill {
+    id: Uuid,
+    tenant_id: Uuid,            // 租户ID
+    name: String,
+    version: String,
+    description: String,
+    skill_md: String,             // SKILL.md内容
+    code_package: Option<String>, // 代码包路径
+    runtime: Runtime,
+    dependencies: Vec<Dependency>,
+    owner_id: Uuid,
+    visibility: Visibility,
+    created_at: DateTime,
+    updated_at: DateTime,
+}
+
+// Snippet (代码片段)
+struct Snippet {
+    id: Uuid,
+    tenant_id: Uuid,            // 租户ID
+    name: String,
+    language: String,
+    framework: Option<String>,
+    tags: Vec<String>,
+    content: String,              // Markdown内容
+    code: String,                 // 实际代码
+    dependencies: Vec<Dependency>,
+    estimated_tokens: u32,
+    owner_id: Uuid,
+    visibility: Visibility,
+    created_at: DateTime,
+    updated_at: DateTime,
+}
+
+// User (用户)
+struct User {
+    id: Uuid,
+    tenant_id: Uuid,            // 租户ID
+    username: String,
+    email: String,
+    password_hash: String,
+    role: Role,                  // owner, admin, member
+    created_at: DateTime,
+    updated_at: DateTime,
+}
+```
+
 ### 5.1 核心实体
 
 ```rust
@@ -366,7 +453,116 @@ struct User {
 }
 ```
 
-### 5.2 数据库Schema
+### 5.3 数据库Schema（多租户）
+
+```sql
+-- 租户表
+CREATE TABLE tenants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(128) NOT NULL,
+    slug VARCHAR(64) UNIQUE NOT NULL,         -- URL友好标识
+    plan VARCHAR(32) NOT NULL DEFAULT 'free',  -- free, pro, enterprise
+    max_tools INTEGER DEFAULT 10,
+    max_skills INTEGER DEFAULT 5,
+    max_snippets INTEGER DEFAULT 50,
+    max_api_calls_per_day INTEGER DEFAULT 1000,
+    owner_id UUID NOT NULL,
+    settings JSONB DEFAULT '{}',
+    status VARCHAR(32) NOT NULL DEFAULT 'active',  -- active, suspended, deleted
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 用户表
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    username VARCHAR(64) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(32) NOT NULL DEFAULT 'member',  -- owner, admin, member
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(tenant_id, username),
+    UNIQUE(tenant_id, email)
+);
+
+-- 工具表
+CREATE TABLE tools (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    name VARCHAR(128) NOT NULL,
+    description TEXT NOT NULL,
+    input_schema JSONB NOT NULL,
+    output_schema JSONB,
+    handler_config JSONB NOT NULL,
+    owner_id UUID NOT NULL REFERENCES users(id),
+    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(tenant_id, name)
+);
+
+-- 技能表
+CREATE TABLE skills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    name VARCHAR(128) NOT NULL,
+    version VARCHAR(32) NOT NULL,
+    description TEXT NOT NULL,
+    skill_md TEXT NOT NULL,
+    code_package_path TEXT,
+    runtime VARCHAR(32) NOT NULL,
+    dependencies JSONB DEFAULT '[]',
+    owner_id UUID NOT NULL REFERENCES users(id),
+    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(tenant_id, name, version)
+);
+
+-- 代码片段表
+CREATE TABLE snippets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    name VARCHAR(128) NOT NULL,
+    language VARCHAR(32) NOT NULL,
+    framework VARCHAR(64),
+    tags TEXT[] DEFAULT '{}',
+    content TEXT NOT NULL,
+    code TEXT NOT NULL,
+    dependencies JSONB DEFAULT '[]',
+    estimated_tokens INTEGER NOT NULL DEFAULT 0,
+    owner_id UUID NOT NULL REFERENCES users(id),
+    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 使用统计表
+CREATE TABLE usage_stats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    date DATE NOT NULL,
+    api_calls INTEGER DEFAULT 0,
+    tool_executions INTEGER DEFAULT 0,
+    skill_executions INTEGER DEFAULT 0,
+    storage_used_bytes BIGINT DEFAULT 0,
+    UNIQUE(tenant_id, date)
+);
+
+-- 索引（包含 tenant_id）
+CREATE INDEX idx_users_tenant ON users(tenant_id);
+CREATE INDEX idx_tools_tenant ON tools(tenant_id);
+CREATE INDEX idx_skills_tenant ON skills(tenant_id);
+CREATE INDEX idx_snippets_tenant ON snippets(tenant_id);
+CREATE INDEX idx_tools_owner ON tools(owner_id);
+CREATE INDEX idx_skills_owner ON skills(owner_id);
+CREATE INDEX idx_snippets_owner ON snippets(owner_id);
+CREATE INDEX idx_snippets_tags ON snippets USING GIN(tags);
+CREATE INDEX idx_snippets_language ON snippets(language);
+CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
+```
 
 ```sql
 -- 用户表
@@ -487,10 +683,12 @@ CREATE INDEX idx_snippets_language ON snippets(language);
 │  │              JWT Payload                            │ │
 │  │  {                                                 │ │
 │  │    "sub": "user_id",                              │ │
+│  │    "tenant_id": "tenant_uuid",                    │ │
 │  │    "role": "admin",                               │ │
 │  │    "exp": 1234567890,                             │ │
 │  │    "iat": 1234560000                              │ │
 │  │  }                                                 │ │
+
 │  └────────────────────────────────────────────────────┘ │
 │                                           │              │
 │                                           ▼              │
@@ -668,6 +866,10 @@ ENVIRONMENT=production
 | `ENVIRONMENT` | 环境 | `development` |
 
 ## 11. 相关文档
+
+- [多租户设计](./multi-tenant.md) - **多租户架构详细设计**
+- [API契约](./api-contract.md) - 前后端接口详细定义
+- [Skill格式](./skill-format.md) - 技能定义规范
 
 - [API契约](./api-contract.md) - 前后端接口详细定义
 - [Skill格式](./skill-format.md) - 技能定义规范

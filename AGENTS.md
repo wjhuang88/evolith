@@ -192,6 +192,41 @@ Environment variables (see `crates/infra/src/config.rs`):
 
 ## Status
 
+**Phase 1: Core Framework** - COMPLETED ✅
+
+Completed:
+- [x] P1-001: Config management with validation
+- [x] P1-002: Comprehensive error handling
+- [x] P1-003: Logging system with request tracing
+- [x] P1-004: Auth middleware (JWT + password hashing)
+- [x] P1-005: API skeleton
+- [x] P1-006: Unified response format
+- [x] P1-007: Request validation
+- [x] P1-008: Frontend layout components
+- [x] P1-009: UI component library
+- [x] P1-010: Theme system
+- [x] P1-011: API client
+- [x] P1-012: Auth state
+
+**Phase 2: Business Logic** - PENDING
+
+待实现:
+- P2-001: Multi-tenant support (see docs/multi-tenant.md)
+- P2-002: User authentication (register, login, logout)
+- P2-003: Tool CRUD operations
+- P2-004: Skill CRUD operations
+- P2-005: Snippet CRUD operations
+- P2-006: MCP protocol implementation
+
+## Links
+
+- [Requirements](./docs/requirements.md)
+- [Architecture](./docs/architecture.md)
+- [Multi-Tenant Design](./docs/multi-tenant.md) **(NEW)**
+- [API Design](./docs/api-design.md)
+- [Skill Format](./docs/skill-format.md)
+- [Snippet Format](./docs/snippet-format.md)
+
 **Phase 1: Core Framework** - In Progress
 
 Completed:
