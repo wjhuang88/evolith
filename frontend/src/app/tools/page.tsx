@@ -1,7 +1,34 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
+import { toolsApi } from '@/lib/api/tools';
+import type { Tool } from '@/lib/api/types';
 
 export default function ToolsPage() {
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTools() {
+      try {
+        const response = await toolsApi.list();
+        if (response.success && response.data) {
+          setTools(response.data);
+        } else {
+          setError(response.error?.message || 'Failed to load tools');
+        }
+      } catch (err) {
+        setError('Failed to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTools();
+  }, []);
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
@@ -14,29 +41,46 @@ export default function ToolsPage() {
         <Button>Create Tool</Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Placeholder cards */}
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <CardTitle>Tool {i}</CardTitle>
-              <CardDescription>
-                A sample tool description that explains what this tool does.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Public</span>
-                <span>v1.0.0</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {loading && (
+        <div className="text-center py-12 text-muted-foreground">
+          Loading tools...
+        </div>
+      )}
 
-      <div className="mt-8 text-center text-muted-foreground">
-        <p>No tools available yet. Create your first tool to get started.</p>
-      </div>
+      {error && (
+        <div className="text-center py-12 text-destructive">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && tools.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>No tools available yet. Create your first tool to get started.</p>
+        </div>
+      )}
+
+      {!loading && !error && tools.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {tools.map((tool) => (
+            <Card key={tool.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {tool.name}
+                  {!tool.is_public && (
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
+                  )}
+                </CardTitle>
+                <CardDescription>{tool.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span className="capitalize">{tool.category}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

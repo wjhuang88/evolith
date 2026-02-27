@@ -41,6 +41,25 @@ export interface AuthToken {
   user: User;
 }
 
+// Updated User interface with tenant fields
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+  tenant_id: string;
+  tenant_role: string;
+  created_at?: string;
+}
+
+// Tenant info from auth response
+export interface TenantInfo {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -50,6 +69,26 @@ export interface RegisterRequest {
   email: string;
   username: string;
   password: string;
+  // Tenant info (for registration)
+  tenant_name?: string;
+  tenant_slug?: string;
+}
+
+// ============================================
+// Tenant Types
+// ============================================
+
+export type TenantPlan = 'free' | 'starter' | 'pro' | 'enterprise';
+export type TenantStatus = 'active' | 'suspended' | 'deleted';
+export type TenantRole = 'owner' | 'admin' | 'member';
+
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  domain?: string;
+  plan: TenantPlan;
+  status: TenantStatus;
 }
 
 // ============================================
@@ -154,4 +193,11 @@ export interface ListQueryParams {
 export interface ListResponse<T> {
   items: T[];
   meta: PaginationMeta;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  meta: PaginationMeta;
+  error?: ErrorInfo;
 }

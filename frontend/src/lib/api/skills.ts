@@ -1,11 +1,11 @@
 import { apiClient, buildQueryString } from './client';
 import type {
   ApiResponse,
+  PaginatedResponse,
   Skill,
   CreateSkillRequest,
   UpdateSkillRequest,
   ListQueryParams,
-  ListResponse,
 } from './types';
 
 // ============================================
@@ -16,9 +16,9 @@ export const skillsApi = {
   /**
    * List skills with pagination and filters
    */
-  async list(params?: ListQueryParams): Promise<ApiResponse<ListResponse<Skill>>> {
+  async list(params?: ListQueryParams): Promise<PaginatedResponse<Skill>> {
     const qs = params ? buildQueryString(params) : '';
-    const response = await apiClient.get<ApiResponse<ListResponse<Skill>>>(`/skills${qs}`);
+    const response = await apiClient.get<PaginatedResponse<Skill>>(`/skills${qs}`);
     return response.data;
   },
 

@@ -1,11 +1,11 @@
 import { apiClient, buildQueryString } from './client';
 import type {
   ApiResponse,
+  PaginatedResponse,
   Tool,
   CreateToolRequest,
   UpdateToolRequest,
   ListQueryParams,
-  ListResponse,
 } from './types';
 
 // ============================================
@@ -16,9 +16,9 @@ export const toolsApi = {
   /**
    * List tools with pagination and filters
    */
-  async list(params?: ListQueryParams): Promise<ApiResponse<ListResponse<Tool>>> {
+  async list(params?: ListQueryParams): Promise<PaginatedResponse<Tool>> {
     const qs = params ? buildQueryString(params) : '';
-    const response = await apiClient.get<ApiResponse<ListResponse<Tool>>>(`/tools${qs}`);
+    const response = await apiClient.get<PaginatedResponse<Tool>>(`/tools${qs}`);
     return response.data;
   },
 

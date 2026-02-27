@@ -130,7 +130,7 @@ export function parseApiError(error: unknown): ErrorInfo {
 // Helper Functions
 // ============================================
 
-export function buildQueryString(params: Record<string, unknown>): string {
+export function buildQueryString<T extends object>(params: T): string {
   const searchParams = new URLSearchParams();
   
   Object.entries(params).forEach(([key, value]) => {

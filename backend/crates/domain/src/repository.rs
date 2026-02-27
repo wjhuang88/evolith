@@ -51,3 +51,15 @@ pub trait SnippetRepository: Send + Sync {
     async fn count(&self, filter: &SnippetFilter) -> Result<u32>;
     async fn delete(&self, id: uuid::Uuid) -> Result<()>;
 }
+
+/// Tenant repository trait
+#[async_trait]
+pub trait TenantRepository: Send + Sync {
+    async fn create(&self, tenant: crate::CreateTenantRequest, owner_id: uuid::Uuid) -> Result<crate::Tenant>;
+    async fn find_by_id(&self, id: uuid::Uuid) -> Result<Option<crate::Tenant>>;
+    async fn find_by_slug(&self, slug: &str) -> Result<Option<crate::Tenant>>;
+    async fn find_by_domain(&self, domain: &str) -> Result<Option<crate::Tenant>>;
+    async fn update(&self, id: uuid::Uuid, tenant: crate::CreateTenantRequest) -> Result<crate::Tenant>;
+    async fn delete(&self, id: uuid::Uuid) -> Result<()>;
+    async fn update_usage(&self, id: uuid::Uuid) -> Result<()>;
+}

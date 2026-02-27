@@ -16,6 +16,7 @@ pub struct Skill {
     pub runtime: Runtime,
     pub dependencies: Vec<Dependency>,
     pub owner_id: Uuid,
+    pub tenant_id: Uuid,
     pub visibility: Visibility,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -52,6 +53,7 @@ pub struct NewSkill {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SkillFilter {
+    pub tenant_id: Option<Uuid>,
     pub search: Option<String>,
     pub runtime: Option<Runtime>,
     pub visibility: Option<Visibility>,
@@ -63,6 +65,7 @@ pub struct SkillFilter {
 impl Default for SkillFilter {
     fn default() -> Self {
         Self {
+            tenant_id: None,
             search: None,
             runtime: None,
             visibility: None,

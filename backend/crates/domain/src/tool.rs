@@ -14,6 +14,7 @@ pub struct Tool {
     pub output_schema: Option<serde_json::Value>,
     pub handler: HandlerConfig,
     pub owner_id: Uuid,
+    pub tenant_id: Uuid,
     pub visibility: Visibility,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -74,6 +75,7 @@ pub struct UpdateTool {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ToolFilter {
+    pub tenant_id: Option<Uuid>,
     pub search: Option<String>,
     pub visibility: Option<Visibility>,
     pub owner_id: Option<Uuid>,
@@ -84,6 +86,7 @@ pub struct ToolFilter {
 impl Default for ToolFilter {
     fn default() -> Self {
         Self {
+            tenant_id: None,
             search: None,
             visibility: None,
             owner_id: None,

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi, getToken, clearToken, type User } from '@/lib/api';
+import { authApi, getToken, clearToken, type User, type TenantInfo } from '@/lib/api';
 
 interface AuthState {
   // State
   user: User | null;
+  tenant: TenantInfo | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -21,6 +22,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
+      tenant: null,
       isAuthenticated: !!getToken(),
       isLoading: false,
       error: null,
@@ -34,6 +36,7 @@ export const useAuthStore = create<AuthState>()(
           if (response.success && response.data) {
             set({ 
               user: response.data.user, 
+              tenant: (response.data as any).tenant || null,
               isAuthenticated: true,
               isLoading: false 
             });
@@ -61,6 +64,7 @@ export const useAuthStore = create<AuthState>()(
           if (response.success && response.data) {
             set({ 
               user: response.data.user, 
+              tenant: (response.data as any).tenant || null,
               isAuthenticated: true,
               isLoading: false 
             });
@@ -90,6 +94,7 @@ export const useAuthStore = create<AuthState>()(
           clearToken();
           set({ 
             user: null, 
+            tenant: null,
             isAuthenticated: false, 
             isLoading: false,
             error: null 
@@ -99,7 +104,7 @@ export const useAuthStore = create<AuthState>()(
 
       fetchUser: async () => {
         if (!getToken()) {
-          set({ isAuthenticated: false, user: null });
+          set({ isAuthenticated: false, user: null, tenant: null });
           return;
         }
         
@@ -119,6 +124,7 @@ export const useAuthStore = create<AuthState>()(
             clearToken();
             set({ 
               user: null, 
+              tenant: null,
               isAuthenticated: false,
               isLoading: false 
             });
@@ -127,6 +133,7 @@ export const useAuthStore = create<AuthState>()(
           clearToken();
           set({ 
             user: null, 
+            tenant: null,
             isAuthenticated: false,
             isLoading: false 
           });
@@ -139,6 +146,7 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({ 
         user: state.user,
+        tenant: state.tenant,
         isAuthenticated: state.isAuthenticated,
       }),
     }

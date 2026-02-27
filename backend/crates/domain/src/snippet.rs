@@ -17,6 +17,7 @@ pub struct Snippet {
     pub dependencies: Vec<Dependency>,
     pub estimated_tokens: u32,
     pub owner_id: Uuid,
+    pub tenant_id: Uuid,
     pub visibility: Visibility,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -47,6 +48,7 @@ pub struct NewSnippet {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SnippetFilter {
+    pub tenant_id: Option<Uuid>,
     pub search: Option<String>,
     pub language: Option<String>,
     pub framework: Option<String>,
@@ -60,6 +62,7 @@ pub struct SnippetFilter {
 impl Default for SnippetFilter {
     fn default() -> Self {
         Self {
+            tenant_id: None,
             search: None,
             language: None,
             framework: None,

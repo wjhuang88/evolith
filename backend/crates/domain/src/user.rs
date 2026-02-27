@@ -13,6 +13,8 @@ pub struct User {
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub role: UserRole,
+    pub tenant_id: Uuid,
+    pub tenant_role: TenantRole,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -22,6 +24,21 @@ pub struct User {
 pub enum UserRole {
     Admin,
     User,
+}
+
+/// User role within a tenant
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TenantRole {
+    Owner,
+    Admin,
+    Member,
+}
+
+impl Default for TenantRole {
+    fn default() -> Self {
+        TenantRole::Member
+    }
 }
 
 impl Default for UserRole {
@@ -69,4 +86,6 @@ pub struct UserInfo {
     pub username: String,
     pub email: String,
     pub role: UserRole,
+    pub tenant_id: Uuid,
+    pub tenant_role: TenantRole,
 }

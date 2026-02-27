@@ -15,6 +15,10 @@ pub struct Claims {
     pub sub: String,
     /// User role
     pub role: String,
+    /// Tenant ID
+    pub tenant_id: String,
+    /// Tenant role (owner, admin, member)
+    pub tenant_role: String,
     /// Issued at
     pub iat: i64,
     /// Expiration time
@@ -25,6 +29,8 @@ pub struct Claims {
 #[derive(Debug, Clone)]
 pub struct TokenData {
     pub user_id: Uuid,
+    pub tenant_id: Uuid,
+    pub tenant_role: String,
     pub role: String,
     pub expires_at: i64,
 }
@@ -45,13 +51,21 @@ impl JwtHandler {
     }
 
     /// Generate a new JWT token for a user
-    pub fn generate_token(&self, user_id: Uuid, role: &str) -> Result<(String, i64)> {
+    pub fn generate_token(
+        &self,
+        user_id: Uuid,
+        role: &str,
+        tenant_id: Uuid,
+        tenant_role: &str,
+    ) -> Result<(String, i64)> {
         let now = Utc::now();
         let exp = now + self.expiration;
 
         let claims = Claims {
             sub: user_id.to_string(),
             role: role.to_string(),
+            tenant_id: tenant_id.to_string(),
+            tenant_role: tenant_role.to_string(),
             iat: now.timestamp(),
             exp: exp.timestamp(),
         };
@@ -79,8 +93,12 @@ impl JwtHandler {
             AppError::AuthenticationError(format!("Invalid user ID in token: {}", e))
         })?;
 
+        let tenant_id = Uuid::parse_str(&token_data.claims.tenant_id).unwrap_or(Uuid::nil());
+
         Ok(TokenData {
             user_id,
+            tenant_id,
+            tenant_role: token_data.claims.tenant_role,
             role: token_data.claims.role,
             expires_at: token_data.claims.exp,
         })
@@ -128,8 +146,12 @@ mod tests {
         let handler = create_test_handler();
         let user_id = Uuid::new_v4();
         let role = "user";
+        let tenant_id = Uuid::nil();
+        let tenant_role = "owner";
 
-        let (token, exp) = handler.generate_token(user_id, role).unwrap();
+        let (token, exp) = handler
+            .generate_token(user_id, role, tenant_id, tenant_role)
+            .unwrap();
         assert!(!token.is_empty());
         assert!(exp > Utc::now().timestamp());
 

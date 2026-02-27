@@ -35,6 +35,16 @@ pub struct AuthResponse {
     pub token: String,
     pub expires_at: i64,
     pub user: UserInfo,
+    pub tenant: TenantInfo,
+}
+
+/// Tenant info in auth response
+#[derive(Debug, Serialize)]
+pub struct TenantInfo {
+    pub id: String,
+    pub name: String,
+    pub slug: String,
+    pub plan: String,
 }
 
 /// User info
@@ -44,6 +54,8 @@ pub struct UserInfo {
     pub email: String,
     pub username: String,
     pub role: String,
+    pub tenant_id: String,
+    pub tenant_role: String,
 }
 
 /// Login handler

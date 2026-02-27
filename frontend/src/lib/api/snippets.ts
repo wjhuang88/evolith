@@ -1,11 +1,11 @@
 import { apiClient, buildQueryString } from './client';
 import type {
   ApiResponse,
+  PaginatedResponse,
   Snippet,
   CreateSnippetRequest,
   UpdateSnippetRequest,
   ListQueryParams,
-  ListResponse,
 } from './types';
 
 // ============================================
@@ -16,9 +16,9 @@ export const snippetsApi = {
   /**
    * List snippets with pagination and filters
    */
-  async list(params?: ListQueryParams): Promise<ApiResponse<ListResponse<Snippet>>> {
+  async list(params?: ListQueryParams): Promise<PaginatedResponse<Snippet>> {
     const qs = params ? buildQueryString(params) : '';
-    const response = await apiClient.get<ApiResponse<ListResponse<Snippet>>>(`/snippets${qs}`);
+    const response = await apiClient.get<PaginatedResponse<Snippet>>(`/snippets${qs}`);
     return response.data;
   },
 
