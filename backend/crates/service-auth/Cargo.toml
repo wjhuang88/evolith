@@ -15,7 +15,9 @@ chrono.workspace = true
 jsonwebtoken.workspace = true
 argon2.workspace = true
 validator.workspace = true
+rand = "0.8"
 
 # Internal crates
 domain.workspace = true
 common.workspace = true
+infra.workspace = true

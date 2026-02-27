@@ -90,6 +90,67 @@ impl AppConfig {
             .add_source(Environment::default().separator("__"))
             .build()?;
 
-        config.try_deserialize()
+        let app_config: AppConfig = config.try_deserialize()?;
+        app_config.validate()?;
+        Ok(app_config)
+    }
+
+    /// Validate configuration
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        // Validate server config
+        if self.server.port == 0 {
+            return Err(ConfigError::Message("Server port cannot be 0".to_string()));
+        }
+
+        // Validate database config
+        if !matches!(
+            self.database.database_type.to_lowercase().as_str(),
+            "sqlite" | "postgres" | "postgresql" | "mysql"
+        ) {
+            return Err(ConfigError::Message(format!(
+                "Unsupported database type: {}",
+                self.database.database_type
+            )));
+        }
+
+        // Validate JWT secret in production
+        if std::env::var("ENVIRONMENT").unwrap_or_default() == "production" {
+            if self.jwt.secret == "dev_secret_key_change_in_production" {
+                return Err(ConfigError::Message(
+                    "JWT secret must be changed in production!".to_string(),
+                ));
+            }
+            if self.jwt.secret.len() < 32 {
+                return Err(ConfigError::Message(
+                    "JWT secret must be at least 32 characters in production".to_string(),
+                ));
+            }
+        }
+
+        // Validate sandbox config
+        if self.sandbox.enabled {
+            if self.sandbox.timeout_seconds == 0 {
+                return Err(ConfigError::Message(
+                    "Sandbox timeout must be greater than 0".to_string(),
+                ));
+            }
+            if self.sandbox.memory_mb < 64 {
+                return Err(ConfigError::Message(
+                    "Sandbox memory must be at least 64MB".to_string(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Check if running in development mode
+    pub fn is_development(&self) -> bool {
+        std::env::var("ENVIRONMENT").unwrap_or_default() != "production"
+    }
+
+    /// Check if running in production mode
+    pub fn is_production(&self) -> bool {
+        !self.is_development()
     }
 }

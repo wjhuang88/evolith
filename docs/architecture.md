@@ -576,3 +576,100 @@ CREATE INDEX idx_snippets_language ON snippets(language);
 | Python 3.11 | Python | Container |
 | Node.js 20 | JavaScript/TypeScript | Container |
 | WASM | Rust/Go/etc. | Native Sandbox |
+## 9. API契约优先开发
+
+Evolith采用契约优先(Contract-First)的API开发模式，确保前后端接口的一致性。
+
+### 9.1 契约文件
+
+API契约定义在 `docs/api-contract.md` 中，包含：
+- 所有API端点的请求/响应格式
+- 数据类型定义
+- 错误码说明
+- 认证方式
+
+### 9.2 开发流程
+
+```
+1. 编写API契约 (api-contract.md)
+   ↓
+2. 前端根据契约生成TypeScript类型
+   ↓
+3. 后端实现API端点
+   ↓
+4. 前后端独立测试
+   ↓
+5. 集成测试验证
+```
+
+### 9.3 前端类型生成
+
+后端API契约可使用工具自动生成前端TypeScript类型：
+
+```typescript
+// 从API契约生成 types/api.ts
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  meta?: PaginationMeta;
+  error?: ErrorInfo;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  expires_at: number;
+  user: UserInfo;
+}
+```
+
+### 9.4 契约版本管理
+
+- 契约文件使用语义化版本
+- 重大变更需要更新主版本号
+- 向前兼容的变更可更新次版本号
+- 保持契约文档与实际实现同步
+
+## 10. 环境配置
+
+### 10.1 开发环境
+
+使用内存数据库(SQLite)进行本地开发：
+
+```bash
+DATABASE__DATABASE_TYPE=sqlite
+DATABASE__URL=:memory:
+ENVIRONMENT=development
+```
+
+### 10.2 生产环境
+
+切换到PostgreSQL：
+
+```bash
+DATABASE__DATABASE_TYPE=postgres
+DATABASE__URL=postgresql://user:pass@host:5432/evolith
+ENVIRONMENT=production
+```
+
+### 10.3 环境变量
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `DATABASE__URL` | 数据库连接串 | `:memory:` |
+| `DATABASE__DATABASE_TYPE` | 数据库类型 | `sqlite` |
+| `JWT__SECRET` | JWT密钥 | (开发专用) |
+| `JWT__TOKEN_EXPIRY` | Token过期时间 | `24h` |
+| `LOG__LEVEL` | 日志级别 | `info` |
+| `ENVIRONMENT` | 环境 | `development` |
+
+## 11. 相关文档
+
+- [API契约](./api-contract.md) - 前后端接口详细定义
+- [Skill格式](./skill-format.md) - 技能定义规范
+- [代码片段格式](./snippet-format.md) - 片段定义规范
+- [技术栈](./tech-stack.md) - 技术选型详情

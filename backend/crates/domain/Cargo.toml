@@ -12,3 +12,6 @@ chrono.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
 validator.workspace = true
+
+# Internal crates
+common.workspace = true

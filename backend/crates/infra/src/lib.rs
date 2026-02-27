@@ -7,4 +7,4 @@ pub mod cache;
 pub mod storage;
 pub mod config;
 
-pub use config::AppConfig;
+pub use config::{AppConfig, JwtConfig};

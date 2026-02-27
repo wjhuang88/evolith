@@ -2,15 +2,16 @@
 //!
 //! Contains core domain models, traits, and business rules.
 
-pub mod user;
-pub mod tool;
+pub mod errors;
+pub mod repository;
 pub mod skill;
 pub mod snippet;
-pub mod repository;
-pub mod errors;
+pub mod tool;
+pub mod user;
 
-pub use user::*;
-pub use tool::*;
+pub use errors::DomainError;
+pub use repository::{SkillRepository, SnippetRepository, ToolRepository, UserRepository};
 pub use skill::*;
 pub use snippet::*;
-pub use errors::DomainError;
+pub use tool::*;
+pub use user::*;

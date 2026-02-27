@@ -2,11 +2,11 @@
 //!
 //! Handles code snippet management, search, and reference generation.
 
-pub mod repository;
-pub mod search;
 pub mod parser;
 pub mod reference;
+pub mod repository;
+pub mod search;
 
-pub use repository::SnippetRepository;
-pub use search::SnippetSearch;
+pub use domain::SnippetRepository;
 pub use reference::ReferenceGenerator;
+pub use search::SnippetSearch;
