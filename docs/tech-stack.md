@@ -1,0 +1,484 @@
+# 技术栈说明
+
+## 1. 概述
+
+本文档详细说明Evolith项目的技术选型和设计决策。
+
+## 2. 后端技术栈
+
+### 2.1 核心框架
+
+| 技术 | 版本 | 用途 | 选择理由 |
+|------|------|------|----------|
+| Rust | 1.75+ | 核心语言 | 高性能、内存安全、并发友好、零成本抽象 |
+| Actix-web | 4.x | Web框架 | 高性能、功能完善、生态成熟、异步支持 |
+| Tokio | 1.x | 异步运行时 | Rust事实标准的异步运行时 |
+
+### 2.2 数据层
+
+#### 数据库抽象层设计
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Application Layer                         │
+│  (Service Layer - 只依赖 Repository Trait)                  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Repository Trait                          │
+│  trait Repository { ... }                                   │
+│  - 统一的数据访问接口                                        │
+│  - 与具体数据库实现解耦                                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ SQLite/内存模式  │ │   PostgreSQL    │ │     MySQL       │
+│ (开发/测试)     │ │   (生产推荐)    │ │    (生产备选)   │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+#### 数据库配置
+
+```rust
+// config/database.rs
+#[derive(Debug, Clone)]
+pub enum DatabaseBackend {
+    /// SQLite - 用于开发和测试
+    /// 支持内存模式: ":memory:" 或文件模式
+    SQLite { path: String },
+    
+    /// PostgreSQL - 生产环境推荐
+    PostgreSQL { url: String },
+    
+    /// MySQL - 生产环境备选
+    MySQL { url: String },
+}
+
+impl DatabaseBackend {
+    pub fn from_env() -> Self {
+        match std::env::var("DATABASE_TYPE").as_deref() {
+            Ok("sqlite") => DatabaseBackend::SQLite {
+                path: std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| ":memory:".to_string()),
+            },
+            Ok("mysql") => DatabaseBackend::MySQL {
+                url: std::env::var("DATABASE_URL")
+                    .expect("DATABASE_URL must be set for MySQL"),
+            },
+            Ok("postgres") | _ => DatabaseBackend::PostgreSQL {
+                url: std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| {
+                        "postgres://localhost/evolith".to_string()
+                    }),
+            },
+        }
+    }
+}
+```
+
+#### Repository Trait 设计
+
+```rust
+// domain/repository.rs
+use async_trait::async_trait;
+
+#[async_trait]
+pub trait ToolRepository: Send + Sync {
+    async fn create(&self, tool: NewTool) -> Result<Tool, RepositoryError>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Tool>, RepositoryError>;
+    async fn find_all(&self, filter: ToolFilter) -> Result<Vec<Tool>, RepositoryError>;
+    async fn update(&self, id: Uuid, tool: UpdateTool) -> Result<Tool, RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<(), RepositoryError>;
+}
+
+// 不同数据库的实现
+pub struct SqliteToolRepository { /* ... */ }
+pub struct PostgresToolRepository { /* ... */ }
+pub struct MySqlToolRepository { /* ... */ }
+
+#[async_trait]
+impl ToolRepository for SqliteToolRepository { /* ... */ }
+#[async_trait]
+impl ToolRepository for PostgresToolRepository { /* ... */ }
+#[async_trait]
+impl ToolRepository for MySqlToolRepository { /* ... */ }
+```
+
+#### 数据库切换配置
+
+```toml
+# Cargo.toml
+[dependencies]
+# SQL工具包 - 支持多数据库
+sqlx = { version = "0.7", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "uuid",
+    "chrono",
+    "json",
+] }
+
+# 可选的数据库驱动
+sqlx-sqlite = { version = "0.7", optional = true }
+sqlx-postgres = { version = "0.7", optional = true }
+sqlx-mysql = { version = "0.7", optional = true }
+
+[features]
+default = ["sqlite"]
+sqlite = ["sqlx/sqlite", "sqlx-sqlite"]
+postgres = ["sqlx/postgres", "sqlx-postgres"]
+mysql = ["sqlx/mysql", "sqlx-mysql"]
+all-databases = ["sqlite", "postgres", "mysql"]
+```
+
+```bash
+# 开发环境 - 使用SQLite内存数据库
+DATABASE_TYPE=sqlite
+DATABASE_URL=":memory:"
+
+# 开发环境 - 使用SQLite文件数据库（持久化）
+DATABASE_TYPE=sqlite
+DATABASE_URL="sqlite:dev.db?mode=rwc"
+
+# 测试环境 - 使用SQLite内存数据库
+DATABASE_TYPE=sqlite
+DATABASE_URL=":memory:"
+
+# 生产环境 - PostgreSQL
+DATABASE_TYPE=postgres
+DATABASE_URL="postgres://user:pass@localhost:5432/evolith"
+
+# 生产环境 - MySQL
+DATABASE_TYPE=mysql
+DATABASE_URL="mysql://user:pass@localhost:3306/evolith"
+```
+
+#### 初始化数据
+
+```rust
+// infra/db/seed.rs
+pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
+    // 仅在开发/测试环境执行
+    if std::env::var("ENVIRONMENT").unwrap_or_default() != "production" {
+        // 创建测试用户
+        sqlx::query!(
+            r#"
+            INSERT INTO users (id, username, email, password_hash, role)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT DO NOTHING
+            "#,
+            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
+            "testuser",
+            "test@example.com",
+            "hashed_password",
+            "user"
+        )
+        .execute(pool)
+        .await?;
+
+        // 创建示例工具
+        // ...
+    }
+    Ok(())
+}
+```
+
+### 2.3 缓存层
+
+| 技术 | 版本 | 用途 | 选择理由 |
+|------|------|------|----------|
+| Redis | 7.x | 缓存/会话 | 高性能、支持多种数据结构、持久化 |
+
+### 2.4 对象存储
+
+| 技术 | 版本 | 用途 | 选择理由 |
+|------|------|------|----------|
+| MinIO | 最新 | 对象存储 | S3兼容、可自托管、高性能 |
+
+### 2.5 代码执行
+
+| 运行时 | 版本 | 用途 |
+|--------|------|------|
+| Python | 3.11 | 技能执行 |
+| Node.js | 20 LTS | 技能执行 |
+| WASM | - | 高性能执行 |
+
+## 3. 前端技术栈
+
+### 3.1 核心框架
+
+| 技术 | 版本 | 用途 | 选择理由 |
+|------|------|------|----------|
+| Next.js | 14.x | 框架 | SSR/SSG支持、React生态、App Router |
+| React | 18.x | UI库 | 组件化、生态成熟、类型支持 |
+| TypeScript | 5.x | 语言 | 类型安全、开发体验好 |
+
+### 3.2 UI组件
+
+| 技术 | 版本 | 用途 | 选择理由 |
+|------|------|------|----------|
+| Tailwind CSS | 3.x | 样式 | 快速开发、一致性高、可定制 |
+| Radix UI | 最新 | 无样式组件 | 可访问性、键盘导航、无样式设计 |
+| Lucide | 最新 | 图标 | 轻量、图标丰富 |
+
+### 3.3 状态管理
+
+| 技术 | 版本 | 用途 | 选择理由 |
+|------|------|------|----------|
+| Zustand | 4.x | 全局状态 | 轻量、简单易用、TypeScript友好 |
+| TanStack Query | 5.x | 服务端状态 | 缓存、自动刷新、乐观更新 |
+
+### 3.4 工具链
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| ESLint | 8.x | 代码检查 |
+| Prettier | 3.x | 代码格式化 |
+| Vitest | 1.x | 单元测试 |
+| Playwright | 1.x | E2E测试 |
+
+## 4. DevOps
+
+### 4.1 容器化
+
+| 技术 | 用途 |
+|------|------|
+| Docker | 容器化 |
+| Docker Compose | 本地开发编排 |
+| Kubernetes | 生产部署（可选） |
+
+### 4.2 CI/CD
+
+| 阶段 | 工具 | 任务 |
+|------|------|------|
+| 构建 | GitHub Actions | 编译、测试、构建镜像 |
+| 测试 | GitHub Actions | 单元测试、集成测试 |
+| 部署 | GitHub Actions | 部署到生产环境 |
+
+## 5. 监控与日志
+
+### 5.1 监控
+
+| 技术 | 用途 |
+|------|------|
+| Prometheus | 指标收集 |
+| Grafana | 可视化仪表盘 |
+| AlertManager | 告警管理 |
+
+### 5.2 日志
+
+| 技术 | 用途 |
+|------|------|
+| tracing | Rust日志框架 |
+| OpenTelemetry | 分布式追踪 |
+| ELK Stack | 日志聚合（可选） |
+
+## 6. 开发工具
+
+### 6.1 后端
+
+| 工具 | 用途 |
+|------|------|
+| cargo | 包管理、构建 |
+| cargo-watch | 热重载 |
+| cargo-nextest | 测试运行器 |
+| sqlx-cli | 数据库迁移 |
+
+### 6.2 前端
+
+| 工具 | 用途 |
+|------|------|
+| pnpm | 包管理 |
+| Turbopack | 构建工具（Next.js内置） |
+
+## 7. 环境配置
+
+### 7.1 开发环境
+
+```yaml
+# docker-compose.dev.yml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: evolith
+      POSTGRES_USER: evolith
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  minio_data:
+```
+
+### 7.2 环境变量
+
+```bash
+# .env.development
+# 数据库配置 - 开发时使用SQLite内存数据库
+DATABASE_TYPE=sqlite
+DATABASE_URL=":memory:"
+
+# 或者使用文件持久化的SQLite
+# DATABASE_URL="sqlite:dev.db?mode=rwc"
+
+# 使用PostgreSQL（如果需要）
+# DATABASE_TYPE=postgres
+# DATABASE_URL="postgres://evolith:dev_password@localhost:5432/evolith"
+
+# Redis
+REDIS_URL="redis://localhost:6379"
+
+# MinIO
+MINIO_ENDPOINT="localhost:9000"
+MINIO_ACCESS_KEY="minioadmin"
+MINIO_SECRET_KEY="minioadmin"
+MINIO_USE_SSL="false"
+
+# JWT
+JWT_SECRET="dev_secret_key_change_in_production"
+JWT_EXPIRATION="24h"
+
+# 执行沙箱
+SANDBOX_ENABLED="true"
+SANDBOX_TIMEOUT="30"
+SANDBOX_MEMORY="256"
+
+# 环境
+ENVIRONMENT="development"
+LOG_LEVEL="debug"
+
+# 初始化数据
+SEED_DATABASE="true"
+```
+
+```bash
+# .env.production
+# 数据库配置 - 生产环境使用PostgreSQL
+DATABASE_TYPE=postgres
+DATABASE_URL="postgres://user:password@postgres:5432/evolith"
+
+# 或者使用MySQL
+# DATABASE_TYPE=mysql
+# DATABASE_URL="mysql://user:password@mysql:3306/evolith"
+
+# Redis (集群)
+REDIS_URL="redis://redis-cluster:6379"
+
+# MinIO (集群)
+MINIO_ENDPOINT="minio:9000"
+MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY}"
+MINIO_SECRET_KEY="${MINIO_SECRET_KEY}"
+MINIO_USE_SSL="true"
+
+# JWT
+JWT_SECRET="${JWT_SECRET}"
+JWT_EXPIRATION="24h"
+
+# 执行沙箱
+SANDBOX_ENABLED="true"
+SANDBOX_TIMEOUT="30"
+SANDBOX_MEMORY="256"
+
+# 环境
+ENVIRONMENT="production"
+LOG_LEVEL="info"
+
+# 初始化数据
+SEED_DATABASE="false"
+```
+
+## 8. 项目结构
+
+### 8.1 整体结构
+
+```
+evolith/
+├── backend/                  # Rust后端
+│   ├── crates/
+│   │   ├── api/             # API层
+│   │   ├── service-tool/    # 工具服务
+│   │   ├── service-skill/   # 技能服务
+│   │   ├── service-snippet/ # 片段服务
+│   │   ├── service-auth/    # 认证服务
+│   │   ├── domain/          # 领域模型
+│   │   ├── infra/           # 基础设施
+│   │   └── common/          # 公共模块
+│   ├── migrations/          # 数据库迁移
+│   ├── Cargo.toml
+│   └── Cargo.lock
+│
+├── frontend/                 # Next.js前端
+│   ├── src/
+│   │   ├── app/             # 页面
+│   │   ├── components/      # 组件
+│   │   ├── lib/             # 工具库
+│   │   ├── hooks/           # Hooks
+│   │   ├── stores/          # 状态
+│   │   ├── types/           # 类型
+│   │   └── styles/          # 样式
+│   ├── package.json
+│   └── next.config.js
+│
+├── docs/                     # 文档
+├── plans/                    # 计划
+├── scripts/                  # 脚本
+├── docker/                   # Docker配置
+├── docker-compose.yml
+└── README.md
+```
+
+## 9. 数据库切换最佳实践
+
+### 9.1 切换流程
+
+```
+开发阶段                          生产阶段
+┌──────────────┐               ┌──────────────┐
+│ SQLite内存   │               │ PostgreSQL   │
+│ DATABASE_URL │               │ DATABASE_URL │
+│ =":memory:"  │               │ ="postgres:..│
+└──────────────┘               └──────────────┘
+       │                              │
+       │ 相同的Repository Trait       │
+       │ 相同的SQL(通过sqlx抽象)      │
+       │                              │
+       ▼                              ▼
+┌────────────────────────────────────────────┐
+│              无缝切换                       │
+│  - 代码无需修改                             │
+│  - 配置驱动切换                             │
+│  - 迁移脚本统一                             │
+└────────────────────────────────────────────┘
+```
+
+### 9.2 注意事项
+
+1. **SQL兼容性**：使用sqlx的参数化查询，避免数据库特定语法
+2. **迁移脚本**：准备PostgreSQL和MySQL两套迁移脚本
+3. **测试覆盖**：在SQLite和目标生产数据库上都运行测试
+4. **性能差异**：生产环境需要针对目标数据库进行性能测试
