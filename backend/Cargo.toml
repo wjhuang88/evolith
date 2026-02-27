@@ -1,0 +1,93 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/api",
+    "crates/service-tool",
+    "crates/service-skill",
+    "crates/service-snippet",
+    "crates/service-auth",
+    "crates/domain",
+    "crates/infra",
+    "crates/common",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Evolith Team"]
+license = "MIT"
+repository = "https://github.com/wjhuang88/evolith"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Web framework
+actix-web = "4.4"
+actix-cors = "0.7"
+actix-web-httpauth = "0.8"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database
+sqlx = { version = "0.7", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "uuid",
+    "chrono",
+    "json",
+    "migrate",
+] }
+
+# UUID
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+
+# JWT
+jsonwebtoken = "9.2"
+
+# Password hashing
+argon2 = "0.5"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Async traits
+async-trait = "0.1"
+
+# Internal crates
+api = { path = "crates/api" }
+service-tool = { path = "crates/service-tool" }
+service-skill = { path = "crates/service-skill" }
+service-snippet = { path = "crates/service-snippet" }
+service-auth = { path = "crates/service-auth" }
+domain = { path = "crates/domain" }
+infra = { path = "crates/infra" }
+common = { path = "crates/common" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

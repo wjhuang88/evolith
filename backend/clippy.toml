@@ -1,0 +1,11 @@
+# Clippy configuration
+msrv = "1.75"
+
+# Allow certain patterns
+allow-dbg-in-tests = true
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+
+# Complexity thresholds
+cognitive-complexity-threshold = 25
+type-complexity-threshold = 250

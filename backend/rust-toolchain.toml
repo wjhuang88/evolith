@@ -1,0 +1,7 @@
+[toolchain]
+channel = "1.82"
+components = ["rustfmt", "clippy", "rust-analyzer"]
+profile = "default"
+channel = "1.75"
+components = ["rustfmt", "clippy", "rust-analyzer"]
+profile = "default"
