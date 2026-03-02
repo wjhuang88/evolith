@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { toolsApi } from '@/lib/api/tools';
@@ -38,7 +39,9 @@ export default function ToolsPage() {
             标准化的工具封装，通过MCP协议提供服务
           </p>
         </div>
-        <Button>Create Tool</Button>
+        <Link href="/tools/new">
+          <Button>Create Tool</Button>
+        </Link>
       </div>
 
       {loading && (
@@ -62,22 +65,24 @@ export default function ToolsPage() {
       {!loading && !error && tools.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {tools.map((tool) => (
-            <Card key={tool.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {tool.name}
-                  {!tool.is_public && (
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
-                  )}
-                </CardTitle>
-                <CardDescription>{tool.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span className="capitalize">{tool.category}</span>
-                </div>
-              </CardContent>
-            </Card>
+            <Link key={tool.id} href={`/tools/${tool.id}`}>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {tool.name}
+                    {!tool.is_public && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>{tool.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span className="capitalize">{tool.category}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

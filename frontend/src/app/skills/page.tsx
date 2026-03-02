@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { skillsApi } from '@/lib/api/skills';
@@ -38,7 +39,9 @@ export default function SkillsPage() {
             兼容Claude Skills格式的混合型技能系统
           </p>
         </div>
-        <Button>Create Skill</Button>
+        <Link href="/skills/new">
+          <Button>Create Skill</Button>
+        </Link>
       </div>
 
       {loading && (
@@ -62,23 +65,25 @@ export default function SkillsPage() {
       {!loading && !error && skills.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {skills.map((skill) => (
-            <Card key={skill.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {skill.name}
-                  {!skill.is_public && (
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
-                  )}
-                </CardTitle>
-                <CardDescription>{skill.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span className="capitalize">{skill.category}</span>
-                  <span>{skill.version}</span>
-                </div>
-              </CardContent>
-            </Card>
+            <Link key={skill.id} href={`/skills/${skill.id}`}>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {skill.name}
+                    {!skill.is_public && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>{skill.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span className="capitalize">{skill.category}</span>
+                    <span>{skill.version}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

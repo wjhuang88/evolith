@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button, Input } from '@/components/ui';
 import { snippetsApi } from '@/lib/api/snippets';
@@ -38,7 +39,9 @@ export default function SnippetsPage() {
             面向大模型的代码片段仓库，降低token消耗
           </p>
         </div>
-        <Button>Create Snippet</Button>
+        <Link href="/snippets/new">
+          <Button>Create Snippet</Button>
+        </Link>
       </div>
 
       <div className="mb-6">
@@ -66,23 +69,25 @@ export default function SnippetsPage() {
       {!loading && !error && snippets.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {snippets.map((snippet) => (
-            <Card key={snippet.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {snippet.title}
-                  {!snippet.is_public && (
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
-                  )}
-                </CardTitle>
-                <CardDescription>{snippet.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{snippet.language}</span>
-                  <span className="capitalize">{snippet.category}</span>
-                </div>
-              </CardContent>
-            </Card>
+            <Link key={snippet.id} href={`/snippets/${snippet.id}`}>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {snippet.title}
+                    {!snippet.is_public && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>{snippet.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{snippet.language}</span>
+                    <span className="capitalize">{snippet.category}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
