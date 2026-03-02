@@ -1,38 +1,65 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function HomePage() {
+  const { t } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-background to-background/80">
+        <div className="text-center">
+          <h1 className="text-5xl font-bold">Evolith</h1>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-background to-background/80">
+      {/* Language Switcher */}
+      <div className="fixed top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+
       <div className="container flex flex-col items-center justify-center gap-8 px-4 py-16">
         {/* Hero Section */}
         <div className="text-center">
           <h1 className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
-            Evolith
+            {t('home.title')}
           </h1>
           <p className="mt-4 text-xl text-muted-foreground">
-            智能体开发服务平台
+            {t('home.subtitle')}
           </p>
           <p className="mt-2 text-lg text-muted-foreground/80">
-            AI Agent Development Platform
+            {t('home.description')}
           </p>
         </div>
 
         {/* Features Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <FeatureCard
-            title="MCP Tools"
-            description="标准化的工具封装，通过MCP协议提供服务"
+            title={t('nav.tools')}
+            description={t('tools.subtitle')}
             href="/tools"
           />
           <FeatureCard
-            title="Skills"
-            description="兼容Claude Skills格式的混合型技能系统"
+            title={t('nav.skills')}
+            description={t('skills.subtitle')}
             href="/skills"
           />
           <FeatureCard
-            title="Snippets"
-            description="面向大模型的代码片段仓库，降低token消耗"
+            title={t('nav.snippets')}
+            description={t('snippets.subtitle')}
             href="/snippets"
           />
         </div>
@@ -41,12 +68,12 @@ export default function HomePage() {
         <div className="flex gap-4">
           <Link href="/tools">
             <Button variant="primary" size="lg">
-              开始使用
+              {t('home.getStarted')}
             </Button>
           </Link>
           <Link href="/docs">
             <Button variant="outline" size="lg">
-              查看文档
+              {t('home.viewDocs')}
             </Button>
           </Link>
         </div>

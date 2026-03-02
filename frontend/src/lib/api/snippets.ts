@@ -78,4 +78,12 @@ export const snippetsApi = {
     const response = await apiClient.get<ApiResponse<string[]>>('/snippets/languages');
     return response.data;
   },
+
+  /**
+   * Get snippet reference (for LLM consumption)
+   */
+  async getReference(id: string, format: 'direct' | 'inline' | 'with_deps' = 'direct'): Promise<ApiResponse<unknown>> {
+    const response = await apiClient.get<ApiResponse<unknown>>(`/snippets/${id}/reference?format=${format}`);
+    return response.data;
+  },
 };
