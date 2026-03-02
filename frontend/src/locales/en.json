@@ -1,0 +1,133 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "refresh": "Refresh",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "submit": "Submit",
+    "required": "Required",
+    "optional": "Optional",
+    "name": "Name",
+    "description": "Description",
+    "category": "Category",
+    "tags": "Tags",
+    "language": "Language",
+    "actions": "Actions",
+    "noData": "No data",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "home": "Home",
+    "tools": "Tools",
+    "skills": "Skills",
+    "snippets": "Snippets",
+    "docs": "Docs",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "Evolith",
+    "subtitle": "智能体开发服务平台",
+    "description": "AI Agent Development Platform",
+    "getStarted": "Get Started",
+    "viewDocs": "View Docs"
+  },
+  "tools": {
+    "title": "MCP Tools",
+    "subtitle": "Standardized tool encapsulation, served via MCP protocol",
+    "createTool": "Create Tool",
+    "noTools": "No tools available yet. Create your first tool to get started.",
+    "invoke": "Invoke",
+    "invokeDirect": "Invoke (Direct)",
+    "invokeMCP": "Invoke (MCP)",
+    "invoking": "Invoking...",
+    "arguments": "Arguments",
+    "result": "Result",
+    "parameters": "Parameters",
+    "addParameter": "Add Parameter",
+    "removeParameter": "Remove",
+    "parameterName": "Parameter Name",
+    "parameterType": "Type",
+    "parameterRequired": "Required",
+    "parameterDescription": "Description",
+    "parameterDefault": "Default Value",
+    "parameterEnum": "Enum Values",
+    "schemaPreview": "Generated Schema Preview",
+    "category": {
+      "custom": "Custom",
+      "utility": "Utility",
+      "api": "API",
+      "data": "Data",
+      "ai": "AI"
+    },
+    "types": {
+      "string": "String",
+      "number": "Number",
+      "boolean": "Boolean",
+      "object": "Object",
+      "array": "Array"
+    }
+  },
+  "skills": {
+    "title": "Skills",
+    "subtitle": "Hybrid skill system compatible with Claude Skills format",
+    "createSkill": "Create Skill",
+    "noSkills": "No skills available yet. Create your first skill to get started.",
+    "execute": "Execute",
+    "executing": "Executing...",
+    "arguments": "Arguments (JSON)",
+    "output": "Output",
+    "runtime": "Runtime",
+    "executionTime": "Execution Time",
+    "version": "Version",
+    "content": "Content (SKILL.md)",
+    "category": "Category",
+    "tags": "Tags"
+  },
+  "snippets": {
+    "title": "Code Snippets",
+    "subtitle": "LLM-optimized code snippet repository to reduce token consumption",
+    "createSnippet": "Create Snippet",
+    "noSnippets": "No snippets available yet.",
+    "getReference": "Get Reference",
+    "copyCode": "Copy Code",
+    "copyJSON": "Copy JSON",
+    "reference": "Reference",
+    "formats": {
+      "direct": "Direct",
+      "inline": "Inline",
+      "withDeps": "With Dependencies"
+    },
+    "importPath": "Import Path",
+    "usage": "Usage",
+    "dependencies": "Dependencies",
+    "code": "Code",
+    "estimatedTokens": "Estimated Tokens"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  }
+}
