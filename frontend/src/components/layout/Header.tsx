@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useAuthStore } from '@/stores';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: DashboardIcon },
+  { name: 'Dashboard', href: '/dashboard', icon: DashboardIcon },
   { name: 'Tools', href: '/tools', icon: ToolsIcon },
   { name: 'Skills', href: '/skills', icon: SkillsIcon },
   { name: 'Snippets', href: '/snippets', icon: SnippetsIcon },

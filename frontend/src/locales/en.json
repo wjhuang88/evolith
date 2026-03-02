@@ -35,12 +35,39 @@
     "docs": "Docs",
     "settings": "Settings"
   },
-  "home": {
-    "title": "Evolith",
-    "subtitle": "智能体开发服务平台",
-    "description": "AI Agent Development Platform",
-    "getStarted": "Get Started",
-    "viewDocs": "View Docs"
+  "landing": {
+    "hero": {
+      "title": "Build AI Agents Faster",
+      "subtitle": "Evolith provides MCP tools, hybrid skills, and code snippets to accelerate your AI agent development. One platform, endless possibilities.",
+      "getStarted": "Get Started Free",
+      "learnMore": "Learn More"
+    },
+    "features": {
+      "title": "Everything You Need",
+      "subtitle": "Comprehensive tools and resources for AI agent development",
+      "tools": {
+        "title": "MCP Tools",
+        "description": "Standardized tool encapsulation via MCP protocol. Register, discover, and invoke tools with a unified interface."
+      },
+      "skills": {
+        "title": "Hybrid Skills",
+        "description": "Claude Skills compatible format with server-side execution. Share and reuse skills across projects."
+      },
+      "snippets": {
+        "title": "Code Snippets",
+        "description": "LLM-optimized documentation repository. Reduce token consumption and improve development efficiency."
+      }
+    },
+    "cta": {
+      "title": "Ready to Get Started?",
+      "subtitle": "Join thousands of developers building AI agents with Evolith.",
+      "button": "Start Building Now"
+    },
+    "footer": {
+      "docs": "Documentation",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    }
   },
   "tools": {
     "title": "MCP Tools",

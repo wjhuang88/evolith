@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { MainLayout } from './MainLayout';
 
-const noLayoutRoutes = ['/', '/login', '/register', '/dashboard'];
+const noLayoutRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

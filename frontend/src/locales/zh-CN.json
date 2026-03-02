@@ -35,12 +35,39 @@
     "docs": "文档",
     "settings": "设置"
   },
-  "home": {
-    "title": "Evolith",
-    "subtitle": "智能体开发服务平台",
-    "description": "AI Agent Development Platform",
-    "getStarted": "开始使用",
-    "viewDocs": "查看文档"
+  "landing": {
+    "hero": {
+      "title": "更快地构建 AI 智能体",
+      "subtitle": "Evolith 提供 MCP 工具、混合技能和代码片段，加速您的 AI 智能体开发。一个平台，无限可能。",
+      "getStarted": "免费开始",
+      "learnMore": "了解更多"
+    },
+    "features": {
+      "title": "一站式解决方案",
+      "subtitle": "AI 智能体开发所需的完整工具和资源",
+      "tools": {
+        "title": "MCP 工具",
+        "description": "通过 MCP 协议提供标准化工具封装。注册、发现和调用工具，统一的调用接口。"
+      },
+      "skills": {
+        "title": "混合技能",
+        "description": "兼容 Claude Skills 格式，支持服务端执行。跨项目共享和复用技能。"
+      },
+      "snippets": {
+        "title": "代码片段",
+        "description": "面向大模型的文档仓库。降低 token 消耗，提升开发效率。"
+      }
+    },
+    "cta": {
+      "title": "准备好开始了吗？",
+      "subtitle": "加入数千名使用 Evolith 构建 AI 智能体的开发者。",
+      "button": "立即开始构建"
+    },
+    "footer": {
+      "docs": "文档",
+      "privacy": "隐私政策",
+      "terms": "服务条款"
+    }
   },
   "tools": {
     "title": "MCP 工具",
