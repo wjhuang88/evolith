@@ -164,7 +164,7 @@ impl Default for SnippetStore {
             );
             let content = format!("# {}\n\n{}", name, desc);
             let estimated_tokens = (code.len() as u32) / 4;
-            
+
             let snippet = StoredSnippet {
                 id: id.to_string(),
                 name: name.to_string(),

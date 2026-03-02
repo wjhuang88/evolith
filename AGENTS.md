@@ -208,50 +208,75 @@ Completed:
 - [x] P1-011: API client
 - [x] P1-012: Auth state
 
-**Phase 2: Business Logic** - In Progress
+**Phase 2: Business Logic** - COMPLETED ✅
 
-完成:
+Completed:
 - [x] P2-001: Multi-tenant support (see docs/multi-tenant.md)
 - [x] P2-002: User authentication (register, login, logout)
 - [x] P2-003: Tool CRUD operations
 - [x] P2-004: Skill CRUD operations
 - [x] P2-005: Snippet CRUD operations
+- [x] P2-006: MCP protocol implementation
 
-待实现:
-- P2-006: MCP protocol implementation
-
-## Links
-
-- [Requirements](./docs/requirements.md)
-- [Architecture](./docs/architecture.md)
-- [Multi-Tenant Design](./docs/multi-tenant.md) **(NEW)**
-- [API Design](./docs/api-design.md)
-- [Skill Format](./docs/skill-format.md)
-- [Snippet Format](./docs/snippet-format.md)
-
-**Phase 1: Core Framework** - In Progress
+**Phase 3: Core Features** - COMPLETED ✅
 
 Completed:
-- [x] P1-001: Config management with validation
-- [x] P1-002: Comprehensive error handling
-- [x] P1-003: Logging system with request tracing
-- [x] P1-004: Auth middleware (JWT + password hashing)
+- [x] P3-001: Tool parameter validation (JSON Schema)
+- [x] P3-002: Skill remote loading
+- [x] P3-003: Skill code execution (simulated sandbox)
+- [x] P3-004: Snippet reference generation
+
+**Phase 4: Frontend Integration** - COMPLETED ✅
+
+Completed:
+- [x] P4-001: Skill execution UI (modal with arguments input, execution result display)
+- [x] P4-002: MCP tool invocation UI (direct API + JSON-RPC 2.0 protocol)
+- [x] P4-003: Skill create/edit forms
+- [x] P4-004: Snippet reference copy UI (3 formats: direct, inline, with_deps)
+- [x] P4-005: Snippet create/edit forms
+- [x] P4-006: Tool create/edit forms
+
+**Phase 5: Multi-Tenant & i18n** - COMPLETED ✅
+
+Completed:
+- [x] P5-001: Multi-tenant data model (tenant_id on all tables)
+- [x] P5-002: Tenant middleware (tenant identification)
+- [x] P5-003: Tenant quota management (see docs/multi-tenant.md)
+- [x] P5-004: i18n framework (react-i18next)
+- [x] P5-005: Language switching component
+- [x] P5-006: zh-CN and en translations
+
+**Phase 6: User & Permissions** - IN PROGRESS 🚧
+
+Completed:
+- [x] P6-000: MCP endpoint with tenant-aware API Key authentication
+- [x] P6-003: API Key management (backend handlers done)
+
+In Progress:
+- [ ] P6-001: User registration with tenant creation
+- [ ] P6-002: Role-based access control (RBAC)
+- [ ] P6-004: Member invitation system
+- [ ] P6-005: Audit logging
+
+**Phase 7: Billing & Plans** - PENDING
 
 Pending:
-- P1-005: API skeleton
-- P1-006: Unified response format
-- P1-007: Request validation
-- P1-008: Frontend layout components
-- P1-009: UI component library
-- P1-010: Theme system
-- P1-011: API client
-- P1-012: Auth state
+- [ ] P7-001: Plan definitions (Free/Starter/Pro/Enterprise)
+- [ ] P7-002: Subscription management
+- [ ] P7-003: Payment integration (Stripe)
+- [ ] P7-004: Invoice management
+- [ ] P7-005: Usage tracking and quotas
+- [ ] P7-006: Overage billing
 
 ## Links
 
 - [Requirements](./docs/requirements.md)
 - [Architecture](./docs/architecture.md)
+- [Multi-Tenant Design](./docs/multi-tenant.md)
 - [API Design](./docs/api-design.md)
 - [Skill Format](./docs/skill-format.md)
 - [Snippet Format](./docs/snippet-format.md)
 - [Tech Stack](./docs/tech-stack.md)
+- [Testing](./docs/testing.md)
+- [Implementation Plan](./docs/implementation-plan.md)
+- [Session Handoff](./docs/session-handoff.md)

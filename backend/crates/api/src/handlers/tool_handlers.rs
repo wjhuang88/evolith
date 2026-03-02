@@ -106,6 +106,13 @@ pub struct ToolStore {
     tools: Mutex<HashMap<String, StoredTool>>,
 }
 
+impl ToolStore {
+    /// Get all tools
+    pub fn get_all(&self) -> std::sync::MutexGuard<'_, HashMap<String, StoredTool>> {
+        self.tools.lock().unwrap()
+    }
+}
+
 #[derive(Clone)]
 pub struct StoredTool {
     pub id: String,

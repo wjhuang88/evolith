@@ -145,7 +145,7 @@ impl Default for SkillStore {
 
         for (id, name, desc, ver, cat, tags, public) in seed_skills {
             let content = format!("---\nname: {}\nversion: {}\ndescription: {}\n---\n\n# {}\n\nThis skill provides {} functionality.", name, ver, desc, name, cat);
-            
+
             let skill = StoredSkill {
                 id: id.to_string(),
                 name: name.to_string(),

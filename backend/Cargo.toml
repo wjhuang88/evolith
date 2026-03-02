@@ -99,6 +99,9 @@ anyhow = "1.0"
 # Async traits
 async-trait = "0.1"
 
+# JSON Schema validation
+jsonschema = "0.17"
+
 # Internal crates
 api = { path = "crates/api" }
 service-tool = { path = "crates/service-tool" }
