@@ -220,14 +220,16 @@ pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AuthState>) -
         ));
     }
 
-    // Get tenant info
+    // Get tenant info - use user's actual tenant, not hardcoded default
     let tenant = {
         let tenants = state.user_store.tenants.lock().unwrap();
-        tenants.get("default").cloned().unwrap_or(StoredTenant {
-            id: "00000000-0000-0000-0000-000000000001".to_string(),
+        // Look up the tenant by the user's tenant_id, not by "default" slug
+        let tenant = tenants.values().find(|t| t.id == user.tenant_id);
+        tenant.cloned().unwrap_or_else(|| StoredTenant {
+            id: user.tenant_id.clone(),
             name: "Default Tenant".to_string(),
             slug: "default".to_string(),
-            plan: "pro".to_string(),
+            plan: "free".to_string(),
             owner_id: user.id.clone(),
             created_at: Utc::now().timestamp(),
         })

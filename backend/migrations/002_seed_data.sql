@@ -33,51 +33,29 @@ VALUES (
     '00000000-0000-0000-0000-000000000001'
 );
 
--- Sample skill
+-- Sample skill (minimal)
 INSERT OR IGNORE INTO skills (id, name, version, description, skill_md, runtime, visibility, owner_id)
 VALUES (
     '00000000-0000-0000-0002-000000000001',
     'data-analyzer',
     '1.0.0',
     'Analyze data files and generate reports',
-    '---
-name: data-analyzer
-description: Analyze data files and generate reports
-runtime: python311
----
-
-# Data Analyzer
-
-Analyzes CSV, JSON, and Excel files.',
+    '# Data Analyzer',
     'python311',
     'public',
     '00000000-0000-0000-0000-000000000001'
 );
 
--- Sample snippet
+-- Sample snippet (minimal)
 INSERT OR IGNORE INTO snippets (id, name, language, framework, tags, content, code, estimated_tokens, visibility, owner_id)
 VALUES (
     '00000000-0000-0000-0003-000000000001',
     'useDebounce Hook',
     'typescript',
     'react',
-    '["hooks", "debounce", "performance"]',
-    '# useDebounce Hook
-
-A React hook for debouncing values.
-
-## Usage
-```tsx
-const debouncedValue = useDebounce(value, 300);
-```',
-    'export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debouncedValue;
-}',
+    '["hooks"]',
+    '# useDebounce Hook',
+    'export function useDebounce(v,d){return v}',
     150,
     'public',
     '00000000-0000-0000-0000-000000000001'

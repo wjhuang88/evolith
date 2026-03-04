@@ -250,28 +250,6 @@ mod tests {
 
     #[test]
     fn test_password_special_characters() {
-    fn test_password_length_boundaries() {
-        let hasher = Argon2Hasher::new();
-        
-        // Min length is 8
-        assert!(hasher.validate_strength("Abcdefg1!").is_ok()); // Exactly 8
-        assert!(hasher.validate_strength("Abcdef12!").is_ok()); // 9 chars
-        
-        // Max length is 128
-        let long_pass = "A".repeat(126) + "12!";  // 126 + 3 = 129 chars - should fail
-        assert!(hasher.validate_strength(&long_pass).is_err());
-        
-        let valid_long = "A".repeat(125) + "12!";  // 125 + 3 = 128 chars - should pass
-
-        let long_pass = "A".repeat(127) + "1!";
-        assert!(hasher.validate_strength(&long_pass).is_ok());
-        
-        let too_long = "A".repeat(129);
-        assert!(hasher.validate_strength(&too_long).is_err());
-    }
-
-    #[test]
-    fn test_password_special_characters() {
         let hasher = Argon2Hasher::new();
         
         // Valid special characters

@@ -53,7 +53,8 @@ pub struct MemberInfo {
 }
 
 /// Invitation info response
-#[derive(Debug, Serialize)]
+/// NOTE: Deriving Clone is necessary for len() to be called after .collect() below
+#[derive(Debug, Serialize, Clone)]
 pub struct InvitationInfo {
     pub id: String,
     pub email: String,
@@ -86,4 +87,10 @@ pub struct MemberListResponse {
 pub struct InvitationListResponse {
     pub invitations: Vec<InvitationInfo>,
     pub total: usize,
+}
+
+/// Transfer ownership request
+#[derive(Debug, Deserialize, Serialize, Validate)]
+pub struct TransferOwnershipRequest {
+    pub new_owner_id: uuid::Uuid,
 }

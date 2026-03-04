@@ -18,6 +18,9 @@ actix-cors.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
+sqlx.workspace = true
+domain.workspace = true
+service-audit.workspace = true
 
 [workspace]
 resolver = "2"
@@ -30,6 +33,7 @@ members = [
     "crates/domain",
     "crates/infra",
     "crates/common",
+    "crates/service-audit",
 ]
 
 [workspace.package]
@@ -111,6 +115,7 @@ service-auth = { path = "crates/service-auth" }
 domain = { path = "crates/domain" }
 infra = { path = "crates/infra" }
 common = { path = "crates/common" }
+service-audit = { path = "crates/service-audit" }
 
 [profile.release]
 lto = true

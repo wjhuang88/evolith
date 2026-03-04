@@ -9,3 +9,4 @@ pub mod member_handlers;
 pub mod skill_handlers;
 pub mod snippet_handlers;
 pub mod tool_handlers;
+pub mod audit_handlers;

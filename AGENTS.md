@@ -20,6 +20,7 @@ evolith/
 │   │   ├── service-skill/ # Skill execution service
 │   │   ├── service-snippet/# Code snippets service
 │   │   ├── service-auth/  # JWT, password, RBAC
+│   │   ├── service-audit/ # Audit logging
 │   │   ├── domain/        # Models, Repository traits
 │   │   ├── infra/         # Config, DB, cache, storage
 │   │   └── common/        # Errors, utils, logging
@@ -246,26 +247,26 @@ Completed:
 - [x] P5-005: Language switching component
 - [x] P5-006: zh-CN and en translations
 
-**Phase 6: User & Permissions** - IN PROGRESS 🚧
+**Phase 6: User & Permissions** - COMPLETED ✅
 
 Completed:
 - [x] P6-000: MCP endpoint with tenant-aware API Key authentication
-- [x] P6-003: API Key management (backend handlers done)
+- [x] P6-001: User registration with tenant creation
+- [x] P6-002: Role-based access control (RBAC)
+- [x] P6-003: API Key management
+- [x] P6-004: Member invitation system
+- [x] P6-005: Audit logging
 
-In Progress:
-- [ ] P6-001: User registration with tenant creation
-- [ ] P6-002: Role-based access control (RBAC)
-- [ ] P6-004: Member invitation system
-- [ ] P6-005: Audit logging
+**Phase 7: Billing & Plans** - COMPLETED ✅
 
-**Phase 7: Billing & Plans** - PENDING
+Completed:
+- [x] P7-001: Plan definitions (Free/Starter/Pro/Enterprise)
+- [x] P7-002: Subscription management
+- [x] P7-004: Invoice management
+- [x] P7-005: Usage tracking and quotas
 
 Pending:
-- [ ] P7-001: Plan definitions (Free/Starter/Pro/Enterprise)
-- [ ] P7-002: Subscription management
 - [ ] P7-003: Payment integration (Stripe)
-- [ ] P7-004: Invoice management
-- [ ] P7-005: Usage tracking and quotas
 - [ ] P7-006: Overage billing
 
 ## Links

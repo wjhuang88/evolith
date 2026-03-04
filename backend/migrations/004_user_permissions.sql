@@ -5,6 +5,7 @@
 -- Add verification and reset fields to users
 -- ============================================
 
+ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0;
 ALTER TABLE users ADD COLUMN verify_token TEXT;
 ALTER TABLE users ADD COLUMN verified_at TEXT;
 ALTER TABLE users ADD COLUMN reset_token TEXT;

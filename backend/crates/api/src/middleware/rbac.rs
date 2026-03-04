@@ -156,6 +156,8 @@ pub fn check_tenant_access(
 pub struct RbacMiddleware {
     pub jwt_secret: String,
     pub required_role: Option<TenantRole>,
+    /// Paths that don't require authentication (e.g., "/health", "/api/v1/auth")
+    pub public_paths: Vec<String>,
 }
 
 impl RbacMiddleware {
@@ -163,6 +165,11 @@ impl RbacMiddleware {
         Self {
             jwt_secret,
             required_role: None,
+            public_paths: vec![
+                "/health".to_string(),
+                "/mcp".to_string(),
+                "/api/v1/auth".to_string(),
+            ],
         }
     }
 
@@ -170,7 +177,15 @@ impl RbacMiddleware {
         self.required_role = Some(role);
         self
     }
+
+    /// Add a public path that doesn't require authentication
+    pub fn add_public_path(mut self, path: &str) -> Self {
+        self.public_paths.push(path.to_string());
+        self
+    }
 }
+
+
 
 impl<S> actix_web::dev::Transform<S, actix_web::dev::ServiceRequest> for RbacMiddleware
 where
@@ -192,6 +207,7 @@ where
             service,
             jwt_secret: self.jwt_secret.clone(),
             required_role: self.required_role.clone(),
+            public_paths: self.public_paths.clone(),
         }))
     }
 }
@@ -200,6 +216,7 @@ pub struct RbacMiddlewareService<S> {
     service: S,
     jwt_secret: String,
     required_role: Option<TenantRole>,
+    public_paths: Vec<String>,
 }
 
 impl<S> actix_web::dev::Service<actix_web::dev::ServiceRequest> for RbacMiddlewareService<S>
@@ -221,6 +238,17 @@ where
     fn call(&self, req: actix_web::dev::ServiceRequest) -> Self::Future {
         let jwt_secret = self.jwt_secret.clone();
         let required_role = self.required_role.clone();
+        let public_paths = self.public_paths.clone();
+
+        // Check if the request path is public (doesn't require authentication)
+        let path = req.path();
+        let is_public = public_paths.iter().any(|p| path.starts_with(p));
+
+        if is_public {
+            // Public path - allow without authentication
+            let fut = self.service.call(req);
+            return Box::pin(async move { fut.await });
+        }
 
         // Extract claims from token
         let current_user = extract_claims(&req, &jwt_secret).and_then(|claims| {

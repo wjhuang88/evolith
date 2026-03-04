@@ -18,9 +18,11 @@ thiserror.workspace = true
 anyhow.workspace = true
 uuid.workspace = true
 chrono.workspace = true
+jsonwebtoken.workspace = true
 
 # Internal crates
 service-tool.workspace = true
+service-audit.workspace = true
 service-skill.workspace = true
 service-snippet.workspace = true
 service-auth.workspace = true

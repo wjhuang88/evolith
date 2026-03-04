@@ -2,14 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const { register, isLoading, error, clearError } = useAuthStore();
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -18,12 +14,16 @@ export default function RegisterPage() {
     tenantName: '',
     tenantSlug: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [verificationLink, setVerificationLink] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    clearError();
+    setError('');
     setValidationError('');
   };
 
@@ -45,26 +45,115 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = validateForm();
     if (validation) {
       setValidationError(validation);
       return;
     }
-    
+
+    setIsLoading(true);
+    setError('');
+
     try {
-      await register(
-        formData.email, 
-        formData.username, 
-        formData.password,
-        formData.tenantName || undefined,
-        formData.tenantSlug || undefined
-      );
-      router.push('/dashboard');
+      const response = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          username: formData.username,
+          password: formData.password,
+          tenant_name: formData.tenantName || undefined,
+          tenant_slug: formData.tenantSlug || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsSuccess(true);
+        // In development, the API returns the verification link
+        if (data.verification_link) {
+          setVerificationLink(data.verification_link);
+        }
+      } else {
+        setError(data.error?.message || 'Registration failed');
+      }
     } catch {
-      // Error is handled in store
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+                <span className="text-white font-bold">E</span>
+              </div>
+            </Link>
+            <h1 className="mt-6 text-2xl font-bold text-foreground">Check Your Email</h1>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+            <div className="text-center">
+              <div className="mb-4 rounded-full bg-green-100 p-3 dark:bg-green-900/20">
+                <svg
+                  className="mx-auto h-8 w-8 text-green-600 dark:text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+
+              <p className="mb-4 text-muted-foreground">
+                We&apos;ve sent a verification link to <strong>{formData.email}</strong>.
+                Please check your email and click the link to verify your account.
+              </p>
+
+              {verificationLink && (
+                <div className="mb-4 rounded-md bg-muted p-3">
+                  <p className="mb-2 text-sm text-muted-foreground">Development mode - Verification link:</p>
+                  <Link
+                    href={verificationLink}
+                    className="break-all text-sm text-primary hover:underline"
+                  >
+                    {verificationLink}
+                  </Link>
+                </div>
+              )}
+
+              <div className="mt-6 space-y-3">
+                <Link href="/login">
+                  <Button className="w-full">Go to Login</Button>
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Didn&apos;t receive the email?{' '}
+                  <button
+                    onClick={() => setIsSuccess(false)}
+                    className="text-primary hover:underline"
+                  >
+                    Try again
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
