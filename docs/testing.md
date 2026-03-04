@@ -51,6 +51,18 @@ cargo test --package service-auth test_jwt
 |-------|---------|---------|
 | service-auth | `src/jwt.rs` | JWT 令牌生成与验证 |
 | service-auth | `src/password.rs` | 密码哈希与验证 |
+| domain | `src/user.rs` | 用户、租户邀请模型验证 |
+| domain | `src/tenant.rs` | 租户、配额模型验证 |
+| domain | `src/audit.rs` | 审计日志模型验证 |
+| common | `src/error.rs` | 错误类型定义 |
+| common | `src/log.rs` | 日志配置 |
+| api | `src/middleware/tenant.rs` | 多租户中间件 |
+| api | `src/middleware/rbac.rs` | RBAC角色访问控制 |
+
+| Crate | 测试文件 | 测试内容 |
+|-------|---------|---------|
+| service-auth | `src/jwt.rs` | JWT 令牌生成与验证 |
+| service-auth | `src/password.rs` | 密码哈希与验证 |
 | common | `src/error.rs` | 错误类型定义 |
 | common | `src/log.rs` | 日志配置 |
 | api | `src/middleware/tenant.rs` | 多租户中间件 |
@@ -413,4 +425,93 @@ npm run dev
 
 # 生产构建分析
 ANALYZE=true npm run build
+```
+
+
+## 9. Phase 6 测试用例 (用户与权限系统)
+
+### 9.1 用户注册与登录
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| 用户注册 | 提交有效用户信息 | 创建用户并自动创建租户 |
+| 用户注册-无效邮箱 | 提交无效邮箱格式 | 验证失败，返回错误 |
+| 用户注册-密码过短 | 密码少于8字符 | 验证失败，返回错误 |
+| 用户登录 | 使用正确凭证登录 | 返回JWT token |
+| 用户登录-错误密码 | 使用错误密码 | 认证失败，返回错误 |
+| JWT token验证 | 验证token包含正确声明 | token包含user_id, tenant_id, role |
+| Token过期处理 | 使用过期token | 返回认证错误 |
+
+### 9.2 密码安全
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| 密码哈希 | 验证Argon2id哈希 | 哈希以$argon2id$开头 |
+| 密码验证 | 验证正确密码 | 返回true |
+| 密码验证-错误 | 验证错误密码 | 返回false |
+| 唯一哈希 | 相同密码多次哈希 | 产生不同哈希(随机salt) |
+| 密码强度-有效 | 符合所有复杂度要求 | 验证通过 |
+| 密码强度-无大写 | 缺少大写字母 | 验证失败 |
+| 密码强度-无小写 | 缺少小写字母 | 验证失败 |
+| 密码强度-无数字 | 缺少数字 | 验证失败 |
+| 密码强度-无特殊字符 | 缺少特殊字符 | 验证失败 |
+| 密码强度-过长 | 超过128字符 | 验证失败 |
+| Unicode密码 | 使用Unicode字符 | 哈希成功 |
+
+### 9.3 RBAC (角色访问控制)
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| 角色层级-Owner | Owner角色权限 | 可以执行所有操作 |
+| 角色层级-Admin | Admin角色权限 | 不能执行owner级别操作 |
+| 角色层级-Member | Member角色权限 | 只能执行member级别操作 |
+| 租户访问-正确 | 访问自己租户资源 | 允许访问 |
+| 租户访问-错误 | 访问其他租户资源 | 拒绝访问 |
+| 角色不足-Owner所需 | Member尝试Owner操作 | 返回Forbidden |
+| Bearer Token提取 | 从Authorization头提取 | 正确提取token |
+| API Key提取 | 从X-API-Key头提取 | 正确提取key |
+| 无Token访问 | 无认证信息访问 | 返回Unauthorized |
+
+### 9.4 租户模型
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| 默认计划 | TenantPlan默认值 | 返回Free |
+| 计划显示 | 各计划to_string | 返回小写计划名 |
+| Quotas-Free计划 | Free计划配额 | 3用户, 5工具, 10技能 |
+| Quotas-Starter计划 | Starter计划配额 | 10用户, 20工具, 50技能 |
+| Quotas-Pro计划 | Pro计划配额 | 50用户, 100工具, 200技能 |
+| 租户邀请序列化 | Invitation转JSON | 正确序列化角色 |
+| 邀请请求验证 | 验证有效邀请请求 | 验证通过 |
+| 邀请请求-无效邮箱 | 验证无效邮箱 | 验证失败 |
+| 创建租户请求-无效slug | slug包含下划线 | 验证失败 |
+
+### 9.5 审计日志
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| 审计日志创建 | 创建完整审计日志 | 所有字段正确填充 |
+| 审计日志序列化 | 序列化AuditLog | 正确转为JSON |
+| 系统级审计 | 创建无租户审计日志 | tenant_id为None |
+| 复杂详情 | 嵌套JSON详情 | 正确序列化 |
+
+### 9.6 运行 Phase 6 测试
+
+```bash
+# 运行所有后端测试
+cargo test --workspace
+
+# 仅运行 domain crate 测试
+cargo test -p domain
+
+# 仅运行 service-auth 测试
+cargo test -p service-auth
+
+# 仅运行 api 测试
+cargo test -p api
+
+# 运行特定测试
+cargo test test_jwt
+cargo test test_password
+cargo test test_role_hierarchy
 ```

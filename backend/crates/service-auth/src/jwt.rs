@@ -176,4 +176,68 @@ mod tests {
         assert_eq!(parse_duration("30m"), Duration::minutes(30));
         assert_eq!(parse_duration("1w"), Duration::weeks(1));
     }
+
+    #[test]
+    fn test_token_contains_correct_claims() {
+        let handler = create_test_handler();
+        let user_id = Uuid::new_v4();
+        let role = "admin";
+        let tenant_id = Uuid::new_v4();
+        let tenant_role = "owner";
+
+        let (token, _exp) = handler
+            .generate_token(user_id, role, tenant_id, tenant_role)
+            .unwrap();
+
+        let token_data = handler.validate_token(&token).unwrap();
+        assert_eq!(token_data.user_id, user_id);
+        assert_eq!(token_data.role, role);
+        assert_eq!(token_data.tenant_id, tenant_id);
+        assert_eq!(token_data.tenant_role, tenant_role);
+    }
+
+    #[test]
+    fn test_token_with_nil_tenant_id() {
+        let handler = create_test_handler();
+        let user_id = Uuid::new_v4();
+        let tenant_id = Uuid::nil();
+
+        let (token, _exp) = handler
+            .generate_token(user_id, "user", tenant_id, "member")
+            .unwrap();
+
+        let token_data = handler.validate_token(&token).unwrap();
+        assert_eq!(token_data.tenant_id, Uuid::nil());
+    }
+
+    #[test]
+    fn test_token_expiration_handling() {
+        let handler = create_test_handler();
+        let user_id = Uuid::new_v4();
+        let tenant_id = Uuid::new_v4();
+
+        let (token, exp) = handler
+            .generate_token(user_id, "user", tenant_id, "member")
+            .unwrap();
+
+        // Token should not be expired immediately
+        let token_data = handler.validate_token(&token).unwrap();
+        assert!(!handler.is_expired(&token_data));
+
+        // Verify expiration timestamp is in the future
+        assert!(exp > Utc::now().timestamp());
+    }
+
+    #[test]
+    fn test_parse_duration_edge_cases() {
+        // Empty string defaults to 24h
+        assert_eq!(parse_duration(""), Duration::hours(24));
+        // Unknown suffix defaults to 24h
+        assert_eq!(parse_duration("10x"), Duration::hours(24));
+        // Valid cases
+        assert_eq!(parse_duration("1h"), Duration::hours(1));
+        assert_eq!(parse_duration("2d"), Duration::days(2));
+        assert_eq!(parse_duration("3w"), Duration::weeks(3));
+        assert_eq!(parse_duration("60s"), Duration::seconds(60));
+    }
 }

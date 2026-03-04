@@ -16,56 +16,21 @@
 | P6 | 用户与权限系统 | 🔄 进行中 |
 | P7 | 套餐与计费系统 | ⏳ 待开始 |
 
-## 最新进展 (2026-03-02)
+## 最新进展 (2026-03-04)
 
-### MCP 端点实现 ✅
+### 架构审查完成 ✅
 
-已完成跨租户 MCP 端点实现：
+已完成对后端代码库的全面架构审查，发现以下主要问题：
 
-**架构设计:**
-- 统一端点: `/mcp` (POST)
-- 认证方式: `Authorization: Bearer <key>` 或 `X-API-Key: <key>`
-- 工具过滤: 根据 API Key 关联的 tenant_id 返回不同工具列表
-- 公开工具: 无需认证即可访问 (is_public=true)
-- 私有工具: 需要有效 API Key 且 tenant_id 匹配
+**关键发现:**
+- 81+ `.unwrap()`/`.expect()` 潜在panic点
+- 739行 auth_handlers.rs 混合业务逻辑
+- Cache模块是占位符，未实现
+- SandboxedExecutor 未实现 (todo!())
+- Handler文件过大需拆分
+- 重复CRUD模式可抽取
 
-**已验证功能:**
-- `initialize` - 返回服务器能力
-- `tools/list` - 返回工具列表（无认证返回公开工具）
-- `tools/call` - 执行工具调用
-- 权限检查 - 私有工具拒绝无认证访问
-
-**关键文件:**
-- `backend/crates/api/src/handlers/mcp_handlers.rs` - MCP 处理器
-- `backend/crates/api/src/handlers/tool_handlers.rs` - ToolStore 和 StoredTool
-- `backend/crates/api/src/routes/mcp.rs` - 路由配置
-- `backend/src/main.rs` - McpState 初始化
-
-**技术决策:**
-- MCP 使用工具名称而非 UUID 进行查找
-- API Key 同时支持 Bearer token 和 X-API-Key header
-- ToolStore 使用内存存储（开发模式）
-
-**测试命令:**
-```bash
-# 健康检查
-curl -s http://localhost:8080/health
-
-# MCP initialize
-curl -s -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
-
-# MCP tools/list (无认证)
-curl -s -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
-
-# MCP tools/call
-curl -s -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"filesystem_read","arguments":{"path":"/tmp/test.txt"}}}'
-```
+**详细分析见: 架构重构计划章节**
 
 ---
 
@@ -85,7 +50,7 @@ ALTER TABLE users ADD COLUMN verified_at TEXT;
 ALTER TABLE users ADD COLUMN reset_token TEXT;
 ALTER TABLE users ADD COLUMN reset_expires_at TEXT;
 
--- API Keys 表（扩展自文档）
+-- API Keys 表
 CREATE TABLE IF NOT EXISTS api_keys (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL REFERENCES tenants(id),
@@ -390,3 +355,235 @@ CREATE INDEX IF NOT EXISTS idx_daily_usage ON daily_usage(tenant_id, date);
 - [ ] API 文档完整
 - [ ] 部署文档完整
 - [ ] 用户手册完整
+
+---
+
+## 架构重构计划 (Technical Debt & Refactoring)
+
+基于代码审查，发现以下需要重构的问题。优先级：**P0=紧急, P1=高, P2=中**
+
+### R1: 提取通用CRUD服务 [P1]
+
+**问题**: `handlers/tool_handlers.rs`、`handlers/skill_handlers.rs`、`handlers/snippet_handlers.rs` 存在大量重复的CRUD模式。
+
+**建议**:
+- 创建通用 `CrudService<T>` trait
+- 抽取 `create`, `update`, `delete`, `list`, `get_by_id` 通用实现
+- 位置: `backend/crates/service-common/src/crud.rs`
+
+**工作量**: 2-3天
+
+---
+
+### R2: 业务逻辑从Handler抽取到Service层 [P0]
+
+**问题**: `handlers/auth_handlers.rs` (739行) 包含业务逻辑和内存存储，不符合分层架构。
+
+**当前问题**:
+```rust
+// auth_handlers.rs - 业务逻辑在Handler层
+struct InMemoryUserStore { ... }  // 不应该在handlers中
+
+impl InMemoryUserStore {
+    fn generate_token(&self, ...) -> ... { ... }  // 应该移到service层
+}
+```
+
+**建议**:
+- 创建 `service-auth` crate 的业务逻辑模块
+- 将 token 生成、用户存储移至 service 层
+- Handler 只负责请求/响应转换
+
+**工作量**: 3-5天
+
+---
+
+### R3: 实现缓存层 [P0]
+
+**问题**: `infra/src/cache.rs` 是占位符，未实现实际缓存。
+
+**建议**:
+```rust
+// 实现 RedisCache
+pub struct RedisCache {
+    client: redis::Client,
+}
+
+impl Cache for RedisCache {
+    async fn get(&self, key: &str) -> Option<String> { ... }
+    async fn set(&self, key: &str, value: &str, ttl: Duration) { ... }
+    async fn delete(&self, key: &str) { ... }
+}
+```
+
+**优先级**: 
+- API Key 缓存 (高)
+- Skill/Snippet 结果缓存 (中)
+- 用户会话缓存 (中)
+
+**工作量**: 2-3天
+
+---
+
+### R4: 实现沙箱执行器 [P0]
+
+**问题**: `service-skill/src/executor.rs` 的 `SandboxedExecutor::execute()` 是 `todo!()`。
+
+**建议**:
+- 使用 WebAssembly (wasmtime) 或 firecracker
+- 实现资源限制 (CPU/内存/执行时间)
+- 添加超时控制
+
+**工作量**: 5-7天
+
+---
+
+### R5: Handler文件拆分 [P1]
+
+**问题**: 某些Handler文件过大。
+
+| 文件 | 行数 | 建议拆分 |
+|------|------|----------|
+| auth_handlers.rs | 739 | auth_service + token_service |
+| member_handlers.rs | 563 | member_service + invitation_service |
+
+**建议**:
+```
+api/src/handlers/
+├── auth/
+│   ├── mod.rs
+│   ├── login.rs
+│   ├── register.rs
+│   └── password.rs
+├── members/
+│   ├── mod.rs
+│   ├── list.rs
+│   ├── invite.rs
+│   └── role.rs
+```
+
+**工作量**: 2-3天
+
+---
+
+### R6: 消除unwrap()风险 [P1]
+
+**问题**: 全项目81+处 `.unwrap()` 和 `.expect()`。
+
+**当前风险示例**:
+```rust
+// user_repo.rs
+let user = sqlx::query_as(...)
+    .fetch_one(&pool)
+    .await
+    .unwrap();  // 可能panic
+```
+
+**建议**:
+- 使用 `?` 运算符传播错误
+- 添加 `Result` 类型别名
+- 在关键路径使用 `ok_or()` + 错误信息
+
+**工作量**: 1-2天
+
+---
+
+### R7: 添加分页支持 [P2]
+
+**问题**: 所有 `find_all` 端点无分页，大数据量时性能问题。
+
+**建议**:
+```rust
+// 统一分页参数
+#[derive(Deserialize)]
+pub struct Pagination {
+    #[serde(default = "default_limit")]
+    limit: u32,
+    #[serde(default)]
+    offset: u32,
+}
+
+// 响应中添加分页元数据
+pub struct PaginatedResponse<T> {
+    data: Vec<T>,
+    pagination: PaginationMeta,
+}
+```
+
+**工作量**: 1-2天
+
+---
+
+### R8: 移除空抽象层 [P2]
+
+**问题**: `service-snippet/src/repository.rs` 只有 `todo!()`。
+
+**建议**:
+- 如果不需要，删除该模块
+- 如果需要，实现或委托给 domain trait
+
+**工作量**: 0.5天
+
+---
+
+### R9: 统一错误处理 [P2]
+
+**问题**: 部分handler返回不一致的错误格式。
+
+**建议**:
+- 确保所有错误通过 `ApiResponse<T>::error()` 返回
+- 添加全局错误中间件统一处理
+
+**工作量**: 0.5天
+
+---
+
+### R10: 配置外部化 [P2]
+
+**问题**: 硬编码值散落各处。
+
+**当前问题**:
+```rust
+// service-tool/src/mcp.rs
+const TOOL_TIMEOUT: u64 = 30;  // 硬编码
+
+// service-skill/src/sandbox.rs
+const MAX_MEMORY_MB: u64 = 128;  // 硬编码
+```
+
+**建议**:
+- 抽取到 `infra/src/config.rs`
+- 支持环境变量覆盖
+
+**工作量**: 1天
+
+---
+
+### 重构优先级矩阵
+
+| 优先级 | 重构项 | 影响 | 工作量 |
+|--------|--------|------|--------|
+| P0 | R2: 业务逻辑抽取 | 架构 | 3-5天 |
+| P0 | R3: 缓存实现 | 性能 | 2-3天 |
+| P0 | R4: 沙箱执行器 | 功能 | 5-7天 |
+| P1 | R1: 通用CRUD | 可维护性 | 2-3天 |
+| P1 | R5: Handler拆分 | 可维护性 | 2-3天 |
+| P1 | R6: 消除unwrap | 稳定性 | 1-2天 |
+| P2 | R7: 分页支持 | 性能 | 1-2天 |
+| P2 | R8: 空抽象移除 | 清洁度 | 0.5天 |
+| P2 | R9: 错误处理统一 | 一致性 | 0.5天 |
+| P2 | R10: 配置外部化 | 可维护性 | 1天 |
+
+**总计**: ~18-24天
+
+---
+
+### 重构与功能开发并行计划
+
+建议在完成当前Phase 6后，优先完成P0重构再开始Phase 7：
+
+1. **Week 1-2**: 完成P6收尾 (RBAC中间件集成)
+2. **Week 3**: P0重构 (R2, R3, R4) - 业务逻辑、缓存、沙箱
+3. **Week 4**: P1重构 (R1, R5, R6) - CRUD、拆分、错误处理
+4. **Week 5**: P7功能开发 (套餐与计费)
+5. **Week 6**: P2重构 + P7收尾

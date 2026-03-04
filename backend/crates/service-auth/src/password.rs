@@ -234,4 +234,99 @@ mod tests {
         // Same password should produce different hashes due to random salt
         assert_ne!(hash1, hash2);
     }
+
+    #[test]
+    fn test_password_length_boundaries() {
+        let hasher = Argon2Hasher::new();
+        
+        // Min length is 8
+        assert!(hasher.validate_strength("Abcdefg1!").is_ok()); // Exactly 8
+        assert!(hasher.validate_strength("Abcdef12!").is_ok()); // 9 chars
+        
+        // Invalid: too long (> 128 chars)
+        let too_long = "Aa1!".repeat(33);  // 4 * 33 = 132 chars
+        assert!(hasher.validate_strength(&too_long).is_err());
+    }
+
+    #[test]
+    fn test_password_special_characters() {
+    fn test_password_length_boundaries() {
+        let hasher = Argon2Hasher::new();
+        
+        // Min length is 8
+        assert!(hasher.validate_strength("Abcdefg1!").is_ok()); // Exactly 8
+        assert!(hasher.validate_strength("Abcdef12!").is_ok()); // 9 chars
+        
+        // Max length is 128
+        let long_pass = "A".repeat(126) + "12!";  // 126 + 3 = 129 chars - should fail
+        assert!(hasher.validate_strength(&long_pass).is_err());
+        
+        let valid_long = "A".repeat(125) + "12!";  // 125 + 3 = 128 chars - should pass
+
+        let long_pass = "A".repeat(127) + "1!";
+        assert!(hasher.validate_strength(&long_pass).is_ok());
+        
+        let too_long = "A".repeat(129);
+        assert!(hasher.validate_strength(&too_long).is_err());
+    }
+
+    #[test]
+    fn test_password_special_characters() {
+        let hasher = Argon2Hasher::new();
+        
+        // Valid special characters
+        assert!(hasher.validate_strength("PassWord1!").is_ok());
+        assert!(hasher.validate_strength("PassWord1@").is_ok());
+        assert!(hasher.validate_strength("PassWord1#").is_ok());
+        assert!(hasher.validate_strength("PassWord1$").is_ok());
+        assert!(hasher.validate_strength("PassWord1%").is_ok());
+        assert!(hasher.validate_strength("PassWord1^").is_ok());
+        assert!(hasher.validate_strength("PassWord1&").is_ok());
+        assert!(hasher.validate_strength("PassWord1*").is_ok());
+    }
+
+    #[test]
+    fn test_verify_invalid_hash_format() {
+        let hasher = Argon2Hasher::new();
+        
+        // Invalid hash formats
+        assert!(hasher.verify_password("test", "invalid-hash").is_err());
+        assert!(hasher.verify_password("test", "").is_err());
+    }
+
+    #[test]
+    fn test_empty_password() {
+        let hasher = Argon2Hasher::new();
+        
+        // Empty password should fail validation
+        let result = hasher.validate_strength("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_whitespace_password() {
+        let hasher = Argon2Hasher::new();
+        
+        // Password with only whitespace should fail
+        let result = hasher.validate_strength("    ");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_unicode_password() {
+        let hasher = Argon2Hasher::new();
+        
+        // Unicode characters are allowed in passwords
+        let result = hasher.hash_password("密码123ABC!");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_password_with_spaces() {
+        let hasher = Argon2Hasher::new();
+        
+        // Password with spaces should work (special char check allows non-alphanumeric)
+        let result = hasher.validate_strength("Pass Word1!");
+        assert!(result.is_ok());
+    }
 }
