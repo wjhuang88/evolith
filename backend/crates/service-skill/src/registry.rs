@@ -10,7 +10,7 @@ pub struct SkillRegistry;
 
 #[async_trait]
 impl SkillRepository for SkillRegistry {
-    async fn create(&self, _skill: NewSkill, _owner_id: Uuid) -> Result<Skill> {
+    async fn create(&self, _skill: NewSkill, _owner_id: Uuid, _tenant_id: Uuid) -> Result<Skill> {
         todo!("Skill registry not implemented")
     }
 

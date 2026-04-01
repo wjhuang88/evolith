@@ -3,6 +3,9 @@ name = "service-skill"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 # Workspace dependencies
 async-trait.workspace = true
@@ -14,7 +17,11 @@ thiserror.workspace = true
 tracing.workspace = true
 uuid.workspace = true
 chrono.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
+bollard.workspace = true
 
 # Internal crates
 domain.workspace = true
 common.workspace = true
+infra.workspace = true

@@ -17,7 +17,11 @@ pub struct ExecuteRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExecuteResponse {
     pub result: serde_json::Value,
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: i64,
     pub execution_time_ms: u64,
+    pub timed_out: bool,
 }
 
 /// Skill executor trait
@@ -37,11 +41,14 @@ impl DefaultSkillExecutor {
 
 #[async_trait]
 impl SkillExecutor for DefaultSkillExecutor {
-    async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse> {
-        // TODO: Implement actual skill execution with sandbox
+    async fn execute(&self, _request: ExecuteRequest) -> Result<ExecuteResponse> {
         Ok(ExecuteResponse {
             result: serde_json::json!({ "message": "Skill execution not implemented" }),
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
             execution_time_ms: 0,
+            timed_out: false,
         })
     }
 }

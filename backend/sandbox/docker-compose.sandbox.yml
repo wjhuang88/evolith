@@ -1,0 +1,16 @@
+services:
+  python-sandbox:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    image: evolith-python-sandbox:latest
+    container_name: evolith-python-sandbox-builder
+    restart: "no"
+
+  node-sandbox:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    image: evolith-node-sandbox:latest
+    container_name: evolith-node-sandbox-builder
+    restart: "no"
