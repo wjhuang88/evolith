@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
@@ -9,6 +10,7 @@ import { toolsApi } from '@/lib/api/tools';
 import type { Tool } from '@/lib/api/types';
 
 export default function ToolDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const toolId = params.id as string;
@@ -40,10 +42,10 @@ export default function ToolDetailPage() {
             setParams_(initialParams);
           }
         } else {
-          setError(response.error?.message || 'Tool not found');
+          setError(response.error?.message || t('tools.toolNotFound'));
         }
       } catch (err) {
-        setError('Failed to load tool');
+        setError(t('tools.failedToLoadTool'));
       } finally {
         setLoading(false);
       }
@@ -61,34 +63,34 @@ export default function ToolDetailPage() {
       if (response.success && response.data) {
         setResult(JSON.stringify(response.data, null, 2));
       } else {
-        setInvokeError(response.error?.message || 'Execution failed');
+        setInvokeError(response.error?.message || t('tools.executionFailed'));
       }
     } catch (err) {
-      setInvokeError('Failed to execute tool');
+      setInvokeError(t('tools.failedToExecute'));
     } finally {
       setInvoking(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this tool?')) return;
+    if (!confirm(t('tools.confirmDelete'))) return;
     
     try {
       const response = await toolsApi.delete(toolId);
       if (response.success) {
         router.push('/tools');
       } else {
-        alert(response.error?.message || 'Failed to delete');
+        alert(response.error?.message || t('tools.failedToDelete'));
       }
     } catch (err) {
-      alert('Failed to delete tool');
+      alert(t('tools.failedToDeleteTool'));
     }
   };
 
   if (loading) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-muted-foreground">Loading...</div>
+        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -96,8 +98,8 @@ export default function ToolDetailPage() {
   if (error || !tool) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-destructive">{error || 'Tool not found'}</div>
-        <Button className="mt-4" onClick={() => router.push('/tools')}>Back to Tools</Button>
+        <div className="text-center text-destructive">{error || t('tools.toolNotFound')}</div>
+        <Button className="mt-4" onClick={() => router.push('/tools')}>{t('tools.backToTools')}</Button>
       </div>
     );
   }
@@ -108,7 +110,7 @@ export default function ToolDetailPage() {
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <Button variant="ghost" onClick={() => router.push('/tools')} className="mb-4">
-        ← Back to Tools
+        ← {t('tools.backToTools')}
       </Button>
 
       <div className="flex items-center justify-between mb-8">
@@ -120,15 +122,15 @@ export default function ToolDetailPage() {
             )}
           </h1>
           <p className="text-muted-foreground mt-1">{tool.description}</p>
-          <p className="text-sm text-muted-foreground mt-2">Category: {tool.category}</p>
+            <p className="text-sm text-muted-foreground mt-2">{t('tools.categoryLabel')}: {tool.category}</p>
         </div>
-        <Button variant="destructive" onClick={handleDelete}>Delete Tool</Button>
+        <Button variant="destructive" onClick={handleDelete}>{t('tools.deleteTool')}</Button>
       </div>
 
       {Object.keys(properties).length > 0 && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Parameters</CardTitle>
+            <CardTitle>{t('tools.parameters')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {Object.entries(properties).map(([key, prop]) => {
@@ -164,14 +166,14 @@ export default function ToolDetailPage() {
                         ...params_, 
                         [key]: schemaProp.type === 'number' ? Number(e.target.value) : e.target.value 
                       })}
-                      placeholder={`Enter ${key}`}
+                      placeholder={t('tools.enterParam', { name: key })}
                     />
                   )}
                 </div>
               );
             })}
             <Button onClick={handleInvoke} disabled={invoking} className="mt-4">
-              {invoking ? 'Invoking...' : 'Execute Tool'}
+              {invoking ? t('tools.invoking') : t('tools.executeTool')}
             </Button>
           </CardContent>
         </Card>
@@ -191,7 +193,7 @@ export default function ToolDetailPage() {
       {result && (
         <Card>
           <CardHeader>
-            <CardTitle>Result</CardTitle>
+            <CardTitle>{t('tools.result')}</CardTitle>
           </CardHeader>
           <CardContent>
             <pre className="text-sm bg-muted p-4 rounded-md overflow-auto whitespace-pre-wrap">

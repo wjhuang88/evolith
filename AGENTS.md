@@ -193,91 +193,154 @@ Environment variables (see `crates/infra/src/config.rs`):
 
 ## Status
 
-**Phase 1: Core Framework** - COMPLETED ✅
+> **Architecture Audit** (2026-03-13): Found Phase 1-7 implementations were UI + in-memory HashMap prototypes only. See [Architecture Audit](./docs/architecture-audit.md).
 
-Completed:
-- [x] P1-001: Config management with validation
-- [x] P1-002: Comprehensive error handling
-- [x] P1-003: Logging system with request tracing
-- [x] P1-004: Auth middleware (JWT + password hashing)
-- [x] P1-005: API skeleton
-- [x] P1-006: Unified response format
-- [x] P1-007: Request validation
-- [x] P1-008: Frontend layout components
-- [x] P1-009: UI component library
-- [x] P1-010: Theme system
-- [x] P1-011: API client
-- [x] P1-012: Auth state
+### Prototype Phases (P1-P7) — UI/Handler Layer ✅, Infrastructure ❌
 
-**Phase 2: Business Logic** - COMPLETED ✅
+These phases created working UI and API handler code, but all backed by in-memory HashMap stores. All handler code was rewritten in Phase 0.
 
-Completed:
-- [x] P2-001: Multi-tenant support (see docs/multi-tenant.md)
-- [x] P2-002: User authentication (register, login, logout)
-- [x] P2-003: Tool CRUD operations
-- [x] P2-004: Skill CRUD operations
-- [x] P2-005: Snippet CRUD operations
-- [x] P2-006: MCP protocol implementation
+- P1: Core Framework (config, error handling, logging, API skeleton, frontend layout) ✅
+- P2: Business Logic (auth handlers, CRUD handlers, MCP handler) ✅
+- P3: Core Features (tool validation, skill loading, snippet reference) ✅
+- P4: Frontend Integration (all UI pages and forms) ✅
+- P5: Multi-Tenant & i18n (data model, tenant middleware, i18n deps installed but no translations) ⚠️ partial
+- P6: User & Permissions (RBAC code, API key handlers, member handlers) ✅
+- P7: Billing & Plans (billing handlers, Stripe integration) ✅
 
-**Phase 3: Core Features** - COMPLETED ✅
+### Production Readiness Plan — Phase 0 ✅ COMPLETE (2026-03-14)
 
-Completed:
-- [x] P3-001: Tool parameter validation (JSON Schema)
-- [x] P3-002: Skill remote loading
-- [x] P3-003: Skill code execution (simulated sandbox)
-- [x] P3-004: Snippet reference generation
+**Goal**: Replace all in-memory HashMap stores with database-backed repositories, implement real auth security, harden CORS.
 
-**Phase 4: Frontend Integration** - COMPLETED ✅
+**All Phase 0 tasks completed:**
+- [x] 8 SQLite Repository implementations (user, tenant, invitation, audit, tool, skill, snippet, api_key) — `infra/src/db/`
+- [x] 8 Domain Repository traits — `domain/src/repository.rs`
+- [x] AppState struct with `Arc<dyn Repo>` fields — `api/src/state.rs`
+- [x] AuthenticatedUser extractor with Deref to CurrentUser — `api/src/middleware/auth.rs`
+- [x] Full RBAC middleware (425 lines) — `api/src/middleware/rbac.rs`
+- [x] Fixed 3 infra compile errors (tool/skill/snippet repos)
+- [x] Decoupled service-payment from api crate
+- [x] Rewrote `main.rs` with AppState + DB pool + migrations + CORS
+- [x] Rewrote all 9 handler files to use repositories (auth, tool, skill, snippet, api_key, mcp, member, audit, billing)
+- [x] Updated all 9 route files
+- [x] `cargo check --workspace --exclude service-payment` → 0 errors
+- [x] `cargo test --workspace --exclude service-payment` → 70 passed, 0 failed
+- [x] API contract document (`docs/api-contract.md`) fully updated
 
-Completed:
-- [x] P4-001: Skill execution UI (modal with arguments input, execution result display)
-- [x] P4-002: MCP tool invocation UI (direct API + JSON-RPC 2.0 protocol)
-- [x] P4-003: Skill create/edit forms
-- [x] P4-004: Snippet reference copy UI (3 formats: direct, inline, with_deps)
-- [x] P4-005: Snippet create/edit forms
-- [x] P4-006: Tool create/edit forms
+**Build/test command**: `cargo test --workspace` (no exclusions needed — all crates compile clean)
 
-**Phase 5: Multi-Tenant & i18n** - COMPLETED ✅
+### Phase 1 — Frontend Security ✅ COMPLETE (2026-03-14)
 
-Completed:
-- [x] P5-001: Multi-tenant data model (tenant_id on all tables)
-- [x] P5-002: Tenant middleware (tenant identification)
-- [x] P5-003: Tenant quota management (see docs/multi-tenant.md)
-- [x] P5-004: i18n framework (react-i18next)
-- [x] P5-005: Language switching component
-- [x] P5-006: zh-CN and en translations
+**Goal**: Route guards, error handling, token refresh, auth state restoration.
 
-**Phase 6: User & Permissions** - COMPLETED ✅
+**All Phase 1 tasks completed:**
+- [x] Next.js middleware route guard (cookie-based SSR check) — `frontend/src/middleware.ts`
+- [x] AuthGuard client component (localStorage-based client check) — `frontend/src/components/AuthGuard.tsx`
+- [x] ErrorBoundary / `error.tsx` — `frontend/src/app/error.tsx`
+- [x] Global error handler — `frontend/src/app/global-error.tsx`
+- [x] 404 page — `frontend/src/app/not-found.tsx`
+- [x] Token refresh interceptor with mutex queue — `frontend/src/lib/api/client.ts`
+- [x] AuthInitializer component (restores auth state, listens for `auth:unauthorized`) — `frontend/src/components/AuthInitializer.tsx`
+- [x] Auth store `initialize()` method — `frontend/src/stores/authStore.ts`
+- [x] AuthInitializer wired into `providers.tsx`
+- [x] AuthGuard wired into `LayoutWrapper.tsx` (protects non-public routes)
+- [x] Cookie/localStorage sync in `setToken()`/`clearToken()` for SSR middleware
 
-Completed:
-- [x] P6-000: MCP endpoint with tenant-aware API Key authentication
-- [x] P6-001: User registration with tenant creation
-- [x] P6-002: Role-based access control (RBAC)
-- [x] P6-003: API Key management
-- [x] P6-004: Member invitation system
-- [x] P6-005: Audit logging
+### Phase 2 — Code Quality ✅ COMPLETE (2026-03-15)
 
-**Phase 7: Billing & Plans** - COMPLETED ✅
+**Goal**: Eliminate panic risks, fix compile errors, establish test baseline.
 
-Completed:
-- [x] P7-001: Plan definitions (Free/Starter/Pro/Enterprise)
-- [x] P7-002: Subscription management
-- [x] P7-004: Invoice management
-- [x] P7-005: Usage tracking and quotas
+**All Phase 2 tasks completed:**
+- [x] Eliminated `unwrap()` in billing_handlers.rs (only production unwrap found)
+- [x] Added `#[deny(clippy::unwrap_used)]` to workspace Clippy config (all 11 Cargo.toml files)
+- [x] Fixed service-payment compile errors (async-stripe API + Hash derive)
+- [x] Split `auth_handlers.rs` (741 lines) → `handlers/auth/` (6 files: mod, login, register, password, verify, profile)
+- [x] Split `member_handlers.rs` → `handlers/members/` (4 files: mod, list, invite, manage)
+- [x] Updated handlers/mod.rs and all route imports
+- [x] 111 repository integration tests (8 repo test files in `infra/tests/`)
+- [x] 12 auth end-to-end tests (`api/tests/auth_e2e_tests.rs`)
+- [x] `cargo test --workspace` → 206 passed, 0 failed
+- [x] `cargo check --workspace` → 0 errors
+- [x] `cargo clippy --workspace` → 0 errors
 
-Pending:
-- [ ] P7-003: Payment integration (Stripe)
-- [ ] P7-006: Overage billing
+**Build/test command**: `cargo test --workspace` (no exclusions needed — all crates compile clean)
+
+### Phase 3 — Infrastructure Services ✅ COMPLETE (2026-03-15)
+
+**Goal**: Cache, rate limiting, mailer, observability (request ID, health checks, JSON logging, graceful shutdown).
+
+**All Phase 3 tasks completed:**
+- [x] `Cache` trait + `InMemoryCache` + `RedisCache` — `infra/src/cache.rs` (457 lines)
+- [x] `actix-governor` rate limiting middleware — `api/src/middleware/rate_limit.rs` (113 lines)
+- [x] `Mailer` trait + `SmtpMailer` + `ConsoleMailer` — `infra/src/mailer.rs` (438 lines)
+- [x] `RequestIdMiddleware` (X-Request-ID propagation) — `api/src/middleware/request_id.rs` (120 lines)
+- [x] Health endpoints (`/health`, `/health/live`, `/health/ready`) — `api/src/handlers/health.rs`
+- [x] Production JSON logging — `backend/src/main.rs`
+- [x] Graceful shutdown (`shutdown_timeout(30)`) — `backend/src/main.rs`
+- [x] AppState updated with `cache: Arc<dyn Cache>`, `mailer: Arc<dyn Mailer>`
+- [x] E2E tests updated with new config/state fields
+- [x] `cargo test --workspace` → 220 passed, 0 failed
+- [x] `cargo check --workspace` → 0 errors
+- [x] `cargo clippy --workspace` → 0 errors
+
+**Build/test command**: `cargo test --workspace` (no exclusions needed — all crates compile clean)
+
+### Phase 4 — PostgreSQL Dual-DB ✅ COMPLETE (2026-03-15)
+
+**Goal**: Full PostgreSQL support alongside SQLite for production use.
+
+**All Phase 4 tasks completed:**
+- [x] Migration reorg: `migrations/sqlite/` and `migrations/postgres/` directories
+- [x] PostgreSQL-native migrations (UUID, TIMESTAMPTZ, BOOLEAN, JSONB, NUMERIC)
+- [x] All 8 PostgreSQL repository implementations (`Pg*Repository`)
+- [x] `main.rs` dual-DB branching based on `DATABASE__DATABASE_TYPE`
+- [x] `cargo test --workspace` → 232 passed, 0 failed
+- [x] `cargo check --workspace` → 0 errors
+
+### Phase 5 — i18n ✅ COMPLETE (2026-03-15)
+
+**Goal**: Full Chinese/English internationalization for all frontend components.
+
+**All Phase 5 tasks completed:**
+- [x] i18n configuration (`src/lib/i18n.ts`)
+- [x] Both locale files (`zh-CN.json` + `en.json`, ~647 lines each)
+- [x] All 23+ components converted to `t()` calls
+- [x] LanguageSwitcher component wired into Header
+- [x] `npm run build` → 0 errors
+
+### Phase 6 — Frontend Polish ✅ COMPLETE (2026-03-15)
+
+**Goal**: Complete missing pages, upgrade token security, improve UX.
+
+**All Phase 6 tasks completed:**
+- [x] Onboarding wizard (3-step flow) — `frontend/src/app/onboarding/page.tsx`
+- [x] User Profile page — `frontend/src/app/profile/page.tsx`
+- [x] httpOnly cookie auth (`evolith_token`) + CSRF middleware (`csrf_token`) — `api/src/middleware/csrf.rs`
+- [x] Frontend token migration (`withCredentials: true`, CSRF header) — `frontend/src/lib/api/client.ts`
+- [x] Toast, Skeleton, Pagination UI components — `frontend/src/components/ui/`
+- [x] Responsive mobile layout fixes
+- [x] CORS fix for cookie credentials
+- [x] `cargo test --workspace` → 236 passed, 0 failed
+- [x] `npm run build` → 0 errors, 22 routes
+
+### Current Phase: Phase 7 (Sandbox Executor)
+
+See [Production Plan](./docs/production-plan.md) for Phase 1-8 roadmap.
 
 ## Links
 
 - [Requirements](./docs/requirements.md)
 - [Architecture](./docs/architecture.md)
+- [Architecture Audit](./docs/architecture-audit.md) — Current state assessment
+- [Production Design](./docs/production-design.md) — Target architecture
+- [Production Plan](./docs/production-plan.md) — **Active execution plan (Phase 0-8)**
 - [Multi-Tenant Design](./docs/multi-tenant.md)
 - [API Design](./docs/api-design.md)
+- [API Contract](./docs/api-contract.md)
 - [Skill Format](./docs/skill-format.md)
 - [Snippet Format](./docs/snippet-format.md)
 - [Tech Stack](./docs/tech-stack.md)
 - [Testing](./docs/testing.md)
-- [Implementation Plan](./docs/implementation-plan.md)
-- [Session Handoff](./docs/session-handoff.md)
+- [Implementation Plan](./docs/implementation-plan.md) — ⚠️ Superseded by Production Plan
+- [Billing](./docs/billing.md)
+- [Permissions](./docs/permissions.md)
+- [i18n](./docs/i18n.md)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { snippetsApi } from '@/lib/api/snippets';
@@ -23,6 +24,7 @@ interface ReferenceResponse {
 }
 
 export default function SnippetDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const snippetId = params.id as string;
@@ -44,10 +46,10 @@ export default function SnippetDetailPage() {
         if (response.success && response.data) {
           setSnippet(response.data);
         } else {
-          setError(response.error?.message || 'Snippet not found');
+          setError(response.error?.message || t('snippets.snippetNotFound'));
         }
       } catch (err) {
-        setError('Failed to load snippet');
+        setError(t('snippets.failedToLoadSnippet'));
       } finally {
         setLoading(false);
       }
@@ -82,24 +84,24 @@ export default function SnippetDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this snippet?')) return;
+    if (!confirm(t('snippets.confirmDelete'))) return;
     
     try {
       const response = await snippetsApi.delete(snippetId);
       if (response.success) {
         router.push('/snippets');
       } else {
-        alert(response.error?.message || 'Failed to delete');
+        alert(response.error?.message || t('snippets.failedToDelete'));
       }
     } catch (err) {
-      alert('Failed to delete snippet');
+      alert(t('snippets.failedToDeleteSnippet'));
     }
   };
 
   if (loading) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-muted-foreground">Loading...</div>
+        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -107,8 +109,8 @@ export default function SnippetDetailPage() {
   if (error || !snippet) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-destructive">{error || 'Snippet not found'}</div>
-        <Button className="mt-4" onClick={() => router.push('/snippets')}>Back to Snippets</Button>
+        <div className="text-center text-destructive">{error || t('snippets.snippetNotFound')}</div>
+        <Button className="mt-4" onClick={() => router.push('/snippets')}>{t('snippets.backToSnippets')}</Button>
       </div>
     );
   }
@@ -116,7 +118,7 @@ export default function SnippetDetailPage() {
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <Button variant="ghost" onClick={() => router.push('/snippets')} className="mb-4">
-        Back to Snippets
+        {t('snippets.backToSnippets')}
       </Button>
 
       <div className="flex items-center justify-between mb-8">
@@ -129,16 +131,16 @@ export default function SnippetDetailPage() {
           </h1>
           <p className="text-muted-foreground mt-1">{snippet.description}</p>
           <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-            <span>Language: {snippet.language}</span>
-            <span>Category: {snippet.category}</span>
+            <span>{t('snippets.languageLabel')}: {snippet.language}</span>
+            <span>{t('snippets.categoryLabel')}: {snippet.category}</span>
           </div>
         </div>
-        <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+        <Button variant="destructive" onClick={handleDelete}>{t('snippets.deleteSnippet')}</Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Code</CardTitle>
+          <CardTitle>{t('snippets.codeTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <pre className="bg-muted p-4 rounded-md overflow-auto text-sm whitespace-pre-wrap max-h-64">
@@ -150,8 +152,8 @@ export default function SnippetDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Reference</CardTitle>
-            <CardDescription>Get formatted code for LLM consumption</CardDescription>
+            <CardTitle>{t('snippets.referenceTitle')}</CardTitle>
+            <CardDescription>{t('snippets.referenceDesc')}</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -159,33 +161,33 @@ export default function SnippetDetailPage() {
               size="sm"
               onClick={() => setReferenceFormat('direct')}
             >
-              Direct
+              {t('snippets.formats.direct')}
             </Button>
             <Button 
               variant={referenceFormat === 'inline' ? 'primary' : 'outline'} 
               size="sm"
               onClick={() => setReferenceFormat('inline')}
             >
-              Inline
+              {t('snippets.formats.inline')}
             </Button>
             <Button 
               variant={referenceFormat === 'with_deps' ? 'primary' : 'outline'} 
               size="sm"
               onClick={() => setReferenceFormat('with_deps')}
             >
-              With Deps
+              {t('snippets.formats.withDeps')}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {loadingReference ? (
-            <div className="text-center py-4 text-muted-foreground">Loading reference...</div>
+            <div className="text-center py-4 text-muted-foreground">{t('snippets.loadingReference')}</div>
           ) : referenceData ? (
             <>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Estimated tokens: {referenceData.estimated_tokens}</span>
+                <span>{t('snippets.estimatedTokensLabel', { count: referenceData.estimated_tokens })}</span>
                 {referenceData.import_path && (
-                  <span>Import: {referenceData.import_path}</span>
+                  <span>{t('snippets.importLabel', { path: referenceData.import_path })}</span>
                 )}
               </div>
               <div className="relative">
@@ -197,7 +199,7 @@ export default function SnippetDetailPage() {
                   size="sm" 
                   onClick={handleCopy}
                 >
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? t('common.copied') : t('snippets.copyCode')}
                 </Button>
               </div>
               
@@ -217,7 +219,7 @@ export default function SnippetDetailPage() {
               
               {referenceData.usage_example && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Usage Example</h4>
+                  <h4 className="text-sm font-medium mb-2">{t('snippets.usageExample')}</h4>
                   <pre className="bg-muted p-4 rounded-md overflow-auto text-sm whitespace-pre-wrap">
                     {referenceData.usage_example}
                   </pre>
@@ -225,7 +227,7 @@ export default function SnippetDetailPage() {
               )}
             </>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">No reference data</div>
+            <div className="text-center py-4 text-muted-foreground">{t('snippets.noReferenceData')}</div>
           )}
         </CardContent>
       </Card>

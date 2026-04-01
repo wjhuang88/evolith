@@ -2,8 +2,9 @@
 
 import { usePathname } from 'next/navigation';
 import { MainLayout } from './MainLayout';
+import { AuthGuard } from '@/components/AuthGuard';
 
-const noLayoutRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+const noLayoutRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/onboarding'];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,5 +14,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
-  return <MainLayout>{children}</MainLayout>;
+  return (
+    <AuthGuard>
+      <MainLayout>{children}</MainLayout>
+    </AuthGuard>
+  );
 }

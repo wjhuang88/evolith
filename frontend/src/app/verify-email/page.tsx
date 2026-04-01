@@ -3,20 +3,22 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 
 export default function VerifyEmailPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('Verifying your email...');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage('Invalid verification link. Please check your email or request a new verification link.');
+      setMessage(t('auth.verifyEmailPage.invalidLink'));
       return;
     }
 
@@ -35,14 +37,14 @@ export default function VerifyEmailPage() {
 
       if (data.success) {
         setStatus('success');
-        setMessage('Your email has been verified successfully! You can now log in to your account.');
+        setMessage(t('auth.verifyEmailPage.successMessage'));
       } else {
         setStatus('error');
-        setMessage(data.error?.message || 'Verification failed. The link may have expired or is invalid.');
+        setMessage(data.error?.message || t('auth.verifyEmailPage.verificationFailed'));
       }
     } catch {
       setStatus('error');
-      setMessage('An error occurred during verification. Please try again later.');
+      setMessage(t('auth.verifyEmailPage.genericError'));
     }
   };
 
@@ -56,9 +58,9 @@ export default function VerifyEmailPage() {
             </div>
           </Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">
-            {status === 'loading' && 'Verifying Email'}
-            {status === 'success' && 'Email Verified!'}
-            {status === 'error' && 'Verification Failed'}
+            {status === 'loading' && t('auth.verifyEmailPage.verifying')}
+            {status === 'success' && t('auth.verifyEmailPage.success')}
+            {status === 'error' && t('auth.verifyEmailPage.failed')}
           </h1>
         </div>
 
@@ -67,6 +69,7 @@ export default function VerifyEmailPage() {
             {status === 'loading' && (
               <div className="mb-4">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
+                <p className="mt-4 text-muted-foreground">{t('auth.verifyEmailPage.verifyingMessage')}</p>
               </div>
             )}
 
@@ -110,19 +113,19 @@ export default function VerifyEmailPage() {
 
             {status === 'success' && (
               <Button onClick={() => router.push('/login')} className="w-full">
-                Go to Login
+                {t('auth.verifyEmailPage.goToLogin')}
               </Button>
             )}
 
             {status === 'error' && (
               <div className="space-y-3">
                 <Button onClick={() => router.push('/login')} variant="outline" className="w-full">
-                  Go to Login
+                  {t('auth.verifyEmailPage.goToLogin')}
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  Need a new verification link?{' '}
+                  {t('auth.verifyEmailPage.needNewLink')}{' '}
                   <Link href="/login" className="text-primary hover:underline">
-                    Log in to resend
+                    {t('auth.verifyEmailPage.loginToResend')}
                   </Link>
                 </p>
               </div>

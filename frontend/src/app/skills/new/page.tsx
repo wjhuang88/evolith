@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
@@ -9,6 +10,7 @@ import { skillsApi } from '@/lib/api/skills';
 
 export default function NewSkillPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -38,10 +40,10 @@ export default function NewSkillPage() {
       if (response.success) {
         router.push('/skills');
       } else {
-        setError(response.error?.message || 'Failed to create skill');
+        setError(response.error?.message || t('skills.newSkill.failedToCreate'));
       }
     } catch (err) {
-      setError('Failed to create skill');
+      setError(t('skills.newSkill.failedToCreate'));
     } finally {
       setLoading(false);
     }
@@ -73,8 +75,8 @@ Any additional notes or considerations.
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create New Skill</h1>
-        <p className="text-muted-foreground mt-1">Define a skill with SKILL.md format</p>
+        <h1 className="text-3xl font-bold">{t('skills.newSkill.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('skills.newSkill.subtitle')}</p>
       </div>
 
       {error && (
@@ -86,57 +88,57 @@ Any additional notes or considerations.
       <form onSubmit={handleSubmit}>
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Skill name, version, and metadata</CardDescription>
+            <CardTitle>{t('skills.newSkill.basicInfo')}</CardTitle>
+            <CardDescription>{t('skills.newSkill.basicInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Name *</label>
+                <label className="text-sm font-medium">{t('skills.newSkill.nameLabel')}</label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="skill-name"
+                  placeholder={t('skills.newSkill.namePlaceholder')}
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Version</label>
+                <label className="text-sm font-medium">{t('skills.newSkill.versionLabel')}</label>
                 <Input
                   value={formData.version}
                   onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                  placeholder="1.0.0"
+                  placeholder={t('skills.newSkill.versionPlaceholder')}
                 />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium">Description *</label>
+              <label className="text-sm font-medium">{t('skills.newSkill.descLabel')}</label>
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="What does this skill do?"
+                placeholder={t('skills.newSkill.descPlaceholder')}
                 required
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-sm font-medium">{t('skills.newSkill.categoryLabel')}</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>{t(`skills.category.${cat}`)}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium">Tags (comma separated)</label>
+                <label className="text-sm font-medium">{t('skills.newSkill.tagsLabel')}</label>
                 <Input
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="tag1, tag2, tag3"
+                  placeholder={t('skills.newSkill.tagsPlaceholder')}
                 />
               </div>
             </div>
@@ -148,15 +150,15 @@ Any additional notes or considerations.
                 onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
                 className="w-4 h-4"
               />
-              <label htmlFor="is_public" className="text-sm">Public Skill</label>
+              <label htmlFor="is_public" className="text-sm">{t('skills.newSkill.publicSkill')}</label>
             </div>
           </CardContent>
         </Card>
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>SKILL.md Content</CardTitle>
-            <CardDescription>Define the skill behavior in SKILL.md format</CardDescription>
+            <CardTitle>{t('skills.newSkill.contentTitle')}</CardTitle>
+            <CardDescription>{t('skills.newSkill.contentDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <textarea
@@ -170,10 +172,10 @@ Any additional notes or considerations.
 
         <div className="flex gap-4">
           <Button type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Skill'}
+            {loading ? t('common.creating') : t('common.create')}
           </Button>
           <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
+            {t('common.back')}
           </Button>
         </div>
       </form>

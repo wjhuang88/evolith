@@ -58,3 +58,7 @@ coverage/
 # Cache
 .cache/
 *.tsbuildinfo
+
+# Dev script runtime
+.dev-pids/
+.dev-logs/

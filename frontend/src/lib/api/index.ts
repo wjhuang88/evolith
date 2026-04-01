@@ -34,10 +34,19 @@ export type {
   UpdateSnippetRequest,
   ListQueryParams,
   ListResponse,
+  Plan,
+  Subscription,
+  PaymentMethod,
+  Invoice,
+  ResourceUsage,
+  UsageResponse,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest,
+  CancelSubscriptionRequest,
 } from './types';
 
-// Re-export service APIs
 export { authApi } from './auth';
 export { toolsApi } from './tools';
 export { skillsApi } from './skills';
 export { snippetsApi } from './snippets';
+export { billingApi, paymentMethodApi } from './billing';

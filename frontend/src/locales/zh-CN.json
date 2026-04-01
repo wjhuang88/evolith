@@ -13,7 +13,7 @@
     "refresh": "刷新",
     "close": "关闭",
     "copy": "复制",
-    "copied": "已复制",
+    "copied": "已复制！",
     "submit": "提交",
     "required": "必填",
     "optional": "可选",
@@ -25,15 +25,36 @@
     "actions": "操作",
     "noData": "暂无数据",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "back": "返回",
+    "private": "私有",
+    "public": "公开",
+    "remove": "移除",
+    "run": "运行",
+    "processing": "处理中...",
+    "saving": "保存中...",
+    "creating": "创建中...",
+    "select": "请选择...",
+    "version": "版本",
+    "status": "状态",
+    "type": "类型",
+    "configure": "配置",
+    "enable": "启用",
+    "previous": "上一页",
+    "next": "下一页"
   },
   "nav": {
     "home": "首页",
+    "dashboard": "仪表盘",
     "tools": "工具",
     "skills": "技能",
     "snippets": "代码片段",
     "docs": "文档",
-    "settings": "设置"
+    "settings": "设置",
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "profile": "个人资料",
+    "user": "用户"
   },
   "landing": {
     "hero": {
@@ -69,11 +90,134 @@
       "terms": "服务条款"
     }
   },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出登录",
+    "email": "邮箱",
+    "password": "密码",
+    "username": "用户名",
+    "loginPage": {
+      "welcome": "欢迎回来",
+      "subtitle": "登录您的账户以继续",
+      "signIn": "登录",
+      "signingIn": "登录中...",
+      "forgotPassword": "忘记密码？",
+      "noAccount": "还没有账户？",
+      "signUp": "注册"
+    },
+    "registerPage": {
+      "title": "创建您的账户",
+      "subtitle": "立即开始使用 Evolith",
+      "confirmPassword": "确认密码",
+      "orgName": "组织名称",
+      "orgNamePlaceholder": "我的公司",
+      "orgNameHint": "可选 - 将与您的账户一起创建",
+      "orgUrl": "组织 URL",
+      "createAccount": "创建账户",
+      "creatingAccount": "创建账户中...",
+      "alreadyHaveAccount": "已有账户？",
+      "signIn": "登录",
+      "passwordHint": "最少 8 个字符",
+      "checkEmail": "查看您的邮件",
+      "verificationSent": "我们已发送验证链接至 <strong>{{email}}</strong>。请检查您的邮件并点击链接以验证您的账户。",
+      "devVerificationLink": "开发模式 - 验证链接：",
+      "goToLogin": "前往登录",
+      "didntReceive": "没有收到邮件？",
+      "tryAgain": "重试",
+      "validation": {
+        "fillRequired": "请填写所有必填项",
+        "passwordsNoMatch": "两次输入的密码不一致",
+        "passwordTooShort": "密码长度至少为 8 个字符",
+        "slugInvalid": "租户标识只能包含小写字母、数字和连字符"
+      },
+      "registrationFailed": "注册失败",
+      "genericError": "发生错误，请重试。"
+    },
+    "forgotPasswordPage": {
+      "title": "忘记密码",
+      "subtitle": "输入您的邮箱，我们将发送重置说明",
+      "sendResetLink": "发送重置链接",
+      "sending": "发送中...",
+      "rememberPassword": "记起密码了？",
+      "signIn": "登录",
+      "checkEmail": "查看您的邮件",
+      "sentInstructions": "我们已将密码重置说明发送至 <strong>{{email}}</strong>",
+      "backToSignIn": "返回登录",
+      "sendFailed": "发送重置邮件失败，请重试。"
+    },
+    "resetPasswordPage": {
+      "title": "重置密码",
+      "subtitle": "请在下方输入您的新密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认密码",
+      "resetPassword": "重置密码",
+      "resetting": "重置中...",
+      "backToSignIn": "返回登录",
+      "invalidLink": "无效链接",
+      "invalidLinkDesc": "此密码重置链接无效或已过期。",
+      "requestNewLink": "申请新链接",
+      "resetComplete": "密码重置完成",
+      "resetCompleteDesc": "您的密码已成功重置。您现在可以使用新密码登录。",
+      "signIn": "登录",
+      "passwordsNoMatch": "两次输入的密码不一致",
+      "passwordTooShort": "密码长度至少为 8 个字符",
+      "resetFailed": "重置密码失败，链接可能已过期。"
+    },
+    "verifyEmailPage": {
+      "verifying": "验证邮箱",
+      "verifyingMessage": "正在验证您的邮箱...",
+      "success": "邮箱已验证！",
+      "successMessage": "您的邮箱已成功验证！您现在可以登录您的账户。",
+      "failed": "验证失败",
+      "invalidLink": "无效的验证链接。请检查您的邮件或申请新的验证链接。",
+      "genericError": "验证过程中发生错误，请稍后重试。",
+      "verificationFailed": "验证失败。链接可能已过期或无效。",
+      "goToLogin": "前往登录",
+      "needNewLink": "需要新的验证链接？",
+      "loginToResend": "登录后重新发送"
+    }
+  },
+  "dashboard": {
+    "welcomeBack": "欢迎回来，{{name}}！",
+    "orgPrefix": "组织：{{name}}",
+    "defaultSubtitle": "Evolith - AI 智能体开发平台",
+    "stats": {
+      "totalTools": "工具总数",
+      "mcpToolsAvailable": "可用 MCP 工具",
+      "skills": "技能",
+      "customSkills": "自定义技能",
+      "snippets": "代码片段",
+      "codeSnippets": "代码片段",
+      "apiCalls": "API 调用",
+      "thisMonth": "本月"
+    },
+    "quickActions": {
+      "title": "快捷操作",
+      "subtitle": "常用任务快速入口",
+      "addTool": "添加工具",
+      "createSkill": "创建技能",
+      "addSnippet": "添加片段",
+      "teamMembers": "团队成员"
+    },
+    "organization": {
+      "title": "组织",
+      "plan": "套餐",
+      "role": "角色",
+      "manageSubscription": "管理订阅"
+    },
+    "quickLinks": {
+      "title": "快速链接",
+      "manageApiKeys": "管理 API 密钥",
+      "inviteTeamMembers": "邀请团队成员",
+      "orgSettings": "组织设置"
+    }
+  },
   "tools": {
     "title": "MCP 工具",
     "subtitle": "标准化的工具封装，通过 MCP 协议提供服务",
     "createTool": "创建工具",
-    "noTools": "暂无工具，点击创建您的第一个工具",
+    "noTools": "暂无工具，点击创建您的第一个工具。",
     "invoke": "调用",
     "invokeDirect": "直接调用",
     "invokeMCP": "MCP 调用",
@@ -90,6 +234,43 @@
     "parameterDefault": "默认值",
     "parameterEnum": "枚举值",
     "schemaPreview": "生成的 Schema 预览",
+    "loadingTools": "加载工具中...",
+    "failedToLoad": "加载工具失败",
+    "failedToConnect": "连接服务器失败",
+    "backToTools": "返回工具列表",
+    "toolNotFound": "未找到工具",
+    "failedToLoadTool": "加载工具失败",
+    "deleteTool": "删除工具",
+    "confirmDelete": "确定要删除此工具吗？",
+    "failedToDelete": "删除失败",
+    "failedToDeleteTool": "删除工具失败",
+    "executeTool": "执行工具",
+    "executionFailed": "执行失败",
+    "failedToExecute": "执行工具失败",
+    "categoryLabel": "分类",
+    "enterParam": "输入 {{name}}",
+    "newTool": {
+      "title": "创建新工具",
+      "subtitle": "使用 JSON Schema 参数定义新的 MCP 工具",
+      "basicInfo": "基本信息",
+      "basicInfoDesc": "工具名称、描述和分类",
+      "nameLabel": "名称 *",
+      "namePlaceholder": "tool-name",
+      "descLabel": "描述 *",
+      "descPlaceholder": "这个工具做什么？",
+      "publicTool": "公开工具",
+      "parametersTitle": "参数",
+      "parametersDesc": "使用 JSON Schema 定义输入参数",
+      "noParams": "尚未定义参数。点击添加参数以添加输入参数。",
+      "paramIndex": "参数 {{index}}",
+      "paramNamePlaceholder": "parameter_name",
+      "paramDescPlaceholder": "这个参数的用途是什么？",
+      "defaultLabel": "默认值",
+      "defaultPlaceholder": "默认值",
+      "enumLabel": "枚举（逗号分隔）",
+      "enumPlaceholder": "值1, 值2",
+      "failedToCreate": "创建工具失败"
+    },
     "category": {
       "custom": "自定义",
       "utility": "工具",
@@ -109,7 +290,7 @@
     "title": "技能",
     "subtitle": "兼容 Claude Skills 格式的混合型技能系统",
     "createSkill": "创建技能",
-    "noSkills": "暂无技能，点击创建您的第一个技能",
+    "noSkills": "暂无技能，点击创建您的第一个技能。",
     "execute": "执行",
     "executing": "执行中...",
     "arguments": "参数 (JSON)",
@@ -119,13 +300,52 @@
     "version": "版本",
     "content": "内容 (SKILL.md)",
     "category": "分类",
-    "tags": "标签"
+    "tags": "标签",
+    "loadingSkills": "加载技能中...",
+    "failedToLoad": "加载技能失败",
+    "failedToConnect": "连接服务器失败",
+    "backToSkills": "返回技能列表",
+    "skillNotFound": "未找到技能",
+    "failedToLoadSkill": "加载技能失败",
+    "deleteSkill": "删除",
+    "confirmDelete": "确定要删除此技能吗？",
+    "failedToDelete": "删除失败",
+    "failedToDeleteSkill": "删除技能失败",
+    "executeSkill": "执行技能：{{name}}",
+    "enterArgsJson": "以 JSON 格式输入参数",
+    "argsLabel": "参数 (JSON)",
+    "invalidJson": "参数的 JSON 格式无效",
+    "executionFailed": "执行失败",
+    "failedToExecute": "执行技能失败",
+    "statusLabel": "状态",
+    "runtimeLabel": "运行时",
+    "timeLabel": "时间",
+    "contentTitle": "SKILL.md 内容",
+    "newSkill": {
+      "title": "创建新技能",
+      "subtitle": "使用 SKILL.md 格式定义技能",
+      "basicInfo": "基本信息",
+      "basicInfoDesc": "技能名称、版本和元数据",
+      "nameLabel": "名称 *",
+      "namePlaceholder": "skill-name",
+      "versionLabel": "版本",
+      "versionPlaceholder": "1.0.0",
+      "descLabel": "描述 *",
+      "descPlaceholder": "这个技能做什么？",
+      "categoryLabel": "分类",
+      "tagsLabel": "标签（逗号分隔）",
+      "tagsPlaceholder": "标签1, 标签2, 标签3",
+      "publicSkill": "公开技能",
+      "contentTitle": "SKILL.md 内容",
+      "contentDesc": "使用 SKILL.md 格式定义技能行为",
+      "failedToCreate": "创建技能失败"
+    }
   },
   "snippets": {
     "title": "代码片段",
     "subtitle": "面向大模型的代码片段仓库，降低 token 消耗",
     "createSnippet": "创建片段",
-    "noSnippets": "暂无代码片段",
+    "noSnippets": "暂无代码片段，点击创建您的第一个代码片段。",
     "getReference": "获取引用",
     "copyCode": "复制代码",
     "copyJSON": "复制 JSON",
@@ -139,15 +359,192 @@
     "usage": "使用示例",
     "dependencies": "依赖",
     "code": "代码",
-    "estimatedTokens": "预估 Token"
+    "estimatedTokens": "预估 Token",
+    "searchPlaceholder": "搜索代码片段...",
+    "loadingSnippets": "加载代码片段中...",
+    "failedToLoad": "加载代码片段失败",
+    "failedToConnect": "连接服务器失败",
+    "backToSnippets": "返回代码片段列表",
+    "snippetNotFound": "未找到代码片段",
+    "failedToLoadSnippet": "加载代码片段失败",
+    "deleteSnippet": "删除",
+    "confirmDelete": "确定要删除此代码片段吗？",
+    "failedToDelete": "删除失败",
+    "failedToDeleteSnippet": "删除代码片段失败",
+    "languageLabel": "语言",
+    "categoryLabel": "分类",
+    "referenceTitle": "引用",
+    "referenceDesc": "获取面向大模型消费的格式化代码",
+    "loadingReference": "加载引用中...",
+    "noReferenceData": "暂无引用数据",
+    "estimatedTokensLabel": "预估 Token：{{count}}",
+    "importLabel": "导入：{{path}}",
+    "usageExample": "使用示例",
+    "codeTitle": "代码",
+    "newSnippet": {
+      "title": "创建新代码片段",
+      "subtitle": "添加可复用的代码片段供大模型使用",
+      "basicInfo": "基本信息",
+      "basicInfoDesc": "片段标题、描述和元数据",
+      "titleLabel": "标题 *",
+      "titlePlaceholder": "snippet-title",
+      "descLabel": "描述 *",
+      "descPlaceholder": "这个代码片段做什么？",
+      "languageLabel": "语言",
+      "categoryLabel": "分类",
+      "tagsLabel": "标签（逗号分隔）",
+      "tagsPlaceholder": "标签1, 标签2, 标签3",
+      "publicSnippet": "公开片段",
+      "codeTitle": "代码",
+      "codeDesc": "实际的代码片段",
+      "codePlaceholder": "// 在此输入代码...",
+      "failedToCreate": "创建代码片段失败"
+    }
   },
-  "auth": {
-    "login": "登录",
-    "register": "注册",
-    "logout": "退出登录",
-    "email": "邮箱",
-    "password": "密码",
-    "username": "用户名"
+  "tenant": {
+    "settings": {
+      "title": "设置",
+      "subtitle": "管理您的组织设置和偏好",
+      "org": {
+        "title": "组织",
+        "desc": "组织的基本信息",
+        "nameLabel": "组织名称",
+        "urlLabel": "组织 URL",
+        "planLabel": "套餐",
+        "saveChanges": "保存更改"
+      },
+      "security": {
+        "title": "安全",
+        "desc": "安全和认证设置",
+        "twoFactor": "双因素认证",
+        "twoFactorDesc": "为您的账户添加额外的安全层",
+        "sessionTimeout": "会话超时",
+        "sessionTimeoutDesc": "一段时间不活动后自动退出登录",
+        "apiKeyReq": "API 密钥要求",
+        "apiKeyReqDesc": "要求使用 API 密钥进行程序化访问",
+        "1h": "1 小时",
+        "24h": "24 小时",
+        "7d": "7 天",
+        "30d": "30 天"
+      },
+      "notifications": {
+        "title": "通知",
+        "desc": "选择您希望如何接收通知",
+        "email": "邮件通知",
+        "emailDesc": "接收关于账户的邮件更新",
+        "usage": "用量提醒",
+        "usageDesc": "接近用量限制时收到通知",
+        "security": "安全提醒",
+        "securityDesc": "发现可疑活动时收到通知"
+      },
+      "danger": {
+        "title": "危险区域",
+        "desc": "不可逆和破坏性操作",
+        "deleteOrg": "删除组织",
+        "deleteOrgDesc": "永久删除您的组织及所有数据",
+        "ownerOnly": "只有组织所有者才能删除组织。"
+      }
+    },
+    "members": {
+      "title": "团队成员",
+      "subtitle": "管理您的组织团队成员和角色",
+      "inviteMember": "邀请成员",
+      "inviteNew": {
+        "title": "邀请新成员",
+        "desc": "发送邀请加入您的组织",
+        "emailLabel": "邮箱地址",
+        "emailPlaceholder": "colleague@company.com",
+        "roleLabel": "角色",
+        "sendInvitation": "发送邀请"
+      },
+      "table": {
+        "member": "成员",
+        "role": "角色",
+        "status": "状态",
+        "joined": "加入时间",
+        "actions": "操作",
+        "pending": "待处理",
+        "active": "活跃"
+      },
+      "planInfo": "您的套餐：",
+      "seatsUsed": "已使用 {{used}} / {{total}} 个席位",
+      "roles": {
+        "owner": "所有者",
+        "admin": "管理员",
+        "member": "成员"
+      }
+    },
+    "apiKeys": {
+      "title": "API 密钥",
+      "subtitle": "管理用于程序化访问账户的 API 密钥",
+      "createApiKey": "创建 API 密钥",
+      "adminOnly": "只有管理员和所有者可以管理 API 密钥。",
+      "keyCreated": "API 密钥已创建",
+      "keyCreatedDesc": "请立即复制您的 API 密钥。之后将无法再次查看！",
+      "storedSecurely": "我已安全保存",
+      "createNew": {
+        "title": "创建新 API 密钥",
+        "desc": "生成用于程序化访问的新 API 密钥",
+        "nameLabel": "密钥名称",
+        "namePlaceholder": "我的 API 密钥",
+        "createKey": "创建密钥"
+      },
+      "noKeys": "暂无 API 密钥。创建一个以开始使用。",
+      "table": {
+        "name": "名称",
+        "key": "密钥",
+        "created": "创建时间",
+        "actions": "操作"
+      },
+      "revoke": "撤销"
+    },
+    "billing": {
+      "title": "账单与套餐",
+      "subtitle": "管理您的订阅和账单信息",
+      "currentPlan": "当前套餐",
+      "currentPlanDesc": "您的活跃订阅",
+      "freeForever": "永久免费",
+      "perMonth": "/月",
+      "perYear": "/年",
+      "cancelSubscription": "取消订阅",
+      "confirmCancel": "确定要取消您的订阅吗？",
+      "availablePlans": "可用套餐",
+      "monthly": "月付",
+      "yearlySave": "年付（节省 17%）",
+      "popular": "热门",
+      "free": "免费",
+      "currentPlanBadge": "当前套餐",
+      "contactSales": "联系销售",
+      "upgrade": "升级",
+      "downgrade": "降级",
+      "upgradeModal": {
+        "title": "{{name}} 套餐",
+        "changeTo": "您即将切换到 {{name}} 套餐。",
+        "subscribeTo": "您即将订阅 {{name}} 套餐。",
+        "planLabel": "套餐",
+        "billingLabel": "计费方式",
+        "priceLabel": "价格"
+      }
+    }
+  },
+  "errors": {
+    "somethingWentWrong": "出错了",
+    "errorDescription": "抱歉，处理您的请求时发生了错误。请重试。",
+    "tryAgain": "重试",
+    "errorId": "错误 ID：{{id}}",
+    "referenceId": "参考 ID：{{id}}",
+    "notFound": {
+      "title": "404",
+      "subtitle": "页面未找到",
+      "description": "抱歉，我们无法找到您要访问的页面。该页面可能已被移动或不存在。",
+      "goBack": "返回",
+      "goToDashboard": "前往仪表盘"
+    },
+    "globalError": {
+      "title": "应用错误",
+      "description": "发生了严重错误。请重新加载页面以继续。",
+      "reloadPage": "重新加载页面"
+    }
   },
   "settings": {
     "title": "设置",
@@ -156,5 +553,95 @@
     "light": "浅色",
     "dark": "深色",
     "system": "跟随系统"
+  },
+  "profile": {
+    "title": "个人资料",
+    "subtitle": "管理您的账户设置和偏好",
+    "username": "用户名",
+    "email": "邮箱",
+    "role": "系统角色",
+    "tenantRole": "组织角色",
+    "emailVerified": "邮箱验证",
+    "profileInformation": {
+      "title": "个人信息",
+      "description": "更新您的账户详情"
+    },
+    "changePassword": {
+      "title": "修改密码",
+      "description": "更新密码以确保账户安全",
+      "currentPassword": "当前密码",
+      "currentPasswordPlaceholder": "输入当前密码",
+      "newPassword": "新密码",
+      "newPasswordPlaceholder": "输入新密码",
+      "confirmPassword": "确认新密码",
+      "confirmPasswordPlaceholder": "确认新密码"
+    },
+    "actions": {
+      "updateProfile": "更新资料",
+      "changePassword": "修改密码"
+    },
+    "messages": {
+      "profileUpdated": "个人资料已更新",
+      "passwordChanged": "密码已修改"
+    },
+    "errors": {
+      "usernameRequired": "用户名不能为空",
+      "emailRequired": "邮箱不能为空",
+      "invalidEmail": "请输入有效的邮箱地址",
+      "currentPasswordRequired": "请输入当前密码",
+      "newPasswordRequired": "请输入新密码",
+      "passwordTooShort": "密码长度至少为 8 个字符",
+      "confirmPasswordRequired": "请确认新密码",
+      "passwordsDoNotMatch": "两次输入的密码不一致",
+      "updateFailed": "更新资料失败",
+      "passwordChangeFailed": "修改密码失败"
+    }
+  },
+  "onboarding": {
+    "skip": "跳过",
+    "back": "返回",
+    "getStarted": "开始使用",
+    "step1": {
+      "title": "欢迎使用 Evolith",
+      "subtitle": "你好 {{username}}，让我们帮你设置好一切！",
+      "feature1": {
+        "title": "MCP 工具",
+        "description": "通过 MCP 协议封装和共享工具"
+      },
+      "feature2": {
+        "title": "混合技能",
+        "description": "创建和执行支持服务端代码的技能"
+      },
+      "feature3": {
+        "title": "代码片段",
+        "description": "面向大模型的代码仓库，高效复用"
+      }
+    },
+    "step2": {
+      "title": "创建你的第一个工具",
+      "subtitle": "让我们创建一个简单的 MCP 工具来开始吧",
+      "nameLabel": "工具名称",
+      "namePlaceholder": "my-first-tool",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "这个工具做什么？",
+      "schemaLabel": "Schema (JSON)",
+      "schemaPlaceholder": "{ \"type\": \"object\" }",
+      "invalidSchema": "JSON Schema 格式无效",
+      "failedToCreate": "创建工具失败",
+      "creating": "创建中...",
+      "createTool": "创建工具"
+    },
+    "step3": {
+      "title": "一切就绪！",
+      "subtitle": "您的工作空间已准备好",
+      "nextSteps": {
+        "title": "接下来",
+        "exploreTools": "浏览和管理您的 MCP 工具",
+        "readDocs": "阅读文档了解更多信息",
+        "inviteTeam": "邀请团队成员协作"
+      },
+      "viewDocs": "查看文档",
+      "goToDashboard": "前往仪表盘"
+    }
   }
 }

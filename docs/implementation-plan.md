@@ -1,5 +1,8 @@
 # 生产级实现计划
 
+> ⚠️ **已被替代**: 本文档已被 [Production Plan](./production-plan.md) 替代。本文档保留作为历史参考。
+> 新开发跟踪请查看 `production-plan.md`。
+
 ## 概述
 
 本文档定义了将 Evolith 从 MVP 提升到生产级 SaaS 系统所需的所有功能实现。

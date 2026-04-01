@@ -178,6 +178,113 @@ export interface CreateSnippetRequest {
 export interface UpdateSnippetRequest extends Partial<CreateSnippetRequest> {}
 
 // ============================================
+// Payment & Billing Types
+// ============================================
+
+export interface Plan {
+  id: string;
+  name: string;
+  display_name: string;
+  description?: string;
+  monthly_price: number;
+  yearly_price?: number;
+  max_users: number;
+  max_tools: number;
+  max_skills: number;
+  max_snippets: number;
+  max_api_calls_per_month: number;
+  max_storage_mb: number;
+  features: Record<string, unknown>;
+  is_builtin: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  plan: Plan;
+  status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid';
+  billing_cycle: 'monthly' | 'yearly';
+  current_period_start: string;
+  current_period_end: string;
+  trial_end_at?: string;
+  cancel_at_period_end: boolean;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: 'card' | 'bank_account' | 'other';
+  is_default: boolean;
+  card?: {
+    brand: string;
+    last4: string;
+    exp_month: number;
+    exp_year: number;
+  };
+  status: 'active' | 'expired' | 'canceled';
+  created_at: string;
+}
+
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  status: 'draft' | 'issued' | 'paid' | 'void';
+  subtotal: number;
+  tax: number;
+  total: number;
+  currency: string;
+  period_start: string;
+  period_end: string;
+  pdf_url?: string;
+  created_at: string;
+  paid_at?: string;
+}
+
+export interface ResourceUsage {
+  resource_type: string;
+  used: number;
+  limit: number;
+  percent: number;
+  remaining?: number;
+  overage?: number;
+}
+
+export interface UsagePeriod {
+  start: string;
+  end: string;
+  remaining_days: number;
+}
+
+export interface UsageResponse {
+  period: UsagePeriod;
+  resources: ResourceUsage[];
+}
+
+export interface CreateSubscriptionRequest {
+  plan_id: string;
+  billing_cycle?: 'monthly' | 'yearly';
+  payment_method_id?: string;
+}
+
+export interface UpdateSubscriptionRequest {
+  plan_id?: string;
+  billing_cycle?: 'monthly' | 'yearly';
+  proration?: 'immediate' | 'next_billing_cycle';
+}
+
+export interface CancelSubscriptionRequest {
+  reason?: string;
+  feedback?: string;
+}
+
+export interface SetupPaymentMethodRequest {
+  return_url?: string;
+}
+
+export interface SetupPaymentMethodResponse {
+  setup_intent_id: string;
+  client_secret: string;
+}
+
+// ============================================
 // Query Options
 // ============================================
 

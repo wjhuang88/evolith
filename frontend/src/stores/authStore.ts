@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi, getToken, clearToken, type User, type TenantInfo } from '@/lib/api';
+import { authApi, getToken, clearToken, type User, type TenantInfo, type AuthToken } from '@/lib/api';
 
 interface AuthState {
   // State
@@ -15,6 +15,7 @@ interface AuthState {
   register: (email: string, username: string, password: string, tenantName?: string, tenantSlug?: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
+  initialize: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -34,9 +35,10 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.login({ email, password });
           
           if (response.success && response.data) {
+            const authToken = response.data as AuthToken;
             set({ 
-              user: response.data.user, 
-              tenant: (response.data as any).tenant || null,
+              user: authToken.user, 
+              tenant: (authToken as unknown as { tenant?: TenantInfo }).tenant || null,
               isAuthenticated: true,
               isLoading: false 
             });
@@ -68,9 +70,10 @@ export const useAuthStore = create<AuthState>()(
           });
           
           if (response.success && response.data) {
+            const authToken = response.data as AuthToken;
             set({ 
-              user: response.data.user, 
-              tenant: (response.data as any).tenant || null,
+              user: authToken.user, 
+              tenant: (authToken as unknown as { tenant?: TenantInfo }).tenant || null,
               isAuthenticated: true,
               isLoading: false 
             });
@@ -144,6 +147,16 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false 
           });
         }
+      },
+
+      initialize: async () => {
+        const token = getToken();
+        if (!token) {
+          set({ isAuthenticated: false, user: null, tenant: null });
+          return;
+        }
+
+        await get().fetchUser();
       },
 
       clearError: () => set({ error: null }),

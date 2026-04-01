@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import type { ApiResponse, ErrorInfo } from './types';
+import type { ApiResponse, ErrorInfo, AuthToken } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -19,12 +19,14 @@ export function setToken(token: string, expiresAt: number): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(TOKEN_EXPIRY_KEY, String(expiresAt));
+  // Backend sets httpOnly cookie - localStorage is for client-side auth state only
 }
 
 export function clearToken(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  // Backend clears httpOnly cookie on logout - localStorage is for client-side state only
 }
 
 export function isTokenExpired(): boolean {
@@ -36,6 +38,16 @@ export function isTokenExpired(): boolean {
 }
 
 // ============================================
+// CSRF Token Helper
+// ============================================
+
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^| )csrf_token=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+// ============================================
 // Axios Client
 // ============================================
 
@@ -44,6 +56,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
   timeout: 30000,
 });
 
@@ -54,14 +67,39 @@ apiClient.interceptors.request.use(
     if (token && !isTokenExpired()) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Add request ID for tracing
     config.headers['X-Request-ID'] = crypto.randomUUID();
+    
+    const method = config.method?.toUpperCase();
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 // Response interceptor
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<unknown>>) => {
@@ -70,13 +108,59 @@ apiClient.interceptors.response.use(
     // Handle 401 - try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
-      // Clear invalid token
-      clearToken();
-      
-      // Redirect to login or dispatch auth event
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+
+      // If the 401 is from the refresh endpoint itself, don't loop
+      const isRefreshRequest = originalRequest.url?.includes('/auth/refresh');
+      if (isRefreshRequest) {
+        clearToken();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        }
+        return Promise.reject(error);
+      }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      isRefreshing = true;
+
+      try {
+        // Attempt to refresh token
+        const response = await apiClient.post<ApiResponse<AuthToken>>('/auth/refresh');
+        
+        if (response.data.success && response.data.data) {
+          const { token, expires_at } = response.data.data;
+          setToken(token, expires_at);
+          
+          // Process queued requests
+          processQueue(null, token);
+          
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        } else {
+          // Refresh failed
+          throw new Error('Token refresh failed');
+        }
+      } catch (refreshError) {
+        // Refresh failed - clear token and redirect
+        processQueue(refreshError as Error, null);
+        clearToken();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

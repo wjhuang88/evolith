@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { user, tenant } = useAuthStore();
   const [tenantName, setTenantName] = useState(tenant?.name || '');
   const [saving, setSaving] = useState(false);
@@ -23,9 +25,9 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Settings</h1>
+        <h1 className="text-3xl font-bold">{t('tenant.settings.title')}</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your organization settings and preferences
+          {t('tenant.settings.subtitle')}
         </p>
       </div>
 
@@ -33,40 +35,40 @@ export default function SettingsPage() {
         {/* Organization Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Organization</CardTitle>
-            <CardDescription>Basic information about your organization</CardDescription>
+            <CardTitle>{t('tenant.settings.org.title')}</CardTitle>
+            <CardDescription>{t('tenant.settings.org.desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label htmlFor="tenantName" className="block text-sm font-medium text-foreground">
-                Organization Name
+                {t('tenant.settings.org.nameLabel')}
               </label>
               <Input
                 id="tenantName"
                 value={tenantName}
                 onChange={(e) => setTenantName(e.target.value)}
                 disabled={!canEditSettings}
-                className="mt-1 max-w-md"
+                className="mt-1 w-full max-w-md"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground">
-                Organization URL
+                {t('tenant.settings.org.urlLabel')}
               </label>
-              <div className="mt-1 flex max-w-md items-center">
-                <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
+              <div className="mt-1 flex flex-col sm:flex-row max-w-md items-stretch sm:items-center gap-2">
+                <span className="inline-flex items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
                   evolith.io/
                 </span>
                 <Input
                   value={tenant?.slug || 'my-company'}
                   disabled
-                  className="rounded-l-none"
+                  className="flex-1"
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground">
-                Plan
+                {t('tenant.settings.org.planLabel')}
               </label>
               <p className="mt-1 text-sm text-muted-foreground capitalize">
                 {tenant?.plan || 'Free'}
@@ -74,7 +76,7 @@ export default function SettingsPage() {
             </div>
             {canEditSettings && (
               <Button onClick={handleSave} disabled={saving} className="mt-4">
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t('common.saving') : t('tenant.settings.org.saveChanges')}
               </Button>
             )}
           </CardContent>
@@ -83,41 +85,41 @@ export default function SettingsPage() {
         {/* Security Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Security</CardTitle>
-            <CardDescription>Security and authentication settings</CardDescription>
+            <CardTitle>{t('tenant.settings.security.title')}</CardTitle>
+            <CardDescription>{t('tenant.settings.security.desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 border-b border-border">
               <div>
-                <p className="font-medium text-foreground">Two-Factor Authentication</p>
-                <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.security.twoFactor')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.security.twoFactorDesc')}</p>
               </div>
-              <Button variant="outline" size="sm" disabled={!canEditSettings}>
-                Enable
+              <Button variant="outline" size="sm" disabled={!canEditSettings} className="w-full sm:w-auto">
+                {t('common.enable')}
               </Button>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 border-b border-border">
               <div>
-                <p className="font-medium text-foreground">Session Timeout</p>
-                <p className="text-sm text-muted-foreground">Automatically log out after period of inactivity</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.security.sessionTimeout')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.security.sessionTimeoutDesc')}</p>
               </div>
               <select 
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm"
                 defaultValue="24h"
               >
-                <option value="1h">1 hour</option>
-                <option value="24h">24 hours</option>
-                <option value="7d">7 days</option>
-                <option value="30d">30 days</option>
+                <option value="1h">{t('tenant.settings.security.1h')}</option>
+                <option value="24h">{t('tenant.settings.security.24h')}</option>
+                <option value="7d">{t('tenant.settings.security.7d')}</option>
+                <option value="30d">{t('tenant.settings.security.30d')}</option>
               </select>
             </div>
-            <div className="flex items-center justify-between py-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3">
               <div>
-                <p className="font-medium text-foreground">API Key Requirements</p>
-                <p className="text-sm text-muted-foreground">Require API keys for programmatic access</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.security.apiKeyReq')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.security.apiKeyReqDesc')}</p>
               </div>
-              <Button variant="outline" size="sm" disabled={!canEditSettings}>
-                Configure
+              <Button variant="outline" size="sm" disabled={!canEditSettings} className="w-full sm:w-auto">
+                {t('common.configure')}
               </Button>
             </div>
           </CardContent>
@@ -126,14 +128,14 @@ export default function SettingsPage() {
         {/* Notification Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Choose how you want to be notified</CardDescription>
+            <CardTitle>{t('tenant.settings.notifications.title')}</CardTitle>
+            <CardDescription>{t('tenant.settings.notifications.desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 border-b border-border">
               <div>
-                <p className="font-medium text-foreground">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive email updates about your account</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.notifications.email')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.notifications.emailDesc')}</p>
               </div>
               <input 
                 type="checkbox" 
@@ -141,10 +143,10 @@ export default function SettingsPage() {
                 className="h-4 w-4 rounded border-input"
               />
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 border-b border-border">
               <div>
-                <p className="font-medium text-foreground">Usage Alerts</p>
-                <p className="text-sm text-muted-foreground">Get notified when approaching usage limits</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.notifications.usage')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.notifications.usageDesc')}</p>
               </div>
               <input 
                 type="checkbox" 
@@ -152,10 +154,10 @@ export default function SettingsPage() {
                 className="h-4 w-4 rounded border-input"
               />
             </div>
-            <div className="flex items-center justify-between py-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3">
               <div>
-                <p className="font-medium text-foreground">Security Alerts</p>
-                <p className="text-sm text-muted-foreground">Get notified about suspicious activity</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.notifications.security')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.notifications.securityDesc')}</p>
               </div>
               <input 
                 type="checkbox" 
@@ -169,22 +171,22 @@ export default function SettingsPage() {
         {/* Danger Zone */}
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Irreversible and destructive actions</CardDescription>
+            <CardTitle className="text-destructive">{t('tenant.settings.danger.title')}</CardTitle>
+            <CardDescription>{t('tenant.settings.danger.desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 border-b border-border">
               <div>
-                <p className="font-medium text-foreground">Delete Organization</p>
-                <p className="text-sm text-muted-foreground">Permanently delete your organization and all data</p>
+                <p className="font-medium text-foreground">{t('tenant.settings.danger.deleteOrg')}</p>
+                <p className="text-sm text-muted-foreground">{t('tenant.settings.danger.deleteOrgDesc')}</p>
               </div>
-              <Button variant="destructive" size="sm" disabled={currentUserRole !== 'owner'}>
-                Delete
+              <Button variant="destructive" size="sm" disabled={currentUserRole !== 'owner'} className="w-full sm:w-auto">
+                {t('common.delete')}
               </Button>
             </div>
             {currentUserRole !== 'owner' && (
               <p className="text-xs text-muted-foreground">
-                Only the organization owner can delete the organization.
+                {t('tenant.settings.danger.ownerOnly')}
               </p>
             )}
           </CardContent>

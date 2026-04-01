@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
@@ -18,6 +19,7 @@ interface ExecutionResult {
 }
 
 export default function SkillDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const skillId = params.id as string;
@@ -40,10 +42,10 @@ export default function SkillDetailPage() {
         if (response.success && response.data) {
           setSkill(response.data);
         } else {
-          setError(response.error?.message || 'Skill not found');
+          setError(response.error?.message || t('skills.skillNotFound'));
         }
       } catch (err) {
-        setError('Failed to load skill');
+        setError(t('skills.failedToLoadSkill'));
       } finally {
         setLoading(false);
       }
@@ -60,7 +62,7 @@ export default function SkillDetailPage() {
     try {
       parsedArgs = JSON.parse(argumentsJson);
     } catch {
-      setExecutionError('Invalid JSON format for arguments');
+      setExecutionError(t('skills.invalidJson'));
       setExecuting(false);
       return;
     }
@@ -70,34 +72,34 @@ export default function SkillDetailPage() {
       if (response.success && response.data) {
         setExecutionResult(response.data as ExecutionResult);
       } else {
-        setExecutionError(response.error?.message || 'Execution failed');
+        setExecutionError(response.error?.message || t('skills.executionFailed'));
       }
     } catch (err) {
-      setExecutionError('Failed to execute skill');
+      setExecutionError(t('skills.failedToExecute'));
     } finally {
       setExecuting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this skill?')) return;
+    if (!confirm(t('skills.confirmDelete'))) return;
     
     try {
       const response = await skillsApi.delete(skillId);
       if (response.success) {
         router.push('/skills');
       } else {
-        alert(response.error?.message || 'Failed to delete');
+        alert(response.error?.message || t('skills.failedToDelete'));
       }
     } catch (err) {
-      alert('Failed to delete skill');
+      alert(t('skills.failedToDeleteSkill'));
     }
   };
 
   if (loading) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-muted-foreground">Loading...</div>
+        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
@@ -105,8 +107,8 @@ export default function SkillDetailPage() {
   if (error || !skill) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-destructive">{error || 'Skill not found'}</div>
-        <Button className="mt-4" onClick={() => router.push('/skills')}>Back to Skills</Button>
+        <div className="text-center text-destructive">{error || t('skills.skillNotFound')}</div>
+        <Button className="mt-4" onClick={() => router.push('/skills')}>{t('skills.backToSkills')}</Button>
       </div>
     );
   }
@@ -114,7 +116,7 @@ export default function SkillDetailPage() {
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <Button variant="ghost" onClick={() => router.push('/skills')} className="mb-4">
-        ← Back to Skills
+        ← {t('skills.backToSkills')}
       </Button>
 
       <div className="flex items-center justify-between mb-8">
@@ -127,20 +129,20 @@ export default function SkillDetailPage() {
           </h1>
           <p className="text-muted-foreground mt-1">{skill.description}</p>
           <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-            <span>Version: {skill.version}</span>
-            <span>Category: {skill.category}</span>
+            <span>{t('skills.version')}: {skill.version}</span>
+            <span>{t('skills.category')}: {skill.category}</span>
             <span>Runtime: javascript</span>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setExecuteModalOpen(true)}>Execute</Button>
-          <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          <Button onClick={() => setExecuteModalOpen(true)}>{t('skills.execute')}</Button>
+          <Button variant="destructive" onClick={handleDelete}>{t('skills.deleteSkill')}</Button>
         </div>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>SKILL.md Content</CardTitle>
+          <CardTitle>{t('skills.contentTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <pre className="bg-muted p-4 rounded-md overflow-auto text-sm whitespace-pre-wrap max-h-96">
@@ -154,12 +156,12 @@ export default function SkillDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto">
             <CardHeader>
-              <CardTitle>Execute Skill: {skill.name}</CardTitle>
-              <CardDescription>Enter arguments in JSON format</CardDescription>
+              <CardTitle>{t('skills.executeSkill', { name: skill.name })}</CardTitle>
+              <CardDescription>{t('skills.enterArgsJson')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Arguments (JSON)</label>
+                <label className="text-sm font-medium">{t('skills.argsLabel')}</label>
                 <textarea
                   value={argumentsJson}
                   onChange={(e) => setArgumentsJson(e.target.value)}
@@ -177,12 +179,12 @@ export default function SkillDetailPage() {
               {executionResult && (
                 <div className="space-y-4">
                   <div className="flex gap-4 text-sm text-muted-foreground">
-                    <span>Status: <span className={executionResult.status === 'success' ? 'text-green-500' : 'text-red-500'}>{executionResult.status}</span></span>
-                    <span>Runtime: {executionResult.runtime}</span>
-                    <span>Time: {executionResult.execution_time_ms}ms</span>
+                    <span>{t('skills.statusLabel')}: <span className={executionResult.status === 'success' ? 'text-green-500' : 'text-red-500'}>{executionResult.status}</span></span>
+                    <span>{t('skills.runtimeLabel')}: {executionResult.runtime}</span>
+                    <span>{t('skills.timeLabel')}: {executionResult.execution_time_ms}ms</span>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Output</label>
+                    <label className="text-sm font-medium">{t('skills.output')}</label>
                     <pre className="bg-muted p-4 rounded-md overflow-auto text-sm whitespace-pre-wrap max-h-64">
                       {executionResult.output}
                     </pre>
@@ -199,7 +201,7 @@ export default function SkillDetailPage() {
                   Close
                 </Button>
                 <Button onClick={handleExecute} disabled={executing}>
-                  {executing ? 'Executing...' : 'Run'}
+                  {executing ? t('skills.executing') : t('skills.execute')}
                 </Button>
               </div>
             </CardContent>

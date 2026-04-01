@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuthStore();
   const [email, setEmail] = useState('');
@@ -34,9 +36,9 @@ export default function LoginPage() {
               <span className="text-white font-bold">E</span>
             </div>
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-foreground">Welcome back</h1>
+          <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.loginPage.welcome')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your account to continue
+            {t('auth.loginPage.subtitle')}
           </p>
         </div>
 
@@ -50,7 +52,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                {t('auth.email')}
               </label>
               <Input
                 id="email"
@@ -64,7 +66,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
-                Password
+                {t('auth.password')}
               </label>
               <Input
                 id="password"
@@ -78,7 +80,7 @@ export default function LoginPage() {
 
             <div className="text-right text-sm">
               <Link href="/forgot-password" className="text-primary hover:underline">
-                Forgot password?
+                {t('auth.loginPage.forgotPassword')}
               </Link>
             </div>
 
@@ -87,14 +89,14 @@ export default function LoginPage() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? t('auth.loginPage.signingIn') : t('auth.loginPage.signIn')}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {t('auth.loginPage.noAccount')}{' '}
             <Link href="/register" className="text-primary hover:underline">
-              Sign up
+              {t('auth.loginPage.signUp')}
             </Link>
           </div>
         </div>

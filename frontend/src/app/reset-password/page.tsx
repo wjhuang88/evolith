@@ -3,10 +3,12 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 function ResetPasswordForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -22,12 +24,12 @@ function ResetPasswordForm() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.resetPasswordPage.passwordsDoNotMatch'));
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('auth.resetPasswordPage.passwordTooShort'));
       return;
     }
 
@@ -38,7 +40,7 @@ function ResetPasswordForm() {
       // await api.post('/auth/reset-password', { token, password });
       setSuccess(true);
     } catch {
-      setError('Failed to reset password. The link may have expired.');
+      setError(t('auth.resetPasswordPage.linkExpired'));
     } finally {
       setIsLoading(false);
     }
@@ -54,14 +56,14 @@ function ResetPasswordForm() {
             </svg>
           </div>
         </div>
-        <h2 className="text-xl font-bold text-foreground">Invalid Link</h2>
+        <h2 className="text-xl font-bold text-foreground">{t('auth.resetPasswordPage.invalidLink')}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This password reset link is invalid or has expired.
+          {t('auth.resetPasswordPage.invalidLinkDesc')}
         </p>
         <div className="mt-6">
           <Link href="/forgot-password">
             <Button variant="outline" className="w-full">
-              Request New Link
+              {t('auth.resetPasswordPage.requestNewLink')}
             </Button>
           </Link>
         </div>
@@ -79,14 +81,14 @@ function ResetPasswordForm() {
             </svg>
           </div>
         </div>
-        <h2 className="text-xl font-bold text-foreground">Password Reset Complete</h2>
+        <h2 className="text-xl font-bold text-foreground">{t('auth.resetPasswordPage.resetComplete')}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Your password has been successfully reset. You can now sign in with your new password.
+          {t('auth.resetPasswordPage.resetCompleteDesc')}
         </p>
         <div className="mt-6">
           <Link href="/login">
             <Button className="w-full">
-              Sign In
+              {t('auth.resetPasswordPage.signIn')}
             </Button>
           </Link>
         </div>
@@ -105,7 +107,7 @@ function ResetPasswordForm() {
 
         <div className="space-y-2">
           <label htmlFor="password" className="text-sm font-medium">
-            New Password
+            {t('auth.resetPasswordPage.newPassword')}
           </label>
           <Input
             id="password"
@@ -120,7 +122,7 @@ function ResetPasswordForm() {
 
         <div className="space-y-2">
           <label htmlFor="confirmPassword" className="text-sm font-medium">
-            Confirm Password
+            {t('auth.resetPasswordPage.confirmPassword')}
           </label>
           <Input
             id="confirmPassword"
@@ -138,13 +140,13 @@ function ResetPasswordForm() {
           className="w-full"
           disabled={isLoading}
         >
-          {isLoading ? 'Resetting...' : 'Reset Password'}
+          {isLoading ? t('auth.resetPasswordPage.resetting') : t('auth.resetPasswordPage.resetPassword')}
         </Button>
       </form>
 
       <div className="mt-4 text-center text-sm text-muted-foreground">
         <Link href="/login" className="text-primary hover:underline">
-          Back to Sign In
+          {t('auth.resetPasswordPage.backToSignIn')}
         </Link>
       </div>
     </div>
@@ -152,6 +154,8 @@ function ResetPasswordForm() {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation();
+  
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
@@ -161,15 +165,15 @@ export default function ResetPasswordPage() {
               <span className="text-white font-bold">E</span>
             </div>
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-foreground">Reset password</h1>
+          <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.resetPasswordPage.title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter your new password below
+            {t('auth.resetPasswordPage.subtitle')}
           </p>
         </div>
 
         <Suspense fallback={
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm text-center">
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">{t('common.loading')}</p>
           </div>
         }>
           <ResetPasswordForm />

@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +25,7 @@ export default function ForgotPasswordPage() {
       // await api.post('/auth/forgot-password', { email });
       setSubmitted(true);
     } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+      setError(t('auth.forgotPasswordPage.sendFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -41,14 +43,14 @@ export default function ForgotPasswordPage() {
                 </svg>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-foreground">Check your email</h2>
+            <h2 className="text-xl font-bold text-foreground">{t('auth.forgotPasswordPage.checkEmail')}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              We&apos;ve sent password reset instructions to <strong>{email}</strong>
+              {t('auth.forgotPasswordPage.sentInstructions', { email })}
             </p>
             <div className="mt-6">
               <Link href="/login">
                 <Button variant="outline" className="w-full">
-                  Back to Sign In
+                  {t('auth.forgotPasswordPage.backToSignIn')}
                 </Button>
               </Link>
             </div>
@@ -67,9 +69,9 @@ export default function ForgotPasswordPage() {
               <span className="text-white font-bold">E</span>
             </div>
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-foreground">Forgot password</h1>
+          <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.forgotPasswordPage.title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter your email and we&apos;ll send you reset instructions
+            {t('auth.forgotPasswordPage.subtitle')}
           </p>
         </div>
 
@@ -83,7 +85,7 @@ export default function ForgotPasswordPage() {
 
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                {t('auth.email')}
               </label>
               <Input
                 id="email"
@@ -100,14 +102,14 @@ export default function ForgotPasswordPage() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
+              {isLoading ? t('auth.forgotPasswordPage.sending') : t('auth.forgotPasswordPage.sendResetLink')}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Remember your password?{' '}
+            {t('auth.forgotPasswordPage.rememberPassword')}{' '}
             <Link href="/login" className="text-primary hover:underline">
-              Sign in
+              {t('auth.forgotPasswordPage.signIn')}
             </Link>
           </div>
         </div>

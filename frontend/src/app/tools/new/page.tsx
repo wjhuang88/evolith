@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
@@ -20,6 +21,7 @@ const PARAMETER_TYPES = ['string', 'number', 'boolean', 'object', 'array'];
 
 export default function NewToolPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -71,10 +73,10 @@ export default function NewToolPage() {
       if (response.success) {
         router.push('/tools');
       } else {
-        setError(response.error?.message || 'Failed to create tool');
+        setError(response.error?.message || t('tools.newTool.failedToCreate'));
       }
     } catch (err) {
-      setError('Failed to create tool');
+      setError(t('tools.newTool.failedToCreate'));
     } finally {
       setLoading(false);
     }
@@ -102,8 +104,8 @@ export default function NewToolPage() {
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create New Tool</h1>
-        <p className="text-muted-foreground mt-1">Define a new MCP tool with JSON Schema parameters</p>
+        <h1 className="text-3xl font-bold">{t('tools.newTool.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('tools.newTool.subtitle')}</p>
       </div>
 
       {error && (
@@ -115,38 +117,38 @@ export default function NewToolPage() {
       <form onSubmit={handleSubmit}>
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Tool name, description, and category</CardDescription>
+            <CardTitle>{t('tools.newTool.basicInfo')}</CardTitle>
+            <CardDescription>{t('tools.newTool.basicInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Name *</label>
+              <label className="text-sm font-medium">{t('tools.newTool.nameLabel')}</label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="tool-name"
+                placeholder={t('tools.newTool.namePlaceholder')}
                 required
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Description *</label>
+              <label className="text-sm font-medium">{t('tools.newTool.descLabel')}</label>
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="What does this tool do?"
+                placeholder={t('tools.newTool.descPlaceholder')}
                 required
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-sm font-medium">{t('tools.categoryLabel')}</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>{t(`tools.category.${cat}`)}</option>
                   ))}
                 </select>
               </div>
@@ -158,7 +160,7 @@ export default function NewToolPage() {
                   onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
                   className="w-4 h-4"
                 />
-                <label htmlFor="is_public" className="text-sm">Public Tool</label>
+                <label htmlFor="is_public" className="text-sm">{t('tools.newTool.publicTool')}</label>
               </div>
             </div>
           </CardContent>
@@ -167,24 +169,24 @@ export default function NewToolPage() {
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Parameters</CardTitle>
-              <CardDescription>Define input parameters with JSON Schema</CardDescription>
+              <CardTitle>{t('tools.newTool.parametersTitle')}</CardTitle>
+              <CardDescription>{t('tools.newTool.parametersDesc')}</CardDescription>
             </div>
             <Button type="button" variant="outline" onClick={addParameter}>
-              Add Parameter
+              {t('tools.addParameter')}
             </Button>
           </CardHeader>
           <CardContent>
             {parameters.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No parameters defined. Click Add Parameter to add input parameters.
+                {t('tools.newTool.noParams')}
               </div>
             ) : (
               <div className="space-y-4">
                 {parameters.map((param, index) => (
                   <div key={index} className="p-4 border rounded-md space-y-4">
                     <div className="flex justify-between items-start">
-                      <span className="font-medium">Parameter {index + 1}</span>
+                      <span className="font-medium">{t('tools.newTool.paramIndex', { index: index + 1 })}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -192,12 +194,12 @@ export default function NewToolPage() {
                         onClick={() => removeParameter(index)}
                         className="text-destructive"
                       >
-                        Remove
+                        {t('tools.removeParameter')}
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium">Name *</label>
+                        <label className="text-sm font-medium">{t('tools.parameterName')}</label>
                         <Input
                           value={param.name}
                           onChange={(e) => updateParameter(index, 'name', e.target.value)}
@@ -206,24 +208,24 @@ export default function NewToolPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Type</label>
+                        <label className="text-sm font-medium">{t('tools.parameterType')}</label>
                         <select
                           value={param.type}
                           onChange={(e) => updateParameter(index, 'type', e.target.value)}
                           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         >
                           {PARAMETER_TYPES.map(type => (
-                            <option key={type} value={type}>{type}</option>
+                            <option key={type} value={type}>{t(`tools.types.${type}`)}</option>
                           ))}
                         </select>
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Description</label>
+                      <label className="text-sm font-medium">{t('tools.parameterDescription')}</label>
                       <Input
                         value={param.description}
                         onChange={(e) => updateParameter(index, 'description', e.target.value)}
-                        placeholder="What is this parameter for?"
+                        placeholder={t('tools.parameterDescPlaceholder')}
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-4">
@@ -235,22 +237,22 @@ export default function NewToolPage() {
                           onChange={(e) => updateParameter(index, 'required', e.target.checked)}
                           className="w-4 h-4"
                         />
-                        <label htmlFor={`param-required-${index}`} className="text-sm">Required</label>
+                        <label htmlFor={`param-required-${index}`} className="text-sm">{t('tools.parameterRequired')}</label>
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Default</label>
+                        <label className="text-sm font-medium">{t('tools.parameterDefault')}</label>
                         <Input
                           value={param.default || ''}
                           onChange={(e) => updateParameter(index, 'default', e.target.value)}
-                          placeholder="default value"
+                          placeholder={t('tools.parameterDefaultPlaceholder')}
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Enum (comma)</label>
+                        <label className="text-sm font-medium">{t('tools.parameterEnum')}</label>
                         <Input
                           value={param.enum || ''}
                           onChange={(e) => updateParameter(index, 'enum', e.target.value)}
-                          placeholder="value1, value2"
+                          placeholder={t('tools.parameterEnumPlaceholder')}
                         />
                       </div>
                     </div>
@@ -263,10 +265,10 @@ export default function NewToolPage() {
 
         <div className="flex gap-4">
           <Button type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Tool'}
+            {loading ? t('common.creating') : t('common.create')}
           </Button>
           <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
+            {t('common.back')}
           </Button>
         </div>
       </form>

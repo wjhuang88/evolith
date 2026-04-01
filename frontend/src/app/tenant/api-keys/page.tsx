@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,6 +19,7 @@ interface ApiKey {
 }
 
 export default function ApiKeysPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [showCreate, setShowCreate] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -56,16 +58,16 @@ export default function ApiKeysPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">API Keys</h1>
+          <h1 className="text-3xl font-bold">{t('tenant.apiKeys.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage API keys for programmatic access to your account
+            {t('tenant.apiKeys.subtitle')}
           </p>
         </div>
         {canManageKeys && (
           <Button onClick={() => setShowCreate(true)}>
-            Create API Key
+            {t('tenant.apiKeys.createApiKey')}
           </Button>
         )}
       </div>
@@ -73,7 +75,7 @@ export default function ApiKeysPage() {
       {!canManageKeys && (
         <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 p-4 mb-6">
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            Only admins and owners can manage API keys.
+            {t('tenant.apiKeys.adminOnly')}
           </p>
         </div>
       )}
@@ -81,18 +83,18 @@ export default function ApiKeysPage() {
       {newlyCreatedKey && (
         <Card className="mb-6 border-green-500">
           <CardHeader className="bg-green-50 dark:bg-green-900/20">
-            <CardTitle className="text-green-700 dark:text-green-300">API Key Created</CardTitle>
+            <CardTitle className="text-green-700 dark:text-green-300">{t('tenant.apiKeys.keyCreated')}</CardTitle>
             <CardDescription>
-              Make sure to copy your API key now. You won&apos;t be able to see it again!
+              {t('tenant.apiKeys.keyCreatedDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded bg-muted px-3 py-2 font-mono text-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <code className="flex-1 rounded bg-muted px-3 py-2 font-mono text-sm break-all">
                 {newlyCreatedKey}
               </code>
               <Button variant="outline" onClick={() => copyToClipboard(newlyCreatedKey)}>
-                Copy
+                {t('common.copy')}
               </Button>
             </div>
             <Button 
@@ -100,7 +102,7 @@ export default function ApiKeysPage() {
               className="mt-4" 
               onClick={() => setNewlyCreatedKey(null)}
             >
-              I&apos;ve stored it securely
+              {t('tenant.apiKeys.storedSecurely')}
             </Button>
           </CardContent>
         </Card>
@@ -109,28 +111,28 @@ export default function ApiKeysPage() {
       {showCreate && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Create New API Key</CardTitle>
-            <CardDescription>Generate a new API key for programmatic access</CardDescription>
+            <CardTitle>{t('tenant.apiKeys.createNew.title')}</CardTitle>
+            <CardDescription>{t('tenant.apiKeys.createNew.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateKey} className="space-y-4">
               <div>
                 <label htmlFor="keyName" className="block text-sm font-medium text-foreground">
-                  Key Name
+                  {t('tenant.apiKeys.createNew.nameLabel')}
                 </label>
                 <Input
                   id="keyName"
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="My API Key"
+                  placeholder={t('tenant.apiKeys.createNew.namePlaceholder')}
                   required
-                  className="mt-1"
+                  className="mt-1 w-full"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button type="submit">Create Key</Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button type="submit" className="w-full sm:w-auto">{t('tenant.apiKeys.createNew.createKey')}</Button>
+                <Button type="button" variant="outline" onClick={() => setShowCreate(false)} className="w-full sm:w-auto">
+                  {t('common.cancel')}
                 </Button>
               </div>
             </form>
@@ -142,24 +144,25 @@ export default function ApiKeysPage() {
         <CardContent className="p-0">
           {apiKeys.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">
-              No API keys yet. Create one to get started.
+              {t('tenant.apiKeys.noKeys')}
             </div>
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                    Name
+                    {t('tenant.apiKeys.table.name')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                    Key
+                    {t('tenant.apiKeys.table.key')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                    Created
+                    {t('tenant.apiKeys.table.created')}
                   </th>
                   {canManageKeys && (
                     <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">
-                      Actions
+                      {t('tenant.apiKeys.table.actions')}
                     </th>
                   )}
                 </tr>
@@ -177,25 +180,26 @@ export default function ApiKeysPage() {
                       {new Date(key.created_at).toLocaleDateString()}
                     </td>
                     {canManageKeys && (
-                      <td className="px-6 py-4 text-right">
-                        {key.status === 'active' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-destructive"
-                          >
-                            Revoke
-                          </Button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                       <td className="px-6 py-4 text-right">
+                         {key.status === 'active' && (
+                           <Button 
+                             variant="ghost" 
+                             size="sm" 
+                             className="text-destructive"
+                           >
+                             {t('tenant.apiKeys.revoke')}
+                           </Button>
+                         )}
+                       </td>
+                     )}
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
+            </div>
           )}
-        </CardContent>
-      </Card>
+         </CardContent>
+       </Card>
     </div>
   );
 }

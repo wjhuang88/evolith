@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,6 +19,7 @@ interface Member {
 }
 
 export default function MembersPage() {
+  const { t } = useTranslation();
   const { user, tenant } = useAuthStore();
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -63,16 +65,16 @@ export default function MembersPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Team Members</h1>
+          <h1 className="text-3xl font-bold">{t('tenant.members.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your organization team members and roles
+            {t('tenant.members.subtitle')}
           </p>
         </div>
         {currentUserRole !== 'member' && (
           <Button onClick={() => setShowInvite(true)}>
-            Invite Member
+            {t('tenant.members.inviteMember')}
           </Button>
         )}
       </div>
@@ -80,28 +82,28 @@ export default function MembersPage() {
       {showInvite && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Invite New Member</CardTitle>
-            <CardDescription>Send an invitation to join your organization</CardDescription>
+            <CardTitle>{t('tenant.members.inviteNew.title')}</CardTitle>
+            <CardDescription>{t('tenant.members.inviteNew.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleInvite} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                  Email Address
+                  {t('tenant.members.inviteNew.emailLabel')}
                 </label>
                 <Input
                   id="email"
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="colleague@company.com"
+                  placeholder={t('tenant.members.inviteNew.emailPlaceholder')}
                   required
-                  className="mt-1"
+                  className="mt-1 w-full"
                 />
               </div>
               <div>
                 <label htmlFor="role" className="block text-sm font-medium text-foreground">
-                  Role
+                  {t('tenant.members.inviteNew.roleLabel')}
                 </label>
                 <select
                   id="role"
@@ -109,14 +111,14 @@ export default function MembersPage() {
                   onChange={(e) => setInviteRole(e.target.value as 'admin' | 'member')}
                   className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
+                  <option value="member">{t('tenant.members.roles.member')}</option>
+                  <option value="admin">{t('tenant.members.roles.admin')}</option>
                 </select>
               </div>
-              <div className="flex gap-2">
-                <Button type="submit">Send Invitation</Button>
-                <Button type="button" variant="outline" onClick={() => setShowInvite(false)}>
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button type="submit" className="w-full sm:w-auto">{t('tenant.members.inviteNew.sendInvitation')}</Button>
+                <Button type="button" variant="outline" onClick={() => setShowInvite(false)} className="w-full sm:w-auto">
+                  {t('common.cancel')}
                 </Button>
               </div>
             </form>
@@ -126,24 +128,25 @@ export default function MembersPage() {
 
       <Card>
         <CardContent className="p-0">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-border">
                 <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Member
+                  {t('tenant.members.table.member')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Role
+                  {t('tenant.members.table.role')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Status
+                  {t('tenant.members.table.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Joined
+                  {t('tenant.members.table.joined')}
                 </th>
                 {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
                   <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">
-                    Actions
+                    {t('tenant.members.table.actions')}
                   </th>
                 )}
               </tr>
@@ -168,14 +171,14 @@ export default function MembersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(member.role)}`}>
-                      {member.role}
+                      {member.role === 'owner' ? t('tenant.members.roles.owner') : member.role === 'admin' ? t('tenant.members.roles.admin') : t('tenant.members.roles.member')}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     {member.status === 'invited' ? (
-                      <span className="text-sm text-amber-600">Pending</span>
+                      <span className="text-sm text-amber-600">{t('tenant.members.table.pending')}</span>
                     ) : (
-                      <span className="text-sm text-green-600">Active</span>
+                      <span className="text-sm text-green-600">{t('tenant.members.table.active')}</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
@@ -184,7 +187,7 @@ export default function MembersPage() {
                   {(currentUserRole === 'owner' || currentUserRole === 'admin') && member.role !== 'owner' && (
                     <td className="px-6 py-4 text-right">
                       <Button variant="ghost" size="sm" className="text-destructive">
-                        Remove
+                        {t('common.remove')}
                       </Button>
                     </td>
                   )}
@@ -192,14 +195,15 @@ export default function MembersPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
 
       <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="font-medium">Your plan:</span>
-        <span className="capitalize">{tenant?.plan || 'Free'}</span>
+        <span className="font-medium">{t('tenant.members.planInfo')}</span>
+        <span className="capitalize">{tenant?.plan || t('tenant.billing.free')}</span>
         <span>•</span>
-        <span>{members.length} of {10} seats used</span>
+        <span>{t('tenant.members.seatsUsed', { used: members.length, total: 10 })}</span>
       </div>
     </div>
   );

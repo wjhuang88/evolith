@@ -25,15 +25,36 @@
     "actions": "Actions",
     "noData": "No data",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "back": "Back",
+    "private": "Private",
+    "public": "Public",
+    "remove": "Remove",
+    "run": "Run",
+    "processing": "Processing...",
+    "saving": "Saving...",
+    "creating": "Creating...",
+    "select": "Select...",
+    "version": "Version",
+    "status": "Status",
+    "type": "Type",
+    "configure": "Configure",
+    "enable": "Enable",
+    "previous": "Previous",
+    "next": "Next"
   },
   "nav": {
     "home": "Home",
+    "dashboard": "Dashboard",
     "tools": "Tools",
     "skills": "Skills",
     "snippets": "Snippets",
     "docs": "Docs",
-    "settings": "Settings"
+    "settings": "Settings",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "profile": "Profile",
+    "user": "User"
   },
   "landing": {
     "hero": {
@@ -69,6 +90,129 @@
       "terms": "Terms of Service"
     }
   },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "loginPage": {
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account to continue",
+      "signIn": "Sign in",
+      "signingIn": "Signing in...",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "registerPage": {
+      "title": "Create your account",
+      "subtitle": "Start building with Evolith today",
+      "confirmPassword": "Confirm Password",
+      "orgName": "Organization Name",
+      "orgNamePlaceholder": "My Company",
+      "orgNameHint": "Optional - will be created with your account",
+      "orgUrl": "Organization URL",
+      "createAccount": "Create account",
+      "creatingAccount": "Creating account...",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "passwordHint": "Minimum 8 characters",
+      "checkEmail": "Check Your Email",
+      "verificationSent": "We've sent a verification link to <strong>{{email}}</strong>. Please check your email and click the link to verify your account.",
+      "devVerificationLink": "Development mode - Verification link:",
+      "goToLogin": "Go to Login",
+      "didntReceive": "Didn't receive the email?",
+      "tryAgain": "Try again",
+      "validation": {
+        "fillRequired": "Please fill in all required fields",
+        "passwordsNoMatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "slugInvalid": "Tenant slug can only contain lowercase letters, numbers, and hyphens"
+      },
+      "registrationFailed": "Registration failed",
+      "genericError": "An error occurred. Please try again."
+    },
+    "forgotPasswordPage": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email and we'll send you reset instructions",
+      "sendResetLink": "Send Reset Link",
+      "sending": "Sending...",
+      "rememberPassword": "Remember your password?",
+      "signIn": "Sign in",
+      "checkEmail": "Check your email",
+      "sentInstructions": "We've sent password reset instructions to <strong>{{email}}</strong>",
+      "backToSignIn": "Back to Sign In",
+      "sendFailed": "Failed to send reset email. Please try again."
+    },
+    "resetPasswordPage": {
+      "title": "Reset password",
+      "subtitle": "Enter your new password below",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "resetPassword": "Reset Password",
+      "resetting": "Resetting...",
+      "backToSignIn": "Back to Sign In",
+      "invalidLink": "Invalid Link",
+      "invalidLinkDesc": "This password reset link is invalid or has expired.",
+      "requestNewLink": "Request New Link",
+      "resetComplete": "Password Reset Complete",
+      "resetCompleteDesc": "Your password has been successfully reset. You can now sign in with your new password.",
+      "signIn": "Sign In",
+      "passwordsNoMatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "resetFailed": "Failed to reset password. The link may have expired."
+    },
+    "verifyEmailPage": {
+      "verifying": "Verifying Email",
+      "verifyingMessage": "Verifying your email...",
+      "success": "Email Verified!",
+      "successMessage": "Your email has been verified successfully! You can now log in to your account.",
+      "failed": "Verification Failed",
+      "invalidLink": "Invalid verification link. Please check your email or request a new verification link.",
+      "genericError": "An error occurred during verification. Please try again later.",
+      "verificationFailed": "Verification failed. The link may have expired or is invalid.",
+      "goToLogin": "Go to Login",
+      "needNewLink": "Need a new verification link?",
+      "loginToResend": "Log in to resend"
+    }
+  },
+  "dashboard": {
+    "welcomeBack": "Welcome back, {{name}}!",
+    "orgPrefix": "Organization: {{name}}",
+    "defaultSubtitle": "Evolith - AI Agent Development Platform",
+    "stats": {
+      "totalTools": "Total Tools",
+      "mcpToolsAvailable": "MCP tools available",
+      "skills": "Skills",
+      "customSkills": "Custom skills",
+      "snippets": "Snippets",
+      "codeSnippets": "Code snippets",
+      "apiCalls": "API Calls",
+      "thisMonth": "This month"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "subtitle": "Common tasks to get started",
+      "addTool": "Add Tool",
+      "createSkill": "Create Skill",
+      "addSnippet": "Add Snippet",
+      "teamMembers": "Team Members"
+    },
+    "organization": {
+      "title": "Organization",
+      "plan": "Plan",
+      "role": "Role",
+      "manageSubscription": "Manage Subscription"
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "manageApiKeys": "Manage API Keys",
+      "inviteTeamMembers": "Invite Team Members",
+      "orgSettings": "Organization Settings"
+    }
+  },
   "tools": {
     "title": "MCP Tools",
     "subtitle": "Standardized tool encapsulation, served via MCP protocol",
@@ -90,6 +234,43 @@
     "parameterDefault": "Default Value",
     "parameterEnum": "Enum Values",
     "schemaPreview": "Generated Schema Preview",
+    "loadingTools": "Loading tools...",
+    "failedToLoad": "Failed to load tools",
+    "failedToConnect": "Failed to connect to server",
+    "backToTools": "Back to Tools",
+    "toolNotFound": "Tool not found",
+    "failedToLoadTool": "Failed to load tool",
+    "deleteTool": "Delete Tool",
+    "confirmDelete": "Are you sure you want to delete this tool?",
+    "failedToDelete": "Failed to delete",
+    "failedToDeleteTool": "Failed to delete tool",
+    "executeTool": "Execute Tool",
+    "executionFailed": "Execution failed",
+    "failedToExecute": "Failed to execute tool",
+    "categoryLabel": "Category",
+    "enterParam": "Enter {{name}}",
+    "newTool": {
+      "title": "Create New Tool",
+      "subtitle": "Define a new MCP tool with JSON Schema parameters",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Tool name, description, and category",
+      "nameLabel": "Name *",
+      "namePlaceholder": "tool-name",
+      "descLabel": "Description *",
+      "descPlaceholder": "What does this tool do?",
+      "publicTool": "Public Tool",
+      "parametersTitle": "Parameters",
+      "parametersDesc": "Define input parameters with JSON Schema",
+      "noParams": "No parameters defined. Click Add Parameter to add input parameters.",
+      "paramIndex": "Parameter {{index}}",
+      "paramNamePlaceholder": "parameter_name",
+      "paramDescPlaceholder": "What is this parameter for?",
+      "defaultLabel": "Default",
+      "defaultPlaceholder": "default value",
+      "enumLabel": "Enum (comma)",
+      "enumPlaceholder": "value1, value2",
+      "failedToCreate": "Failed to create tool"
+    },
     "category": {
       "custom": "Custom",
       "utility": "Utility",
@@ -119,13 +300,52 @@
     "version": "Version",
     "content": "Content (SKILL.md)",
     "category": "Category",
-    "tags": "Tags"
+    "tags": "Tags",
+    "loadingSkills": "Loading skills...",
+    "failedToLoad": "Failed to load skills",
+    "failedToConnect": "Failed to connect to server",
+    "backToSkills": "Back to Skills",
+    "skillNotFound": "Skill not found",
+    "failedToLoadSkill": "Failed to load skill",
+    "deleteSkill": "Delete",
+    "confirmDelete": "Are you sure you want to delete this skill?",
+    "failedToDelete": "Failed to delete",
+    "failedToDeleteSkill": "Failed to delete skill",
+    "executeSkill": "Execute Skill: {{name}}",
+    "enterArgsJson": "Enter arguments in JSON format",
+    "argsLabel": "Arguments (JSON)",
+    "invalidJson": "Invalid JSON format for arguments",
+    "executionFailed": "Execution failed",
+    "failedToExecute": "Failed to execute skill",
+    "statusLabel": "Status",
+    "runtimeLabel": "Runtime",
+    "timeLabel": "Time",
+    "contentTitle": "SKILL.md Content",
+    "newSkill": {
+      "title": "Create New Skill",
+      "subtitle": "Define a skill with SKILL.md format",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Skill name, version, and metadata",
+      "nameLabel": "Name *",
+      "namePlaceholder": "skill-name",
+      "versionLabel": "Version",
+      "versionPlaceholder": "1.0.0",
+      "descLabel": "Description *",
+      "descPlaceholder": "What does this skill do?",
+      "categoryLabel": "Category",
+      "tagsLabel": "Tags (comma separated)",
+      "tagsPlaceholder": "tag1, tag2, tag3",
+      "publicSkill": "Public Skill",
+      "contentTitle": "SKILL.md Content",
+      "contentDesc": "Define the skill behavior in SKILL.md format",
+      "failedToCreate": "Failed to create skill"
+    }
   },
   "snippets": {
     "title": "Code Snippets",
     "subtitle": "LLM-optimized code snippet repository to reduce token consumption",
     "createSnippet": "Create Snippet",
-    "noSnippets": "No snippets available yet.",
+    "noSnippets": "No snippets available yet. Create your first snippet to get started.",
     "getReference": "Get Reference",
     "copyCode": "Copy Code",
     "copyJSON": "Copy JSON",
@@ -133,21 +353,198 @@
     "formats": {
       "direct": "Direct",
       "inline": "Inline",
-      "withDeps": "With Dependencies"
+      "withDeps": "With Deps"
     },
     "importPath": "Import Path",
     "usage": "Usage",
     "dependencies": "Dependencies",
     "code": "Code",
-    "estimatedTokens": "Estimated Tokens"
+    "estimatedTokens": "Estimated Tokens",
+    "searchPlaceholder": "Search snippets...",
+    "loadingSnippets": "Loading snippets...",
+    "failedToLoad": "Failed to load snippets",
+    "failedToConnect": "Failed to connect to server",
+    "backToSnippets": "Back to Snippets",
+    "snippetNotFound": "Snippet not found",
+    "failedToLoadSnippet": "Failed to load snippet",
+    "deleteSnippet": "Delete",
+    "confirmDelete": "Are you sure you want to delete this snippet?",
+    "failedToDelete": "Failed to delete",
+    "failedToDeleteSnippet": "Failed to delete snippet",
+    "languageLabel": "Language",
+    "categoryLabel": "Category",
+    "referenceTitle": "Reference",
+    "referenceDesc": "Get formatted code for LLM consumption",
+    "loadingReference": "Loading reference...",
+    "noReferenceData": "No reference data",
+    "estimatedTokensLabel": "Estimated tokens: {{count}}",
+    "importLabel": "Import: {{path}}",
+    "usageExample": "Usage Example",
+    "codeTitle": "Code",
+    "newSnippet": {
+      "title": "Create New Snippet",
+      "subtitle": "Add a reusable code snippet for LLM consumption",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Snippet title, description, and metadata",
+      "titleLabel": "Title *",
+      "titlePlaceholder": "snippet-title",
+      "descLabel": "Description *",
+      "descPlaceholder": "What does this snippet do?",
+      "languageLabel": "Language",
+      "categoryLabel": "Category",
+      "tagsLabel": "Tags (comma separated)",
+      "tagsPlaceholder": "tag1, tag2, tag3",
+      "publicSnippet": "Public Snippet",
+      "codeTitle": "Code",
+      "codeDesc": "The actual code snippet",
+      "codePlaceholder": "// Your code here...",
+      "failedToCreate": "Failed to create snippet"
+    }
   },
-  "auth": {
-    "login": "Login",
-    "register": "Register",
-    "logout": "Logout",
-    "email": "Email",
-    "password": "Password",
-    "username": "Username"
+  "tenant": {
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your organization settings and preferences",
+      "org": {
+        "title": "Organization",
+        "desc": "Basic information about your organization",
+        "nameLabel": "Organization Name",
+        "urlLabel": "Organization URL",
+        "planLabel": "Plan",
+        "saveChanges": "Save Changes"
+      },
+      "security": {
+        "title": "Security",
+        "desc": "Security and authentication settings",
+        "twoFactor": "Two-Factor Authentication",
+        "twoFactorDesc": "Add an extra layer of security to your account",
+        "sessionTimeout": "Session Timeout",
+        "sessionTimeoutDesc": "Automatically log out after period of inactivity",
+        "apiKeyReq": "API Key Requirements",
+        "apiKeyReqDesc": "Require API keys for programmatic access",
+        "1h": "1 hour",
+        "24h": "24 hours",
+        "7d": "7 days",
+        "30d": "30 days"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "desc": "Choose how you want to be notified",
+        "email": "Email Notifications",
+        "emailDesc": "Receive email updates about your account",
+        "usage": "Usage Alerts",
+        "usageDesc": "Get notified when approaching usage limits",
+        "security": "Security Alerts",
+        "securityDesc": "Get notified about suspicious activity"
+      },
+      "danger": {
+        "title": "Danger Zone",
+        "desc": "Irreversible and destructive actions",
+        "deleteOrg": "Delete Organization",
+        "deleteOrgDesc": "Permanently delete your organization and all data",
+        "ownerOnly": "Only the organization owner can delete the organization."
+      }
+    },
+    "members": {
+      "title": "Team Members",
+      "subtitle": "Manage your organization team members and roles",
+      "inviteMember": "Invite Member",
+      "inviteNew": {
+        "title": "Invite New Member",
+        "desc": "Send an invitation to join your organization",
+        "emailLabel": "Email Address",
+        "emailPlaceholder": "colleague@company.com",
+        "roleLabel": "Role",
+        "sendInvitation": "Send Invitation"
+      },
+      "table": {
+        "member": "Member",
+        "role": "Role",
+        "status": "Status",
+        "joined": "Joined",
+        "actions": "Actions",
+        "pending": "Pending",
+        "active": "Active"
+      },
+      "planInfo": "Your plan:",
+      "seatsUsed": "{{used}} of {{total}} seats used",
+      "roles": {
+        "owner": "owner",
+        "admin": "admin",
+        "member": "member"
+      }
+    },
+    "apiKeys": {
+      "title": "API Keys",
+      "subtitle": "Manage API keys for programmatic access to your account",
+      "createApiKey": "Create API Key",
+      "adminOnly": "Only admins and owners can manage API keys.",
+      "keyCreated": "API Key Created",
+      "keyCreatedDesc": "Make sure to copy your API key now. You won't be able to see it again!",
+      "storedSecurely": "I've stored it securely",
+      "createNew": {
+        "title": "Create New API Key",
+        "desc": "Generate a new API key for programmatic access",
+        "nameLabel": "Key Name",
+        "namePlaceholder": "My API Key",
+        "createKey": "Create Key"
+      },
+      "noKeys": "No API keys yet. Create one to get started.",
+      "table": {
+        "name": "Name",
+        "key": "Key",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "revoke": "Revoke"
+    },
+    "billing": {
+      "title": "Billing & Plans",
+      "subtitle": "Manage your subscription and billing information",
+      "currentPlan": "Current Plan",
+      "currentPlanDesc": "Your active subscription",
+      "freeForever": "Free forever",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "cancelSubscription": "Cancel Subscription",
+      "confirmCancel": "Are you sure you want to cancel your subscription?",
+      "availablePlans": "Available Plans",
+      "monthly": "Monthly",
+      "yearlySave": "Yearly (Save 17%)",
+      "popular": "Popular",
+      "free": "Free",
+      "currentPlanBadge": "Current Plan",
+      "contactSales": "Contact Sales",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "upgradeModal": {
+        "title": "{{name}} Plan",
+        "changeTo": "You are about to change to the {{name}} plan.",
+        "subscribeTo": "You are about to subscribe to the {{name}} plan.",
+        "planLabel": "Plan",
+        "billingLabel": "Billing",
+        "priceLabel": "Price"
+      }
+    }
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "errorDescription": "We're sorry, but an error occurred while processing your request. Please try again.",
+    "tryAgain": "Try Again",
+    "errorId": "Error ID: {{id}}",
+    "referenceId": "Reference ID: {{id}}",
+    "notFound": {
+      "title": "404",
+      "subtitle": "Page not found",
+      "description": "Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.",
+      "goBack": "Go Back",
+      "goToDashboard": "Go to Dashboard"
+    },
+    "globalError": {
+      "title": "Application Error",
+      "description": "A critical error occurred. Please reload the page to continue.",
+      "reloadPage": "Reload Page"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -156,5 +553,95 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your account settings and preferences",
+    "username": "Username",
+    "email": "Email",
+    "role": "System Role",
+    "tenantRole": "Organization Role",
+    "emailVerified": "Email Verified",
+    "profileInformation": {
+      "title": "Profile Information",
+      "description": "Update your account details"
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "description": "Update your password to keep your account secure",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm new password"
+    },
+    "actions": {
+      "updateProfile": "Update Profile",
+      "changePassword": "Change Password"
+    },
+    "messages": {
+      "profileUpdated": "Profile updated successfully",
+      "passwordChanged": "Password changed successfully"
+    },
+    "errors": {
+      "usernameRequired": "Username is required",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Please enter a valid email address",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordRequired": "New password is required",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "confirmPasswordRequired": "Please confirm your new password",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "updateFailed": "Failed to update profile",
+      "passwordChangeFailed": "Failed to change password"
+    }
+  },
+  "onboarding": {
+    "skip": "Skip",
+    "back": "Back",
+    "getStarted": "Get Started",
+    "step1": {
+      "title": "Welcome to Evolith",
+      "subtitle": "Hello {{username}}, let's get you set up!",
+      "feature1": {
+        "title": "MCP Tools",
+        "description": "Encapsulate and share tools via MCP protocol"
+      },
+      "feature2": {
+        "title": "Hybrid Skills",
+        "description": "Create and execute skills with server-side code"
+      },
+      "feature3": {
+        "title": "Code Snippets",
+        "description": "LLM-optimized code repository for efficient reuse"
+      }
+    },
+    "step2": {
+      "title": "Create Your First Tool",
+      "subtitle": "Let's create a simple MCP tool to get started",
+      "nameLabel": "Tool Name",
+      "namePlaceholder": "my-first-tool",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What does this tool do?",
+      "schemaLabel": "Schema (JSON)",
+      "schemaPlaceholder": "{ \"type\": \"object\" }",
+      "invalidSchema": "Invalid JSON schema format",
+      "failedToCreate": "Failed to create tool",
+      "creating": "Creating...",
+      "createTool": "Create Tool"
+    },
+    "step3": {
+      "title": "You're All Set!",
+      "subtitle": "Your workspace is ready to go",
+      "nextSteps": {
+        "title": "What's Next",
+        "exploreTools": "Explore and manage your MCP tools",
+        "readDocs": "Read the documentation to learn more",
+        "inviteTeam": "Invite team members to collaborate"
+      },
+      "viewDocs": "View Documentation",
+      "goToDashboard": "Go to Dashboard"
+    }
   }
 }

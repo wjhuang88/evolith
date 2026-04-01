@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -29,16 +31,16 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     if (!formData.email || !formData.username || !formData.password) {
-      return 'Please fill in all required fields';
+      return t('auth.registerPage.validation.fillRequired');
     }
     if (formData.password !== formData.confirmPassword) {
-      return 'Passwords do not match';
+      return t('auth.registerPage.validation.passwordsDoNotMatch');
     }
     if (formData.password.length < 8) {
-      return 'Password must be at least 8 characters';
+      return t('auth.registerPage.validation.passwordTooShort');
     }
     if (formData.tenantSlug && !/^[a-z0-9-]+$/.test(formData.tenantSlug)) {
-      return 'Tenant slug can only contain lowercase letters, numbers, and hyphens';
+      return t('auth.registerPage.validation.invalidSlug');
     }
     return '';
   };
@@ -77,10 +79,10 @@ export default function RegisterPage() {
           setVerificationLink(data.verification_link);
         }
       } else {
-        setError(data.error?.message || 'Registration failed');
+        setError(data.error?.message || t('auth.registerPage.registrationFailed'));
       }
     } catch {
-      setError('An error occurred. Please try again.');
+      setError(t('auth.registerPage.errorOccurred'));
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +98,7 @@ export default function RegisterPage() {
                 <span className="text-white font-bold">E</span>
               </div>
             </Link>
-            <h1 className="mt-6 text-2xl font-bold text-foreground">Check Your Email</h1>
+            <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.registerPage.checkEmail')}</h1>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -118,13 +120,12 @@ export default function RegisterPage() {
               </div>
 
               <p className="mb-4 text-muted-foreground">
-                We&apos;ve sent a verification link to <strong>{formData.email}</strong>.
-                Please check your email and click the link to verify your account.
+                {t('auth.registerPage.verificationSent', { email: formData.email })}
               </p>
 
               {verificationLink && (
                 <div className="mb-4 rounded-md bg-muted p-3">
-                  <p className="mb-2 text-sm text-muted-foreground">Development mode - Verification link:</p>
+                  <p className="mb-2 text-sm text-muted-foreground">{t('auth.registerPage.devVerificationLink')}</p>
                   <Link
                     href={verificationLink}
                     className="break-all text-sm text-primary hover:underline"
@@ -136,15 +137,15 @@ export default function RegisterPage() {
 
               <div className="mt-6 space-y-3">
                 <Link href="/login">
-                  <Button className="w-full">Go to Login</Button>
+                  <Button className="w-full">{t('auth.registerPage.goToLogin')}</Button>
                 </Link>
                 <p className="text-sm text-muted-foreground">
-                  Didn&apos;t receive the email?{' '}
+                  {t('auth.registerPage.didntReceive')}{' '}
                   <button
                     onClick={() => setIsSuccess(false)}
                     className="text-primary hover:underline"
                   >
-                    Try again
+                    {t('auth.registerPage.tryAgain')}
                   </button>
                 </p>
               </div>
@@ -164,9 +165,9 @@ export default function RegisterPage() {
               <span className="text-white font-bold">E</span>
             </div>
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-foreground">Create your account</h1>
+          <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.registerPage.title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start building with Evolith today
+            {t('auth.registerPage.subtitle')}
           </p>
         </div>
 
@@ -180,7 +181,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                Email *
+                {t('auth.email')} *
               </label>
               <Input
                 id="email"
@@ -196,7 +197,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-foreground">
-                Username *
+                {t('auth.username')} *
               </label>
               <Input
                 id="username"
@@ -212,7 +213,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                Password *
+                {t('auth.password')} *
               </label>
               <Input
                 id="password"
@@ -225,13 +226,13 @@ export default function RegisterPage() {
                 className="mt-1"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Minimum 8 characters
+                {t('auth.registerPage.passwordHint')}
               </p>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
-                Confirm Password *
+                {t('auth.registerPage.confirmPassword')} *
               </label>
               <Input
                 id="confirmPassword"
@@ -249,7 +250,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="tenantName" className="block text-sm font-medium text-foreground">
-                Organization Name
+                {t('auth.registerPage.orgName')}
               </label>
               <Input
                 id="tenantName"
@@ -257,17 +258,17 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.tenantName}
                 onChange={handleChange}
-                placeholder="My Company"
+                placeholder={t('auth.registerPage.orgNamePlaceholder')}
                 className="mt-1"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Optional - will be created with your account
+                {t('auth.registerPage.orgNameHint')}
               </p>
             </div>
 
             <div>
               <label htmlFor="tenantSlug" className="block text-sm font-medium text-foreground">
-                Organization URL
+                {t('auth.registerPage.orgUrl')}
               </label>
               <div className="mt-1 flex rounded-md">
                 <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
@@ -286,14 +287,14 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create account'}
+              {isLoading ? t('auth.registerPage.creatingAccount') : t('auth.registerPage.createAccount')}
             </Button>
           </form>
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            {t('auth.registerPage.alreadyHaveAccount')}{' '}
             <Link href="/login" className="font-medium text-primary hover:underline">
-              Sign in
+              {t('auth.registerPage.signIn')}
             </Link>
           </p>
         </div>

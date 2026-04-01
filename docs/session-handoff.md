@@ -1,8 +1,6 @@
 # Session Handoff - 2026-03-02
 
-## Session Summary
-
-This document captures the context from a development session focused on implementing the MCP (Model Context Protocol) endpoint with tenant-aware authentication.
+> ⚠️ **已过时**: 本文档记录了 2026-03-02 的 MCP endpoint session。所有相关信息已合并到 [Production Plan](./production-plan.md)。后续开发跟踪请查看 production-plan.md 的 "Phase 0: 当前任务跟踪" 节。
 
 ## What Was Done
 

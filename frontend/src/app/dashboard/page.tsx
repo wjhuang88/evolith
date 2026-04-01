@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +11,7 @@ import { skillsApi } from '@/lib/api/skills';
 import { snippetsApi } from '@/lib/api/snippets';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user, tenant } = useAuthStore();
   const [stats, setStats] = useState({
     tools: 0,
@@ -48,52 +50,52 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {user?.username || 'User'}!
+          {t('dashboard.welcomeBack', { name: user?.username || t('nav.user') })}
         </h1>
         <p className="text-muted-foreground">
-          {tenant?.name ? `Organization: ${tenant.name}` : 'Evolith - AI Agent Development Platform'}
+          {tenant?.name ? t('dashboard.orgPrefix', { name: tenant.name }) : t('dashboard.defaultSubtitle')}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
-          title="Total Tools" 
+          title={t('dashboard.stats.totalTools')} 
           value={loading ? '...' : stats.tools.toString()} 
-          description="MCP tools available" 
+          description={t('dashboard.stats.mcpToolsAvailable')} 
           href="/tools"
         />
         <StatCard 
-          title="Skills" 
+          title={t('dashboard.stats.skills')} 
           value={loading ? '...' : stats.skills.toString()} 
-          description="Custom skills" 
+          description={t('dashboard.stats.customSkills')} 
           href="/skills"
         />
         <StatCard 
-          title="Snippets" 
+          title={t('dashboard.stats.snippets')} 
           value={loading ? '...' : stats.snippets.toString()} 
-          description="Code snippets" 
+          description={t('dashboard.stats.codeSnippets')} 
           href="/snippets"
         />
         <StatCard 
-          title="API Calls" 
+          title={t('dashboard.stats.apiCalls')} 
           value={loading ? '...' : stats.apiCalls.toLocaleString()} 
-          description="This month" 
+          description={t('dashboard.stats.thisMonth')} 
         />
       </div>
 
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks to get started</CardDescription>
+          <CardTitle>{t('dashboard.quickActions.title')}</CardTitle>
+          <CardDescription>{t('dashboard.quickActions.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <QuickActionButton label="Add Tool" href="/tools/new" />
-            <QuickActionButton label="Create Skill" href="/skills/new" />
-            <QuickActionButton label="Add Snippet" href="/snippets/new" />
-            <QuickActionButton label="Team Members" href="/tenant/members" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <QuickActionButton label={t('dashboard.quickActions.addTool')} href="/tools/new" />
+            <QuickActionButton label={t('dashboard.quickActions.createSkill')} href="/skills/new" />
+            <QuickActionButton label={t('dashboard.quickActions.addSnippet')} href="/snippets/new" />
+            <QuickActionButton label={t('dashboard.quickActions.teamMembers')} href="/tenant/members" />
           </div>
         </CardContent>
       </Card>
@@ -103,22 +105,22 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Organization</CardTitle>
+              <CardTitle>{t('dashboard.organization.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Plan</span>
+                  <span className="text-muted-foreground">{t('dashboard.organization.plan')}</span>
                   <span className="font-medium capitalize">{tenant.plan || 'Free'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Role</span>
+                  <span className="text-muted-foreground">{t('dashboard.organization.role')}</span>
                   <span className="font-medium capitalize">{user?.tenant_role || 'member'}</span>
                 </div>
               </div>
               <Link href="/tenant/billing">
                 <Button variant="outline" className="mt-4 w-full">
-                  Manage Subscription
+                  {t('dashboard.organization.manageSubscription')}
                 </Button>
               </Link>
             </CardContent>
@@ -126,18 +128,18 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Quick Links</CardTitle>
+              <CardTitle>{t('dashboard.quickLinks.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <Link href="/tenant/api-keys" className="block text-sm text-primary hover:underline">
-                  → Manage API Keys
+                  → {t('dashboard.quickLinks.manageApiKeys')}
                 </Link>
                 <Link href="/tenant/members" className="block text-sm text-primary hover:underline">
-                  → Invite Team Members
+                  → {t('dashboard.quickLinks.inviteTeamMembers')}
                 </Link>
                 <Link href="/tenant/settings" className="block text-sm text-primary hover:underline">
-                  → Organization Settings
+                  → {t('dashboard.quickLinks.orgSettings')}
                 </Link>
               </div>
             </CardContent>
