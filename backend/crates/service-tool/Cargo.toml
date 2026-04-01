@@ -3,6 +3,9 @@ name = "service-tool"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 # Workspace dependencies
 async-trait.workspace = true

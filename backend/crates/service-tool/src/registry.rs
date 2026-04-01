@@ -10,7 +10,7 @@ pub struct ToolRegistry;
 
 #[async_trait]
 impl ToolRepository for ToolRegistry {
-    async fn create(&self, _tool: NewTool, _owner_id: Uuid) -> Result<Tool> {
+    async fn create(&self, _tool: NewTool, _owner_id: Uuid, _tenant_id: Uuid) -> Result<Tool> {
         todo!("Tool registry not implemented")
     }
 

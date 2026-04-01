@@ -20,7 +20,7 @@ pub struct Tool {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HandlerConfig {
     #[serde(rename = "type")]
     pub handler_type: HandlerType,
@@ -29,7 +29,7 @@ pub struct HandlerConfig {
     pub timeout: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum HandlerType {
     Http,

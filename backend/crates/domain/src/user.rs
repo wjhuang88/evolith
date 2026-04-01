@@ -103,7 +103,7 @@ pub struct Invitation {
     pub id: Uuid,
     pub tenant_id: Uuid,
     pub email: String,
-    pub role: String,  // admin, member
+    pub role: String, // admin, member
     pub token: String,
     pub expires_at: DateTime<Utc>,
     pub accepted_at: Option<DateTime<Utc>>,

@@ -22,7 +22,7 @@ impl SqliteInvitationRepository {
 impl InvitationRepository for SqliteInvitationRepository {
     async fn create(&self, invitation: NewInvitation) -> Result<Invitation> {
         let new_id = Uuid::new_v4();
-        
+
         sqlx::query(
             r#"
             INSERT INTO tenant_invitations (id, tenant_id, email, role, token, expires_at, created_by, created_at)
@@ -40,10 +40,11 @@ impl InvitationRepository for SqliteInvitationRepository {
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
-        
+
         // Return the created invitation
-        self.find_by_id(new_id).await?
-            .ok_or_else(|| AppError::DatabaseError("Failed to fetch created invitation".to_string()))
+        self.find_by_id(new_id).await?.ok_or_else(|| {
+            AppError::DatabaseError("Failed to fetch created invitation".to_string())
+        })
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Invitation>> {

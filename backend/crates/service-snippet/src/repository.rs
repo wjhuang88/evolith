@@ -10,7 +10,12 @@ pub struct SnippetRepositoryImpl;
 
 #[async_trait]
 impl SnippetRepository for SnippetRepositoryImpl {
-    async fn create(&self, _snippet: NewSnippet, _owner_id: Uuid) -> Result<Snippet> {
+    async fn create(
+        &self,
+        _snippet: NewSnippet,
+        _owner_id: Uuid,
+        _tenant_id: Uuid,
+    ) -> Result<Snippet> {
         todo!("Snippet repository not implemented")
     }
 

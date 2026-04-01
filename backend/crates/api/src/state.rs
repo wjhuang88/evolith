@@ -1,0 +1,45 @@
+//! Application state shared across handlers
+
+use std::sync::Arc;
+
+use domain::repository::{
+    ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
+    TenantRepository, ToolRepository, UserRepository,
+};
+use infra::cache::Cache;
+use infra::config::AppConfig;
+use infra::mailer::Mailer;
+use service_auth::{Argon2Hasher, JwtHandler};
+use service_skill::executor::SkillExecutor;
+
+/// Application state containing all shared resources
+pub struct AppState {
+    /// Application configuration
+    pub config: AppConfig,
+    /// JWT handler for token generation/validation
+    pub jwt: JwtHandler,
+    /// Password hasher using Argon2id
+    pub hasher: Argon2Hasher,
+    /// User repository for user operations
+    pub user_repo: Arc<dyn UserRepository>,
+    /// Tenant repository for tenant operations
+    pub tenant_repo: Arc<dyn TenantRepository>,
+    /// Tool repository for tool operations
+    pub tool_repo: Arc<dyn ToolRepository>,
+    /// Skill repository for skill operations
+    pub skill_repo: Arc<dyn SkillRepository>,
+    /// Snippet repository for snippet operations
+    pub snippet_repo: Arc<dyn SnippetRepository>,
+    /// Audit repository for audit logging
+    pub audit_repo: Arc<dyn AuditRepository>,
+    /// Invitation repository for tenant invitations
+    pub invitation_repo: Arc<dyn InvitationRepository>,
+    /// API Key repository for API key management
+    pub api_key_repo: Arc<dyn ApiKeyRepository>,
+    /// Cache for session data, rate limiting counters, etc.
+    pub cache: Arc<dyn Cache>,
+    /// Mailer for sending transactional emails
+    pub mailer: Arc<dyn Mailer>,
+    /// Skill executor for running code in sandboxed environment
+    pub skill_executor: Arc<dyn SkillExecutor>,
+}

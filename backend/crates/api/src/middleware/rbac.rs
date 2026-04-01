@@ -11,6 +11,9 @@ use std::future::{ready, Ready};
 use domain::user::TenantRole;
 use service_auth::jwt::Claims;
 
+/// JWT cookie name
+pub const JWT_COOKIE_NAME: &str = "evolith_token";
+
 /// JWT token extractor and validator
 pub fn extract_token(req: &ServiceRequest) -> Option<String> {
     // Try Authorization header first
@@ -27,6 +30,11 @@ pub fn extract_token(req: &ServiceRequest) -> Option<String> {
         if let Ok(key_str) = api_key.to_str() {
             return Some(key_str.to_string());
         }
+    }
+
+    // Try httpOnly cookie
+    if let Some(cookie) = req.cookie(JWT_COOKIE_NAME) {
+        return Some(cookie.value().to_string());
     }
 
     None
@@ -168,7 +176,11 @@ impl RbacMiddleware {
             public_paths: vec![
                 "/health".to_string(),
                 "/mcp".to_string(),
-                "/api/v1/auth".to_string(),
+                "/api/v1/auth/register".to_string(),
+                "/api/v1/auth/login".to_string(),
+                "/api/v1/auth/forgot-password".to_string(),
+                "/api/v1/auth/reset-password".to_string(),
+                "/api/v1/auth/verify-email".to_string(),
             ],
         }
     }
@@ -184,8 +196,6 @@ impl RbacMiddleware {
         self
     }
 }
-
-
 
 impl<S> actix_web::dev::Transform<S, actix_web::dev::ServiceRequest> for RbacMiddleware
 where

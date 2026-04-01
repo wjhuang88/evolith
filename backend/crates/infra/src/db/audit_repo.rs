@@ -30,18 +30,19 @@ impl AuditRepository for SqliteAuditRepository {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
-        .bind(log.id)
-        .bind(log.tenant_id)
-        .bind(log.user_id)
+        .bind(log.id.to_string())
+        .bind(log.tenant_id.map(|id| id.to_string()))
+        .bind(log.user_id.map(|id| id.to_string()))
         .bind(log.action)
         .bind(log.resource_type)
         .bind(log.resource_id)
         .bind(serde_json::to_string(&log.details)?)
         .bind(log.ip_address)
         .bind(log.user_agent)
-        .bind(log.created_at)
+        .bind(log.created_at.to_rfc3339())
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(())
     }
@@ -62,11 +63,12 @@ impl AuditRepository for SqliteAuditRepository {
             LIMIT ? OFFSET ?
             "#,
         )
-        .bind(tenant_id)
+        .bind(tenant_id.to_string())
         .bind(limit as i64)
         .bind(offset as i64)
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
@@ -87,11 +89,12 @@ impl AuditRepository for SqliteAuditRepository {
             LIMIT ? OFFSET ?
             "#,
         )
-        .bind(user_id)
+        .bind(user_id.to_string())
         .bind(limit as i64)
         .bind(offset as i64)
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
@@ -116,7 +119,8 @@ impl AuditRepository for SqliteAuditRepository {
         .bind(limit as i64)
         .bind(offset as i64)
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
@@ -124,31 +128,33 @@ impl AuditRepository for SqliteAuditRepository {
 
 #[derive(sqlx::FromRow)]
 struct AuditLogRow {
-    id: Uuid,
-    tenant_id: Option<Uuid>,
-    user_id: Option<Uuid>,
+    id: String,
+    tenant_id: Option<String>,
+    user_id: Option<String>,
     action: String,
     resource_type: Option<String>,
     resource_id: Option<String>,
     details: String,
     ip_address: Option<String>,
     user_agent: Option<String>,
-    created_at: DateTime<Utc>,
+    created_at: String,
 }
 
 impl From<AuditLogRow> for AuditLog {
     fn from(row: AuditLogRow) -> Self {
         AuditLog {
-            id: row.id,
-            tenant_id: row.tenant_id,
-            user_id: row.user_id,
+            id: row.id.parse().unwrap_or_default(),
+            tenant_id: row.tenant_id.and_then(|s| s.parse().ok()),
+            user_id: row.user_id.and_then(|s| s.parse().ok()),
             action: row.action,
             resource_type: row.resource_type,
             resource_id: row.resource_id,
             details: serde_json::from_str(&row.details).unwrap_or(serde_json::Value::Null),
             ip_address: row.ip_address,
             user_agent: row.user_agent,
-            created_at: row.created_at,
+            created_at: DateTime::parse_from_rfc3339(&row.created_at)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
         }
     }
 }

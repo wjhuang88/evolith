@@ -9,18 +9,25 @@ license.workspace = true
 name = "evolith"
 path = "src/main.rs"
 
+[lints]
+workspace = true
+
 [dependencies]
 api.workspace = true
 common.workspace = true
 infra.workspace = true
 actix-web.workspace = true
 actix-cors.workspace = true
+actix-governor.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
 sqlx.workspace = true
 domain.workspace = true
+service-auth.workspace = true
 service-audit.workspace = true
+service-skill.workspace = true
+uuid.workspace = true
 
 [workspace]
 resolver = "2"
@@ -30,11 +37,15 @@ members = [
     "crates/service-skill",
     "crates/service-snippet",
     "crates/service-auth",
+    "crates/service-payment",
     "crates/domain",
     "crates/infra",
     "crates/common",
     "crates/service-audit",
 ]
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
 
 [workspace.package]
 version = "0.1.0"
@@ -48,6 +59,9 @@ repository = "https://github.com/wjhuang88/evolith"
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }
 futures-util = "0.3"
+
+# Docker
+bollard = "0.17"
 
 # Web framework
 actix-web = "4.4"
@@ -82,7 +96,7 @@ dotenvy = "0.15"
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # Validation
 validator = { version = "0.16", features = ["derive"] }
@@ -106,12 +120,37 @@ async-trait = "0.1"
 # JSON Schema validation
 jsonschema = "0.17"
 
+# Stripe payment
+async-stripe = { version = "0.41", features = ["runtime-tokio-hyper", "webhook-events"] }
+
+# HTTP client for webhooks
+reqwest = { version = "0.11", features = ["json"] }
+
+# HMAC for webhook signature verification
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+# Redis (async + connection pooling via deadpool)
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# Rate limiting
+actix-governor = "0.6"
+
+# Email (async SMTP)
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder", "hostname"] }
+
+# Prometheus metrics
+actix-web-prom = "0.8"
+prometheus = "0.13"
+
 # Internal crates
 api = { path = "crates/api" }
 service-tool = { path = "crates/service-tool" }
 service-skill = { path = "crates/service-skill" }
 service-snippet = { path = "crates/service-snippet" }
 service-auth = { path = "crates/service-auth" }
+service-payment = { path = "crates/service-payment" }
 domain = { path = "crates/domain" }
 infra = { path = "crates/infra" }
 common = { path = "crates/common" }

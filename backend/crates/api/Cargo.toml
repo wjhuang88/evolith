@@ -3,6 +3,9 @@ name = "api"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 # Workspace dependencies
 actix-web.workspace = true
@@ -20,12 +23,21 @@ uuid.workspace = true
 chrono.workspace = true
 jsonwebtoken.workspace = true
 
+actix-governor.workspace = true
+actix-web-prom.workspace = true
+prometheus.workspace = true
+
 # Internal crates
 service-tool.workspace = true
 service-audit.workspace = true
 service-skill.workspace = true
 service-snippet.workspace = true
 service-auth.workspace = true
+# service-payment.workspace = true  # Decoupled — has 34 compile errors (async_stripe unresolved). Re-enable after Phase 2.
 domain.workspace = true
 infra.workspace = true
 common.workspace = true
+
+[dev-dependencies]
+sqlx.workspace = true
+actix-rt = "2"

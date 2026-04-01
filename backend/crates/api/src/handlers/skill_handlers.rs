@@ -1,267 +1,118 @@
-//! Skill handlers
-
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::Mutex;
+//! Skill handlers using database-backed repositories
 
 use actix_web::{web, HttpResponse, Responder};
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::dto::common::{ApiResponse, PaginationMeta};
-
-/// Skill response
-#[derive(Debug, Serialize, Clone)]
-pub struct SkillResponse {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub version: String,
-    pub content: String,
-    pub category: String,
-    pub tags: Vec<String>,
-    pub runtime: String,
-    pub is_public: bool,
-    pub owner_id: String,
-    pub tenant_id: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-/// Create skill request
-#[derive(Debug, Deserialize, Validate)]
-pub struct CreateSkillRequest {
-    #[validate(length(min = 1, max = 128))]
-    pub name: String,
-
-    #[validate(length(min = 1))]
-    pub description: String,
-
-    #[validate(length(min = 1))]
-    pub version: String,
-
-    #[validate(length(min = 1))]
-    pub content: String,
-
-    pub category: Option<String>,
-    pub tags: Option<Vec<String>>,
-    pub runtime: Option<String>,
-    pub is_public: Option<bool>,
-}
-
-/// Update skill request
-#[derive(Debug, Deserialize)]
-pub struct UpdateSkillRequest {
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub version: Option<String>,
-    pub content: Option<String>,
-    pub category: Option<String>,
-    pub tags: Option<Vec<String>>,
-    pub runtime: Option<String>,
-    pub is_public: Option<bool>,
-}
-
-/// Skill store
-pub struct SkillStore {
-    skills: Mutex<HashMap<String, StoredSkill>>,
-}
-
-#[derive(Clone)]
-pub struct StoredSkill {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub version: String,
-    pub content: String,
-    pub category: String,
-    pub tags: Vec<String>,
-    pub runtime: String,
-    pub is_public: bool,
-    pub owner_id: String,
-    pub tenant_id: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
-
-impl Default for SkillStore {
-    fn default() -> Self {
-        let mut store = Self {
-            skills: Mutex::new(HashMap::new()),
-        };
-
-        // Seed data
-        let seed_skills = vec![
-            (
-                "660e8400-e29b-41d4-a716-446655440001",
-                "data-analyzer",
-                "Analyze CSV/JSON data and generate statistical reports",
-                "1.0.0",
-                "data",
-                vec!["data", "analysis", "csv", "json", "statistics"],
-                true,
-            ),
-            (
-                "660e8400-e29b-41d4-a716-446655440002",
-                "code-review",
-                "Automated code review with best practices",
-                "1.2.0",
-                "development",
-                vec!["code", "review", "quality", "linting"],
-                true,
-            ),
-            (
-                "660e8400-e29b-41d4-a716-446655440003",
-                "api-doc-generator",
-                "Generate API documentation from code",
-                "2.0.0",
-                "documentation",
-                vec!["api", "docs", "openapi", "swagger"],
-                false,
-            ),
-            (
-                "660e8400-e29b-41d4-a716-446655440004",
-                "test-generator",
-                "Generate unit tests from code",
-                "1.5.0",
-                "testing",
-                vec!["testing", "unit-test", "coverage", "mock"],
-                true,
-            ),
-            (
-                "660e8400-e29b-41d4-a716-446655440005",
-                "data-visualizer",
-                "Create visualizations from data",
-                "1.0.0",
-                "visualization",
-                vec!["charts", "graphs", "visualization", "data"],
-                true,
-            ),
-        ];
-
-        let now = Utc::now().timestamp();
-
-        for (id, name, desc, ver, cat, tags, public) in seed_skills {
-            let content = format!("---\nname: {}\nversion: {}\ndescription: {}\n---\n\n# {}\n\nThis skill provides {} functionality.", name, ver, desc, name, cat);
-
-            let skill = StoredSkill {
-                id: id.to_string(),
-                name: name.to_string(),
-                description: desc.to_string(),
-                version: ver.to_string(),
-                content,
-                category: cat.to_string(),
-                tags: tags.iter().map(|s| s.to_string()).collect(),
-                runtime: "javascript".to_string(),
-                is_public: public,
-                owner_id: "00000000-0000-0000-0000-000000000001".to_string(),
-                tenant_id: "00000000-0000-0000-0000-000000000001".to_string(),
-                created_at: now,
-                updated_at: now,
-            };
-
-            store.skills.lock().unwrap().insert(id.to_string(), skill);
-        }
-
-        store
-    }
-}
-
-/// Skill state
-#[derive(Clone)]
-pub struct SkillState {
-    pub store: Arc<SkillStore>,
-}
-
-impl SkillState {
-    pub fn new() -> Self {
-        Self {
-            store: Arc::new(SkillStore::default()),
-        }
-    }
-}
-
-impl Default for SkillState {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+use crate::dto::skill_dto::{
+    parse_runtime, runtime_to_string, CreateSkillRequest, ExecuteSkillRequest,
+    SkillExecutionResponse, SkillLoadResponse, SkillResponse, UpdateSkillRequest,
+};
+use crate::middleware::auth::AuthenticatedUser;
+use crate::state::AppState;
+use domain::skill::{Dependency, NewSkill, SkillFilter};
+use domain::tool::Visibility;
+use service_skill::executor::ExecuteRequest;
 
 /// List skills handler
-pub async fn list_skills(state: web::Data<SkillState>) -> impl Responder {
-    let skills = state.store.skills.lock().unwrap();
-    let total = skills.len() as u32;
-    let skills: Vec<SkillResponse> = skills
-        .values()
-        .map(|s| SkillResponse {
-            id: s.id.clone(),
-            name: s.name.clone(),
-            description: s.description.clone(),
-            version: s.version.clone(),
-            content: s.content.clone(),
-            category: s.category.clone(),
-            tags: s.tags.clone(),
-            runtime: s.runtime.clone(),
-            is_public: s.is_public,
-            owner_id: s.owner_id.clone(),
-            tenant_id: s.tenant_id.clone(),
-            created_at: chrono::DateTime::from_timestamp(s.created_at, 0)
-                .unwrap_or_default()
-                .to_rfc3339(),
-            updated_at: chrono::DateTime::from_timestamp(s.updated_at, 0)
-                .unwrap_or_default()
-                .to_rfc3339(),
-        })
-        .collect();
+pub async fn list_skills(
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
+    query: web::Query<SkillListQuery>,
+) -> impl Responder {
+    let filter = SkillFilter {
+        tenant_id: Some(user.tenant_id),
+        search: query.search.clone(),
+        runtime: None, // Could parse from query if needed
+        visibility: query.is_public.map(|p| {
+            if p {
+                Visibility::Public
+            } else {
+                Visibility::Private
+            }
+        }),
+        owner_id: query
+            .owner_id
+            .as_ref()
+            .and_then(|s| Uuid::parse_str(s).ok()),
+        page: Some(query.page.unwrap_or(1)),
+        per_page: Some(query.per_page.unwrap_or(20)),
+    };
 
-    HttpResponse::Ok().json(ApiResponse::<Vec<SkillResponse>>::success_with_meta(
-        skills,
-        PaginationMeta {
-            page: 1,
-            per_page: 20,
-            total,
-        },
-    ))
+    match state.skill_repo.find_all(filter).await {
+        Ok(skills) => {
+            let total = skills.len() as u32;
+            let responses: Vec<SkillResponse> =
+                skills.into_iter().map(SkillResponse::from).collect();
+            HttpResponse::Ok().json(ApiResponse::success_with_meta(
+                responses,
+                PaginationMeta {
+                    page: query.page.unwrap_or(1),
+                    per_page: query.per_page.unwrap_or(20),
+                    total,
+                },
+            ))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            "INTERNAL_ERROR",
+            &format!("Failed to list skills: {}", e),
+        )),
+    }
 }
 
-/// Get skill handler
-pub async fn get_skill(id: web::Path<String>, state: web::Data<SkillState>) -> impl Responder {
-    let skills = state.store.skills.lock().unwrap();
+/// Query parameters for skill listing
+#[derive(Debug, serde::Deserialize)]
+pub struct SkillListQuery {
+    pub search: Option<String>,
+    pub is_public: Option<bool>,
+    pub owner_id: Option<String>,
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+}
 
-    if let Some(skill) = skills.get(&id.to_string()) {
-        let response = SkillResponse {
-            id: skill.id.clone(),
-            name: skill.name.clone(),
-            description: skill.description.clone(),
-            version: skill.version.clone(),
-            content: skill.content.clone(),
-            category: skill.category.clone(),
-            tags: skill.tags.clone(),
-            runtime: skill.runtime.clone(),
-            is_public: skill.is_public,
-            owner_id: skill.owner_id.clone(),
-            tenant_id: skill.tenant_id.clone(),
-            created_at: chrono::DateTime::from_timestamp(skill.created_at, 0)
-                .unwrap_or_default()
-                .to_rfc3339(),
-            updated_at: chrono::DateTime::from_timestamp(skill.updated_at, 0)
-                .unwrap_or_default()
-                .to_rfc3339(),
-        };
+/// Get skill by ID handler
+pub async fn get_skill(
+    path: web::Path<String>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
+) -> impl Responder {
+    let id = match Uuid::parse_str(&path) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_ID",
+                "Invalid skill ID format",
+            ));
+        }
+    };
 
-        HttpResponse::Ok().json(ApiResponse::<SkillResponse>::success(response))
-    } else {
-        HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+    match state.skill_repo.find_by_id(id).await {
+        Ok(Some(skill)) => {
+            // Check tenant access
+            if skill.tenant_id != user.tenant_id && skill.visibility != Visibility::Public {
+                return HttpResponse::NotFound()
+                    .json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"));
+            }
+            HttpResponse::Ok().json(ApiResponse::success(SkillResponse::from(skill)))
+        }
+        Ok(None) => {
+            HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            "INTERNAL_ERROR",
+            &format!("Failed to get skill: {}", e),
+        )),
     }
 }
 
 /// Create skill handler
 pub async fn create_skill(
     body: web::Json<CreateSkillRequest>,
-    state: web::Data<SkillState>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
 ) -> impl Responder {
+    // Validate request
     if let Err(errors) = body.validate() {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
             "VALIDATION_ERROR",
@@ -269,167 +120,246 @@ pub async fn create_skill(
         ));
     }
 
-    let now = Utc::now().timestamp();
-    let id = Uuid::new_v4().to_string();
+    // Parse runtime
+    let runtime = match parse_runtime(&body.runtime) {
+        Ok(r) => r,
+        Err(e) => {
+            return HttpResponse::BadRequest()
+                .json(ApiResponse::<()>::error("INVALID_RUNTIME", &e));
+        }
+    };
 
-    let skill = StoredSkill {
-        id: id.clone(),
+    // Convert dependencies
+    let dependencies: Vec<Dependency> = body.dependencies.iter().map(|d| d.to_domain()).collect();
+
+    // Determine visibility
+    let visibility = if body.is_public {
+        Visibility::Public
+    } else {
+        Visibility::Private
+    };
+
+    let new_skill = NewSkill {
         name: body.name.clone(),
-        description: body.description.clone(),
         version: body.version.clone(),
-        content: body.content.clone(),
-        category: body
-            .category
-            .clone()
-            .unwrap_or_else(|| "custom".to_string()),
-        tags: body.tags.clone().unwrap_or_default(),
-        runtime: body
-            .runtime
-            .clone()
-            .unwrap_or_else(|| "javascript".to_string()),
-        is_public: body.is_public.unwrap_or(false),
-        owner_id: "00000000-0000-0000-0000-000000000001".to_string(),
-        tenant_id: "00000000-0000-0000-0000-000000000001".to_string(),
-        created_at: now,
-        updated_at: now,
+        description: body.description.clone(),
+        skill_md: body.content.clone(),
+        code_package_path: None,
+        runtime,
+        dependencies,
+        visibility: Some(visibility),
     };
 
+    match state
+        .skill_repo
+        .create(new_skill, user.user_id, user.tenant_id)
+        .await
     {
-        let mut skills = state.store.skills.lock().unwrap();
-        skills.insert(id.clone(), skill.clone());
+        Ok(skill) => HttpResponse::Created().json(ApiResponse::success(SkillResponse::from(skill))),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("UNIQUE") || msg.contains("duplicate") {
+                HttpResponse::Conflict().json(ApiResponse::<()>::error(
+                    "DUPLICATE",
+                    "Skill with this name and version already exists",
+                ))
+            } else {
+                HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "INTERNAL_ERROR",
+                    &format!("Failed to create skill: {}", e),
+                ))
+            }
+        }
     }
-
-    let response = SkillResponse {
-        id: skill.id,
-        name: skill.name,
-        description: skill.description,
-        version: skill.version,
-        content: skill.content,
-        category: skill.category,
-        tags: skill.tags,
-        runtime: skill.runtime,
-        is_public: skill.is_public,
-        owner_id: skill.owner_id,
-        tenant_id: skill.tenant_id,
-        created_at: chrono::DateTime::from_timestamp(skill.created_at, 0)
-            .unwrap_or_default()
-            .to_rfc3339(),
-        updated_at: chrono::DateTime::from_timestamp(skill.updated_at, 0)
-            .unwrap_or_default()
-            .to_rfc3339(),
-    };
-
-    HttpResponse::Ok().json(ApiResponse::<SkillResponse>::success(response))
 }
 
-/// Update skill handler
+/// Update skill handler - NOT IMPLEMENTED (per production plan)
 pub async fn update_skill(
-    id: web::Path<String>,
-    body: web::Json<UpdateSkillRequest>,
-    state: web::Data<SkillState>,
+    _path: web::Path<String>,
+    _body: web::Json<UpdateSkillRequest>,
+    _state: web::Data<AppState>,
+    _user: AuthenticatedUser,
 ) -> impl Responder {
-    let mut skills = state.store.skills.lock().unwrap();
-
-    if let Some(skill) = skills.get_mut(&id.to_string()) {
-        if let Some(name) = &body.name {
-            skill.name = name.clone();
-        }
-        if let Some(description) = &body.description {
-            skill.description = description.clone();
-        }
-        if let Some(version) = &body.version {
-            skill.version = version.clone();
-        }
-        if let Some(content) = &body.content {
-            skill.content = content.clone();
-        }
-        if let Some(category) = &body.category {
-            skill.category = category.clone();
-        }
-        if let Some(tags) = &body.tags {
-            skill.tags = tags.clone();
-        }
-        if let Some(runtime) = &body.runtime {
-            skill.runtime = runtime.clone();
-        }
-        if let Some(is_public) = body.is_public {
-            skill.is_public = is_public;
-        }
-        skill.updated_at = Utc::now().timestamp();
-
-        let response = SkillResponse {
-            id: skill.id.clone(),
-            name: skill.name.clone(),
-            description: skill.description.clone(),
-            version: skill.version.clone(),
-            content: skill.content.clone(),
-            category: skill.category.clone(),
-            tags: skill.tags.clone(),
-            runtime: skill.runtime.clone(),
-            is_public: skill.is_public,
-            owner_id: skill.owner_id.clone(),
-            tenant_id: skill.tenant_id.clone(),
-            created_at: chrono::DateTime::from_timestamp(skill.created_at, 0)
-                .unwrap_or_default()
-                .to_rfc3339(),
-            updated_at: chrono::DateTime::from_timestamp(skill.updated_at, 0)
-                .unwrap_or_default()
-                .to_rfc3339(),
-        };
-
-        HttpResponse::Ok().json(ApiResponse::<SkillResponse>::success(response))
-    } else {
-        HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
-    }
+    HttpResponse::NotImplemented().json(ApiResponse::<()>::error(
+        "NOT_IMPLEMENTED",
+        "Skill update is not yet supported",
+    ))
 }
 
 /// Delete skill handler
-pub async fn delete_skill(id: web::Path<String>, state: web::Data<SkillState>) -> impl Responder {
-    let mut skills = state.store.skills.lock().unwrap();
+pub async fn delete_skill(
+    path: web::Path<String>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
+) -> impl Responder {
+    let id = match Uuid::parse_str(&path) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_ID",
+                "Invalid skill ID format",
+            ));
+        }
+    };
 
-    if skills.remove(&id.to_string()).is_some() {
-        HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
-            serde_json::json!({ "message": "Skill deleted successfully" }),
-        ))
-    } else {
-        HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+    // First verify the skill exists and user has access
+    match state.skill_repo.find_by_id(id).await {
+        Ok(Some(skill)) => {
+            // Check ownership or admin role
+            if skill.owner_id != user.user_id && !user.is_admin() {
+                return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+                    "FORBIDDEN",
+                    "You can only delete your own skills",
+                ));
+            }
+            // Check tenant
+            if skill.tenant_id != user.tenant_id {
+                return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+                    "FORBIDDEN",
+                    "Cannot delete skill from another tenant",
+                ));
+            }
+
+            // Delete the skill
+            match state.skill_repo.delete(id).await {
+                Ok(()) => HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
+                    "message": "Skill deleted successfully"
+                }))),
+                Err(e) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "INTERNAL_ERROR",
+                    &format!("Failed to delete skill: {}", e),
+                )),
+            }
+        }
+        Ok(None) => {
+            HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            "INTERNAL_ERROR",
+            &format!("Failed to find skill: {}", e),
+        )),
     }
 }
 
-/// Load skill handler (for skill execution)
-pub async fn load_skill(id: web::Path<String>, state: web::Data<SkillState>) -> impl Responder {
-    let skills = state.store.skills.lock().unwrap();
+/// Load skill handler - returns skill content for execution
+pub async fn load_skill(
+    path: web::Path<String>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
+) -> impl Responder {
+    let id = match Uuid::parse_str(&path) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_ID",
+                "Invalid skill ID format",
+            ));
+        }
+    };
 
-    if let Some(skill) = skills.get(&id.to_string()) {
-        HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
-            serde_json::json!({
-                "skill": {
-                    "id": skill.id,
-                    "name": skill.name,
-                    "version": skill.version,
-                    "content": skill.content,
-                    "runtime": skill.runtime,
-                }
-            }),
-        ))
-    } else {
-        HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+    match state.skill_repo.find_by_id(id).await {
+        Ok(Some(skill)) => {
+            // Check tenant access (public skills can be loaded by anyone)
+            if skill.tenant_id != user.tenant_id && skill.visibility != Visibility::Public {
+                return HttpResponse::NotFound()
+                    .json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"));
+            }
+            HttpResponse::Ok().json(ApiResponse::success(SkillLoadResponse::from(skill)))
+        }
+        Ok(None) => {
+            HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            "INTERNAL_ERROR",
+            &format!("Failed to load skill: {}", e),
+        )),
     }
 }
 
-/// Execute skill handler (placeholder)
-pub async fn execute_skill(id: web::Path<String>, state: web::Data<SkillState>) -> impl Responder {
-    let skills = state.store.skills.lock().unwrap();
+/// Execute skill handler
+pub async fn execute_skill(
+    path: web::Path<String>,
+    body: web::Json<ExecuteSkillRequest>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
+) -> impl Responder {
+    // 1. Parse skill ID
+    let id = match Uuid::parse_str(&path) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_ID",
+                "Invalid skill ID format",
+            ));
+        }
+    };
 
-    if let Some(skill) = skills.get(&id.to_string()) {
-        HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
-            serde_json::json!({
-                "message": "Skill execution not implemented",
-                "skill_id": skill.id,
-                "skill_name": skill.name,
-            }),
-        ))
-    } else {
-        HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"))
+    // 2. Check sandbox enabled
+    if !state.config.sandbox.enabled {
+        return HttpResponse::ServiceUnavailable().json(ApiResponse::<()>::error(
+            "SANDBOX_DISABLED",
+            "Skill execution is not enabled",
+        ));
+    }
+
+    // 3. Fetch skill from repo
+    let skill = match state.skill_repo.find_by_id(id).await {
+        Ok(Some(skill)) => skill,
+        Ok(None) => {
+            return HttpResponse::NotFound()
+                .json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"));
+        }
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                &format!("Failed to fetch skill: {}", e),
+            ));
+        }
+    };
+
+    // 4. Check tenant access
+    if skill.tenant_id != user.tenant_id && skill.visibility != Visibility::Public {
+        return HttpResponse::NotFound()
+            .json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"));
+    }
+
+    // 5. Determine code to execute
+    let code = body.code.clone().unwrap_or_else(|| skill.skill_md.clone());
+
+    // 6. Build ExecuteRequest
+    let request = ExecuteRequest {
+        skill_id: skill.id.to_string(),
+        code,
+        language: runtime_to_string(&skill.runtime),
+        parameters: body.parameters.clone(),
+    };
+
+    // 7. Execute
+    match state.skill_executor.execute(request).await {
+        Ok(response) => {
+            let status = if response.timed_out {
+                "timeout"
+            } else if response.exit_code == 0 {
+                "success"
+            } else {
+                "error"
+            };
+
+            HttpResponse::Ok().json(ApiResponse::success(SkillExecutionResponse {
+                status: status.to_string(),
+                skill_id: skill.id.to_string(),
+                skill_name: skill.name,
+                runtime: runtime_to_string(&skill.runtime),
+                output: response.stdout,
+                errors: response.stderr,
+                exit_code: response.exit_code,
+                execution_time_ms: response.execution_time_ms,
+                timed_out: response.timed_out,
+            }))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            "EXECUTION_ERROR",
+            &format!("Skill execution failed: {}", e),
+        )),
     }
 }

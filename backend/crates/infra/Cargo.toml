@@ -3,6 +3,9 @@ name = "infra"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 # Workspace dependencies
 async-trait.workspace = true
@@ -16,6 +19,13 @@ chrono.workspace = true
 config.workspace = true
 dotenvy.workspace = true
 
+redis.workspace = true
+lettre.workspace = true
+tokio.workspace = true
+
 # Internal crates
 domain.workspace = true
 common.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

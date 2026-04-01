@@ -22,7 +22,7 @@ pub struct Skill {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Runtime {
     Python311,
@@ -30,7 +30,7 @@ pub enum Runtime {
     Wasm,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Dependency {
     pub name: String,
     pub version: String,

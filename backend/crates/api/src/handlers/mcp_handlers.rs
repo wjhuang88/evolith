@@ -1,56 +1,45 @@
 //! MCP endpoint handlers
 //! Handles Model Context Protocol requests for external AI agents
 //!
-//! 架构说明:
-//! - MCP Server 端点统一: /mcp
-//! - 认证方式: 通过 Authorization header 传递 API Key
-//! - 每个 API Key 关联一个租户,返回该租户的工具列表
-//! - 支持 streamable HTTP 模式
+//! Architecture:
+//! - MCP Server endpoint: /mcp
+//! - Authentication: API Key via Authorization header
+//! - Each API Key is associated with a tenant, returns that tenant's tools
+//! - Supports streamable HTTP mode
 
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde_json::Value;
+use uuid::Uuid;
 
-use crate::handlers::api_key_handlers::{validate_api_key, ApiKeyState};
-use crate::handlers::tool_handlers::ToolStore;
+use crate::dto::common::ApiResponse;
+use crate::handlers::api_key_handlers::validate_api_key;
+use crate::state::AppState;
+use domain::tool::Visibility;
+use domain::ToolFilter;
 use service_tool::mcp::{
     self, build_initialize_result, McpRequest, McpResponse, ToolCallParams, ToolsListResult,
 };
 
-/// MCP endpoint state
-#[derive(Clone)]
-pub struct McpState {
-    pub tool_store: std::sync::Arc<ToolStore>,
-    pub api_key_store: std::sync::Arc<ApiKeyState>,
-}
-
-impl McpState {
-    pub fn new(
-        tool_store: std::sync::Arc<ToolStore>,
-        api_key_store: std::sync::Arc<ApiKeyState>,
-    ) -> Self {
-        Self {
-            tool_store,
-            api_key_store,
-        }
-    }
-}
-
 /// Main MCP endpoint handler
-pub async fn mcp_endpoint(
+pub async fn handle_mcp_request(
     req: HttpRequest,
     body: web::Json<McpRequest>,
-    state: web::Data<McpState>,
+    state: web::Data<AppState>,
 ) -> impl Responder {
     let request = body.into_inner();
     let id = request.id;
 
-    // 从 header 获取 API Key 进行认证
+    // Extract API Key from header for authentication
     let api_key = extract_api_key(&req);
 
-    // 如果提供了 API Key,验证并获取租户信息
+    // If API Key is provided, validate and get tenant info
     let tenant_id = if let Some(key) = api_key {
-        match validate_api_key(&key, &state.api_key_store).await {
-            Ok(key_data) => Some(key_data.tenant_id),
+        match validate_api_key(&key, &*state).await {
+            Ok(key_data) => {
+                // Update last_used_at for the API key
+                let _ = state.api_key_repo.update_last_used(key_data.id).await;
+                Some(key_data.tenant_id)
+            }
             Err(_) => {
                 return HttpResponse::Ok().json(McpResponse::error(
                     id,
@@ -72,13 +61,68 @@ pub async fn mcp_endpoint(
         "resources/read" => handle_resources_read(id).await,
         "prompts/list" => handle_prompts_list(id).await,
         "ping" => handle_ping(id).await,
-        "endpoint" => handle_sse(id).await,
         _ => HttpResponse::Ok().json(McpResponse::method_not_found(id)),
     }
 }
 
-/// 从请求头提取 API Key
+/// List available tools (public endpoint for discovery)
+pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) -> impl Responder {
+    // Extract API Key from header
+    let api_key = extract_api_key(&req);
+
+    let tenant_id = if let Some(key) = api_key {
+        match validate_api_key(&key, &*state).await {
+            Ok(key_data) => Some(key_data.tenant_id),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(ApiResponse::<()>::error(
+                    "UNAUTHORIZED",
+                    "Invalid or expired API key",
+                ));
+            }
+        }
+    } else {
+        None
+    };
+
+    // Build filter based on tenant
+    let filter = ToolFilter {
+        tenant_id,
+        visibility: if tenant_id.is_none() {
+            Some(Visibility::Public)
+        } else {
+            None
+        },
+        ..Default::default()
+    };
+
+    match state.tool_repo.find_all(filter).await {
+        Ok(tools) => {
+            let mcp_tools: Vec<service_tool::mcp::McpTool> = tools
+                .into_iter()
+                .map(|tool| service_tool::mcp::McpTool {
+                    name: tool.name,
+                    description: tool.description,
+                    input_schema: tool.input_schema,
+                })
+                .collect();
+
+            HttpResponse::Ok().json(ApiResponse::<ToolsListResult>::success(ToolsListResult {
+                tools: mcp_tools,
+            }))
+        }
+        Err(e) => {
+            tracing::error!("Failed to list tools: {}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to list tools",
+            ))
+        }
+    }
+}
+
+/// Extract API Key from request headers
 fn extract_api_key(req: &HttpRequest) -> Option<String> {
+    // Try Authorization header (Bearer token)
     if let Some(auth) = req.headers().get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
             if auth_str.starts_with("Bearer ") {
@@ -88,6 +132,7 @@ fn extract_api_key(req: &HttpRequest) -> Option<String> {
         }
     }
 
+    // Try X-API-Key header
     if let Some(key) = req.headers().get("x-api-key") {
         if let Ok(key_str) = key.to_str() {
             return Some(key_str.to_string());
@@ -101,40 +146,55 @@ async fn handle_initialize(id: Value) -> HttpResponse {
     let result = build_initialize_result();
     HttpResponse::Ok().json(McpResponse::success(
         id,
-        serde_json::to_value(result).unwrap(),
+        serde_json::to_value(result).unwrap_or_default(),
     ))
 }
 
-async fn handle_tools_list(id: Value, state: &McpState, tenant_id: Option<String>) -> HttpResponse {
-    let all_tools = state.tool_store.get_all();
+async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>) -> HttpResponse {
+    // Build filter based on tenant
+    let filter = ToolFilter {
+        tenant_id,
+        visibility: if tenant_id.is_none() {
+            Some(Visibility::Public)
+        } else {
+            None
+        },
+        ..Default::default()
+    };
 
-    let mcp_tools: Vec<service_tool::mcp::McpTool> = all_tools
-        .values()
-        .filter(|tool| {
-            if let Some(ref tid) = tenant_id {
-                tool.tenant_id == *tid
-            } else {
-                tool.is_public
-            }
-        })
-        .map(|tool| service_tool::mcp::McpTool {
-            name: tool.name.clone(),
-            description: tool.description.clone(),
-            input_schema: tool.schema.clone(),
-        })
-        .collect();
+    match state.tool_repo.find_all(filter).await {
+        Ok(tools) => {
+            let mcp_tools: Vec<service_tool::mcp::McpTool> = tools
+                .into_iter()
+                .map(|tool| service_tool::mcp::McpTool {
+                    name: tool.name,
+                    description: tool.description,
+                    input_schema: tool.input_schema,
+                })
+                .collect();
 
-    let result = ToolsListResult { tools: mcp_tools };
-    HttpResponse::Ok().json(McpResponse::success(
-        id,
-        serde_json::to_value(result).unwrap(),
-    ))
+            let result = ToolsListResult { tools: mcp_tools };
+            HttpResponse::Ok().json(McpResponse::success(
+                id,
+                serde_json::to_value(result).unwrap_or_default(),
+            ))
+        }
+        Err(e) => {
+            tracing::error!("Failed to list tools: {}", e);
+            HttpResponse::Ok().json(McpResponse::error(
+                id,
+                -32603,
+                "Internal server error".to_string(),
+                None,
+            ))
+        }
+    }
 }
 
 async fn handle_tools_call(
     id: Value,
-    state: &McpState,
-    tenant_id: Option<String>,
+    state: &AppState,
+    tenant_id: Option<Uuid>,
     params: Option<Value>,
 ) -> HttpResponse {
     let params = match params {
@@ -157,13 +217,12 @@ async fn handle_tools_call(
     let tool_name = call_params.name;
     let arguments = call_params.arguments;
 
-    let all_tools = state.tool_store.get_all();
-
-    // Find tool by name (MCP uses tool names, not UUIDs)
-    let tool = match all_tools.values().find(|t| t.name == tool_name) {
-        Some(t) => {
-            if let Some(ref tid) = tenant_id {
-                if t.tenant_id != *tid {
+    // Find tool by name
+    match state.tool_repo.find_by_name(&tool_name).await {
+        Ok(Some(tool)) => {
+            // Check access permissions
+            if let Some(tid) = tenant_id {
+                if tool.tenant_id != tid {
                     return HttpResponse::Ok().json(McpResponse::error(
                         id,
                         -32001,
@@ -171,7 +230,7 @@ async fn handle_tools_call(
                         None,
                     ));
                 }
-            } else if !t.is_public {
+            } else if tool.visibility != Visibility::Public {
                 return HttpResponse::Ok().json(McpResponse::error(
                     id,
                     -32001,
@@ -179,36 +238,45 @@ async fn handle_tools_call(
                     None,
                 ));
             }
-            t
-        }
-        None => {
-            return HttpResponse::Ok().json(McpResponse::error(
+
+            // Validate arguments against schema
+            let schema: Value = tool.input_schema.clone();
+            if let Err(e) = mcp::validate_arguments(&schema, &arguments) {
+                return HttpResponse::Ok().json(McpResponse::error(id, -32602, e, None));
+            }
+
+            // Execute tool (for now, just return a stub response)
+            // In production, this would dispatch to the actual tool handler
+            let result_text = format!("Tool '{}' executed with args: {:?}", tool_name, arguments);
+
+            let result = service_tool::mcp::ToolCallResult {
+                content: vec![service_tool::mcp::ToolContent {
+                    content_type: "text".to_string(),
+                    text: result_text,
+                }],
+            };
+
+            HttpResponse::Ok().json(McpResponse::success(
                 id,
-                -32601,
-                format!("Tool '{}' not found", tool_name),
-                None,
-            ));
+                serde_json::to_value(result).unwrap_or_default(),
+            ))
         }
-    };
-
-    let schema: Value = tool.schema.clone();
-    if let Err(e) = mcp::validate_arguments(&schema, &arguments) {
-        return HttpResponse::Ok().json(McpResponse::error(id, -32602, e, None));
+        Ok(None) => HttpResponse::Ok().json(McpResponse::error(
+            id,
+            -32601,
+            format!("Tool '{}' not found", tool_name),
+            None,
+        )),
+        Err(e) => {
+            tracing::error!("Failed to find tool: {}", e);
+            HttpResponse::Ok().json(McpResponse::error(
+                id,
+                -32603,
+                "Internal server error".to_string(),
+                None,
+            ))
+        }
     }
-
-    let result_text = format!("Tool '{}' executed with args: {:?}", tool_name, arguments);
-
-    let result = service_tool::mcp::ToolCallResult {
-        content: vec![service_tool::mcp::ToolContent {
-            content_type: "text".to_string(),
-            text: result_text,
-        }],
-    };
-
-    HttpResponse::Ok().json(McpResponse::success(
-        id,
-        serde_json::to_value(result).unwrap(),
-    ))
 }
 
 async fn handle_resources_list(id: Value) -> HttpResponse {
@@ -227,11 +295,4 @@ async fn handle_prompts_list(id: Value) -> HttpResponse {
 
 async fn handle_ping(id: Value) -> HttpResponse {
     HttpResponse::Ok().json(McpResponse::success(id, serde_json::json!({})))
-}
-
-async fn handle_sse(id: Value) -> HttpResponse {
-    HttpResponse::Ok().json(McpResponse::success(
-        id,
-        serde_json::json!({ "message": "Use POST /mcp for tool calls" }),
-    ))
 }

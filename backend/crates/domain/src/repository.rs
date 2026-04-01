@@ -4,15 +4,14 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::user::{TenantRole, UpdateUser};
 use crate::audit::AuditLog;
+use crate::user::{TenantRole, UpdateUser};
 use crate::Invitation;
 use crate::{
     NewSkill, NewSnippet, NewTool, NewUser, Skill, SkillFilter, Snippet, SnippetFilter, Tool,
     ToolFilter, UpdateTool, User,
 };
 use common::error::Result;
-
 
 /// User repository trait
 #[async_trait]
@@ -37,7 +36,7 @@ pub trait UserRepository: Send + Sync {
 /// Tool repository trait
 #[async_trait]
 pub trait ToolRepository: Send + Sync {
-    async fn create(&self, tool: NewTool, owner_id: Uuid) -> Result<Tool>;
+    async fn create(&self, tool: NewTool, owner_id: Uuid, tenant_id: Uuid) -> Result<Tool>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Tool>>;
     async fn find_by_name(&self, name: &str) -> Result<Option<Tool>>;
     async fn find_all(&self, filter: ToolFilter) -> Result<Vec<Tool>>;
@@ -49,7 +48,7 @@ pub trait ToolRepository: Send + Sync {
 /// Skill repository trait
 #[async_trait]
 pub trait SkillRepository: Send + Sync {
-    async fn create(&self, skill: NewSkill, owner_id: Uuid) -> Result<Skill>;
+    async fn create(&self, skill: NewSkill, owner_id: Uuid, tenant_id: Uuid) -> Result<Skill>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Skill>>;
     async fn find_by_name_and_version(&self, name: &str, version: &str) -> Result<Option<Skill>>;
     async fn find_all(&self, filter: SkillFilter) -> Result<Vec<Skill>>;
@@ -60,7 +59,8 @@ pub trait SkillRepository: Send + Sync {
 /// Snippet repository trait
 #[async_trait]
 pub trait SnippetRepository: Send + Sync {
-    async fn create(&self, snippet: NewSnippet, owner_id: Uuid) -> Result<Snippet>;
+    async fn create(&self, snippet: NewSnippet, owner_id: Uuid, tenant_id: Uuid)
+        -> Result<Snippet>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Snippet>>;
     async fn find_all(&self, filter: SnippetFilter) -> Result<Vec<Snippet>>;
     async fn count(&self, filter: &SnippetFilter) -> Result<u32>;
@@ -104,7 +104,7 @@ pub trait InvitationRepository: Send + Sync {
 pub struct NewInvitation {
     pub tenant_id: Uuid,
     pub email: String,
-    pub role: String,  // admin, member
+    pub role: String, // admin, member
     pub token: String,
     pub expires_at: DateTime<Utc>,
     pub created_by: Uuid,
@@ -115,7 +115,7 @@ impl NewInvitation {
         tenant_id: Uuid,
         email: String,
         role: String, // admin, member
-        token: String, 
+        token: String,
         expires_at: DateTime<Utc>,
         created_by: Uuid,
     ) -> Self {
@@ -134,7 +134,34 @@ impl NewInvitation {
 #[async_trait]
 pub trait AuditRepository: Send + Sync {
     async fn create(&self, log: AuditLog) -> Result<()>;
-    async fn find_by_tenant(&self, tenant_id: Uuid, limit: usize, offset: usize) -> Result<Vec<AuditLog>>;
-    async fn find_by_user(&self, user_id: Uuid, limit: usize, offset: usize) -> Result<Vec<AuditLog>>;
-    async fn find_by_action(&self, action: &str, limit: usize, offset: usize) -> Result<Vec<AuditLog>>;
+    async fn find_by_tenant(
+        &self,
+        tenant_id: Uuid,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<AuditLog>>;
+    async fn find_by_user(
+        &self,
+        user_id: Uuid,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<AuditLog>>;
+    async fn find_by_action(
+        &self,
+        action: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<AuditLog>>;
+}
+
+/// API Key repository trait
+#[async_trait]
+pub trait ApiKeyRepository: Send + Sync {
+    async fn create(&self, api_key: crate::api_key::NewApiKey) -> Result<crate::api_key::ApiKey>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<crate::api_key::ApiKey>>;
+    async fn find_by_key(&self, key_hash: &str) -> Result<Option<crate::api_key::ApiKey>>;
+    async fn find_by_tenant(&self, tenant_id: Uuid) -> Result<Vec<crate::api_key::ApiKey>>;
+    async fn revoke(&self, id: Uuid) -> Result<()>;
+    async fn delete(&self, id: Uuid) -> Result<()>;
+    async fn update_last_used(&self, id: Uuid) -> Result<()>;
 }

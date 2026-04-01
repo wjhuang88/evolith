@@ -1,8 +1,6 @@
 //! API Key management handlers
 //! Handles API key creation, listing, and revocation
 
-use std::sync::{Arc, Mutex};
-
 use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
 use uuid::Uuid;
@@ -10,113 +8,106 @@ use validator::Validate;
 
 use crate::dto::api_key_dto::*;
 use crate::dto::common::ApiResponse;
+use crate::middleware::auth::AuthenticatedUser;
+use crate::state::AppState;
+use domain::api_key::{ApiKey, ApiKeyStatus, NewApiKey};
 
-/// In-memory API key store for development
-pub struct ApiKeyStore {
-    keys: Mutex<Vec<StoredApiKey>>,
-}
-
-#[derive(Clone)]
-pub struct StoredApiKey {
-    pub id: String,
-    pub tenant_id: String,
-    pub user_id: String,
-    pub name: String,
-    pub key_hash: String,
-    pub key: String, // The actual key (for demo)
-    pub key_prefix: String,
-    pub permissions: Vec<String>,
-    pub expires_at: Option<i64>,
-    pub last_used_at: Option<i64>,
-    pub rate_limit: i32,
-    pub status: String,
-    pub request_count: i64,
-    pub created_at: i64,
-}
-
-impl Default for ApiKeyStore {
-    fn default() -> Self {
-        Self {
-            keys: Mutex::new(Vec::new()),
-        }
-    }
-}
-
-/// API Key state
-#[derive(Clone)]
-pub struct ApiKeyState {
-    pub key_store: Arc<ApiKeyStore>,
-}
-
-impl ApiKeyState {
-    pub fn new() -> Self {
-        Self {
-            key_store: Arc::new(ApiKeyStore::default()),
-        }
-    }
-}
-
-impl Default for ApiKeyState {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Generate a new API key
+/// Generate a new API key with prefix and hash
 fn generate_api_key() -> (String, String, String) {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let random: u64 = {
-        use std::collections::hash_map::RandomState;
-        use std::hash::{BuildHasher, Hasher};
-        RandomState::new().build_hasher().finish()
-    };
-    let full_key = format!("evo_sk_{:x}{:016x}", timestamp, random);
-    let key_prefix = format!("evo_sk_{:x}", random % 0xFFFFFFFF);
-    let key_hash = format!("{:x}", {
+    // Generate random key using UUID
+    let random_uuid = Uuid::new_v4();
+    let full_key = format!("evo_sk_{}", random_uuid.simple());
+
+    // Extract prefix (first 16 chars of key after prefix)
+    let key_prefix = format!("evo_sk_{}...", &random_uuid.simple().to_string()[..8]);
+
+    // Hash the key for storage (using simple hash for demo, should use proper crypto in production)
+    let key_hash = {
         use std::collections::hash_map::RandomState;
         use std::hash::{BuildHasher, Hasher};
         let mut hasher = RandomState::new().build_hasher();
         hasher.write(full_key.as_bytes());
-        hasher.finish()
-    });
-    (full_key, key_prefix, key_hash)
-}
+        format!("{:016x}", hasher.finish())
+    };
 
-/// Simple SHA256 hash (for demo purposes)
-fn simple_hash(data: &str) -> String {
-    use std::collections::hash_map::RandomState;
-    use std::hash::{BuildHasher, Hasher};
-    format!("{:016x}", {
-        let mut hasher = RandomState::new().build_hasher();
-        hasher.write(data.as_bytes());
-        hasher.finish()
-    })
+    (full_key, key_prefix, key_hash)
 }
 
 /// List API keys for a tenant
 pub async fn list_api_keys(
-    _tenant_id: web::Path<String>,
-    _state: web::Data<ApiKeyState>,
+    tenant_id: web::Path<Uuid>,
+    user: AuthenticatedUser,
+    state: web::Data<AppState>,
 ) -> impl Responder {
-    // In production, fetch from database
-    HttpResponse::Ok().json(ApiResponse::<ApiKeyListResponse>::success(
-        ApiKeyListResponse {
-            keys: vec![],
-            total: 0,
-        },
-    ))
+    let tenant_id = tenant_id.into_inner();
+
+    // Verify user has access to this tenant
+    if user.tenant_id != tenant_id {
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "You do not have access to this tenant",
+        ));
+    }
+
+    // Fetch API keys from repository
+    match state.api_key_repo.find_by_tenant(tenant_id).await {
+        Ok(keys) => {
+            let key_list: Vec<ApiKeyListItem> = keys
+                .into_iter()
+                .map(|k| ApiKeyListItem {
+                    id: k.id.to_string(),
+                    name: k.name,
+                    key_prefix: k.key_prefix,
+                    permissions: k.permissions,
+                    expires_at: k.expires_at.map(|t| t.to_rfc3339()),
+                    rate_limit: k.rate_limit as i32,
+                    status: match k.status {
+                        ApiKeyStatus::Active => "active".to_string(),
+                        ApiKeyStatus::Revoked => "revoked".to_string(),
+                        ApiKeyStatus::Expired => "expired".to_string(),
+                    },
+                    request_count: k.request_count as i64,
+                    last_used_at: k.last_used_at.map(|t| t.to_rfc3339()),
+                    created_at: k.created_at.to_rfc3339(),
+                })
+                .collect();
+
+            let total = key_list.len();
+            HttpResponse::Ok().json(ApiResponse::<ApiKeyListResponse>::success(
+                ApiKeyListResponse {
+                    keys: key_list,
+                    total,
+                },
+            ))
+        }
+        Err(e) => {
+            tracing::error!("Failed to list API keys: {}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to list API keys",
+            ))
+        }
+    }
 }
 
 /// Create a new API key
 pub async fn create_api_key(
-    _tenant_id: web::Path<String>,
+    tenant_id: web::Path<Uuid>,
+    user: AuthenticatedUser,
     body: web::Json<CreateApiKeyRequest>,
-    state: web::Data<ApiKeyState>,
+    state: web::Data<AppState>,
 ) -> impl Responder {
+    let tenant_id = tenant_id.into_inner();
+
+    // Verify user has access to this tenant
+    if user.tenant_id != tenant_id {
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "You do not have access to this tenant",
+        ));
+    }
+
+    // Validate request
     if let Err(errors) = body.validate() {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
             "VALIDATION_ERROR",
@@ -124,139 +115,150 @@ pub async fn create_api_key(
         ));
     }
 
-    let name = body.name.clone();
-    let permissions = body
-        .permissions
-        .clone()
-        .unwrap_or_else(|| vec!["read".to_string()]);
-    let rate_limit = body.rate_limit.unwrap_or(1000);
-    let expires_in_days = body.expires_in_days;
-
     // Generate API key
     let (full_key, key_prefix, key_hash) = generate_api_key();
-    let now = Utc::now().timestamp();
-    let expires_at = expires_in_days.map(|days| now + (days as i64 * 24 * 60 * 60));
 
-    let api_key = StoredApiKey {
-        id: Uuid::new_v4().to_string(),
-        tenant_id: "00000000-0000-0000-0000-000000000001".to_string(),
-        user_id: "00000000-0000-0000-0000-000000000001".to_string(),
-        name: name.clone(),
+    // Calculate expiration
+    let expires_at = body
+        .expires_in_days
+        .map(|days| Utc::now() + chrono::Duration::days(days as i64));
+
+    // Create new API key
+    let new_key = NewApiKey {
+        tenant_id,
+        user_id: user.user_id,
+        name: body.name.clone(),
         key_hash,
-        key: full_key.clone(),
-        key_prefix: key_prefix.clone(),
-        permissions: permissions.clone(),
-        expires_at,
-        last_used_at: None,
-        rate_limit,
-        status: "active".to_string(),
-        request_count: 0,
-        created_at: now,
-    };
-
-    // Store the key
-    {
-        let mut keys = state.key_store.keys.lock().unwrap();
-        keys.push(api_key.clone());
-    }
-
-    // Return response with the full key (only shown once!)
-    let expires_at_str = expires_at.map(|ts| {
-        chrono::DateTime::from_timestamp(ts, 0)
-            .unwrap_or_default()
-            .to_rfc3339()
-    });
-
-    let response = ApiKeyResponse {
-        id: api_key.id,
-        name: api_key.name,
-        key: Some(full_key), // ⚠️ Only shown once!
         key_prefix,
-        permissions,
-        expires_at: expires_at_str,
-        rate_limit,
-        status: api_key.status,
-        created_at: chrono::DateTime::from_timestamp(api_key.created_at, 0)
-            .unwrap_or_default()
-            .to_rfc3339(),
+        permissions: body
+            .permissions
+            .clone()
+            .unwrap_or_else(|| vec!["read".to_string()]),
+        rate_limit: body.rate_limit.map(|r| r as u32),
+        expires_at,
     };
 
-    HttpResponse::Ok().json(ApiResponse::<ApiKeyResponse>::success(response))
-}
+    match state.api_key_repo.create(new_key).await {
+        Ok(api_key) => {
+            // Return response with the full key (only shown once!)
+            let response = ApiKeyResponse {
+                id: api_key.id.to_string(),
+                name: api_key.name,
+                key: Some(full_key), // ⚠️ Only shown once!
+                key_prefix: api_key.key_prefix,
+                permissions: api_key.permissions,
+                expires_at: api_key.expires_at.map(|t| t.to_rfc3339()),
+                rate_limit: api_key.rate_limit as i32,
+                status: match api_key.status {
+                    ApiKeyStatus::Active => "active".to_string(),
+                    ApiKeyStatus::Revoked => "revoked".to_string(),
+                    ApiKeyStatus::Expired => "expired".to_string(),
+                },
+                created_at: api_key.created_at.to_rfc3339(),
+            };
 
-/// Get API key details
-pub async fn get_api_key(
-    _tenant_id: web::Path<String>,
-    _key_id: web::Path<String>,
-    _state: web::Data<ApiKeyState>,
-) -> impl Responder {
-    // In production, fetch from database
-    HttpResponse::Ok().json(ApiResponse::<()>::error(
-        "NOT_IMPLEMENTED",
-        "Get API key details not implemented yet",
-    ))
+            HttpResponse::Ok().json(ApiResponse::<ApiKeyResponse>::success(response))
+        }
+        Err(e) => {
+            tracing::error!("Failed to create API key: {}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to create API key",
+            ))
+        }
+    }
 }
 
 /// Revoke an API key
 pub async fn revoke_api_key(
-    _tenant_id: web::Path<String>,
-    _key_id: web::Path<String>,
+    path: web::Path<(Uuid, Uuid)>,
+    user: AuthenticatedUser,
     _body: web::Json<RevokeApiKeyRequest>,
-    _state: web::Data<ApiKeyState>,
+    state: web::Data<AppState>,
 ) -> impl Responder {
-    // In production:
-    // 1. Check permissions
-    // 2. Mark key as revoked in database
+    let (tenant_id, key_id) = path.into_inner();
 
-    HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
-        serde_json::json!({
-            "message": "API key revoked successfully"
-        }),
-    ))
+    // Verify user has access to this tenant
+    if user.tenant_id != tenant_id {
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "You do not have access to this tenant",
+        ));
+    }
+
+    // Verify the key belongs to this tenant before revoking
+    match state.api_key_repo.find_by_id(key_id).await {
+        Ok(Some(key)) if key.tenant_id == tenant_id => {
+            match state.api_key_repo.revoke(key_id).await {
+                Ok(()) => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
+                    serde_json::json!({
+                        "message": "API key revoked successfully"
+                    }),
+                )),
+                Err(e) => {
+                    tracing::error!("Failed to revoke API key: {}", e);
+                    HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                        "INTERNAL_ERROR",
+                        "Failed to revoke API key",
+                    ))
+                }
+            }
+        }
+        Ok(Some(_)) => HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "API key does not belong to this tenant",
+        )),
+        Ok(None) => HttpResponse::NotFound()
+            .json(ApiResponse::<()>::error("NOT_FOUND", "API key not found")),
+        Err(e) => {
+            tracing::error!("Failed to find API key: {}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to find API key",
+            ))
+        }
+    }
 }
 
-/// Rotate an API key (regenerate)
-pub async fn rotate_api_key(
-    _tenant_id: web::Path<String>,
-    _key_id: web::Path<String>,
-    _state: web::Data<ApiKeyState>,
-) -> impl Responder {
-    HttpResponse::Ok().json(ApiResponse::<()>::error(
-        "NOT_IMPLEMENTED",
-        "API key rotation not implemented yet",
-    ))
-}
-
-/// Validate an API key (for middleware)
-pub async fn validate_api_key(key: &str, state: &ApiKeyState) -> Result<StoredApiKey, String> {
-    // Extract prefix from key
+/// Validate an API key (for MCP handlers and middleware)
+/// Takes AppState and key string, returns the ApiKey if valid
+pub async fn validate_api_key(key: &str, state: &AppState) -> Result<ApiKey, String> {
+    // Extract prefix from key format: evo_sk_{uuid}
     let parts: Vec<&str> = key.split('_').collect();
     if parts.len() < 3 || parts[0] != "evo" || parts[1] != "sk" {
         return Err("Invalid API key format".to_string());
     }
 
-    let prefix = format!("evo_sk_{}", parts[2]);
+    // Hash the provided key to compare with stored hash
+    let key_hash = {
+        use std::collections::hash_map::RandomState;
+        use std::hash::{BuildHasher, Hasher};
+        let mut hasher = RandomState::new().build_hasher();
+        hasher.write(key.as_bytes());
+        format!("{:016x}", hasher.finish())
+    };
 
-    // Find key by prefix
-    let keys = state.key_store.keys.lock().unwrap();
-    let key_data = keys
-        .iter()
-        .find(|k| k.key_prefix == prefix && k.status == "active")
-        .cloned()
-        .ok_or("API key not found")?;
+    // Find key by hash
+    match state.api_key_repo.find_by_key(&key_hash).await {
+        Ok(Some(api_key)) => {
+            // Check status
+            if api_key.status != ApiKeyStatus::Active {
+                return Err("API key is not active".to_string());
+            }
 
-    // Verify key
-    let key_hash = simple_hash(key);
-    if key_hash != key_data.key_hash {
-        return Err("Invalid API key".to_string());
-    }
+            // Check expiration
+            if let Some(expires_at) = api_key.expires_at {
+                if expires_at < Utc::now() {
+                    return Err("API key has expired".to_string());
+                }
+            }
 
-    // Check expiration
-    if let Some(expires_at) = key_data.expires_at {
-        if expires_at < Utc::now().timestamp() {
-            return Err("API key has expired".to_string());
+            Ok(api_key)
+        }
+        Ok(None) => Err("API key not found".to_string()),
+        Err(e) => {
+            tracing::error!("Failed to validate API key: {}", e);
+            Err("Failed to validate API key".to_string())
         }
     }
-
-    Ok(key_data)
 }

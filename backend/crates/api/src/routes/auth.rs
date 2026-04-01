@@ -1,7 +1,6 @@
 //! Auth routes
-//! Handles user authentication endpoints
 
-use crate::handlers::auth_handlers::*;
+use crate::handlers::auth::*;
 use actix_web::web;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -13,6 +12,9 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/logout", web::post().to(logout))
             .route("/refresh", web::post().to(refresh_token))
             .route("/me", web::get().to(get_current_user))
+            // Profile management
+            .route("/profile", web::patch().to(update_profile))
+            .route("/change-password", web::post().to(change_password))
             // Email verification
             .route("/send-verify", web::post().to(send_verification_email))
             .route("/verify-email", web::post().to(verify_email))

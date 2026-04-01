@@ -19,7 +19,7 @@ pub struct JwtSecret(pub String);
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg
         // Health check - public (no auth required)
-        .service(web::scope("/health").route("", web::get().to(health::health_check)))
+        .configure(health::configure)
         // MCP endpoint - requires API key auth, handled separately
         .service(web::scope("/mcp").configure(mcp::configure))
         .service(
@@ -38,6 +38,5 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                         .configure(billing::configure)
                         .configure(audit::configure),
                 ),
-        )
-;  // Terminate the chain
+        ); // Terminate the chain
 }
