@@ -22,18 +22,13 @@ pub struct ApiKey {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApiKeyStatus {
+    #[default]
     Active,
     Revoked,
     Expired,
-}
-
-impl Default for ApiKeyStatus {
-    fn default() -> Self {
-        ApiKeyStatus::Active
-    }
 }
 
 #[derive(Debug, Clone)]

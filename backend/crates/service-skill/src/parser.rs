@@ -16,6 +16,12 @@ pub struct SkillMetadata {
 /// Parser for SKILL.md format
 pub struct SkillParser;
 
+impl Default for SkillParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SkillParser {
     pub fn new() -> Self {
         Self

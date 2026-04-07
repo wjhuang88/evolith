@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
 use domain::repository::SkillRepository;
-use domain::skill::{Dependency, NewSkill, Runtime, Skill, SkillFilter, Visibility};
+use domain::skill::{NewSkill, Runtime, Skill, SkillFilter, Visibility};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -148,7 +148,6 @@ impl SkillRepository for PgSkillRepository {
         if let Some(owner_id) = filter.owner_id {
             sql.push_str(&format!(" AND owner_id = ${}", param_idx));
             bindings.push(owner_id.to_string());
-            param_idx += 1;
         }
 
         sql.push_str(" ORDER BY created_at DESC");
@@ -218,7 +217,6 @@ impl SkillRepository for PgSkillRepository {
         if let Some(owner_id) = filter.owner_id {
             sql.push_str(&format!(" AND owner_id = ${}", param_idx));
             bindings.push(owner_id.to_string());
-            param_idx += 1;
         }
 
         let mut query = sqlx::query_as::<_, CountRow>(&sql);

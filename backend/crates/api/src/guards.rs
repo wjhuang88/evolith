@@ -1,8 +1,7 @@
 //! Permission guards for handlers
 
-use actix_web::{dev::ServiceRequest, http::header, Error, HttpRequest, HttpResponse};
+use actix_web::{http::header, HttpRequest};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
-use serde::{Deserialize, Serialize};
 
 pub use crate::middleware::rbac::{check_tenant_access, CurrentUser, CurrentUserExt, RbacError};
 pub use actix_web::ResponseError;
@@ -17,6 +16,7 @@ fn get_jwt_secret() -> String {
 }
 
 /// Extract CurrentUser from request - tries extensions first, then extracts from JWT
+#[allow(dead_code)]
 fn extract_current_user(req: &HttpRequest) -> Option<CurrentUser> {
     // First try to get from request extensions (set by middleware)
     if let Some(user) = req.get_current_user() {

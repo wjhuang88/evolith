@@ -1,8 +1,7 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use common::error::Result;
 use domain::audit::AuditLog;
 use domain::repository::AuditRepository;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid as RealUuid;
 
 #[derive(Clone)]

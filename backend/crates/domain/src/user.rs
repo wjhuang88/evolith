@@ -24,32 +24,21 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {
     Admin,
+    #[default]
     User,
 }
 
-/// User role within a tenant
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum TenantRole {
     Owner,
     Admin,
+    #[default]
     Member,
-}
-
-impl Default for TenantRole {
-    fn default() -> Self {
-        TenantRole::Member
-    }
-}
-
-impl Default for UserRole {
-    fn default() -> Self {
-        UserRole::User
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

@@ -36,17 +36,12 @@ pub enum HandlerType {
     Function,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Visibility {
     Public,
+    #[default]
     Private,
-}
-
-impl Default for Visibility {
-    fn default() -> Self {
-        Visibility::Private
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

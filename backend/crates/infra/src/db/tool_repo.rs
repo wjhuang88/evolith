@@ -36,7 +36,7 @@ impl ToolRepository for SqliteToolRepository {
         let output_schema_str = tool
             .output_schema
             .as_ref()
-            .map(|s| serde_json::to_string(s))
+            .map(serde_json::to_string)
             .transpose()
             .map_err(|e| {
                 AppError::ValidationError(format!("Failed to serialize output_schema: {}", e))

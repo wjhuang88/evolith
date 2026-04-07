@@ -170,6 +170,7 @@ impl TenantRepository for PgTenantRepository {
 }
 
 #[derive(sqlx::FromRow)]
+#[allow(dead_code)]
 struct PgTenantRow {
     id: Uuid,
     name: String,

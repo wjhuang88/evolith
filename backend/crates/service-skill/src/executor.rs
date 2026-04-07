@@ -33,6 +33,12 @@ pub trait SkillExecutor: Send + Sync {
 /// Default skill executor implementation
 pub struct DefaultSkillExecutor;
 
+impl Default for DefaultSkillExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefaultSkillExecutor {
     pub fn new() -> Self {
         Self

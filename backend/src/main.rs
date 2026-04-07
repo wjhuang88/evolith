@@ -13,6 +13,7 @@ use api::middleware::csrf::CsrfMiddleware;
 use api::middleware::rate_limit::create_unauthenticated_limiter;
 use api::middleware::rbac::RbacMiddleware;
 use api::middleware::request_id::RequestIdMiddleware;
+use api::middleware::security_headers::SecurityHeadersMiddleware;
 use api::state::AppState;
 use common::error::Result;
 use infra::cache::create_cache;
@@ -166,6 +167,7 @@ async fn main() -> Result<()> {
             .wrap(RequestIdMiddleware::new())
             .wrap(middleware::Logger::default())
             .wrap(cors_configuration(is_dev))
+            .wrap(SecurityHeadersMiddleware::new(is_dev))
             .configure(configure_routes)
     })
     .bind((host.as_str(), port))?

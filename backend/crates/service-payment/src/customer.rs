@@ -6,13 +6,16 @@ use uuid::Uuid;
 
 pub struct StripeCustomerService {
     client: Client,
-    config: PaymentConfig,
+    _config: PaymentConfig,
 }
 
 impl StripeCustomerService {
     pub fn new(config: PaymentConfig) -> Self {
         let client = Client::new(config.stripe_secret_key.as_str());
-        Self { client, config }
+        Self {
+            client,
+            _config: config,
+        }
     }
 
     pub async fn create_customer(
@@ -93,10 +96,12 @@ impl StripeCustomerService {
         let cid = CustomerId::from_str(customer_id)
             .map_err(|e| PaymentError::CustomerNotFound(e.to_string()))?;
 
-        Customer::delete(&self.client, &cid).await.map_err(|e: stripe::StripeError| {
-            error!("Failed to delete Stripe customer: {:?}", e);
-            PaymentError::StripeApi(e.to_string())
-        })?;
+        Customer::delete(&self.client, &cid)
+            .await
+            .map_err(|e: stripe::StripeError| {
+                error!("Failed to delete Stripe customer: {:?}", e);
+                PaymentError::StripeApi(e.to_string())
+            })?;
 
         Ok(())
     }

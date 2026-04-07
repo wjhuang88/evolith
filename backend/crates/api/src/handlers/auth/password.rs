@@ -1,7 +1,6 @@
 //! Password management handlers
 
 use actix_web::{web, HttpResponse, Responder};
-use validator::Validate;
 
 use crate::dto::auth_dto::*;
 use crate::dto::common::ApiResponse;

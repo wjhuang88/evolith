@@ -27,6 +27,12 @@ pub trait ToolExecutor: Send + Sync {
 /// Default tool executor implementation
 pub struct DefaultToolExecutor;
 
+impl Default for DefaultToolExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefaultToolExecutor {
     pub fn new() -> Self {
         Self
@@ -35,7 +41,7 @@ impl DefaultToolExecutor {
 
 #[async_trait]
 impl ToolExecutor for DefaultToolExecutor {
-    async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse> {
+    async fn execute(&self, _request: ExecuteRequest) -> Result<ExecuteResponse> {
         // TODO: Implement actual tool execution
         Ok(ExecuteResponse {
             result: serde_json::json!({ "message": "Tool execution not implemented" }),

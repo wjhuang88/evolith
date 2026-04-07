@@ -19,8 +19,8 @@ pub fn extract_token(req: &ServiceRequest) -> Option<String> {
     // Try Authorization header first
     if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                return Some(auth_str[7..].to_string());
+            if let Some(stripped) = auth_str.strip_prefix("Bearer ") {
+                return Some(stripped.to_string());
             }
         }
     }
@@ -257,7 +257,7 @@ where
         if is_public {
             // Public path - allow without authentication
             let fut = self.service.call(req);
-            return Box::pin(async move { fut.await });
+            return Box::pin(fut);
         }
 
         // Extract claims from token
@@ -295,7 +295,7 @@ where
             req.extensions_mut().insert(user);
 
             let fut = self.service.call(req);
-            Box::pin(async move { fut.await })
+            Box::pin(fut)
         } else {
             // No valid token found
             Box::pin(async move { Err(actix_web::Error::from(RbacError::Unauthorized)) })

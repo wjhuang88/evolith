@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
 use domain::repository::SnippetRepository;
-use domain::snippet::{Dependency, NewSnippet, Snippet, SnippetFilter, Visibility};
+use domain::snippet::{NewSnippet, Snippet, SnippetFilter, Visibility};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 

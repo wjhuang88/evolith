@@ -3,6 +3,7 @@
 pub mod constants;
 pub mod error;
 pub mod log;
+pub mod sanitize;
 pub mod utils;
 
 pub use error::{AppError, Result};

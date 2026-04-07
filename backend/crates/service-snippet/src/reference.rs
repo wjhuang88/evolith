@@ -5,6 +5,12 @@ use common::error::Result;
 /// Reference generator for code snippets
 pub struct ReferenceGenerator;
 
+impl Default for ReferenceGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReferenceGenerator {
     pub fn new() -> Self {
         Self

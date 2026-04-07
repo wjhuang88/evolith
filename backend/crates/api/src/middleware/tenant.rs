@@ -132,7 +132,7 @@ where
                 req.extensions_mut().insert(tenant_ctx);
 
                 let fut = self.service.call(req);
-                Box::pin(async move { fut.await })
+                Box::pin(fut)
             }
             Err(e) => Box::pin(async move { Err(e) }),
         }

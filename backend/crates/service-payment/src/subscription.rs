@@ -24,13 +24,16 @@ pub struct SubscriptionData {
 
 pub struct StripeSubscriptionService {
     client: Client,
-    config: PaymentConfig,
+    _config: PaymentConfig,
 }
 
 impl StripeSubscriptionService {
     pub fn new(config: PaymentConfig) -> Self {
         let client = Client::new(config.stripe_secret_key.as_str());
-        Self { client, config }
+        Self {
+            client,
+            _config: config,
+        }
     }
 
     pub async fn create_subscription(
@@ -155,17 +158,14 @@ impl StripeSubscriptionService {
             status: status.to_string(),
             plan_id: price_id,
             billing_cycle: "monthly".to_string(),
-            current_period_start: DateTime::from_timestamp(
-                subscription.current_period_start as i64,
-                0,
-            )
-            .unwrap_or_else(Utc::now),
-            current_period_end: DateTime::from_timestamp(subscription.current_period_end as i64, 0)
+            current_period_start: DateTime::from_timestamp(subscription.current_period_start, 0)
+                .unwrap_or_else(Utc::now),
+            current_period_end: DateTime::from_timestamp(subscription.current_period_end, 0)
                 .unwrap_or_else(Utc::now),
             cancel_at_period_end: subscription.cancel_at_period_end,
             trial_end: subscription
                 .trial_end
-                .map(|ts| DateTime::from_timestamp(ts as i64, 0).unwrap_or_else(Utc::now)),
+                .map(|ts| DateTime::from_timestamp(ts, 0).unwrap_or_else(Utc::now)),
         }
     }
 }

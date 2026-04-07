@@ -1,21 +1,4 @@
 #!/bin/bash
-# =============================================================================
-# Evolith Development Environment Launcher
-# =============================================================================
-#
-# Usage:
-#   ./scripts/dev.sh start   - Start infrastructure + backend + frontend
-#   ./scripts/dev.sh stop    - Stop all services and clean up
-#   ./scripts/dev.sh infra   - Start only infrastructure (PostgreSQL, Redis, MinIO)
-#   ./scripts/dev.sh backend - Start only backend (assumes infra is running or SQLite)
-#   ./scripts/dev.sh status  - Show status of all services
-#   ./scripts/dev.sh logs    - Tail backend and frontend logs
-#   ./scripts/dev.sh clean   - Stop all and remove Docker volumes
-#
-# Environment:
-#   Uses .env.development by default. Override with ENV_FILE=.env.custom
-# =============================================================================
-
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,24 +7,21 @@ PID_DIR="$PROJECT_ROOT/.dev-pids"
 LOG_DIR="$PROJECT_ROOT/.dev-logs"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 log_info()  { echo -e "${BLUE}[INFO]${NC}  $*"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
-# Ensure directories exist
 ensure_dirs() {
     mkdir -p "$PID_DIR" "$LOG_DIR"
 }
 
-# Load environment variables from file
 load_env() {
     if [ -f "$ENV_FILE" ]; then
         set -a
@@ -54,7 +34,6 @@ load_env() {
     fi
 }
 
-# Check if a process is running by PID file
 is_running() {
     local pidfile="$PID_DIR/$1.pid"
     if [ -f "$pidfile" ]; then
@@ -63,13 +42,11 @@ is_running() {
         if kill -0 "$pid" 2>/dev/null; then
             return 0
         fi
-        # Stale PID file
         rm -f "$pidfile"
     fi
     return 1
 }
 
-# Start infrastructure services (Docker Compose)
 start_infra() {
     log_info "Starting infrastructure services (PostgreSQL, Redis, MinIO)..."
     docker compose -f "$COMPOSE_FILE" up -d postgres redis minio 2>&1 | while read -r line; do
@@ -103,7 +80,6 @@ start_infra() {
     fi
 }
 
-# Stop infrastructure services
 stop_infra() {
     log_info "Stopping infrastructure services..."
     docker compose -f "$COMPOSE_FILE" down 2>&1 | while read -r line; do
@@ -112,7 +88,6 @@ stop_infra() {
     log_ok "Infrastructure stopped"
 }
 
-# Start backend
 start_backend() {
     if is_running "backend"; then
         log_warn "Backend is already running (PID $(cat "$PID_DIR/backend.pid"))"
@@ -122,19 +97,16 @@ start_backend() {
     log_info "Building and starting Rust backend..."
     cd "$PROJECT_ROOT/backend"
 
-    # Build first (fail fast if compilation errors)
     if ! cargo build 2>"$LOG_DIR/backend-build.log"; then
         log_error "Backend build failed! Check $LOG_DIR/backend-build.log"
         return 1
     fi
 
-    # Run in background
     cargo run > "$LOG_DIR/backend.log" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_DIR/backend.pid"
     cd "$PROJECT_ROOT"
 
-    # Wait for backend to be ready
     log_info "Waiting for backend to start (PID $pid)..."
     local max_wait=30
     local waited=0
@@ -156,7 +128,6 @@ start_backend() {
     log_warn "Check $LOG_DIR/backend.log for details"
 }
 
-# Start frontend
 start_frontend() {
     if is_running "frontend"; then
         log_warn "Frontend is already running (PID $(cat "$PID_DIR/frontend.pid"))"
@@ -166,7 +137,6 @@ start_frontend() {
     log_info "Starting Next.js frontend..."
     cd "$PROJECT_ROOT/frontend"
 
-    # Install dependencies if needed
     if [ ! -d "node_modules" ]; then
         log_info "Installing frontend dependencies..."
         npm install > "$LOG_DIR/frontend-install.log" 2>&1
@@ -177,7 +147,6 @@ start_frontend() {
     echo "$pid" > "$PID_DIR/frontend.pid"
     cd "$PROJECT_ROOT"
 
-    # Wait for frontend to be ready
     log_info "Waiting for frontend to start (PID $pid)..."
     local max_wait=30
     local waited=0
@@ -199,7 +168,6 @@ start_frontend() {
     log_warn "Check $LOG_DIR/frontend.log for details"
 }
 
-# Stop a service by PID file
 stop_service() {
     local name="$1"
     local pidfile="$PID_DIR/$name.pid"
@@ -210,7 +178,6 @@ stop_service() {
         if kill -0 "$pid" 2>/dev/null; then
             log_info "Stopping $name (PID $pid)..."
             kill "$pid" 2>/dev/null || true
-            # Wait for graceful shutdown
             local waited=0
             while kill -0 "$pid" 2>/dev/null && [ $waited -lt 10 ]; do
                 sleep 1
@@ -230,13 +197,11 @@ stop_service() {
     fi
 }
 
-# Show status
 show_status() {
     echo ""
     echo "=== Evolith Development Environment Status ==="
     echo ""
 
-    # Infrastructure
     echo "Infrastructure:"
     for svc in postgres redis minio; do
         local status
@@ -251,14 +216,12 @@ show_status() {
     echo ""
     echo "Application:"
 
-    # Backend
     if is_running "backend"; then
         echo -e "  ${GREEN}●${NC} Backend:  Running (PID $(cat "$PID_DIR/backend.pid")) — http://localhost:8080"
     else
         echo -e "  ${RED}●${NC} Backend:  Not running"
     fi
 
-    # Frontend
     if is_running "frontend"; then
         echo -e "  ${GREEN}●${NC} Frontend: Running (PID $(cat "$PID_DIR/frontend.pid")) — http://localhost:3000"
     else
@@ -268,29 +231,41 @@ show_status() {
     echo ""
 }
 
-# Tail logs
 tail_logs() {
     log_info "Tailing backend and frontend logs (Ctrl+C to stop)..."
     tail -f "$LOG_DIR/backend.log" "$LOG_DIR/frontend.log" 2>/dev/null || log_warn "No log files found"
 }
 
-# Print usage
+print_ready_banner() {
+    echo ""
+    echo "========================================="
+    echo "  Evolith Development Environment Ready"
+    echo "========================================="
+    echo ""
+    echo "  Frontend: http://localhost:3000"
+    echo "  Backend:  http://localhost:8080"
+    echo "  Health:   http://localhost:8080/health"
+    echo ""
+    echo "  Stop with:  ./scripts/dev.sh stop"
+    echo "  Logs with:  ./scripts/dev.sh logs"
+    echo "  Status:     ./scripts/dev.sh status"
+    echo ""
+}
+
 usage() {
-    echo "Usage: $0 {start|stop|infra|backend|status|logs|clean}"
+    echo "Usage: $0 {start|lite|stop|infra|backend|frontend|status|logs|clean}"
     echo ""
     echo "Commands:"
-    echo "  start    Start infrastructure + backend + frontend"
+    echo "  start    Start infrastructure + backend + frontend (full stack)"
+    echo "  lite     Start backend + frontend only (SQLite in-memory, no Docker)"
     echo "  stop     Stop all services (backend, frontend, infrastructure)"
     echo "  infra    Start only infrastructure (PostgreSQL, Redis, MinIO)"
     echo "  backend  Start only backend (assumes infra or SQLite)"
+    echo "  frontend Start only frontend (assumes backend is running)"
     echo "  status   Show status of all services"
     echo "  logs     Tail backend and frontend logs"
-    echo "  clean    Stop everything and remove Docker volumes"
+    echo "  clean    Stop everything and remove Docker volumes + logs"
 }
-
-# =============================================================================
-# Main
-# =============================================================================
 
 case "${1:-}" in
     start)
@@ -299,25 +274,23 @@ case "${1:-}" in
         start_infra
         start_backend
         start_frontend
-        echo ""
-        echo "========================================="
-        echo "  Evolith Development Environment Ready"
-        echo "========================================="
-        echo ""
-        echo "  Frontend: http://localhost:3000"
-        echo "  Backend:  http://localhost:8080"
-        echo "  Health:   http://localhost:8080/health"
-        echo ""
-        echo "  Stop with:  ./scripts/dev.sh stop"
-        echo "  Logs with:  ./scripts/dev.sh logs"
-        echo "  Status:     ./scripts/dev.sh status"
-        echo ""
+        print_ready_banner
+        ;;
+    lite)
+        ensure_dirs
+        load_env
+        log_info "Lite mode — SQLite in-memory, no Docker infrastructure"
+        start_backend
+        start_frontend
+        print_ready_banner
         ;;
     stop)
         ensure_dirs
         stop_service "frontend"
         stop_service "backend"
-        stop_infra
+        if docker compose -f "$COMPOSE_FILE" ps -q 2>/dev/null | grep -q .; then
+            stop_infra
+        fi
         log_ok "All services stopped"
         ;;
     infra)
@@ -329,6 +302,11 @@ case "${1:-}" in
         ensure_dirs
         load_env
         start_backend
+        ;;
+    frontend)
+        ensure_dirs
+        load_env
+        start_frontend
         ;;
     status)
         ensure_dirs
@@ -346,7 +324,7 @@ case "${1:-}" in
             echo "  $line"
         done
         rm -rf "$PID_DIR" "$LOG_DIR"
-        log_ok "Cleaned up everything (Docker volumes removed)"
+        log_ok "Cleaned up everything (Docker volumes, logs, PID files removed)"
         ;;
     *)
         usage

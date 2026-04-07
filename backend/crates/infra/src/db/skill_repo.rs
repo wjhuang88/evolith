@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
 use domain::repository::SkillRepository;
-use domain::skill::{Dependency, NewSkill, Runtime, Skill, SkillFilter, Visibility};
+use domain::skill::{NewSkill, Runtime, Skill, SkillFilter, Visibility};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 

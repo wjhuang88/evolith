@@ -30,19 +30,14 @@ pub struct Tenant {
 }
 
 /// Tenant subscription plan
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum TenantPlan {
+    #[default]
     Free,
     Starter,
     Pro,
     Enterprise,
-}
-
-impl Default for TenantPlan {
-    fn default() -> Self {
-        TenantPlan::Free
-    }
 }
 
 impl std::fmt::Display for TenantPlan {
@@ -57,33 +52,23 @@ impl std::fmt::Display for TenantPlan {
 }
 
 /// Plan status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PlanStatus {
+    #[default]
     Active,
     PastDue,
     Cancelled,
 }
 
-impl Default for PlanStatus {
-    fn default() -> Self {
-        PlanStatus::Active
-    }
-}
-
 /// Tenant status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum TenantStatus {
+    #[default]
     Active,
     Suspended,
     Deleted,
-}
-
-impl Default for TenantStatus {
-    fn default() -> Self {
-        TenantStatus::Active
-    }
 }
 
 /// Tenant quotas (limits)

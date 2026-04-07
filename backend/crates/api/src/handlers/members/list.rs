@@ -13,7 +13,7 @@ use crate::state::AppState;
 pub async fn list_members(
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
-    state: web::Data<AppState>,
+    _state: web::Data<AppState>,
 ) -> impl Responder {
     let tenant_id = tenant_id.into_inner();
 

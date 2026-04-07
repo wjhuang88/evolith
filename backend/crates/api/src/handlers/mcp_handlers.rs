@@ -34,7 +34,7 @@ pub async fn handle_mcp_request(
 
     // If API Key is provided, validate and get tenant info
     let tenant_id = if let Some(key) = api_key {
-        match validate_api_key(&key, &*state).await {
+        match validate_api_key(&key, &state).await {
             Ok(key_data) => {
                 // Update last_used_at for the API key
                 let _ = state.api_key_repo.update_last_used(key_data.id).await;
@@ -71,7 +71,7 @@ pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) 
     let api_key = extract_api_key(&req);
 
     let tenant_id = if let Some(key) = api_key {
-        match validate_api_key(&key, &*state).await {
+        match validate_api_key(&key, &state).await {
             Ok(key_data) => Some(key_data.tenant_id),
             Err(_) => {
                 return HttpResponse::Unauthorized().json(ApiResponse::<()>::error(
@@ -125,8 +125,8 @@ fn extract_api_key(req: &HttpRequest) -> Option<String> {
     // Try Authorization header (Bearer token)
     if let Some(auth) = req.headers().get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                return Some(auth_str[7..].to_string());
+            if let Some(stripped) = auth_str.strip_prefix("Bearer ") {
+                return Some(stripped.to_string());
             }
             return Some(auth_str.to_string());
         }

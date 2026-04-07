@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
 use domain::repository::SnippetRepository;
-use domain::snippet::{Dependency, NewSnippet, Snippet, SnippetFilter, Visibility};
+use domain::snippet::{NewSnippet, Snippet, SnippetFilter, Visibility};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -157,7 +157,6 @@ impl SnippetRepository for PgSnippetRepository {
         if let Some(owner_id) = filter.owner_id {
             sql.push_str(&format!(" AND owner_id = ${}", param_idx));
             bindings.push(owner_id.to_string());
-            param_idx += 1;
         }
 
         sql.push_str(" ORDER BY created_at DESC");
@@ -238,7 +237,6 @@ impl SnippetRepository for PgSnippetRepository {
         if let Some(owner_id) = filter.owner_id {
             sql.push_str(&format!(" AND owner_id = ${}", param_idx));
             bindings.push(owner_id.to_string());
-            param_idx += 1;
         }
 
         let mut query = sqlx::query_as::<_, CountRow>(&sql);

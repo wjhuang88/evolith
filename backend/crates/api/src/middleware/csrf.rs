@@ -118,12 +118,12 @@ where
 
         if self.exempt_paths.iter().any(|p| path.starts_with(p)) {
             let fut = self.service.call(req);
-            return Box::pin(async move { fut.await });
+            return Box::pin(fut);
         }
 
         if !CsrfMiddleware::requires_csrf(req.method()) {
             let fut = self.service.call(req);
-            return Box::pin(async move { fut.await });
+            return Box::pin(fut);
         }
 
         let cookie_value = match req.cookie(CSRF_COOKIE_NAME) {
@@ -159,7 +159,7 @@ where
         }
 
         let fut = self.service.call(req);
-        Box::pin(async move { fut.await })
+        Box::pin(fut)
     }
 }
 

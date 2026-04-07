@@ -7,8 +7,6 @@
 use async_trait::async_trait;
 use common::error::{AppError, Result};
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 

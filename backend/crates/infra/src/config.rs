@@ -1,6 +1,6 @@
 //! Configuration management
 
-use config::{Config, ConfigError, Environment, File};
+use config::{Config, ConfigError, Environment};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]

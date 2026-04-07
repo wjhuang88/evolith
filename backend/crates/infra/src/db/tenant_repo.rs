@@ -169,6 +169,7 @@ impl TenantRepository for SqliteTenantRepository {
 }
 
 #[derive(sqlx::FromRow)]
+#[allow(dead_code)]
 struct TenantRow {
     id: String,
     name: String,

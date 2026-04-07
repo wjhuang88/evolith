@@ -131,7 +131,6 @@ impl ToolRepository for PgToolRepository {
         if let Some(owner_id) = filter.owner_id {
             sql.push_str(&format!(" AND owner_id = ${}", param_idx));
             bindings.push(owner_id.to_string());
-            param_idx += 1;
         }
 
         sql.push_str(" ORDER BY created_at DESC");
@@ -190,7 +189,6 @@ impl ToolRepository for PgToolRepository {
         if let Some(owner_id) = filter.owner_id {
             sql.push_str(&format!(" AND owner_id = ${}", param_idx));
             bindings.push(owner_id.to_string());
-            param_idx += 1;
         }
 
         let mut query = sqlx::query_as::<_, CountRow>(&sql);
