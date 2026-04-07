@@ -10,7 +10,7 @@
 
 | 技术 | 版本 | 用途 | 选择理由 |
 |------|------|------|----------|
-| Rust | 1.75+ | 核心语言 | 高性能、内存安全、并发友好、零成本抽象 |
+| Rust | 1.82+ | 核心语言 | 高性能、内存安全、并发友好、零成本抽象 |
 | Actix-web | 4.x | Web框架 | 高性能、功能完善、生态成熟、异步支持 |
 | Tokio | 1.x | 异步运行时 | Rust事实标准的异步运行时 |
 
@@ -422,33 +422,38 @@ evolith/
 │   ├── crates/
 │   │   ├── api/             # API层
 │   │   ├── service-tool/    # 工具服务
-│   │   ├── service-skill/   # 技能服务
+│   │   ├── service-skill/   # 技能服务 (Docker 沙箱)
 │   │   ├── service-snippet/ # 片段服务
 │   │   ├── service-auth/    # 认证服务
+│   │   ├── service-audit/   # 审计日志
+│   │   ├── service-payment/ # Stripe 计费
 │   │   ├── domain/          # 领域模型
 │   │   ├── infra/           # 基础设施
 │   │   └── common/          # 公共模块
-│   ├── migrations/          # 数据库迁移
+│   ├── migrations/
+│   │   ├── sqlite/          # SQLite 迁移 (开发)
+│   │   └── postgres/        # PostgreSQL 迁移 (生产)
+│   ├── sandbox/             # 沙箱 Dockerfile (Python, Node.js)
 │   ├── Cargo.toml
 │   └── Cargo.lock
 │
 ├── frontend/                 # Next.js前端
 │   ├── src/
-│   │   ├── app/             # 页面
+│   │   ├── app/             # 页面 (22 路由)
 │   │   ├── components/      # 组件
-│   │   ├── lib/             # 工具库
-│   │   ├── hooks/           # Hooks
-│   │   ├── stores/          # 状态
+│   │   ├── lib/             # 工具库 (API client, i18n)
+│   │   ├── locales/         # 翻译文件 (zh-CN, en)
+│   │   ├── stores/          # 状态 (Zustand)
 │   │   ├── types/           # 类型
 │   │   └── styles/          # 样式
 │   ├── package.json
 │   └── next.config.js
 │
+├── deploy/                   # Nginx 配置
+├── scripts/                  # dev.sh, backup.sh, deploy.sh
+├── .github/workflows/        # CI/CD (ci.yml, deploy.yml)
 ├── docs/                     # 文档
-├── plans/                    # 计划
-├── scripts/                  # 脚本
-├── docker/                   # Docker配置
-├── docker-compose.yml
+├── docker-compose.prod.yml   # 生产 Docker 编排
 └── README.md
 ```
 
@@ -478,7 +483,7 @@ evolith/
 
 ### 9.2 注意事项
 
-1. **SQL兼容性**：使用sqlx的参数化查询，避免数据库特定语法
-2. **迁移脚本**：准备PostgreSQL和MySQL两套迁移脚本
+1. **SQL兼容性**：SQLite 和 PostgreSQL 使用各自专用的迁移文件（`migrations/sqlite/` 和 `migrations/postgres/`），语法不同（如 `TEXT` vs `UUID`、`datetime('now')` vs `NOW()`）
+2. **迁移脚本**：双轨迁移，启动时根据 `DATABASE__DATABASE_TYPE` 选择对应目录
 3. **测试覆盖**：在SQLite和目标生产数据库上都运行测试
 4. **性能差异**：生产环境需要针对目标数据库进行性能测试

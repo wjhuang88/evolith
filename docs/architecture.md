@@ -391,68 +391,6 @@ struct User {
 }
 ```
 
-### 5.1 核心实体
-
-```rust
-// Tool (工具)
-struct Tool {
-    id: Uuid,
-    name: String,
-    description: String,
-    input_schema: JsonValue,      // JSON Schema
-    output_schema: JsonValue,
-    handler: HandlerConfig,
-    owner_id: Uuid,
-    visibility: Visibility,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// Skill (技能)
-struct Skill {
-    id: Uuid,
-    name: String,
-    version: String,
-    description: String,
-    skill_md: String,             // SKILL.md内容
-    code_package: Option<String>, // 代码包路径
-    runtime: Runtime,
-    dependencies: Vec<Dependency>,
-    owner_id: Uuid,
-    visibility: Visibility,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// Snippet (代码片段)
-struct Snippet {
-    id: Uuid,
-    name: String,
-    language: String,
-    framework: Option<String>,
-    tags: Vec<String>,
-    content: String,              // Markdown内容
-    code: String,                 // 实际代码
-    dependencies: Vec<Dependency>,
-    estimated_tokens: u32,
-    owner_id: Uuid,
-    visibility: Visibility,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// User (用户)
-struct User {
-    id: Uuid,
-    username: String,
-    email: String,
-    password_hash: String,
-    role: Role,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-```
-
 ### 5.3 数据库Schema（多租户）
 
 ```sql
@@ -564,74 +502,6 @@ CREATE INDEX idx_snippets_language ON snippets(language);
 CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
 ```
 
-```sql
--- 用户表
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(64) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(32) NOT NULL DEFAULT 'user',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 工具表
-CREATE TABLE tools (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(128) UNIQUE NOT NULL,
-    description TEXT NOT NULL,
-    input_schema JSONB NOT NULL,
-    output_schema JSONB,
-    handler_config JSONB NOT NULL,
-    owner_id UUID NOT NULL REFERENCES users(id),
-    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 技能表
-CREATE TABLE skills (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(128) NOT NULL,
-    version VARCHAR(32) NOT NULL,
-    description TEXT NOT NULL,
-    skill_md TEXT NOT NULL,
-    code_package_path TEXT,
-    runtime VARCHAR(32) NOT NULL,
-    dependencies JSONB DEFAULT '[]',
-    owner_id UUID NOT NULL REFERENCES users(id),
-    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(name, version)
-);
-
--- 代码片段表
-CREATE TABLE snippets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(128) NOT NULL,
-    language VARCHAR(32) NOT NULL,
-    framework VARCHAR(64),
-    tags TEXT[] DEFAULT '{}',
-    content TEXT NOT NULL,
-    code TEXT NOT NULL,
-    dependencies JSONB DEFAULT '[]',
-    estimated_tokens INTEGER NOT NULL DEFAULT 0,
-    owner_id UUID NOT NULL REFERENCES users(id),
-    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 索引
-CREATE INDEX idx_tools_owner ON tools(owner_id);
-CREATE INDEX idx_skills_owner ON skills(owner_id);
-CREATE INDEX idx_snippets_owner ON snippets(owner_id);
-CREATE INDEX idx_snippets_tags ON snippets USING GIN(tags);
-CREATE INDEX idx_snippets_language ON snippets(language);
-```
-
 ## 6. 安全设计
 
 ### 6.1 代码执行沙箱
@@ -688,10 +558,11 @@ CREATE INDEX idx_snippets_language ON snippets(language);
 │  │    "exp": 1234567890,                             │ │
 │  │    "iat": 1234560000                              │ │
 │  │  }                                                 │ │
-
 │  └────────────────────────────────────────────────────┘ │
 │                                           │              │
-│                                           ▼              │
+│  **Token 传递方式**: httpOnly cookie (`evolith_token`)    │
+│  **CSRF 防护**: double-submit cookie (`csrf_token`)      │
+│                                           │              │
 │  ┌────────────────────────────────────────────────────┐ │
 │  │              Authorization                          │ │
 │  │  - RBAC: role-based access control                │ │
@@ -864,13 +735,19 @@ ENVIRONMENT=production
 | `JWT__TOKEN_EXPIRY` | Token过期时间 | `24h` |
 | `LOG__LEVEL` | 日志级别 | `info` |
 | `ENVIRONMENT` | 环境 | `development` |
+| `CORS__ALLOWED_ORIGIN` | 允许的前端域名 | `http://localhost:3000` |
+| `CSRF__ENABLED` | CSRF 保护开关 | `true` |
+| `SANDBOX__ENABLED` | 沙箱执行器开关 | `true` |
+| `SANDBOX__TIMEOUT_SECONDS` | 沙箱执行超时 | `30` |
+| `SANDBOX__MEMORY_LIMIT_MB` | 沙箱内存限制 | `256` |
+| `RATE_LIMIT__REQUESTS_PER_MINUTE` | 每IP速率限制 | `60` |
+| `SMTP__HOST` | SMTP 邮件服务器 | (无) |
+| `SMTP__PORT` | SMTP 端口 | `587` |
+| `SMTP__FROM` | 发件人地址 | (无) |
 
 ## 11. 相关文档
 
 - [多租户设计](./multi-tenant.md) - **多租户架构详细设计**
-- [API契约](./api-contract.md) - 前后端接口详细定义
-- [Skill格式](./skill-format.md) - 技能定义规范
-
 - [API契约](./api-contract.md) - 前后端接口详细定义
 - [Skill格式](./skill-format.md) - 技能定义规范
 - [代码片段格式](./snippet-format.md) - 片段定义规范

@@ -1,5 +1,7 @@
 # Evolith 生产就绪设计方案
 
+> ✅ **本文档中的所有设计已全部实现 (Phase 0-8, 2026-03-14 ~ 2026-04-08)**
+
 > 基于 [架构审计报告](./architecture-audit.md) 的发现，本文档定义将 Evolith 从原型提升为生产级 SaaS 平台所需的架构调整和技术方案。
 
 ---
@@ -31,38 +33,39 @@ main() → 加载配置 → 创建数据库连接池 → 运行迁移 →
          挂载中间件链 → 注入 handlers → 优雅启动/关闭
 ```
 
-**中间件链** (按执行顺序):
+**中间件链** (按执行顺序，实际实现):
 ```rust
 App::new()
-    .app_data(web::Data::new(app_state.clone()))
-    .wrap(middleware::Logger::default())
-    .wrap(RequestIdMiddleware)        // 请求追踪
-    .wrap(cors_configuration())       // 限制性 CORS
-    .wrap(RateLimitMiddleware)        // 速率限制
-    .wrap(AuthMiddleware)             // JWT 验证
-    // 注意: RBAC 在路由级别通过 guard 或 extractor 实现，不在全局中间件
+    .app_data(app_state.clone())
+    .wrap(CsrfMiddleware::new())          // CSRF 防护
+    .wrap(RbacMiddleware::new(jwt_secret)) // JWT + RBAC 验证
+    .wrap(Governor::new(&governor_config)) // 速率限制
+    .wrap(RequestIdMiddleware::new())      // 请求追踪
+    .wrap(middleware::Logger::default())   // 日志
+    .wrap(cors_configuration(is_dev))     // CORS
+    .wrap(SecurityHeadersMiddleware::new(is_dev)) // 安全头
     .configure(configure_routes)
 ```
 
-**AppState 结构** (替代分散的多个 State):
+**AppState 结构** (实际实现):
 ```rust
 pub struct AppState {
     pub config: AppConfig,
-    pub db: DatabasePool,
     pub jwt: JwtHandler,
     pub hasher: Argon2Hasher,
     // Repositories (trait objects for testability)
-    pub user_repo: Box<dyn UserRepository>,
-    pub tenant_repo: Box<dyn TenantRepository>,
-    pub tool_repo: Box<dyn ToolRepository>,
-    pub skill_repo: Box<dyn SkillRepository>,
-    pub snippet_repo: Box<dyn SnippetRepository>,
-    pub api_key_repo: Box<dyn ApiKeyRepository>,
-    pub audit_repo: Box<dyn AuditRepository>,
-    pub subscription_repo: Box<dyn SubscriptionRepository>,
-    // 可选服务
-    pub cache: Option<Box<dyn Cache>>,
-    pub mailer: Option<Box<dyn Mailer>>,
+    pub user_repo: Arc<dyn UserRepository>,
+    pub tenant_repo: Arc<dyn TenantRepository>,
+    pub tool_repo: Arc<dyn ToolRepository>,
+    pub skill_repo: Arc<dyn SkillRepository>,
+    pub snippet_repo: Arc<dyn SnippetRepository>,
+    pub api_key_repo: Arc<dyn ApiKeyRepository>,
+    pub audit_repo: Arc<dyn AuditRepository>,
+    pub invitation_repo: Arc<dyn InvitationRepository>,
+    // Infrastructure services
+    pub cache: Arc<dyn Cache>,
+    pub mailer: Arc<dyn Mailer>,
+    pub skill_executor: Arc<dyn SkillExecutor>,
 }
 ```
 
@@ -235,10 +238,10 @@ backend/migrations/
 **方案**: 后端登录成功后通过 `Set-Cookie` 设置 httpOnly cookie
 
 ```rust
-// 后端设置 cookie
+// 后端设置 cookie（实际 cookie 名为 evolith_token）
 HttpResponse::Ok()
     .cookie(
-        Cookie::build("evolith_session", &token)
+        Cookie::build("evolith_token", &token)
             .http_only(true)
             .secure(true)       // 仅 HTTPS
             .same_site(SameSite::Strict)

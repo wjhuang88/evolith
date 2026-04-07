@@ -17,21 +17,29 @@ evolith/
 │   ├── crates/
 │   │   ├── api/           # Routes, handlers, middleware, DTOs
 │   │   ├── service-tool/  # MCP tools service
-│   │   ├── service-skill/ # Skill execution service
+│   │   ├── service-skill/ # Skill execution service (Docker sandbox)
 │   │   ├── service-snippet/# Code snippets service
 │   │   ├── service-auth/  # JWT, password, RBAC
 │   │   ├── service-audit/ # Audit logging
+│   │   ├── service-payment/# Stripe billing integration
 │   │   ├── domain/        # Models, Repository traits
-│   │   ├── infra/         # Config, DB, cache, storage
-│   │   └── common/        # Errors, utils, logging
-│   └── migrations/        # SQL migrations
+│   │   ├── infra/         # Config, DB, cache, mailer, storage
+│   │   └── common/        # Errors, utils, logging, sanitize
+│   ├── migrations/
+│   │   ├── sqlite/        # SQLite migrations (dev)
+│   │   └── postgres/      # PostgreSQL migrations (prod)
+│   └── sandbox/           # Sandbox Dockerfiles (Python, Node.js)
 ├── frontend/              # Next.js 14 + TypeScript + Tailwind
-│   ├── src/app/          # Pages (tools, skills, snippets)
+│   ├── src/app/          # Pages (22 routes)
 │   ├── src/components/   # UI components
-│   ├── src/lib/          # API client
-│   ├── src/stores/       # State management
+│   ├── src/lib/          # API client, i18n
+│   ├── src/locales/      # zh-CN.json, en.json
+│   ├── src/stores/       # State management (Zustand)
 │   └── src/types/        # TypeScript interfaces
-└── docs/                 # Documentation
+├── deploy/                # Nginx configs
+├── scripts/               # dev.sh, backup.sh, deploy.sh
+├── .github/workflows/     # CI/CD pipelines
+└── docs/                  # Documentation
 ```
 
 ## Key Design Patterns
@@ -82,9 +90,11 @@ pub enum AppError {
 
 ### Authentication
 
-- JWT tokens with HS256
+- JWT tokens with HS256, delivered via httpOnly cookie (`evolith_token`)
+- CSRF double-submit cookie (`csrf_token`) for state-changing requests
 - Password hashing with Argon2id
 - Role-based access control (RBAC)
+- Security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options, etc.)
 
 ## Development Guidelines
 
@@ -120,12 +130,15 @@ cargo tarpaulin --workspace
 
 ### Database Migrations
 
-```bash
-# Create new migration
-cargo sqlx migrate add <migration_name>
+Dual-track migrations: `backend/migrations/sqlite/` and `backend/migrations/postgres/` with DB-specific SQL syntax.
 
-# Run migrations
-cargo sqlx migrate run
+```bash
+# Migrations run automatically on startup based on DATABASE__DATABASE_TYPE
+# Manual migration (SQLite)
+cargo sqlx migrate run --source backend/migrations/sqlite
+
+# Manual migration (PostgreSQL)
+cargo sqlx migrate run --source backend/migrations/postgres
 ```
 
 ## Configuration
@@ -137,9 +150,18 @@ Environment variables (see `crates/infra/src/config.rs`):
 | `DATABASE__URL` | Database connection string | `:memory:` (dev) |
 | `DATABASE__DATABASE_TYPE` | sqlite/postgres/mysql | `sqlite` |
 | `JWT__SECRET` | JWT signing key | (dev only) |
-| `JWT__EXPIRATION` | Token lifetime | `24h` |
+| `JWT__TOKEN_EXPIRY` | Token lifetime | `24h` |
 | `LOG__LEVEL` | trace/debug/info/warn/error | `info` |
 | `ENVIRONMENT` | development/production | `development` |
+| `CORS__ALLOWED_ORIGIN` | Allowed frontend origin | `http://localhost:3000` |
+| `CSRF__ENABLED` | Enable CSRF protection | `true` |
+| `SANDBOX__ENABLED` | Enable sandbox executor | `true` |
+| `SANDBOX__TIMEOUT_SECONDS` | Sandbox execution timeout | `30` |
+| `SANDBOX__MEMORY_LIMIT_MB` | Sandbox memory limit | `256` |
+| `RATE_LIMIT__REQUESTS_PER_MINUTE` | Rate limit per IP | `60` |
+| `SMTP__HOST` | SMTP server host | (none) |
+| `SMTP__PORT` | SMTP server port | `587` |
+| `SMTP__FROM` | Sender email address | (none) |
 
 ## Common Tasks
 
@@ -179,6 +201,10 @@ Environment variables (see `crates/infra/src/config.rs`):
 | argon2 | Password hashing |
 | tracing | Structured logging |
 | validator | Input validation |
+| bollard | Docker API (sandbox) |
+| actix-governor | Rate limiting |
+| lettre | SMTP email |
+| cookie | httpOnly cookie support |
 
 ### Frontend Key Dependencies
 
@@ -190,6 +216,7 @@ Environment variables (see `crates/infra/src/config.rs`):
 | Zustand | State management |
 | Axios | HTTP client |
 | React Hook Form | Form handling |
+| react-i18next | Internationalization |
 
 ## Status
 
@@ -262,7 +289,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] `cargo check --workspace` → 0 errors
 - [x] `cargo clippy --workspace` → 0 errors
 
-**Build/test command**: `cargo test --workspace` (no exclusions needed — all crates compile clean)
+**Build/test command**: `cargo test --workspace`
 
 ### Phase 3 — Infrastructure Services ✅ COMPLETE (2026-03-15)
 
@@ -322,9 +349,41 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] `cargo test --workspace` → 236 passed, 0 failed
 - [x] `npm run build` → 0 errors, 22 routes
 
-### Current Phase: Phase 7 (Sandbox Executor)
+### Phase 7 — Sandbox Executor ✅ COMPLETE (2026-03-15)
 
-See [Production Plan](./docs/production-plan.md) for Phase 1-8 roadmap.
+**Goal**: Docker-based sandboxed code execution for skills.
+
+**All Phase 7 tasks completed:**
+- [x] `SkillExecutor` trait + `DockerSkillExecutor` implementation — `service-skill/src/executor.rs`
+- [x] Docker sandbox with `bollard` crate (Python 3.11 + Node.js 20 runtimes)
+- [x] Resource limits: CPU (0.5 cores), memory (256MB), PIDs (64), network disabled, timeout (30s)
+- [x] Sandbox Dockerfiles — `backend/sandbox/python/Dockerfile`, `backend/sandbox/node/Dockerfile`
+- [x] AppState updated with `skill_executor: Arc<dyn SkillExecutor>`
+- [x] `cargo test --workspace` → 236 passed, 0 failed
+
+### Phase 8 — Production Deployment ✅ COMPLETE (2026-04-08)
+
+**Goal**: Docker production stack, Nginx, CI/CD, security hardening.
+
+**All Phase 8 tasks completed:**
+- [x] Docker multi-stage build — `backend/Dockerfile` (Rust 1.82)
+- [x] Frontend standalone build — `frontend/Dockerfile`
+- [x] Production Docker Compose (5 services: postgres, redis, backend, frontend, nginx) — `docker-compose.prod.yml`
+- [x] Nginx reverse proxy with SSL termination — `deploy/nginx/`
+- [x] CI pipeline (fmt + clippy -D warnings + tests + cargo audit + npm audit + Docker build) — `.github/workflows/ci.yml`
+- [x] Deploy pipeline (manual trigger, GHCR push, SSH deploy, health check, rollback) — `.github/workflows/deploy.yml`
+- [x] `SecurityHeadersMiddleware` (CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy) — `api/src/middleware/security_headers.rs`
+- [x] Log sanitization (redacts password, token, secret, api_key) — `common/src/sanitize.rs`
+- [x] Dev script with lite/full modes — `scripts/dev.sh`
+- [x] Backup script — `scripts/backup.sh`
+- [x] Deploy helper script — `scripts/deploy.sh`
+- [x] Clippy `-D warnings` cleanup across workspace
+- [x] `cargo test --workspace` → 237 passed, 0 failed
+- [x] `npm run build` → 0 errors, 22 routes
+
+### All Phases Complete (Phase 0-8) ✅
+
+See [Production Plan](./docs/production-plan.md) for full Phase 0-8 details.
 
 ## Links
 

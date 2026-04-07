@@ -355,16 +355,62 @@ API 端点无自动文档生成。前端和第三方接入者只能靠手写文�
 
 ### 可以上线吗？
 
-**不能。** 存在 9 个 CRITICAL 级和 9 个 HIGH 级问题。最核心的三个阻断：
+> **更新 (2026-04-08)**: Phase 0-8 已全部完成。下方保留原始审计结论作为历史记录，实际解决状态见 [第 8 节](#8-解决状态)。
 
-1. **无持久化存储** — 重启 = 全部数据丢失
-2. **无认证/授权** — 所有 API 完全开放
-3. **密码明文存储** — 直接违反安全法规
+~~**不能。**~~ 原审计发现 9 个 CRITICAL 级和 9 个 HIGH 级问题。最核心的三个阻断：
 
-### 上线需要什么？
+1. ~~**无持久化存储** — 重启 = 全部数据丢失~~ → Phase 0 已解决
+2. ~~**无认证/授权** — 所有 API 完全开放~~ → Phase 0 已解决
+3. ~~**密码明文存储** — 直接违反安全法规~~ → Phase 0 已解决
+
+**所有 9 个 CRITICAL 和 9 个 HIGH 级问题均已在 Phase 0-7 中解决。系统现已达到生产就绪状态。**
+
+### 生产就绪文档
 
 见 [生产就绪设计方案](./production-design.md) 和 [生产就绪实施计划](./production-plan.md)。
 
-### 好消息
+---
 
-大部分基础设施代码**已经存在**但**未接入**。修复的核心工作是"接线"（wiring）而非"重写"——将已有的 Repository 实现、密码哈希器、RBAC 中间件正确地组装到 main.rs 和 handlers 中。预计 60-70% 的修复工作是集成而非新代码。
+## 8. 解决状态
+
+> 审计完成于 2026-03-13，所有问题在 2026-03-14 至 2026-03-15 期间（Phase 0-7）全部解决。
+
+### 8.1 CRITICAL 级 — 全部解决 ✅
+
+| 编号 | 问题 | 解决阶段 | 解决方案 |
+|------|------|----------|----------|
+| C1 | 数据库未接入（内存 HashMap） | Phase 0 | 8 个 SQLite Repository 实现 + AppState 使用 `Arc<dyn Repo>`，Phase 4 新增 PostgreSQL 双数据库支持 |
+| C2 | 密码明文存储 | Phase 0 | 接入 `Argon2Hasher::hash_password()`，注册时哈希、登录时验证 |
+| C3 | 认证中间件为空 | Phase 0 | 实现 `AuthenticatedUser` extractor，从 httpOnly cookie 提取并验证 JWT |
+| C4 | RBAC 中间件未挂载 | Phase 0 | `RbacMiddleware` 挂载到 main.rs 中间件链 |
+| C5 | CORS 完全开放 | Phase 0 | 配置为仅允许 `CORS__ALLOWED_ORIGIN` 指定的域，支持 credentials |
+| C6 | Token Refresh 未实现 | Phase 0 | 实现 `/api/v1/auth/refresh` 端点，前端 Axios 拦截器自动续期 |
+| C7 | `get_current_user` 未实现 | Phase 0 | 实现 `/api/v1/auth/me` 端点，从 JWT claims 查库返回用户信息 |
+| C8 | `ApiKeyState::new()` 重复调用 | Phase 0 | 移除重复调用，统一为 Repository trait |
+| C9 | owner_id / tenant_id 硬编码 | Phase 0 | 从 `AuthenticatedUser` extractor 动态获取，handler 重写 |
+
+### 8.2 HIGH 级 — 全部解决 ✅
+
+| 编号 | 问题 | 解决阶段 | 解决方案 |
+|------|------|----------|----------|
+| H1 | JWT Token 存储在 localStorage | Phase 6 | 迁移至 httpOnly cookie (`evolith_token`) + CSRF 双提交 cookie (`csrf_token`) |
+| H2 | 前端无路由守卫 | Phase 1 | Next.js `middleware.ts` (SSR cookie 检查) + `AuthGuard` 客户端组件 |
+| H3 | 无 ErrorBoundary | Phase 1 | `error.tsx` + `global-error.tsx` + `not-found.tsx` 全套错误处理 |
+| H4 | 81+ `.unwrap()` 调用 | Phase 2 | 消除生产代码中的 unwrap，workspace 级 `clippy.unwrap_used = "deny"` |
+| H5 | SandboxedExecutor 未实现 | Phase 7 | Docker 沙箱执行器 (`bollard` crate)，支持 Python 3.11 + Node.js 20，资源限制完整 |
+| H6 | Cache 模块是占位符 | Phase 3 | `Cache` trait + `InMemoryCache` + `RedisCache` 双实现 |
+| H7 | 迁移文件仅兼容 SQLite | Phase 4 | 双轨迁移：`migrations/sqlite/` + `migrations/postgres/`，PostgreSQL 原生语法 |
+| H8 | i18n 只有依赖没有实现 | Phase 5 | 完整中英文翻译 (647 行/文件)，23+ 组件转 `t()` 调用，LanguageSwitcher 组件 |
+| H9 | forgot_password 提前 return | Phase 0 | 重写密码重置流程，handler 正确实现 |
+
+### 8.3 MEDIUM 级 — 解决情况
+
+| 编号 | 问题 | 状态 | 解决方案 |
+|------|------|------|----------|
+| M1 | 无速率限制 | ✅ Phase 3 | `actix-governor` 中间件，可配置 `RATE_LIMIT__REQUESTS_PER_MINUTE` |
+| M2 | 无请求大小限制 | ⚠️ 使用默认值 | Actix-web 默认 256KB，已满足当前需求 |
+| M3 | 无优雅关闭 | ✅ Phase 3 | `shutdown_timeout(30)` 配置于 main.rs |
+| M4 | Auth Store 泄露到 localStorage | ✅ Phase 6 | 迁移至 httpOnly cookie，localStorage 仅存非敏感用户信息 |
+| M5 | 无 OpenAPI/Swagger 文档 | ⚠️ 使用手写文档 | `docs/api-contract.md` 作为前后端契约文档 |
+| M6 | 缺失关键前端页面 | ✅ Phase 6 | Onboarding 向导、Profile 页面、404/500 错误页面 |
+| M7 | 无 Redis 集成 | ✅ Phase 3 | `RedisCache` 实现，生产 Docker Compose 包含 Redis 7 服务 |

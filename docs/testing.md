@@ -45,27 +45,43 @@ cargo test -p common
 cargo test --package service-auth test_jwt
 ```
 
+#### 测试统计
+
+> **最新数据 (2026-04-08)**: `cargo test --workspace` → **237 passed, 0 failed**
+
+| Crate | 测试数 | 说明 |
+|-------|--------|------|
+| api | 34 | Handler 测试 + E2E 认证测试 (12 个) |
+| common | 9 | 错误类型、日志配置、日志脱敏 |
+| domain | 35 | 用户/租户/审计/邀请模型验证 |
+| infra | 124 | 8 个 Repository 集成测试 (user, tenant, invitation, audit, tool, skill, snippet, api_key) |
+| service-auth | 18 | JWT + Argon2id 密码 + 密码强度验证 |
+| service-payment | 14 | Stripe 集成 (Mock) |
+| doc-tests | 3 | 文档示例测试 |
+
 #### 测试模块位置
 
 | Crate | 测试文件 | 测试内容 |
 |-------|---------|---------|
 | service-auth | `src/jwt.rs` | JWT 令牌生成与验证 |
-| service-auth | `src/password.rs` | 密码哈希与验证 |
+| service-auth | `src/password.rs` | 密码哈希与验证 (Argon2id) |
 | domain | `src/user.rs` | 用户、租户邀请模型验证 |
 | domain | `src/tenant.rs` | 租户、配额模型验证 |
 | domain | `src/audit.rs` | 审计日志模型验证 |
 | common | `src/error.rs` | 错误类型定义 |
 | common | `src/log.rs` | 日志配置 |
+| common | `src/sanitize.rs` | 日志脱敏 (password, token, secret, api_key) |
 | api | `src/middleware/tenant.rs` | 多租户中间件 |
-| api | `src/middleware/rbac.rs` | RBAC角色访问控制 |
-
-| Crate | 测试文件 | 测试内容 |
-|-------|---------|---------|
-| service-auth | `src/jwt.rs` | JWT 令牌生成与验证 |
-| service-auth | `src/password.rs` | 密码哈希与验证 |
-| common | `src/error.rs` | 错误类型定义 |
-| common | `src/log.rs` | 日志配置 |
-| api | `src/middleware/tenant.rs` | 多租户中间件 |
+| api | `src/middleware/rbac.rs` | RBAC 角色访问控制 |
+| api | `tests/auth_e2e_tests.rs` | 12 个认证端到端测试 |
+| infra | `tests/user_repo_test.rs` | 用户 Repository 集成测试 |
+| infra | `tests/tenant_repo_test.rs` | 租户 Repository 集成测试 |
+| infra | `tests/invitation_repo_test.rs` | 邀请 Repository 集成测试 |
+| infra | `tests/audit_repo_test.rs` | 审计 Repository 集成测试 |
+| infra | `tests/tool_repo_test.rs` | 工具 Repository 集成测试 |
+| infra | `tests/skill_repo_test.rs` | 技能 Repository 集成测试 |
+| infra | `tests/snippet_repo_test.rs` | 片段 Repository 集成测试 |
+| infra | `tests/api_key_repo_test.rs` | API Key Repository 集成测试 |
 
 #### 示例: JWT 测试
 
@@ -345,9 +361,11 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 
 ### 5.1 测试用户
 
-| 邮箱 | 密码 | 角色 |
-|-----|------|-----|
-| demo@evolith.io | demo123! | admin |
+> **注意**: 系统现使用 Argon2id 密码哈希。预置的 demo 用户 (`demo@evolith.io` / `demo123!`) 的明文密码已不再有效。测试时请通过 `/api/v1/auth/register` 注册新用户，注册时密码会自动哈希。
+
+| 邮箱 | 密码 | 角色 | 备注 |
+|-----|------|-----|------|
+| *(通过注册创建)* | *(符合密码强度要求)* | admin (注册者自动为 owner) | 使用 `./scripts/dev.sh lite` 启动后注册 |
 
 ### 5.2 测试工具
 
@@ -361,23 +379,37 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 
 ## 6. 持续集成
 
-### 6.1 本地检查
+### 6.1 CI Pipeline (`.github/workflows/ci.yml`)
+
+CI 在每次 push/PR 时自动运行以下步骤：
+
+1. `cargo fmt --check` — 格式检查
+2. `cargo clippy --workspace -- -D warnings` — Lint 检查（warnings 视为错误）
+3. `cargo test --workspace` — 全量测试 (237 tests)
+4. `cargo audit` — 依赖安全审计
+5. `npm audit` — 前端依赖安全审计
+6. Docker build — 验证镜像构建
+
+### 6.2 本地检查
 
 ```bash
 # 格式化检查
 cargo fmt --check
 
-# Lint 检查
-cargo clippy -- -D warnings
+# Lint 检查 (与 CI 一致)
+cargo clippy --workspace -- -D warnings
 
 # 运行测试
 cargo test --workspace
+
+# 安全审计
+cargo audit
 
 # 构建
 cargo build --release
 ```
 
-### 6.2 前端检查
+### 6.3 前端检查
 
 ```bash
 # 安装依赖
@@ -391,6 +423,9 @@ npm run type-check
 
 # 构建
 npm run build
+
+# 安全审计
+npm audit
 ```
 
 ## 7. 测试覆盖率
@@ -514,4 +549,85 @@ cargo test -p api
 cargo test test_jwt
 cargo test test_password
 cargo test test_role_hierarchy
+```
+
+## 10. 基础设施测试 (Phase 3-8)
+
+### 10.1 缓存 (Phase 3)
+
+```bash
+cargo test -p infra -- cache
+```
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| InMemoryCache 基本操作 | get/set/delete | 正确存取和删除 |
+| TTL 过期 | 设置带过期时间的缓存 | 过期后返回 None |
+| RedisCache (需要 Redis) | Redis 连接和操作 | 正确读写 Redis |
+
+### 10.2 邮件 (Phase 3)
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| ConsoleMailer | 开发环境邮件 | 输出到控制台，不实际发送 |
+| SmtpMailer (需要 SMTP) | 生产环境邮件 | 通过 SMTP 发送邮件 |
+
+### 10.3 中间件 (Phase 3/6/8)
+
+| 中间件 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| CSRF | 状态变更请求缺少 CSRF token | 返回 403 |
+| CSRF | 正确的 CSRF 双提交 cookie | 请求通过 |
+| Rate Limit | 超出频率限制 | 返回 429 |
+| Request ID | 请求无 X-Request-ID | 自动生成并注入 |
+| Request ID | 请求携带 X-Request-ID | 透传原始 ID |
+| Security Headers | 响应头检查 | 包含 CSP, X-Frame-Options 等 |
+
+### 10.4 健康检查 (Phase 3)
+
+```bash
+# 基本健康检查
+curl http://localhost:8080/health
+
+# 存活探针 (Kubernetes)
+curl http://localhost:8080/health/live
+
+# 就绪探针 (Kubernetes)
+curl http://localhost:8080/health/ready
+```
+
+### 10.5 日志脱敏 (Phase 8)
+
+```bash
+cargo test -p common -- sanitize
+```
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| 密码脱敏 | 日志包含 password 字段 | 值被替换为 `[REDACTED]` |
+| Token 脱敏 | 日志包含 token 字段 | 值被替换为 `[REDACTED]` |
+| API Key 脱敏 | 日志包含 api_key 字段 | 值被替换为 `[REDACTED]` |
+
+### 10.6 沙箱执行器 (Phase 7)
+
+> 需要 Docker 环境。使用 `SANDBOX__ENABLED=true` 启用。
+
+| 测试项 | 测试内容 | 预期结果 |
+|-------|---------|---------|
+| Python 执行 | 执行 Python 3.11 代码 | 正确返回输出 |
+| Node.js 执行 | 执行 Node.js 20 代码 | 正确返回输出 |
+| 超时保护 | 执行超过 30 秒的代码 | 返回超时错误 |
+| 内存限制 | 执行消耗大量内存的代码 | 返回资源限制错误 |
+| 网络隔离 | 尝试网络请求 | 网络不可用 |
+
+### 10.7 快速开发测试
+
+推荐使用 `scripts/dev.sh` 进行本地开发测试：
+
+```bash
+# 轻量模式 (SQLite 内存数据库，无需 Docker 依赖)
+./scripts/dev.sh lite
+
+# 完整模式 (PostgreSQL + Redis，需要 Docker)
+./scripts/dev.sh full
 ```
