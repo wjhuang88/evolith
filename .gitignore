@@ -1,68 +1,77 @@
-# Rust
-/target/
-/backend/target/
-Cargo.lock
-/target/
-Cargo.lock
+# ===== Rust =====
+**/target/
 **/*.rs.bk
 *.pdb
 
-# IDE
+# ===== IDE =====
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# OS
+# ===== OS =====
 .DS_Store
 Thumbs.db
+Desktop.ini
+._*
 
-# Environment
+# ===== Environment =====
 .env
 .env.local
 .env.*.local
+.env.production
+!.env.development
+!.env.example
 
-# Node.js
+# ===== Node.js =====
 node_modules/
-/package-lock.json
 .pnpm-store/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Next.js
+# ===== Next.js =====
 frontend/.next/
 frontend/out/
 frontend/.turbo/
 
-# Build
+# ===== Build =====
 dist/
 build/
 
-# Database
+# ===== Database =====
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite3
 
-# Logs
+# ===== Logs =====
 logs/
 *.log
 
-# Docker
+# ===== Docker =====
 docker-compose.override.yml
 
-# Testing
+# ===== Testing =====
 coverage/
 .nyc_output/
 
-# Cache
+# ===== Cache =====
 .cache/
 *.tsbuildinfo
 
-# Dev script runtime
+# ===== Dev script runtime =====
 .dev-pids/
 .dev-logs/
 
-# Backups
+# ===== Backups =====
 backups/
+
+# ===== Playwright MCP =====
+.playwright-mcp/
+
+# ===== AI/Agent tooling =====
+.sisyphus/
