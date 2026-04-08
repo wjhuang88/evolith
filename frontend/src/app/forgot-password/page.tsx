@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
             </div>
             <h2 className="text-xl font-bold text-foreground">{t('auth.forgotPasswordPage.checkEmail')}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {t('auth.forgotPasswordPage.sentInstructions', { email })}
+              <Trans i18nKey="auth.forgotPasswordPage.sentInstructions" values={{ email }} components={{ strong: <strong /> }} />
             </p>
             <div className="mt-6">
               <Link href="/login">

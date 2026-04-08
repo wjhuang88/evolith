@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -120,7 +120,7 @@ export default function RegisterPage() {
               </div>
 
               <p className="mb-4 text-muted-foreground">
-                {t('auth.registerPage.verificationSent', { email: formData.email })}
+                <Trans i18nKey="auth.registerPage.verificationSent" values={{ email: formData.email }} components={{ strong: <strong /> }} />
               </p>
 
               {verificationLink && (
