@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: evolith
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: evolith
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: evolith
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/health"
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/evolith/evolith-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: evolith-config
+            - secretRef:
+                name: evolith-secrets
+          env:
+            - name: DATABASE__URL
+              value: "postgres://evolith:$(POSTGRES_PASSWORD)@postgres:5432/evolith"
+            - name: REDIS__URL
+              value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+            - name: JWT__SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: evolith-secrets
+                  key: jwt-secret
+            - name: STRIPE__SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: evolith-secrets
+                  key: stripe-secret-key
+            - name: STRIPE__WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: evolith-secrets
+                  key: stripe-webhook-secret
+            - name: SMTP__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: evolith-secrets
+                  key: smtp-password
+            - name: RUST_LOG
+              value: "info,evolith=debug"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: backend
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: evolith
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: evolith
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+  selector:
+    app.kubernetes.io/name: backend
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+  namespace: evolith
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: evolith
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

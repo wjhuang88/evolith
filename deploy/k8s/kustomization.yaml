@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: evolith
+
+commonLabels:
+  app.kubernetes.io/part-of: evolith
+  app.kubernetes.io/version: "1.0.0"
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - postgres-service.yaml
+  - redis.yaml
+  - redis-service.yaml
+  - backend.yaml
+  - frontend.yaml
+  - ingress-class.yaml
+  - ingress.yaml
+
+images:
+  - name: ghcr.io/evolith/evolith-backend
+    newTag: latest
+  - name: ghcr.io/evolith/evolith-frontend
+    newTag: latest

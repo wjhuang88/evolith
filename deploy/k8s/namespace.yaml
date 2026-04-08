@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: evolith
+  labels:
+    app.kubernetes.io/part-of: evolith
+    app.kubernetes.io/version: "1.0.0"

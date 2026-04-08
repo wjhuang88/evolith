@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evolith-config
+  namespace: evolith
+  labels:
+    app.kubernetes.io/part-of: evolith
+data:
+  # --- General ---
+  ENVIRONMENT: "production"
+  LOG__LEVEL: "info"
+
+  # --- Server ---
+  SERVER__HOST: "0.0.0.0"
+  SERVER__PORT: "8080"
+
+  # --- Database ---
+  DATABASE__DATABASE_TYPE: "postgres"
+  DATABASE__MAX_CONNECTIONS: "20"
+  DATABASE__SEED_DATABASE: "false"
+  # DATABASE__URL is built from env vars in deployment (requires postgres host)
+
+  # --- Redis ---
+  # REDIS__URL is built from env vars in deployment
+
+  # --- JWT ---
+  JWT__EXPIRATION: "86400"
+
+  # --- CORS ---
+  CORS__ALLOWED_ORIGINS: "https://evolith.io,https://app.evolith.io"
+
+  # --- Rate Limiting ---
+  RATE_LIMIT__UNAUTHENTICATED_RPM: "60"
+  RATE_LIMIT__AUTHENTICATED_RPM: "300"
+  RATE_LIMIT__API_KEY_RPM: "1000"
+
+  # --- CSRF ---
+  CSRF__ENABLED: "true"
+
+  # --- Sandbox ---
+  SANDBOX__ENABLED: "false"
+  SANDBOX__TIMEOUT_SECONDS: "30"
+  SANDBOX__MEMORY_MB: "256"
+  SANDBOX__CPU_SHARES: "512"
+  SANDBOX__PIDS_LIMIT: "256"
+  SANDBOX__NETWORK_ENABLED: "false"
+  SANDBOX__MAX_OUTPUT_BYTES: "10485760"
+
+  # --- SMTP ---
+  SMTP__HOST: ""
+  SMTP__PORT: "587"
+  SMTP__USERNAME: ""
+  SMTP__FROM_ADDRESS: "noreply@evolith.io"
+  SMTP__FROM_NAME: "Evolith"
+  SMTP__ENABLED: "false"
+
+  # --- Stripe ---
+  STRIPE__TEST_MODE: "false"
