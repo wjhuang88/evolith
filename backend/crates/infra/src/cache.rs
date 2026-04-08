@@ -282,10 +282,19 @@ pub async fn create_redis_connection(
     let client = redis::Client::open(config.url.as_str())
         .map_err(|e| AppError::ConfigError(format!("Invalid Redis URL: {}", e)))?;
 
-    let conn = client
-        .get_connection_manager()
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to connect to Redis: {}", e)))?;
+    // Apply a 5-second timeout so lite mode (no Redis) doesn't hang forever
+    let conn = tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        client.get_connection_manager(),
+    )
+    .await
+    .map_err(|_| {
+        AppError::InternalError(format!(
+            "Redis connection timed out after 5s ({})",
+            config.url
+        ))
+    })?
+    .map_err(|e| AppError::InternalError(format!("Failed to connect to Redis: {}", e)))?;
 
     Ok(conn)
 }
