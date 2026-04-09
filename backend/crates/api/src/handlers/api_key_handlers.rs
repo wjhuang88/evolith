@@ -3,6 +3,7 @@
 
 use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -21,13 +22,11 @@ fn generate_api_key() -> (String, String, String) {
     // Extract prefix (first 16 chars of key after prefix)
     let key_prefix = format!("evo_sk_{}...", &random_uuid.simple().to_string()[..8]);
 
-    // Hash the key for storage (using simple hash for demo, should use proper crypto in production)
+    // Hash the key for storage using SHA-256 (deterministic)
     let key_hash = {
-        use std::collections::hash_map::RandomState;
-        use std::hash::{BuildHasher, Hasher};
-        let mut hasher = RandomState::new().build_hasher();
-        hasher.write(full_key.as_bytes());
-        format!("{:016x}", hasher.finish())
+        let mut hasher = Sha256::new();
+        hasher.update(full_key.as_bytes());
+        hex::encode(hasher.finalize())
     };
 
     (full_key, key_prefix, key_hash)
@@ -231,11 +230,9 @@ pub async fn validate_api_key(key: &str, state: &AppState) -> Result<ApiKey, Str
 
     // Hash the provided key to compare with stored hash
     let key_hash = {
-        use std::collections::hash_map::RandomState;
-        use std::hash::{BuildHasher, Hasher};
-        let mut hasher = RandomState::new().build_hasher();
-        hasher.write(key.as_bytes());
-        format!("{:016x}", hasher.finish())
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        hex::encode(hasher.finalize())
     };
 
     // Find key by hash

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi, getToken, clearToken, type User, type TenantInfo, type AuthToken } from '@/lib/api';
+import { authApi, getToken, clearToken, parseApiError, type User, type TenantInfo, type AuthToken } from '@/lib/api';
 
 interface AuthState {
   // State
@@ -49,8 +49,9 @@ export const useAuthStore = create<AuthState>()(
             });
           }
         } catch (error) {
+          const errorInfo = parseApiError(error);
           set({ 
-            error: error instanceof Error ? error.message : 'Login failed',
+            error: errorInfo.message,
             isLoading: false 
           });
           throw error;

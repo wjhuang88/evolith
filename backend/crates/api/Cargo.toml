@@ -27,6 +27,9 @@ actix-governor.workspace = true
 actix-web-prom.workspace = true
 prometheus.workspace = true
 
+sha2.workspace = true
+hex.workspace = true
+
 # Internal crates
 service-tool.workspace = true
 service-audit.workspace = true

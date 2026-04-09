@@ -30,7 +30,7 @@ export default function ToolDetailPage() {
         if (response.success && response.data) {
           setTool(response.data);
           // Initialize params from schema
-          const schema = response.data.schema as { properties?: Record<string, unknown> };
+          const schema = response.data.input_schema as { properties?: Record<string, unknown> };
           if (schema.properties) {
             const initialParams: Record<string, unknown> = {};
             Object.keys(schema.properties).forEach(key => {
@@ -104,7 +104,7 @@ export default function ToolDetailPage() {
     );
   }
 
-  const schema = tool.schema as { properties?: Record<string, unknown>; required?: string[] };
+  const schema = tool.input_schema as { properties?: Record<string, unknown>; required?: string[] };
   const properties = schema.properties || {};
 
   return (

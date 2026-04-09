@@ -13,9 +13,20 @@ use crate::state::AppState;
 use domain::snippet::{NewSnippet, SnippetFilter, Visibility};
 
 /// List snippets handler
-pub async fn list_snippets(state: web::Data<AppState>, user: AuthenticatedUser) -> impl Responder {
+pub async fn list_snippets(
+    query: web::Query<std::collections::HashMap<String, String>>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
+) -> impl Responder {
+    let language = query.get("language").cloned();
+    let framework = query.get("framework").cloned();
+    let search = query.get("q").cloned();
+
     let filter = SnippetFilter {
         tenant_id: Some(user.tenant_id),
+        language,
+        framework,
+        search,
         ..Default::default()
     };
 

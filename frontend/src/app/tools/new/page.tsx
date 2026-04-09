@@ -67,7 +67,7 @@ export default function NewToolPage() {
       
       const response = await toolsApi.create({
         ...formData,
-        schema,
+        input_schema: schema,
       });
       
       if (response.success) {

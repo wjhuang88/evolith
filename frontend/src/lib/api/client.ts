@@ -111,10 +111,13 @@ apiClient.interceptors.response.use(
 
       // If the 401 is from the refresh endpoint itself, don't loop
       const isRefreshRequest = originalRequest.url?.includes('/auth/refresh');
-      if (isRefreshRequest) {
-        clearToken();
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      const isAuthRequest = originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register');
+      if (isRefreshRequest || isAuthRequest) {
+        if (isRefreshRequest) {
+          clearToken();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+          }
         }
         return Promise.reject(error);
       }

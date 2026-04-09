@@ -32,6 +32,13 @@ load_env() {
     else
         log_warn "No env file found at $ENV_FILE — using defaults"
     fi
+
+    # Prevent system proxy from intercepting local SSR requests
+    if [ -n "${HTTP_PROXY:-}" ] || [ -n "${HTTPS_PROXY:-}" ]; then
+        export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,::1}"
+        export no_proxy="${no_proxy:-localhost,127.0.0.1,::1}"
+        log_info "System proxy detected — set NO_PROXY=$NO_PROXY"
+    fi
 }
 
 is_running() {

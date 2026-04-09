@@ -100,7 +100,7 @@ export interface Tool {
   name: string;
   description: string;
   category: string;
-  schema: Record<string, unknown>;
+  input_schema: Record<string, unknown>;
   is_public: boolean;
   created_by?: string;
   created_at?: string;
@@ -111,7 +111,7 @@ export interface CreateToolRequest {
   name: string;
   description: string;
   category: string;
-  schema: Record<string, unknown>;
+  input_schema: Record<string, unknown>;
   is_public?: boolean;
 }
 

@@ -61,7 +61,7 @@ export default function OnboardingPage() {
         name: toolData.name,
         description: toolData.description,
         category: 'custom',
-        schema: parsedSchema,
+        input_schema: parsedSchema,
         is_public: true,
       });
       

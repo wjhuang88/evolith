@@ -5,13 +5,13 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import zhCN from '@/locales/zh-CN.json';
 import en from '@/locales/en.json';
 
-// Get stored language or default to Chinese
+// Get stored language or default to English (must match layout.tsx <html lang="en">)
 const getDefaultLanguage = () => {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('evolith-language');
     if (stored) return stored;
   }
-  return 'zh-CN'; // Default to Chinese
+  return 'en';
 };
 
 i18n
@@ -26,7 +26,7 @@ i18n
         translation: en,
       },
     },
-    fallbackLng: 'zh-CN',
+    fallbackLng: 'en',
     lng: getDefaultLanguage(),
     defaultNS: 'translation',
     ns: ['translation'],
@@ -59,5 +59,5 @@ export function changeLanguage(lng: string) {
 }
 
 export function getCurrentLanguage() {
-  return i18n.language || 'zh-CN';
+  return i18n.language || 'en';
 }
