@@ -54,6 +54,32 @@ is_running() {
     return 1
 }
 
+check_port() {
+    local port="$1"
+    local service="$2"
+    local pidfile="$PID_DIR/$service.pid"
+
+    local occupying_pid
+    occupying_pid=$(lsof -ti :"$port" 2>/dev/null | head -1)
+
+    if [ -n "$occupying_pid" ]; then
+        if [ -f "$pidfile" ]; then
+            local our_pid
+            our_pid=$(cat "$pidfile")
+            if [ "$occupying_pid" = "$our_pid" ]; then
+                return 0
+            fi
+        fi
+
+        local process_name
+        process_name=$(ps -p "$occupying_pid" -o comm= 2>/dev/null || echo "unknown")
+        log_error "Port $port is already in use by PID $occupying_pid ($process_name). Stop it first or use a different port."
+        return 1
+    fi
+
+    return 0
+}
+
 start_infra() {
     log_info "Starting infrastructure services (PostgreSQL, Redis, MinIO)..."
     docker compose -f "$COMPOSE_FILE" up -d postgres redis minio 2>&1 | while read -r line; do
@@ -96,6 +122,10 @@ stop_infra() {
 }
 
 start_backend() {
+    if ! check_port 8080 "backend"; then
+        return 1
+    fi
+
     if is_running "backend"; then
         log_warn "Backend is already running (PID $(cat "$PID_DIR/backend.pid"))"
         return 0
@@ -136,6 +166,10 @@ start_backend() {
 }
 
 start_frontend() {
+    if ! check_port 3000 "frontend"; then
+        return 1
+    fi
+
     if is_running "frontend"; then
         log_warn "Frontend is already running (PID $(cat "$PID_DIR/frontend.pid"))"
         return 0
