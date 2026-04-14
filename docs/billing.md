@@ -634,4 +634,4 @@ CREATE TABLE webhook_events (
 
 - [多租户设计](./multi-tenant.md)
 - [用户与权限](./permissions.md)
-- [API 设计](./api-design.md)
+- [API 合约](./api-contract.md)

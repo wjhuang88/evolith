@@ -220,7 +220,7 @@ Environment variables (see `crates/infra/src/config.rs`):
 
 ## Status
 
-> **Architecture Audit** (2026-03-13): Found Phase 1-7 implementations were UI + in-memory HashMap prototypes only. See [Architecture Audit](./docs/architecture-audit.md).
+> **Architecture Audit** (2026-03-13): Found Phase 1-7 implementations were UI + in-memory HashMap prototypes only. All issues resolved in Phase 0-8.
 
 ### Prototype Phases (P1-P7) — UI/Handler Layer ✅, Infrastructure ❌
 
@@ -383,23 +383,17 @@ These phases created working UI and API handler code, but all backed by in-memor
 
 ### All Phases Complete (Phase 0-8) ✅
 
-See [Production Plan](./docs/production-plan.md) for full Phase 0-8 details.
-
 ## Links
 
 - [Requirements](./docs/requirements.md)
 - [Architecture](./docs/architecture.md)
-- [Architecture Audit](./docs/architecture-audit.md) — Current state assessment
-- [Production Design](./docs/production-design.md) — Target architecture
-- [Production Plan](./docs/production-plan.md) — **Active execution plan (Phase 0-8)**
-- [Multi-Tenant Design](./docs/multi-tenant.md)
-- [API Design](./docs/api-design.md)
 - [API Contract](./docs/api-contract.md)
+- [Multi-Tenant Design](./docs/multi-tenant.md)
 - [Skill Format](./docs/skill-format.md)
 - [Snippet Format](./docs/snippet-format.md)
 - [Tech Stack](./docs/tech-stack.md)
 - [Testing](./docs/testing.md)
-- [Implementation Plan](./docs/implementation-plan.md) — ⚠️ Superseded by Production Plan
 - [Billing](./docs/billing.md)
 - [Permissions](./docs/permissions.md)
 - [i18n](./docs/i18n.md)
+- [Ideas](./docs/ideas.md)

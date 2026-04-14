@@ -56,12 +56,17 @@ Evolith 是一个面向智能体开发和运行的服务平台，提供周边支
 
 ## 文档索引
 
-- [需求文档](./requirements.md)
-- [架构设计](./architecture.md)
-- [API设计](./api-design.md)
-- [Skill格式规范](./skill-format.md)
-- [代码片段格式规范](./snippet-format.md)
-- [技术栈说明](./tech-stack.md)
+- [需求文档](./docs/requirements.md)
+- [架构设计](./docs/architecture.md)
+- [API合约](./docs/api-contract.md)
+- [多租户设计](./docs/multi-tenant.md)
+- [Skill格式规范](./docs/skill-format.md)
+- [代码片段格式规范](./docs/snippet-format.md)
+- [技术栈说明](./docs/tech-stack.md)
+- [测试](./docs/testing.md)
+- [计费](./docs/billing.md)
+- [权限](./docs/permissions.md)
+- [国际化](./docs/i18n.md)
 
 ## 快速开始
 
