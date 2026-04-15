@@ -68,21 +68,55 @@ Evolith 是一个面向智能体开发和运行的服务平台，提供周边支
 - [权限](./docs/permissions.md)
 - [国际化](./docs/i18n.md)
 
+## 环境要求
+
+### 必需
+
+| 依赖 | 最低版本 | 推荐版本 | 说明 |
+|------|----------|----------|------|
+| Rust | 1.75 | 1.82+ | `Cargo.toml` 中 `rust-version = "1.75"`，生产 Dockerfile 使用 1.82 |
+| Node.js | 18 | 20 LTS | 前端 Dockerfile 使用 `node:20-alpine` |
+| npm | 9+ | 10+ | 随 Node.js 安装 |
+| Docker | 20.10+ | 24+ | 用于基础设施服务和沙箱执行 |
+| Docker Compose | 2.0+ | 2.20+ | V2 插件模式（`docker compose`，非 `docker-compose`） |
+
+### 基础设施服务（Docker 自动管理）
+
+| 服务 | 镜像版本 | 用途 |
+|------|----------|------|
+| PostgreSQL | 16-alpine | 生产数据库（开发模式可用 SQLite 替代） |
+| Redis | 7-alpine | 缓存 |
+| MinIO | latest | 对象存储（S3 兼容） |
+| Nginx | 1.27-alpine | 生产环境反向代理 |
+
+### 沙箱运行时（技能执行）
+
+| 运行时 | 镜像版本 |
+|--------|----------|
+| Python | 3.11-alpine |
+| Node.js | 20-alpine |
+
+### 开发模式（Lite）
+
+Lite 模式（`./scripts/dev.sh lite`）无需 Docker，使用 SQLite 内存数据库，仅需 Rust 和 Node.js。
+
 ## 快速开始
 
 ```bash
 # 克隆项目
 git clone https://github.com/your-org/evolith.git
 
-# 启动开发环境
-docker-compose up -d
+# 完整模式（需要 Docker）
+./scripts/dev.sh start
 
-# 安装依赖
-cd frontend && npm install
-cd ../backend && cargo build
+# 轻量模式（仅需 Rust + Node.js，SQLite 内存数据库）
+./scripts/dev.sh lite
 
-# 启动服务
-./scripts/dev.sh
+# 查看状态
+./scripts/dev.sh status
+
+# 停止服务
+./scripts/dev.sh stop
 ```
 
 ## 许可证
