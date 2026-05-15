@@ -502,6 +502,6 @@ CREATE INDEX idx_audit_tenant ON audit_logs(tenant_id, created_at);
 
 ## 8. 相关文档
 
-- [多租户设计](./multi-tenant.md)
-- [套餐与计费](./billing.md)
-- [API 合约](./api-contract.md)
+- [多租户设计](./MULTI-TENANT.md)
+- [套餐与计费](./BILLING.md)
+- [API 合约](./API-CONTRACT.md)

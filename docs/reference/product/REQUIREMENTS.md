@@ -261,7 +261,7 @@ The debounced value that updates after the specified delay.
 
 #### 2.5.3 详细设计
 
-见 [多租户设计](./multi-tenant.md) 文档。
+见 [多租户设计](../MULTI-TENANT.md) 文档。
 
 ### 2.6 国际化 (i18n)
 
@@ -284,7 +284,7 @@ Evolith 作为全球化 SaaS 平台，需要支持多语言界面，满足不同
 - 框架：react-i18next
 - 翻译文件：locales/{lang}.json
 - 语言：zh-CN（默认）、en
-详细设计见 [国际化设计](./i18n.md) 文档。
+详细设计见 [国际化设计](../I18N.md) 文档。
 
 ### 2.7 用户与权限系统
 
@@ -307,7 +307,7 @@ Evolith 作为 SaaS 平台，需要完整的用户和权限系统来管理租户
 | F2.7.9 | API Key 使用 | P0 | 替代 JWT 的认证方式 |
 | F2.7.10 | 审计日志 | P1 | 记录敏感操作 |
 
-详细设计见 [用户与权限](./permissions.md) 文档。
+详细设计见 [用户与权限](../PERMISSIONS.md) 文档。
 
 ### 2.8 套餐与计费
 
@@ -330,7 +330,7 @@ Evolith 作为付费 SaaS 平台，需要完整的套餐管理和计费系统。
 | F2.8.9 | 配额限制 | P0 | 套餐配额检查 |
 | F2.8.10 | 超额计费 | P1 | API 调用超配额计费 |
 
-详细设计见 [套餐与计费](./billing.md) 文档。
+详细设计见 [套餐与计费](../BILLING.md) 文档。
 
 ## 3. 非功能需求
 

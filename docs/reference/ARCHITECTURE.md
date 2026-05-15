@@ -306,7 +306,7 @@ frontend/
 
 ### 5.1 多租户架构
 
-Evolith 采用**共享数据库 + 租户ID**的多租户架构，详见 [多租户设计](./multi-tenant.md)。
+Evolith 采用**共享数据库 + 租户ID**的多租户架构，详见 [多租户设计](./MULTI-TENANT.md)。
 
 **租户识别方式**：
 - 子域名：`{tenant}.evolith.io`
@@ -651,7 +651,7 @@ Evolith采用契约优先(Contract-First)的API开发模式，确保前后端接
 
 ### 9.1 契约文件
 
-API契约定义在 `docs/api-contract.md` 中，包含：
+API契约定义在 `docs/reference/API-CONTRACT.md` 中，包含：
 - 所有API端点的请求/响应格式
 - 数据类型定义
 - 错误码说明
@@ -660,7 +660,7 @@ API契约定义在 `docs/api-contract.md` 中，包含：
 ### 9.2 开发流程
 
 ```
-1. 编写API契约 (api-contract.md)
+1. 编写API契约 (API-CONTRACT.md)
    ↓
 2. 前端根据契约生成TypeScript类型
    ↓
@@ -747,8 +747,8 @@ ENVIRONMENT=production
 
 ## 11. 相关文档
 
-- [多租户设计](./multi-tenant.md) - **多租户架构详细设计**
-- [API契约](./api-contract.md) - 前后端接口详细定义
-- [Skill格式](./skill-format.md) - 技能定义规范
-- [代码片段格式](./snippet-format.md) - 片段定义规范
-- [技术栈](./tech-stack.md) - 技术选型详情
+- [多租户设计](./MULTI-TENANT.md) - **多租户架构详细设计**
+- [API契约](./API-CONTRACT.md) - 前后端接口详细定义
+- [Skill格式](./formats/SKILL-FORMAT.md) - 技能定义规范
+- [代码片段格式](./formats/SNIPPET-FORMAT.md) - 片段定义规范
+- [技术栈](./TECH-STACK.md) - 技术选型详情

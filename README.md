@@ -56,17 +56,25 @@ Evolith 是一个面向智能体开发和运行的服务平台，提供周边支
 
 ## 文档索引
 
-- [需求文档](./docs/requirements.md)
-- [架构设计](./docs/architecture.md)
-- [API合约](./docs/api-contract.md)
-- [多租户设计](./docs/multi-tenant.md)
-- [Skill格式规范](./docs/skill-format.md)
-- [代码片段格式规范](./docs/snippet-format.md)
-- [技术栈说明](./docs/tech-stack.md)
-- [测试](./docs/testing.md)
-- [计费](./docs/billing.md)
-- [权限](./docs/permissions.md)
-- [国际化](./docs/i18n.md)
+- [文档地图](./docs/README.md)
+- [项目地图](./docs/reference/PROJECT-MAP.md)
+- [本地开发 SOP](./docs/sop/LOCAL-DEV.md)
+- [新增功能 SOP](./docs/sop/NEW-FEATURE.md)
+- [发布与部署 SOP](./docs/sop/RELEASE.md)
+- [Git 工作流 SOP](./docs/sop/GIT-WORKFLOW.md)
+- [需求文档](./docs/reference/product/REQUIREMENTS.md)
+- [架构设计](./docs/reference/ARCHITECTURE.md)
+- [API合约](./docs/reference/API-CONTRACT.md)
+- [多租户设计](./docs/reference/MULTI-TENANT.md)
+- [Skill格式规范](./docs/reference/formats/SKILL-FORMAT.md)
+- [代码片段格式规范](./docs/reference/formats/SNIPPET-FORMAT.md)
+- [技术栈说明](./docs/reference/TECH-STACK.md)
+- [测试](./docs/reference/TESTING.md)
+- [计费](./docs/reference/BILLING.md)
+- [权限](./docs/reference/PERMISSIONS.md)
+- [国际化](./docs/reference/I18N.md)
+- [工程化路线图](./docs/roadmap/ENGINEERING-ROADMAP.md)
+- [经验积累](./EVOLUTION.md)
 
 ## 环境要求
 

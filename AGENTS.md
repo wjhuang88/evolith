@@ -1,5 +1,56 @@
 # Evolith - AI Agent Development Platform
 
+> 本文件是 AI Agent 的启动文档。先读本文件建立约束和任务路由；复杂步骤不要堆在这里，按任务读取 `docs/sop/`、`docs/reference/` 或 `EVOLUTION.md`。
+
+## Agent Engineering Rules
+
+### Hard Constraints
+
+- **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
+- **文档分层**：操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，未实施方案写 `docs/planned/`，历史快照写 `docs/archive/`。
+- **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
+- **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
+- **双数据库一致性**：数据库结构或 repository 行为变化必须同时考虑 SQLite 和 PostgreSQL migrations/repositories/tests。
+- **前端 API 前缀**：`NEXT_PUBLIC_API_URL` 应包含 `/api/v1`，除非网关明确做路径重写。
+- **配置键格式**：后端嵌套配置使用双下划线环境变量，例如 `DATABASE__DATABASE_TYPE`，不要混用 `DATABASE_TYPE`。
+
+### Git Rules
+
+- 提交信息使用语义前缀：`feat:`、`fix:`、`docs:`、`refactor:`、`test:`、`chore:`、`perf:`、`security:`。
+- Agent 参与生成的提交，提交信息末尾必须注明模型：`[model: <name>]`。
+- 提交前必须检查 staged diff：`git diff --cached`。
+- 不要用 `git add .` 盲加；除非已经确认所有变更都属于本次任务。
+- 一次提交只表达一个主题；脚本行为变更与 `docs/reference/SCRIPTS-RELEASE-NOTES.md` 同步提交。
+- 详细规则见 [docs/sop/GIT-WORKFLOW.md](docs/sop/GIT-WORKFLOW.md)。
+
+### Task Router
+
+| 任务类型 | 必读文档 | 按需参考 |
+|----------|----------|----------|
+| 了解项目结构 | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) | [docs/README.md](docs/README.md) |
+| 本地启动/调试 | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) | [EVOLUTION.md](EVOLUTION.md) |
+| 新增功能/API/页面 | [docs/sop/NEW-FEATURE.md](docs/sop/NEW-FEATURE.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
+| 发布/部署/回滚 | [docs/sop/RELEASE.md](docs/sop/RELEASE.md) | [docs/reference/SCRIPTS-RELEASE-NOTES.md](docs/reference/SCRIPTS-RELEASE-NOTES.md) |
+| Git 提交 | [docs/sop/GIT-WORKFLOW.md](docs/sop/GIT-WORKFLOW.md) | [EVOLUTION.md](EVOLUTION.md) |
+| 排查问题 | [EVOLUTION.md](EVOLUTION.md) | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) |
+| 文档整理 | [docs/README.md](docs/README.md) | [docs/roadmap/ENGINEERING-ROADMAP.md](docs/roadmap/ENGINEERING-ROADMAP.md) |
+
+### Current Known Traps
+
+1. `docker-compose.yml` 里的后端环境变量必须使用 `DATABASE__DATABASE_TYPE` / `DATABASE__URL` 形式，否则 `AppConfig` 不会按预期读取嵌套配置。
+2. 前端容器的 `NEXT_PUBLIC_API_URL` 如果只有 `http://localhost:8080`，请求会打到 `/auth/...` 而不是 `/api/v1/auth/...`。
+3. `CsrfMiddleware` 保护所有非豁免状态变更请求，手写 fetch 时要带 `X-CSRF-Token`。
+4. Docker sandbox 初始化失败会降级到 `DefaultSkillExecutor`，不要只看接口返回成功就假定沙箱已启用。
+5. SQLite 和 PostgreSQL SQL 类型、时间、JSON、UUID 行为不同，migration 不能简单复制后不验证。
+
+### Session End Checklist
+
+- [ ] 是否留下未说明的代码或文档变更？
+- [ ] 是否运行了与风险匹配的验证？未运行是否说明原因？
+- [ ] 是否触发了 `EVOLUTION.md` 写回条件？
+- [ ] 是否修改了脚本行为但忘记更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`？
+- [ ] 如用户要求提交，commit message 是否包含语义前缀和 `[model: <name>]`？
+
 ## Project Overview
 
 Evolith is an AI agent development service platform providing:
@@ -251,7 +302,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] Updated all 9 route files
 - [x] `cargo check --workspace --exclude service-payment` → 0 errors
 - [x] `cargo test --workspace --exclude service-payment` → 70 passed, 0 failed
-- [x] API contract document (`docs/api-contract.md`) fully updated
+- [x] API contract document (`docs/reference/API-CONTRACT.md`) fully updated
 
 **Build/test command**: `cargo test --workspace` (no exclusions needed — all crates compile clean)
 
@@ -385,15 +436,15 @@ These phases created working UI and API handler code, but all backed by in-memor
 
 ## Links
 
-- [Requirements](./docs/requirements.md)
-- [Architecture](./docs/architecture.md)
-- [API Contract](./docs/api-contract.md)
-- [Multi-Tenant Design](./docs/multi-tenant.md)
-- [Skill Format](./docs/skill-format.md)
-- [Snippet Format](./docs/snippet-format.md)
-- [Tech Stack](./docs/tech-stack.md)
-- [Testing](./docs/testing.md)
-- [Billing](./docs/billing.md)
-- [Permissions](./docs/permissions.md)
-- [i18n](./docs/i18n.md)
-- [Ideas](./docs/ideas.md)
+- [Requirements](./docs/reference/product/REQUIREMENTS.md)
+- [Architecture](./docs/reference/ARCHITECTURE.md)
+- [API Contract](./docs/reference/API-CONTRACT.md)
+- [Multi-Tenant Design](./docs/reference/MULTI-TENANT.md)
+- [Skill Format](./docs/reference/formats/SKILL-FORMAT.md)
+- [Snippet Format](./docs/reference/formats/SNIPPET-FORMAT.md)
+- [Tech Stack](./docs/reference/TECH-STACK.md)
+- [Testing](./docs/reference/TESTING.md)
+- [Billing](./docs/reference/BILLING.md)
+- [Permissions](./docs/reference/PERMISSIONS.md)
+- [i18n](./docs/reference/I18N.md)
+- [Ideas](./docs/planned/IDEAS.md)
