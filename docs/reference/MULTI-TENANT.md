@@ -527,6 +527,8 @@ pub async fn check_quota(
 
 ## 9. 迁移计划
 
+数据库结构变更的通用执行流程已归口到 [数据库迁移 SOP](../sop/DATABASE-MIGRATION.md)。本节仅保留多租户改造的历史迁移计划和领域上下文。
+
 ### 9.1 数据库迁移
 
 ```sql

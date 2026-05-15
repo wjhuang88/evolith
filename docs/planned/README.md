@@ -13,3 +13,6 @@
 | API gap checkpoint | 待整理 | 汇总 API 合约中的 501、TODO 和前端占位动作 |
 | Database migration SOP | 待整理 | 固化 SQLite/PostgreSQL 双轨 migration 流程 |
 | Security model reference | 待整理 | 集中说明 JWT cookie、CSRF、RBAC、CORS 和安全头 |
+| [Evolith Rust CLI](RUST-CLI.md) | 远期目标 | API 合约稳定后启动 CLI 子项目 |
+| [前端嵌入后端](EMBEDDED-FRONTEND.md) | 远期目标 | 完成 React + Vite + Bun 迁移后实施 |
+| [Artifact Repository](ARTIFACT-REPOSITORY.md) | 远期目标 | snippet/skill 稳定后再定义制品元数据和存储模型 |

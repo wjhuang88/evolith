@@ -40,43 +40,25 @@
 └─────────────────┘ └─────────────────┘ └─────────────────┘
 ```
 
+MySQL 当前只保留 pool/config 入口，缺少 repository 实现，主服务会拒绝以 MySQL 启动。生产主路径是 PostgreSQL。
+
 #### 数据库配置
 
-```rust
-// config/database.rs
-#[derive(Debug, Clone)]
-pub enum DatabaseBackend {
-    /// SQLite - 用于开发和测试
-    /// 支持内存模式: ":memory:" 或文件模式
-    SQLite { path: String },
-    
-    /// PostgreSQL - 生产环境推荐
-    PostgreSQL { url: String },
-    
-    /// MySQL - 生产环境备选
-    MySQL { url: String },
-}
+当前配置由 `backend/crates/infra/src/config.rs` 读取，嵌套配置统一使用双下划线环境变量。
+完整配置清单见 [配置参考](./CONFIG.md)，数据库迁移执行流程见 [数据库迁移 SOP](../sop/DATABASE-MIGRATION.md)。
 
-impl DatabaseBackend {
-    pub fn from_env() -> Self {
-        match std::env::var("DATABASE_TYPE").as_deref() {
-            Ok("sqlite") => DatabaseBackend::SQLite {
-                path: std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| ":memory:".to_string()),
-            },
-            Ok("mysql") => DatabaseBackend::MySQL {
-                url: std::env::var("DATABASE_URL")
-                    .expect("DATABASE_URL must be set for MySQL"),
-            },
-            Ok("postgres") | _ => DatabaseBackend::PostgreSQL {
-                url: std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| {
-                        "postgres://localhost/evolith".to_string()
-                    }),
-            },
-        }
-    }
-}
+```bash
+# 开发环境 - SQLite 内存数据库
+DATABASE__DATABASE_TYPE=sqlite
+DATABASE__URL=":memory:"
+
+# 开发环境 - SQLite 文件数据库
+DATABASE__DATABASE_TYPE=sqlite
+DATABASE__URL="sqlite:dev.db?mode=rwc"
+
+# 生产环境 - PostgreSQL
+DATABASE__DATABASE_TYPE=postgres
+DATABASE__URL="postgres://user:pass@localhost:5432/evolith"
 ```
 
 #### Repository Trait 设计
@@ -134,27 +116,7 @@ mysql = ["sqlx/mysql", "sqlx-mysql"]
 all-databases = ["sqlite", "postgres", "mysql"]
 ```
 
-```bash
-# 开发环境 - 使用SQLite内存数据库
-DATABASE_TYPE=sqlite
-DATABASE_URL=":memory:"
-
-# 开发环境 - 使用SQLite文件数据库（持久化）
-DATABASE_TYPE=sqlite
-DATABASE_URL="sqlite:dev.db?mode=rwc"
-
-# 测试环境 - 使用SQLite内存数据库
-DATABASE_TYPE=sqlite
-DATABASE_URL=":memory:"
-
-# 生产环境 - PostgreSQL
-DATABASE_TYPE=postgres
-DATABASE_URL="postgres://user:pass@localhost:5432/evolith"
-
-# 生产环境 - MySQL
-DATABASE_TYPE=mysql
-DATABASE_URL="mysql://user:pass@localhost:3306/evolith"
-```
+> 不要使用 `DATABASE_TYPE` / `DATABASE_URL` 表达嵌套配置；这类旧写法不会按当前 `AppConfig` 规则读取。
 
 #### 初始化数据
 
@@ -207,6 +169,10 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 | WASM | - | 高性能执行 |
 
 ## 3. 前端技术栈
+
+> 当前实现仍是 Next.js 14。项目已决定后续迁移为 `React + Vite + Bun` 静态 SPA，见
+> [ADR-0001](../decisions/ADR-0001-react-vite-bun-frontend.md) 和
+> [开发计划 Phase B](../roadmap/DEVELOPMENT-PLAN.md#phase-b--前端迁移到-react--vite--bunp0)。
 
 ### 3.1 核心框架
 
@@ -296,6 +262,8 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 
 ## 7. 环境配置
 
+稳定环境变量清单以 [配置参考](./CONFIG.md) 为准。本节只保留技术栈视角下的依赖服务示例。
+
 ### 7.1 开发环境
 
 ```yaml
@@ -339,77 +307,67 @@ volumes:
 
 ```bash
 # .env.development
-# 数据库配置 - 开发时使用SQLite内存数据库
-DATABASE_TYPE=sqlite
-DATABASE_URL=":memory:"
+DATABASE__DATABASE_TYPE=sqlite
+DATABASE__URL=":memory:"
 
-# 或者使用文件持久化的SQLite
-# DATABASE_URL="sqlite:dev.db?mode=rwc"
+# 或者使用文件持久化的 SQLite
+# DATABASE__URL="sqlite:dev.db?mode=rwc"
 
-# 使用PostgreSQL（如果需要）
-# DATABASE_TYPE=postgres
-# DATABASE_URL="postgres://evolith:dev_password@localhost:5432/evolith"
+# 使用 PostgreSQL（如果需要）
+# DATABASE__DATABASE_TYPE=postgres
+# DATABASE__URL="postgres://evolith:dev_password@localhost:5432/evolith"
 
 # Redis
-REDIS_URL="redis://localhost:6379"
+REDIS__URL="redis://localhost:6379"
 
-# MinIO
-MINIO_ENDPOINT="localhost:9000"
-MINIO_ACCESS_KEY="minioadmin"
-MINIO_SECRET_KEY="minioadmin"
-MINIO_USE_SSL="false"
+# Object storage / MinIO
+STORAGE__ENDPOINT="localhost:9000"
+STORAGE__ACCESS_KEY="minioadmin"
+STORAGE__SECRET_KEY="minioadmin"
+STORAGE__USE_SSL="false"
+STORAGE__BUCKET="evolith"
 
 # JWT
-JWT_SECRET="dev_secret_key_change_in_production"
-JWT_EXPIRATION="24h"
+JWT__SECRET="dev_secret_key_change_in_production"
+JWT__EXPIRATION="24h"
 
 # 执行沙箱
-SANDBOX_ENABLED="true"
-SANDBOX_TIMEOUT="30"
-SANDBOX_MEMORY="256"
+SANDBOX__ENABLED="true"
+SANDBOX__TIMEOUT_SECONDS="30"
+SANDBOX__MEMORY_MB="256"
 
 # 环境
 ENVIRONMENT="development"
-LOG_LEVEL="debug"
-
-# 初始化数据
-SEED_DATABASE="true"
+LOG__LEVEL="debug"
 ```
 
 ```bash
 # .env.production
-# 数据库配置 - 生产环境使用PostgreSQL
-DATABASE_TYPE=postgres
-DATABASE_URL="postgres://user:password@postgres:5432/evolith"
-
-# 或者使用MySQL
-# DATABASE_TYPE=mysql
-# DATABASE_URL="mysql://user:password@mysql:3306/evolith"
+DATABASE__DATABASE_TYPE=postgres
+DATABASE__URL="postgres://user:password@postgres:5432/evolith"
 
 # Redis (集群)
-REDIS_URL="redis://redis-cluster:6379"
+REDIS__URL="redis://redis-cluster:6379"
 
-# MinIO (集群)
-MINIO_ENDPOINT="minio:9000"
-MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY}"
-MINIO_SECRET_KEY="${MINIO_SECRET_KEY}"
-MINIO_USE_SSL="true"
+# Object storage / MinIO
+STORAGE__ENDPOINT="minio:9000"
+STORAGE__ACCESS_KEY="${STORAGE_ACCESS_KEY}"
+STORAGE__SECRET_KEY="${STORAGE_SECRET_KEY}"
+STORAGE__USE_SSL="true"
+STORAGE__BUCKET="evolith"
 
 # JWT
-JWT_SECRET="${JWT_SECRET}"
-JWT_EXPIRATION="24h"
+JWT__SECRET="${JWT_SECRET}"
+JWT__EXPIRATION="24h"
 
 # 执行沙箱
-SANDBOX_ENABLED="true"
-SANDBOX_TIMEOUT="30"
-SANDBOX_MEMORY="256"
+SANDBOX__ENABLED="true"
+SANDBOX__TIMEOUT_SECONDS="30"
+SANDBOX__MEMORY_MB="256"
 
 # 环境
 ENVIRONMENT="production"
-LOG_LEVEL="info"
-
-# 初始化数据
-SEED_DATABASE="false"
+LOG__LEVEL="info"
 ```
 
 ## 8. 项目结构
@@ -465,7 +423,7 @@ evolith/
 开发阶段                          生产阶段
 ┌──────────────┐               ┌──────────────┐
 │ SQLite内存   │               │ PostgreSQL   │
-│ DATABASE_URL │               │ DATABASE_URL │
+│ DATABASE__URL│               │ DATABASE__URL│
 │ =":memory:"  │               │ ="postgres:..│
 └──────────────┘               └──────────────┘
        │                              │

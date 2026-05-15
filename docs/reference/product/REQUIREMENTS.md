@@ -230,6 +230,8 @@ The debounced value that updates after the specified delay.
 
 ### 2.4 制品仓库（远期规划）
 
+本能力已归口到远期方案 [Artifact Repository](../../planned/ARTIFACT-REPOSITORY.md)。本节保留原始产品设想，当前迭代不以此作为 P0/P1 交付范围。
+
 #### 2.4.1 功能描述
 
 提供多语言预编译依赖库管理，面向大模型优化文档。
@@ -378,7 +380,7 @@ Evolith 作为付费 SaaS 平台，需要完整的套餐管理和计费系统。
 ### 4.1 技术约束
 
 - 后端必须使用 Rust + Actix-web
-- 前端必须使用 Next.js
+- 当前前端实现为 Next.js；后续技术路线已决策为 React + Vite + Bun 静态 SPA，见 [ADR-0001](../../decisions/ADR-0001-react-vite-bun-frontend.md)
 - 采用前后端分离架构
 - 支持Docker容器化部署
 
@@ -395,6 +397,9 @@ Evolith 作为付费 SaaS 平台，需要完整的套餐管理和计费系统。
 - 正式发布时间：第8周
 
 ## 5. 验收标准
+
+当前实现推进状态以 [Product Backlog](../../backlog/PRODUCT-BACKLOG.md)、[迭代记录](../../iterations/README.md)
+和 [开发计划](../../roadmap/DEVELOPMENT-PLAN.md) 为准。本文档保留产品基线需求和原始验收口径。
 
 ### 5.1 功能验收
 

@@ -7,12 +7,15 @@
 ### Hard Constraints
 
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
-- **文档分层**：操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，未实施方案写 `docs/planned/`，历史快照写 `docs/archive/`。
+- **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
+- **迭代推进**：进入开发前按 `docs/sop/ITERATION-WORKFLOW.md` 检查 DoR；完成时检查 DoD 并更新 backlog/iteration 状态。
+- **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，未实施方案写 `docs/planned/`，历史快照写 `docs/archive/`。
 - **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
 - **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 - **双数据库一致性**：数据库结构或 repository 行为变化必须同时考虑 SQLite 和 PostgreSQL migrations/repositories/tests。
 - **前端 API 前缀**：`NEXT_PUBLIC_API_URL` 应包含 `/api/v1`，除非网关明确做路径重写。
 - **配置键格式**：后端嵌套配置使用双下划线环境变量，例如 `DATABASE__DATABASE_TYPE`，不要混用 `DATABASE_TYPE`。
+- **重要取舍写 ADR**：技术栈、部署形态、认证/数据边界等重大决策必须写入 `docs/decisions/`。
 
 ### Git Rules
 
@@ -28,12 +31,19 @@
 | 任务类型 | 必读文档 | 按需参考 |
 |----------|----------|----------|
 | 了解项目结构 | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) | [docs/README.md](docs/README.md) |
+| 需求进入/拆分/排期 | [docs/sop/ITERATION-WORKFLOW.md](docs/sop/ITERATION-WORKFLOW.md) | [docs/backlog/PRODUCT-BACKLOG.md](docs/backlog/PRODUCT-BACKLOG.md) |
+| 开始一次迭代 | [docs/iterations/README.md](docs/iterations/README.md) | [docs/iterations/ITERATION-TEMPLATE.md](docs/iterations/ITERATION-TEMPLATE.md) |
 | 本地启动/调试 | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) | [EVOLUTION.md](EVOLUTION.md) |
 | 新增功能/API/页面 | [docs/sop/NEW-FEATURE.md](docs/sop/NEW-FEATURE.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
+| API 合约变更 | [docs/sop/CONTRACT-FIRST.md](docs/sop/CONTRACT-FIRST.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
+| 数据库迁移 | [docs/sop/DATABASE-MIGRATION.md](docs/sop/DATABASE-MIGRATION.md) | [docs/reference/CONFIG.md](docs/reference/CONFIG.md) |
+| 测试与验证 | [docs/sop/TESTING.md](docs/sop/TESTING.md) | [docs/reference/TESTING.md](docs/reference/TESTING.md) |
+| 配置排查 | [docs/reference/CONFIG.md](docs/reference/CONFIG.md) | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) |
 | 发布/部署/回滚 | [docs/sop/RELEASE.md](docs/sop/RELEASE.md) | [docs/reference/SCRIPTS-RELEASE-NOTES.md](docs/reference/SCRIPTS-RELEASE-NOTES.md) |
 | Git 提交 | [docs/sop/GIT-WORKFLOW.md](docs/sop/GIT-WORKFLOW.md) | [EVOLUTION.md](EVOLUTION.md) |
 | 排查问题 | [EVOLUTION.md](EVOLUTION.md) | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) |
 | 文档整理 | [docs/README.md](docs/README.md) | [docs/roadmap/ENGINEERING-ROADMAP.md](docs/roadmap/ENGINEERING-ROADMAP.md) |
+| 技术决策 | [docs/decisions/README.md](docs/decisions/README.md) | [docs/roadmap/DEVELOPMENT-PLAN.md](docs/roadmap/DEVELOPMENT-PLAN.md) |
 
 ### Current Known Traps
 
@@ -46,8 +56,11 @@
 ### Session End Checklist
 
 - [ ] 是否留下未说明的代码或文档变更？
+- [ ] 新功能/缺陷/技术债是否已进入 backlog，或说明了为什么不需要？
+- [ ] 如果推进了迭代故事，是否更新了 backlog/iteration 状态？
 - [ ] 是否运行了与风险匹配的验证？未运行是否说明原因？
 - [ ] 是否触发了 `EVOLUTION.md` 写回条件？
+- [ ] 是否做了重大技术取舍但忘记写 ADR？
 - [ ] 是否修改了脚本行为但忘记更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`？
 - [ ] 如用户要求提交，commit message 是否包含语义前缀和 `[model: <name>]`？
 
@@ -151,13 +164,16 @@ pub enum AppError {
 
 ### Adding New Features
 
-1. **Create specification** in `docs/` first
-2. **Define domain models** in `crates/domain/`
-3. **Implement repository trait** in domain layer
-4. **Implement infrastructure** in appropriate service crate
-5. **Add API routes** in `crates/api/`
-6. **Add frontend** in `frontend/src/app/`
-7. **Write tests** - unit tests in same file, integration tests in `tests/`
+1. **Create or update backlog item** in `docs/backlog/PRODUCT-BACKLOG.md`
+2. **Check iteration readiness** using `docs/sop/ITERATION-WORKFLOW.md`
+3. **Update API contract** in `docs/reference/API-CONTRACT.md` when interfaces change
+4. **Define domain models** in `crates/domain/`
+5. **Implement repository trait** in domain layer
+6. **Implement infrastructure** in appropriate service crate
+7. **Add API routes** in `crates/api/`
+8. **Add frontend** in `frontend/src/app/`
+9. **Write tests** - unit tests in same file, integration tests in `tests/`
+10. **Update backlog/iteration status** before finishing
 
 ### Testing
 
@@ -201,18 +217,22 @@ Environment variables (see `crates/infra/src/config.rs`):
 | `DATABASE__URL` | Database connection string | `:memory:` (dev) |
 | `DATABASE__DATABASE_TYPE` | sqlite/postgres/mysql | `sqlite` |
 | `JWT__SECRET` | JWT signing key | (dev only) |
-| `JWT__TOKEN_EXPIRY` | Token lifetime | `24h` |
+| `JWT__EXPIRATION` | Token lifetime | `24h` |
 | `LOG__LEVEL` | trace/debug/info/warn/error | `info` |
 | `ENVIRONMENT` | development/production | `development` |
 | `CORS__ALLOWED_ORIGIN` | Allowed frontend origin | `http://localhost:3000` |
 | `CSRF__ENABLED` | Enable CSRF protection | `true` |
 | `SANDBOX__ENABLED` | Enable sandbox executor | `true` |
 | `SANDBOX__TIMEOUT_SECONDS` | Sandbox execution timeout | `30` |
-| `SANDBOX__MEMORY_LIMIT_MB` | Sandbox memory limit | `256` |
-| `RATE_LIMIT__REQUESTS_PER_MINUTE` | Rate limit per IP | `60` |
+| `SANDBOX__MEMORY_MB` | Sandbox memory limit | `256` |
+| `RATE_LIMIT__UNAUTHENTICATED_RPM` | Unauthenticated request limit | `30` |
+| `RATE_LIMIT__AUTHENTICATED_RPM` | Authenticated request limit | `300` |
+| `RATE_LIMIT__API_KEY_RPM` | API key request limit | `1000` |
 | `SMTP__HOST` | SMTP server host | (none) |
 | `SMTP__PORT` | SMTP server port | `587` |
 | `SMTP__FROM` | Sender email address | (none) |
+
+MySQL currently has config/pool entry only; main service rejects it because MySQL repositories are not implemented. Use PostgreSQL for production.
 
 ## Common Tasks
 

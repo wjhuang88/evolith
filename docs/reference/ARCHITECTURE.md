@@ -649,6 +649,8 @@ CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
 
 Evolith采用契约优先(Contract-First)的API开发模式，确保前后端接口的一致性。
 
+执行步骤、DoD 和变更记录要求见 [API 契约优先 SOP](../sop/CONTRACT-FIRST.md)。本节保留架构层面的契约边界说明。
+
 ### 9.1 契约文件
 
 API契约定义在 `docs/reference/API-CONTRACT.md` 中，包含：
@@ -705,6 +707,8 @@ export interface AuthResponse {
 
 ## 10. 环境配置
 
+完整环境变量清单和常见误用见 [配置参考](./CONFIG.md)。本节只保留架构部署视角下的最小示例。
+
 ### 10.1 开发环境
 
 使用内存数据库(SQLite)进行本地开发：
@@ -732,15 +736,17 @@ ENVIRONMENT=production
 | `DATABASE__URL` | 数据库连接串 | `:memory:` |
 | `DATABASE__DATABASE_TYPE` | 数据库类型 | `sqlite` |
 | `JWT__SECRET` | JWT密钥 | (开发专用) |
-| `JWT__TOKEN_EXPIRY` | Token过期时间 | `24h` |
+| `JWT__EXPIRATION` | Token过期时间 | `24h` |
 | `LOG__LEVEL` | 日志级别 | `info` |
 | `ENVIRONMENT` | 环境 | `development` |
 | `CORS__ALLOWED_ORIGIN` | 允许的前端域名 | `http://localhost:3000` |
 | `CSRF__ENABLED` | CSRF 保护开关 | `true` |
 | `SANDBOX__ENABLED` | 沙箱执行器开关 | `true` |
 | `SANDBOX__TIMEOUT_SECONDS` | 沙箱执行超时 | `30` |
-| `SANDBOX__MEMORY_LIMIT_MB` | 沙箱内存限制 | `256` |
-| `RATE_LIMIT__REQUESTS_PER_MINUTE` | 每IP速率限制 | `60` |
+| `SANDBOX__MEMORY_MB` | 沙箱内存限制 | `256` |
+| `RATE_LIMIT__UNAUTHENTICATED_RPM` | 未认证请求限流 | `30` |
+| `RATE_LIMIT__AUTHENTICATED_RPM` | 已认证请求限流 | `300` |
+| `RATE_LIMIT__API_KEY_RPM` | API key 请求限流 | `1000` |
 | `SMTP__HOST` | SMTP 邮件服务器 | (无) |
 | `SMTP__PORT` | SMTP 端口 | `587` |
 | `SMTP__FROM` | 发件人地址 | (无) |
