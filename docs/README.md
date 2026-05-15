@@ -12,7 +12,7 @@
 | `docs/iterations/` | 每轮迭代计划、验证结果和复盘 | 迭代开始和结束时 |
 | `docs/decisions/` | 重要技术/产品决策 ADR | 技术栈、架构或产品边界发生重大取舍时 |
 | `docs/roadmap/` | 盘点、路线图、阶段检查点 | 阶段规划或汇报口径变化时 |
-| `docs/proposals/` | 远期提案，已讨论但尚未进入实施的方案 | 方案进入实施前或废弃时 |
+| `docs/proposals/` | 想法暂存区，尚未满足 Backlog 进入条件的提案（Agent 不从中选取任务） | 晋升到 Backlog 或废弃时 |
 | `docs/archive/` | 历史快照、过期路线、压缩后的经验 | 归档时 |
 | `EVOLUTION.md` | 故障速查和经验写回 | 发现新陷阱或被纠正时 |
 

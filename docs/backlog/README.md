@@ -1,6 +1,10 @@
 # Backlog 目录
 
-本目录用于管理 Evolith 的需求池和特性迭代输入。
+本目录是 Evolith 的可执行需求池。Agent 从这里选取任务并直接开工，因此所有条目必须满足 [Definition of Ready](../sop/ITERATION-WORKFLOW.md#definition-of-ready)。
+
+## 与 Proposals 的关系
+
+`docs/proposals/` 是想法暂存区，Agent 不从中选取任务。提案经过人工确认和细化，满足晋升条件后才能进入 Backlog。详见 [Proposals 晋升流程](../proposals/README.md#晋升流程proposal--backlog)。
 
 ## 文件
 
@@ -9,7 +13,7 @@
 ## 规则
 
 1. 新功能、缺陷、技术债先进入 backlog。
-2. 远期想法可以先放 `docs/proposals/`，准备排期后再进入 backlog。
+2. 远期想法先放 `docs/proposals/`，满足晋升条件后再进入 backlog。
 3. 每个 backlog item 必须有 ID、优先级、状态和验收标准。
 4. 进入迭代前必须满足 [Definition of Ready](../sop/ITERATION-WORKFLOW.md#definition-of-ready)。
 5. 完成后必须满足 [Definition of Done](../sop/ITERATION-WORKFLOW.md#definition-of-done)。

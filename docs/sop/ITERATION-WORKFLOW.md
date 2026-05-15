@@ -41,7 +41,22 @@
 - 验收标准
 - 依赖或阻塞
 
-如果只是远期想法，放入 `docs/proposals/`；如果已经准备排期，进入 backlog。
+#### Proposals 与 Backlog 的关系
+
+Evolith 的执行者是 AI Agent。Agent 从 Backlog 选取任务时会直接开工，无法自行判断需求是否足够成熟。因此采用两级结构：
+
+- **`docs/proposals/`** — 想法暂存区（holding tank）。Agent 不从中选取任务。
+- **`docs/backlog/`** — 可执行指令源。所有条目必须满足 DoR。
+
+远期想法先放入 `docs/proposals/`，满足以下晋升条件后迁入 Backlog：
+
+1. 有明确的用户价值或技术目标。
+2. 范围足够小（0.5-2 天可完成），过大则先拆分。
+3. 有至少一条可验证的验收标准。
+4. 依赖已识别。
+5. 需要改哪些层已明确（backend / frontend / db / docs / deploy）。
+
+晋升操作：在 Backlog 新增条目 → 在 Proposals 标注已晋升或移除 → 提案文档保留作为背景参考。
 
 ### 2. Backlog Refinement
 
