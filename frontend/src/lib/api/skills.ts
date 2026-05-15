@@ -34,7 +34,11 @@ export const skillsApi = {
    * Create a new skill
    */
   async create(data: CreateSkillRequest): Promise<ApiResponse<Skill>> {
-    const response = await apiClient.post<ApiResponse<Skill>>('/skills', data);
+    const response = await apiClient.post<ApiResponse<Skill>>('/skills', {
+      ...data,
+      runtime: data.runtime ?? 'python311',
+      dependencies: data.dependencies ?? [],
+    });
     return response.data;
   },
 
@@ -42,7 +46,7 @@ export const skillsApi = {
    * Update an existing skill
    */
   async update(id: string, data: UpdateSkillRequest): Promise<ApiResponse<Skill>> {
-    const response = await apiClient.patch<ApiResponse<Skill>>(`/skills/${id}`, data);
+    const response = await apiClient.put<ApiResponse<Skill>>(`/skills/${id}`, data);
     return response.data;
   },
 
@@ -58,7 +62,9 @@ export const skillsApi = {
    * Execute a skill (run skill code)
    */
   async execute(id: string, params: Record<string, unknown>): Promise<ApiResponse<unknown>> {
-    const response = await apiClient.post<ApiResponse<unknown>>(`/skills/${id}/execute`, params);
+    const response = await apiClient.post<ApiResponse<unknown>>(`/skills/${id}/execute`, {
+      parameters: params,
+    });
     return response.data;
   },
 
@@ -66,15 +72,20 @@ export const skillsApi = {
    * Get skill categories
    */
   async categories(): Promise<ApiResponse<string[]>> {
-    const response = await apiClient.get<ApiResponse<string[]>>('/skills/categories');
-    return response.data;
+    return {
+      success: true,
+      data: ['custom', 'utility', 'api', 'data', 'ai'],
+    };
   },
 
   /**
    * Get skill versions
    */
   async versions(id: string): Promise<ApiResponse<Skill[]>> {
-    const response = await apiClient.get<ApiResponse<Skill[]>>(`/skills/${id}/versions`);
-    return response.data;
+    const response = await apiClient.get<ApiResponse<Skill>>(`/skills/${id}`);
+    return {
+      ...response.data,
+      data: response.data.data ? [response.data.data] : undefined,
+    };
   },
 };

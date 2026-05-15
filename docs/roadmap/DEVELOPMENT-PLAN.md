@@ -11,6 +11,7 @@ Evolith 的后端主体架构已经成型：数据库 repository、双数据库 
 
 1. **需求闭环缺口**：需求和 API 合约中仍存在 501、stub、前端 mock 和服务 crate placeholder。
 2. **前端工程简化**：当前前端是 Next.js，但项目定位是 SaaS 控制台，不需要 SSR；建议迁移为 `React + Vite + Bun` 的静态 SPA。
+3. **产品概念迁移**：旧 snippet 主线停止扩展，后续替换为面向大模型和 CLI 调用的 CLI 友好接口，见 [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md)。
 
 具体需求池维护在 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)。本文档只保留阶段方向和优先级判断。
 
@@ -73,7 +74,7 @@ nginx serve dist/
 | Auth | `POST /api/v1/auth/forgot-password` | 501 | P0 |
 | Auth | `POST /api/v1/auth/reset-password` | 501 | P0 |
 | Skills | `PUT /api/v1/skills/{id}` | 501 | P1 |
-| Snippets | `PUT /api/v1/snippets/{id}` | 501 | P1 |
+| Snippets | `PUT /api/v1/snippets/{id}` | 501 | Deferred |
 | Members | `POST /api/v1/tenant/{tenant_id}/members/join` | 501 | P0 |
 | Audit | `GET /api/v1/tenant/{tenant_id}/audit-logs/{log_id}` | 501 | P2 |
 
@@ -83,7 +84,7 @@ nginx serve dist/
 |------|-----------|------|
 | MCP 工具执行 | `service-tool/src/executor.rs`、`api/src/handlers/mcp_handlers.rs` | `tools/call` 目前返回 stub 文本，不是真执行 |
 | Skill registry | `service-skill/src/registry.rs` | service crate 未形成可复用注册能力 |
-| Snippet parser/reference | `service-snippet/src/parser.rs`、`reference.rs` | 片段格式解析和 LLM 引用仍偏弱 |
+| CLI interface parser/reference | `service-snippet/src/parser.rs`、`reference.rs` | 旧 snippet parser/reference 需要迁移为 CLI 友好接口格式 |
 | Storage | `infra/src/storage.rs` | 对象存储未实现，影响技能包/附件 |
 | Auth session/RBAC service | `service-auth/src/session.rs`、`rbac.rs` | 当前主要由 API middleware 承担 |
 | Frontend tenant pages | members/api-keys/settings | 仍有 mock/TODO |
@@ -95,9 +96,9 @@ nginx serve dist/
 | 前端 `PATCH /tools/{id}`，后端是 `PUT /tools/{id}` | 更新工具会失败 | P0 |
 | 前端存在 `/tools/{id}/execute`，后端无对应 REST route | 工具执行入口不一致 | P0 |
 | 前端 `PATCH /skills/{id}`，后端是 `PUT /skills/{id}` 且 501 | 更新技能不可用 | P1 |
-| 前端请求 skill/snippet categories/versions/languages，后端未提供 | 页面能力和 API 不一致 | P2 |
+| 前端请求 skill/snippet categories/versions/languages，后端未提供 | 页面能力和 API 不一致；snippet 相关调用进入 EVO-017 迁移 | P2 |
 | 前端 auth `changePassword` 发送 `current_password`，后端 DTO 是 `old_password` | 修改密码会失败 | P0 |
-| 前端 snippet 使用 `title/category`，后端 DTO 更接近 `name/language/framework/content/code` | 创建片段字段不一致 | P0 |
+| 前端 snippet 使用 `title/category`，后端 DTO 更接近 `name/language/framework/content/code` | 旧 snippet 字段对齐不再作为独立目标，进入 CLI interface 迁移设计 | Deferred |
 
 ## 4. 分阶段计划
 
@@ -110,7 +111,7 @@ nginx serve dist/
 1. 修正前端 API client 的 HTTP method 和字段名。
 2. 对齐 auth change password 请求字段。
 3. 对齐 tool create/update DTO，明确 handler 配置字段。
-4. 对齐 snippet create/update DTO。
+4. 暂停继续扩展 snippet 对齐，记录为 EVO-017 的迁移输入。
 5. 移除或隐藏前端调用但后端不存在的 categories/versions/languages/execute route。
 6. 为这些接口增加最小回归测试或类型检查。
 
@@ -119,7 +120,7 @@ nginx serve dist/
 - `npm run type-check`
 - `npm run build`
 - `cargo test -p api`
-- 手工验证登录、修改密码、工具 CRUD、片段 CRUD。
+- 手工验证登录、修改密码、工具 CRUD；snippet 相关验证等待 EVO-017 定义新语义。
 
 ### Phase B — 前端迁移到 React + Vite + Bun（P0）
 
@@ -181,22 +182,22 @@ nginx serve dist/
 - 私有工具不能被无 API key 调用。
 - HTTP tool 返回值能被 MCP content 包装。
 
-### Phase E — Skill / Snippet 完整性（P1）
+### Phase E — Skill / CLI 友好接口完整性（P1）
 
-目标：补齐创建后的编辑、引用和格式解析能力。
+目标：补齐 Skill 编辑能力，并将旧 snippet 主线迁移为 CLI 友好接口。
 
 任务：
 
 1. 实现 `PUT /skills/{id}`。
-2. 实现 `PUT /snippets/{id}`。
-3. 实现 snippet reference format：direct / inline / with_deps。
-4. 实现 SKILL.md 和 snippet frontmatter parser。
+2. 定义 `CliInterface` 领域模型、格式文档和 API 合约。
+3. 明确旧 snippet 数据迁移策略：drop / archive / transform。
+4. 实现 SKILL.md 和 CLI interface frontmatter parser。
 5. 明确技能包上传和 storage 的范围，必要时拆到下一阶段。
 
 验收：
 
-- Skill/Snippet CRUD 完整。
-- 引用输出可直接给 LLM 使用。
+- Skill CRUD 完整。
+- CLI interface 描述可直接给 LLM 使用，也可被 Rust CLI 复用。
 - 格式 parser 对示例文档有测试覆盖。
 
 ### Phase F — 租户管理、计费和审计增强（P1/P2）
@@ -215,7 +216,7 @@ nginx serve dist/
 验收：
 
 - tenant settings / members / api keys 页面不再使用 mock 数据。
-- 计费和配额至少对创建工具、技能、片段有基础限制。
+- 计费和配额至少对创建工具、技能、CLI interface 有基础限制。
 
 ## 5. 推荐执行顺序
 
@@ -234,14 +235,14 @@ nginx serve dist/
 | SolidJS 重写 | 成本高，当前主要问题是 Next.js 过重，不是 React 不适合 |
 | 制品仓库 | 需求文档标为远期规划，当前主线未闭环 |
 | MySQL repository | 当前生产目标是 PostgreSQL，MySQL 仅配置层预留 |
-| 完整语义搜索 | snippet 关键词搜索先满足 P0，语义搜索可后置 |
+| 完整语义搜索 | CLI interface 基础格式先满足 P0，语义搜索可后置 |
 | 租户子域名识别 | 当前 cookie/API key + tenant path 已能支撑控制台，子域名可后置 |
 
 ## 7. 远期目标
 
 | 目标 | 文档 | 进入条件 |
 |------|------|----------|
-| Rust CLI | [Evolith Rust CLI](../planned/RUST-CLI.md) | API 合约稳定，Skill/Snippet parser 完成 |
+| Rust CLI | [Evolith Rust CLI](../planned/RUST-CLI.md) | API 合约稳定，Skill/CLI interface parser 完成 |
 | 前端嵌入后端发布物 | [前端静态产物嵌入后端](../planned/EMBEDDED-FRONTEND.md) | 完成 React + Vite + Bun 静态 SPA 迁移 |
 
 ## 8. 计划维护规则

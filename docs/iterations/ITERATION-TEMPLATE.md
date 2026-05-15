@@ -41,13 +41,19 @@
 |------|------|
 |  |  |
 
-## 8. Review
+## 8. 变更请求
+
+| 日期 | 类型 | 决策 | 影响 | 半成品处理 |
+|------|------|------|------|------------|
+|  | clarification / scope-change / product-pivot / urgent-fix | 接受 / 拆分 / 暂缓 / 拒绝 |  | 保留 / 移除 / 后续清理 |
+
+## 9. Review
 
 - 完成：
 - 未完成：
 - 验证结果：
 
-## 9. Retrospective
+## 10. Retrospective
 
 - 做得好的：
 - 需要调整的：

@@ -49,13 +49,14 @@
 - [迭代目录](iterations/README.md) — 迭代记录和模板。
 - [决策记录](decisions/README.md) — ADR 目录。
 - [ADR-0001 前端采用 React + Vite + Bun](decisions/ADR-0001-react-vite-bun-frontend.md) — 前端技术路线决策。
+- [ADR-0002 CLI 友好接口替代 Snippet](decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) — 产品概念迁移决策。
 
 ### Roadmap / Planned
 
 - [工程化路线图](roadmap/ENGINEERING-ROADMAP.md) — 文档治理、流程治理和待补齐能力。
 - [开发计划](roadmap/DEVELOPMENT-PLAN.md) — 需求差距、前端迁移和阶段计划。
 - [规划中事项](planned/README.md) — 尚未进入实施的候选方案。
-- [Evolith Rust CLI](planned/RUST-CLI.md) — 本地智能体、skill、tool、snippet 管理 CLI。
+- [Evolith Rust CLI](planned/RUST-CLI.md) — 本地智能体、skill、tool、CLI interface 管理 CLI。
 - [前端嵌入后端](planned/EMBEDDED-FRONTEND.md) — 前端静态产物打包进后端交付物。
 - [Artifact Repository](planned/ARTIFACT-REPOSITORY.md) — 模型、数据集、prompt、配置等制品管理远期方案。
 
@@ -65,7 +66,7 @@
 |------|------|------|
 | [需求文档](reference/product/REQUIREMENTS.md) | 产品基线 | 核心需求、功能范围和验收口径 |
 | [Skill 格式](reference/formats/SKILL-FORMAT.md) | 格式规范 | Claude Skills 兼容格式 |
-| [Snippet 格式](reference/formats/SNIPPET-FORMAT.md) | 格式规范 | 代码片段 Markdown/YAML 格式 |
+| [Snippet 格式](reference/formats/SNIPPET-FORMAT.md) | 迁移参考 | 旧代码片段格式；新方向见 ADR-0002 |
 | [Ideas](planned/IDEAS.md) | 候选池 | 零散想法和未来方向，成熟后迁移到 `planned/` 或 `roadmap/` |
 
 ## 重构原则

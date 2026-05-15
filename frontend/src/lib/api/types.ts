@@ -20,7 +20,7 @@ export interface PaginationMeta {
   page: number;
   per_page: number;
   total: number;
-  total_pages: number;
+  total_pages?: number;
 }
 
 // ============================================
@@ -49,6 +49,7 @@ export interface User {
   role: string;
   tenant_id: string;
   tenant_role: string;
+  email_verified?: boolean;
   created_at?: string;
 }
 
@@ -101,8 +102,12 @@ export interface Tool {
   description: string;
   category: string;
   input_schema: Record<string, unknown>;
+  schema?: Record<string, unknown>;
+  handler?: Record<string, unknown>;
   is_public: boolean;
   created_by?: string;
+  owner_id?: string;
+  tenant_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -110,8 +115,12 @@ export interface Tool {
 export interface CreateToolRequest {
   name: string;
   description: string;
-  category: string;
+  category?: string;
   input_schema: Record<string, unknown>;
+  type?: 'http' | 'function';
+  handler_url?: string;
+  handler_method?: string;
+  handler_timeout?: number;
   is_public?: boolean;
 }
 
@@ -140,7 +149,9 @@ export interface CreateSkillRequest {
   description: string;
   version: string;
   content: string;
-  category: string;
+  runtime?: 'python311' | 'node20' | 'wasm';
+  dependencies?: Array<{ name: string; version: string }>;
+  category?: string;
   tags?: string[];
   is_public?: boolean;
 }
@@ -154,13 +165,20 @@ export interface UpdateSkillRequest extends Partial<CreateSkillRequest> {}
 export interface Snippet {
   id: string;
   title: string;
+  name?: string;
   description: string;
   code: string;
   language: string;
   category: string;
+  framework?: string;
   tags: string[];
+  content?: string;
+  dependencies?: Array<{ name: string; version: string; required: boolean }>;
+  estimated_tokens?: number;
   is_public: boolean;
   created_by?: string;
+  owner_id?: string;
+  tenant_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -168,10 +186,15 @@ export interface Snippet {
 export interface CreateSnippetRequest {
   title: string;
   description: string;
+  name?: string;
+  content?: string;
   code: string;
   language: string;
-  category: string;
+  framework?: string;
+  category?: string;
   tags?: string[];
+  dependencies?: Array<{ name: string; version: string; required?: boolean }>;
+  estimated_tokens?: number;
   is_public?: boolean;
 }
 

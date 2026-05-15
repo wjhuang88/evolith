@@ -13,8 +13,15 @@
 
 ```text
 ADR-0001-react-vite-bun-frontend.md
-ADR-0002-embedded-frontend-delivery.md
+ADR-0002-cli-friendly-interface-replaces-snippet.md
 ```
+
+## 当前决策
+
+| ADR | 状态 | 说明 |
+|-----|------|------|
+| [ADR-0001](ADR-0001-react-vite-bun-frontend.md) | Accepted | 前端采用 React + Vite + Bun |
+| [ADR-0002](ADR-0002-cli-friendly-interface-replaces-snippet.md) | Accepted | CLI 友好接口替代旧 snippet 主线 |
 
 ## 模板
 

@@ -12,6 +12,35 @@ import type {
 // Snippets Service
 // ============================================
 
+type BackendSnippetRequest = {
+  name: string;
+  language: string;
+  framework?: string;
+  tags: string[];
+  content: string;
+  code: string;
+  dependencies: Array<{ name: string; version: string; required?: boolean }>;
+  estimated_tokens?: number;
+  is_public: boolean;
+};
+
+function toBackendSnippetRequest(data: CreateSnippetRequest | UpdateSnippetRequest): Partial<BackendSnippetRequest> {
+  const name = data.name ?? data.title;
+  return {
+    ...(name !== undefined ? { name } : {}),
+    ...(data.language !== undefined ? { language: data.language } : {}),
+    ...(data.framework !== undefined ? { framework: data.framework } : {}),
+    ...(data.tags !== undefined ? { tags: data.tags } : {}),
+    ...(data.content !== undefined || data.description !== undefined
+      ? { content: data.content ?? data.description ?? '' }
+      : {}),
+    ...(data.code !== undefined ? { code: data.code } : {}),
+    ...(data.dependencies !== undefined ? { dependencies: data.dependencies } : {}),
+    ...(data.estimated_tokens !== undefined ? { estimated_tokens: data.estimated_tokens } : {}),
+    ...(data.is_public !== undefined ? { is_public: data.is_public } : {}),
+  };
+}
+
 export const snippetsApi = {
   /**
    * List snippets with pagination and filters
@@ -34,7 +63,12 @@ export const snippetsApi = {
    * Create a new snippet
    */
   async create(data: CreateSnippetRequest): Promise<ApiResponse<Snippet>> {
-    const response = await apiClient.post<ApiResponse<Snippet>>('/snippets', data);
+    const response = await apiClient.post<ApiResponse<Snippet>>('/snippets', {
+      dependencies: [],
+      tags: [],
+      is_public: false,
+      ...toBackendSnippetRequest(data),
+    });
     return response.data;
   },
 
@@ -42,7 +76,10 @@ export const snippetsApi = {
    * Update an existing snippet
    */
   async update(id: string, data: UpdateSnippetRequest): Promise<ApiResponse<Snippet>> {
-    const response = await apiClient.patch<ApiResponse<Snippet>>(`/snippets/${id}`, data);
+    const response = await apiClient.put<ApiResponse<Snippet>>(
+      `/snippets/${id}`,
+      toBackendSnippetRequest(data)
+    );
     return response.data;
   },
 
@@ -67,16 +104,20 @@ export const snippetsApi = {
    * Get snippet categories
    */
   async categories(): Promise<ApiResponse<string[]>> {
-    const response = await apiClient.get<ApiResponse<string[]>>('/snippets/categories');
-    return response.data;
+    return {
+      success: true,
+      data: ['custom', 'utility', 'api', 'data', 'ai'],
+    };
   },
 
   /**
    * Get supported languages
    */
   async languages(): Promise<ApiResponse<string[]>> {
-    const response = await apiClient.get<ApiResponse<string[]>>('/snippets/languages');
-    return response.data;
+    return {
+      success: true,
+      data: ['typescript', 'javascript', 'python', 'rust', 'go', 'java', 'csharp', 'sql', 'bash', 'json', 'yaml', 'markdown'],
+    };
   },
 
   /**

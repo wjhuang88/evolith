@@ -9,6 +9,7 @@
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
 - **迭代推进**：进入开发前按 `docs/sop/ITERATION-WORKFLOW.md` 检查 DoR；完成时检查 DoD 并更新 backlog/iteration 状态。
+- **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更` 做变更分类、backlog/ADR/iteration 记录，再继续。
 - **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，未实施方案写 `docs/planned/`，历史快照写 `docs/archive/`。
 - **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
 - **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
@@ -32,6 +33,7 @@
 |----------|----------|----------|
 | 了解项目结构 | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) | [docs/README.md](docs/README.md) |
 | 需求进入/拆分/排期 | [docs/sop/ITERATION-WORKFLOW.md](docs/sop/ITERATION-WORKFLOW.md) | [docs/backlog/PRODUCT-BACKLOG.md](docs/backlog/PRODUCT-BACKLOG.md) |
+| 迭代中需求变更 | [docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更](docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更) | [docs/decisions/README.md](docs/decisions/README.md) |
 | 开始一次迭代 | [docs/iterations/README.md](docs/iterations/README.md) | [docs/iterations/ITERATION-TEMPLATE.md](docs/iterations/ITERATION-TEMPLATE.md) |
 | 本地启动/调试 | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) | [EVOLUTION.md](EVOLUTION.md) |
 | 新增功能/API/页面 | [docs/sop/NEW-FEATURE.md](docs/sop/NEW-FEATURE.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
@@ -58,6 +60,7 @@
 - [ ] 是否留下未说明的代码或文档变更？
 - [ ] 新功能/缺陷/技术债是否已进入 backlog，或说明了为什么不需要？
 - [ ] 如果推进了迭代故事，是否更新了 backlog/iteration 状态？
+- [ ] 如果发生中途需求变更，是否按变更分类表更新了 backlog、iteration、ADR 和半成品处理记录？
 - [ ] 是否运行了与风险匹配的验证？未运行是否说明原因？
 - [ ] 是否触发了 `EVOLUTION.md` 写回条件？
 - [ ] 是否做了重大技术取舍但忘记写 ADR？

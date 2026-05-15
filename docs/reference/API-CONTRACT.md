@@ -877,6 +877,10 @@ interface DependencyResponse {
 
 ## Snippets
 
+> Deprecated planning note: snippet remains in the current implementation and contract for compatibility,
+> but new product work should target CLI-friendly interfaces instead. See
+> [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) and backlog item EVO-017.
+
 ### `GET /api/v1/snippets`
 
 - **Auth:** JWT

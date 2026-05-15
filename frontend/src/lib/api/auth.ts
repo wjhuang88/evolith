@@ -61,7 +61,7 @@ export const authApi = {
    * Update current user profile
    */
   async updateProfile(data: Partial<Pick<User, 'email' | 'username'>>): Promise<ApiResponse<User>> {
-    const response = await apiClient.patch<ApiResponse<User>>('/auth/me', data);
+    const response = await apiClient.patch<ApiResponse<User>>('/auth/profile', data);
     return response.data;
   },
 
@@ -70,7 +70,7 @@ export const authApi = {
    */
   async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse<null>> {
     const response = await apiClient.post<ApiResponse<null>>('/auth/change-password', {
-      current_password: currentPassword,
+      old_password: currentPassword,
       new_password: newPassword,
     });
     return response.data;

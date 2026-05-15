@@ -1,7 +1,7 @@
 # 规划: Evolith Rust CLI
 
 > 状态：远期目标
-> 目标：为用户提供本地智能体、技能、工具和代码片段的命令行管理能力。
+> 目标：为用户提供本地智能体、技能、工具和 CLI 友好接口的命令行管理能力。
 
 ## 1. 背景
 
@@ -82,18 +82,18 @@ evolith tool call <name> --json args.json
 - 调用远程 MCP tool。
 - 输出结构化 JSON，便于脚本消费。
 
-### 3.4 Snippet 管理
+### 3.4 CLI Interface 管理
 
 ```bash
-evolith snippet list
-evolith snippet push ./snippet.md
-evolith snippet ref <id> --format direct
+evolith interface list
+evolith interface push ./interface.md
+evolith interface explain <id>
 ```
 
 目标：
 
-- 管理本地代码片段。
-- 快速生成 LLM 引用文本。
+- 管理本地 CLI 友好接口描述。
+- 生成 LLM 可读、CLI 可调用的接口说明。
 
 ### 3.5 本地 Agent 工作区
 
@@ -106,7 +106,7 @@ evolith agent sync
 远期目标：
 
 - 管理本地 `.evolith/` 工作区。
-- 同步远程 skill/tool/snippet 到本地 agent 项目。
+- 同步远程 skill/tool/interface 到本地 agent 项目。
 - 为 OpenCode、Claude Code、Codex 等工具生成适配配置。
 
 ## 4. 技术选型
@@ -132,12 +132,12 @@ evolith agent sync
 ### CLI Phase 1 — Remote API Client
 
 - 实现登录/API key 配置。
-- 实现 tool/skill/snippet list。
+- 实现 tool/skill/interface list。
 - 支持 JSON 输出。
 
-### CLI Phase 2 — Skill / Snippet 发布
+### CLI Phase 2 — Skill / CLI Interface 发布
 
-- 实现本地 skill/snippet 校验。
+- 实现本地 skill/interface 校验。
 - 实现 push/pull。
 - 和服务端格式 parser 对齐。
 

@@ -12,14 +12,45 @@ import type {
 // Tools Service
 // ============================================
 
+interface ToolListData {
+  tools: Tool[];
+  page: number;
+  per_page: number;
+  total: number;
+}
+
+function normalizeTool(tool: Tool): Tool {
+  return {
+    ...tool,
+    input_schema: tool.input_schema ?? tool.schema ?? {},
+  };
+}
+
 export const toolsApi = {
   /**
    * List tools with pagination and filters
    */
   async list(params?: ListQueryParams): Promise<PaginatedResponse<Tool>> {
     const qs = params ? buildQueryString(params) : '';
-    const response = await apiClient.get<PaginatedResponse<Tool>>(`/tools${qs}`);
-    return response.data;
+    const response = await apiClient.get<ApiResponse<ToolListData>>(`/tools${qs}`);
+    const payload = response.data;
+    const data = payload.data?.tools.map(normalizeTool) ?? [];
+    return {
+      success: payload.success,
+      data,
+      meta: payload.data
+        ? {
+            page: payload.data.page,
+            per_page: payload.data.per_page,
+            total: payload.data.total,
+          }
+        : {
+            page: 1,
+            per_page: data.length,
+            total: data.length,
+          },
+      error: payload.error,
+    };
   },
 
   /**
@@ -27,7 +58,10 @@ export const toolsApi = {
    */
   async get(id: string): Promise<ApiResponse<Tool>> {
     const response = await apiClient.get<ApiResponse<Tool>>(`/tools/${id}`);
-    return response.data;
+    return {
+      ...response.data,
+      data: response.data.data ? normalizeTool(response.data.data) : undefined,
+    };
   },
 
   /**
@@ -35,15 +69,21 @@ export const toolsApi = {
    */
   async create(data: CreateToolRequest): Promise<ApiResponse<Tool>> {
     const response = await apiClient.post<ApiResponse<Tool>>('/tools', data);
-    return response.data;
+    return {
+      ...response.data,
+      data: response.data.data ? normalizeTool(response.data.data) : undefined,
+    };
   },
 
   /**
    * Update an existing tool
    */
   async update(id: string, data: UpdateToolRequest): Promise<ApiResponse<Tool>> {
-    const response = await apiClient.patch<ApiResponse<Tool>>(`/tools/${id}`, data);
-    return response.data;
+    const response = await apiClient.put<ApiResponse<Tool>>(`/tools/${id}`, data);
+    return {
+      ...response.data,
+      data: response.data.data ? normalizeTool(response.data.data) : undefined,
+    };
   },
 
   /**
@@ -58,15 +98,24 @@ export const toolsApi = {
    * Execute a tool (call the tool)
    */
   async execute(id: string, params: Record<string, unknown>): Promise<ApiResponse<unknown>> {
-    const response = await apiClient.post<ApiResponse<unknown>>(`/tools/${id}/execute`, params);
-    return response.data;
+    void id;
+    void params;
+    return {
+      success: false,
+      error: {
+        code: 'NOT_IMPLEMENTED',
+        message: 'Tool execution is not implemented yet. Track EVO-005 for this capability.',
+      },
+    };
   },
 
   /**
    * Get tool categories
    */
   async categories(): Promise<ApiResponse<string[]>> {
-    const response = await apiClient.get<ApiResponse<string[]>>('/tools/categories');
-    return response.data;
+    return {
+      success: true,
+      data: ['custom', 'utility', 'api', 'data', 'ai'],
+    };
   },
 };
