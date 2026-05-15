@@ -48,3 +48,4 @@ Evolith 的执行者是 AI Agent。Agent 从 Backlog 选取任务时会直接开
 | [前端嵌入后端](EMBEDDED-FRONTEND.md) | 远期目标 | 完成 React + Vite + Bun 迁移后实施 |
 | [Artifact Repository](ARTIFACT-REPOSITORY.md) | 远期目标 | snippet/skill 稳定后再定义制品元数据和存储模型 |
 | [AI Gateway](AI-GATEWAY.md) | 远期想法 | 核心平台稳定后展开技术方案评审 |
+| [Agent Runtime](AGENT-RUNTIME.md) | 远期想法 | 核心功能稳定后定义工作空间模型和执行方案 |
