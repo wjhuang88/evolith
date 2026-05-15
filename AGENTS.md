@@ -6,6 +6,7 @@
 
 ### Hard Constraints
 
+- **流程操作先查 Task Router**：涉及需求进入、迭代变更、发布部署、数据库迁移等流程性操作时，必须先查下方 Task Router 找到必读 SOP，读完再动手——即使操作本身看起来很简单。
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
 - **迭代推进**：进入开发前按 `docs/sop/ITERATION-WORKFLOW.md` 检查 DoR；完成时检查 DoD 并更新 backlog/iteration 状态。

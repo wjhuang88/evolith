@@ -16,3 +16,4 @@
 | [Evolith Rust CLI](RUST-CLI.md) | 远期目标 | API 合约稳定后启动 CLI 子项目 |
 | [前端嵌入后端](EMBEDDED-FRONTEND.md) | 远期目标 | 完成 React + Vite + Bun 迁移后实施 |
 | [Artifact Repository](ARTIFACT-REPOSITORY.md) | 远期目标 | snippet/skill 稳定后再定义制品元数据和存储模型 |
+| [AI Gateway](AI-GATEWAY.md) | 远期想法 | 核心平台稳定后展开技术方案评审 |
