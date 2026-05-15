@@ -29,8 +29,8 @@
 | EVO-012 | 租户设置保存 | feature | P2 | Proposed | 前端 TODO | tenant settings |
 | EVO-013 | Audit log detail 接口 | feature | P2 | Proposed | API 501 | `GET /audit-logs/{log_id}` |
 | EVO-014 | Stripe webhook 恢复 | feature | P2 | Proposed | routes TODO | 计费闭环 |
-| EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [规划](../planned/RUST-CLI.md) | API 稳定后启动 |
-| EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [规划](../planned/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
+| EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
+| EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Ready | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | replaces EVO-007/EVO-008；用面向大模型和 CLI 调用的接口规格替代旧 snippet 概念 |
 
 ## 故事模板

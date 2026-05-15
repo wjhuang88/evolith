@@ -40,4 +40,4 @@ Accepted
 ## 相关链接
 
 - [Product Backlog EVO-017](../backlog/PRODUCT-BACKLOG.md)
-- [Rust CLI 规划](../planned/RUST-CLI.md)
+- [Rust CLI 提案](../proposals/RUST-CLI.md)

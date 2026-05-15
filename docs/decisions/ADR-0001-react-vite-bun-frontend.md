@@ -32,4 +32,4 @@ Evolith 前端是 SaaS 控制台和管理后台，不依赖 SEO 或服务端渲�
 ## 相关链接
 
 - [开发计划](../roadmap/DEVELOPMENT-PLAN.md)
-- [前端嵌入后端规划](../planned/EMBEDDED-FRONTEND.md)
+- [前端嵌入后端提案](../proposals/EMBEDDED-FRONTEND.md)

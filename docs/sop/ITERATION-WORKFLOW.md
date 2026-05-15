@@ -41,7 +41,7 @@
 - 验收标准
 - 依赖或阻塞
 
-如果只是远期想法，放入 `docs/planned/`；如果已经准备排期，进入 backlog。
+如果只是远期想法，放入 `docs/proposals/`；如果已经准备排期，进入 backlog。
 
 ### 2. Backlog Refinement
 

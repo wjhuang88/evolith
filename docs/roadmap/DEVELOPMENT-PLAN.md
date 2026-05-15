@@ -242,8 +242,8 @@ nginx serve dist/
 
 | 目标 | 文档 | 进入条件 |
 |------|------|----------|
-| Rust CLI | [Evolith Rust CLI](../planned/RUST-CLI.md) | API 合约稳定，Skill/CLI interface parser 完成 |
-| 前端嵌入后端发布物 | [前端静态产物嵌入后端](../planned/EMBEDDED-FRONTEND.md) | 完成 React + Vite + Bun 静态 SPA 迁移 |
+| Rust CLI | [Evolith Rust CLI](../proposals/RUST-CLI.md) | API 合约稳定，Skill/CLI interface parser 完成 |
+| 前端嵌入后端发布物 | [前端静态产物嵌入后端](../proposals/EMBEDDED-FRONTEND.md) | 完成 React + Vite + Bun 静态 SPA 迁移 |
 
 ## 8. 计划维护规则
 

@@ -12,7 +12,7 @@
 | `docs/iterations/` | 每轮迭代计划、验证结果和复盘 | 迭代开始和结束时 |
 | `docs/decisions/` | 重要技术/产品决策 ADR | 技术栈、架构或产品边界发生重大取舍时 |
 | `docs/roadmap/` | 盘点、路线图、阶段检查点 | 阶段规划或汇报口径变化时 |
-| `docs/planned/` | 已讨论但尚未实施的方案 | 方案进入实施前或废弃时 |
+| `docs/proposals/` | 远期提案，已讨论但尚未进入实施的方案 | 方案进入实施前或废弃时 |
 | `docs/archive/` | 历史快照、过期路线、压缩后的经验 | 归档时 |
 | `EVOLUTION.md` | 故障速查和经验写回 | 发现新陷阱或被纠正时 |
 
@@ -51,14 +51,14 @@
 - [ADR-0001 前端采用 React + Vite + Bun](decisions/ADR-0001-react-vite-bun-frontend.md) — 前端技术路线决策。
 - [ADR-0002 CLI 友好接口替代 Snippet](decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) — 产品概念迁移决策。
 
-### Roadmap / Planned
+### Roadmap / Proposals
 
 - [工程化路线图](roadmap/ENGINEERING-ROADMAP.md) — 文档治理、流程治理和待补齐能力。
 - [开发计划](roadmap/DEVELOPMENT-PLAN.md) — 需求差距、前端迁移和阶段计划。
-- [规划中事项](planned/README.md) — 尚未进入实施的候选方案。
-- [Evolith Rust CLI](planned/RUST-CLI.md) — 本地智能体、skill、tool、CLI interface 管理 CLI。
-- [前端嵌入后端](planned/EMBEDDED-FRONTEND.md) — 前端静态产物打包进后端交付物。
-- [Artifact Repository](planned/ARTIFACT-REPOSITORY.md) — 模型、数据集、prompt、配置等制品管理远期方案。
+- [提案目录](proposals/README.md) — 尚未进入实施的候选方案。
+- [Evolith Rust CLI](proposals/RUST-CLI.md) — 本地智能体、skill、tool、CLI interface 管理 CLI。
+- [前端嵌入后端](proposals/EMBEDDED-FRONTEND.md) — 前端静态产物打包进后端交付物。
+- [Artifact Repository](proposals/ARTIFACT-REPOSITORY.md) — 模型、数据集、prompt、配置等制品管理远期方案。
 
 ### 产品与格式规范
 
@@ -67,19 +67,19 @@
 | [需求文档](reference/product/REQUIREMENTS.md) | 产品基线 | 核心需求、功能范围和验收口径 |
 | [Skill 格式](reference/formats/SKILL-FORMAT.md) | 格式规范 | Claude Skills 兼容格式 |
 | [Snippet 格式](reference/formats/SNIPPET-FORMAT.md) | 迁移参考 | 旧代码片段格式；新方向见 ADR-0002 |
-| [Ideas](planned/IDEAS.md) | 候选池 | 零散想法和未来方向，成熟后迁移到 `planned/` 或 `roadmap/` |
+| [Ideas](proposals/IDEAS.md) | 候选池 | 零散想法和未来方向，成熟后迁移到 `proposals/` 或 `roadmap/` |
 
 ## 重构原则
 
 原有根目录文档已按新结构迁移，`docs/` 根目录只保留文档地图。后续按以下规则演进：
 
 1. 不在 `docs/` 根目录新增专题文档。
-2. 新需求先进入 `docs/backlog/PRODUCT-BACKLOG.md`，远期想法可先放 `docs/planned/`。
+2. 新需求先进入 `docs/backlog/PRODUCT-BACKLOG.md`，远期想法可先放 `docs/proposals/`。
 3. 每轮开发在 `docs/iterations/` 留下计划、验证和复盘。
 4. 新增操作流程放 `docs/sop/`。
 5. 新增稳定事实或索引放 `docs/reference/`。
 6. 重要技术取舍写入 `docs/decisions/`。
-7. `docs/planned/IDEAS.md` 中成熟的条目迁移到 `docs/backlog/`、`docs/planned/` 或 `docs/roadmap/`。
+7. `docs/proposals/IDEAS.md` 中成熟的条目迁移到 `docs/backlog/`、`docs/proposals/` 或 `docs/roadmap/`。
 8. 移动文档时同步更新 README、AGENTS、`docs/README.md` 和文档内相对链接。
 
 ## 写文档规则

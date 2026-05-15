@@ -233,7 +233,7 @@ The debounced value that updates after the specified delay.
 
 ### 2.4 制品仓库（远期规划）
 
-本能力已归口到远期方案 [Artifact Repository](../../planned/ARTIFACT-REPOSITORY.md)。本节保留原始产品设想，当前迭代不以此作为 P0/P1 交付范围。
+本能力已归口到远期方案 [Artifact Repository](../../proposals/ARTIFACT-REPOSITORY.md)。本节保留原始产品设想，当前迭代不以此作为 P0/P1 交付范围。
 
 #### 2.4.1 功能描述
 

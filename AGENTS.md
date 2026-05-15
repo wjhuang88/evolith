@@ -11,7 +11,7 @@
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
 - **迭代推进**：进入开发前按 `docs/sop/ITERATION-WORKFLOW.md` 检查 DoR；完成时检查 DoD 并更新 backlog/iteration 状态。
 - **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更` 做变更分类、backlog/ADR/iteration 记录，再继续。
-- **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，未实施方案写 `docs/planned/`，历史快照写 `docs/archive/`。
+- **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，远期提案写 `docs/proposals/`，历史快照写 `docs/archive/`。
 - **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
 - **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 - **双数据库一致性**：数据库结构或 repository 行为变化必须同时考虑 SQLite 和 PostgreSQL migrations/repositories/tests。
@@ -471,4 +471,4 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [Billing](./docs/reference/BILLING.md)
 - [Permissions](./docs/reference/PERMISSIONS.md)
 - [i18n](./docs/reference/I18N.md)
-- [Ideas](./docs/planned/IDEAS.md)
+- [Ideas](./docs/proposals/IDEAS.md)

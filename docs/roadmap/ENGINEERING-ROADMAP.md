@@ -5,7 +5,7 @@
 ## 当前已落地
 
 - `AGENTS.md` 作为 agent 启动文档，负责硬约束、任务路由和会话结束检查。
-- `docs/README.md` 作为文档地图，明确 reference / sop / roadmap / planned / archive 分层。
+- `docs/README.md` 作为文档地图，明确 reference / sop / roadmap / proposals / archive 分层。
 - `EVOLUTION.md` 作为故障速查和经验写回载体。
 - `docs/sop/` 提供本地开发、新增功能、发布部署的标准流程。
 - `docs/reference/PROJECT-MAP.md` 提供稳定代码地图和配置边界。
@@ -26,7 +26,7 @@
 1. 状态盘点和阶段目标写 roadmap。
 2. 可执行步骤写 SOP。
 3. 稳定结构和边界写 reference。
-4. 已讨论未实施写 planned。
+4. 已讨论未实施写 proposals。
 5. 失败经验写 EVOLUTION。
 
 ## 后续可拆任务
