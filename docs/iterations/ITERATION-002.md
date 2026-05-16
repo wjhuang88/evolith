@@ -25,11 +25,11 @@
 
 ## 4. 验收标准
 
-- [ ] 新增或更新 CLI 友好接口格式文档，说明 frontmatter/schema、usage、examples、error model。
-- [ ] 更新 API 合约，明确 `CliInterface` 对外字段、创建/读取/更新/删除或迁移兼容策略。
+- [x] 新增或更新 CLI 友好接口格式文档，说明 frontmatter/schema、usage、examples、error model。
+- [x] 更新 API 合约，明确 `CliInterface` 对外字段、创建/读取/更新/删除或迁移兼容策略。
 - [ ] README、roadmap 或相关入口明确企业级 AI Agent Harness 平台定位。
-- [ ] 盘点并记录 snippet 相关后端、前端、数据库和文档入口的处理方式：保留兼容 / 重命名 / 废弃 / 后续迁移。
-- [ ] 实现最小代码改动，避免新功能继续依赖旧 snippet 命名作为产品主线。
+- [x] 盘点并记录 snippet 相关后端、前端、数据库和文档入口的处理方式：保留兼容 / 重命名 / 废弃 / 后续迁移。
+- [x] 实现最小代码改动，避免新功能继续依赖旧 snippet 命名作为产品主线。
 - [ ] 更新 backlog、roadmap 或 ADR 链接，确保旧 snippet 故事替代关系清晰。
 - [ ] EVO-002 Next.js 去除保持 P0 高优先级，并明确为 EVO-017 后优先启动的工程门禁。
 
@@ -83,6 +83,8 @@ npm run build
 | 2026-05-16 | Iteration 002 started. 选入 EVO-017；目标是先完成 CLI 友好接口概念迁移的合约、格式和最小实现边界。 |
 | 2026-05-16 | Change request received: 用户确认项目定位为企业级 harness 平台，并要求 Next.js 去除工作提到高优先级。按 scope-change 处理：当前故事继续，补充定位和优先级文档，不切换到 EVO-002。 |
 | 2026-05-16 | Process improvement: 用户指出“开始新迭代”也应成为固定 SOP。新增 START-ITERATION SOP，并把 AGENTS Task Router 的开始迭代入口切到该文件。 |
+| 2026-05-16 | Implemented first EVO-017 slice: added CLI interface format doc, API contract compatibility section, parser implementation in `service-snippet`, and migration inventory below. |
+| 2026-05-16 | Verification: `cargo test -p service-snippet` passed with 4 parser tests; markdown link check passed; `git diff --check` passed. `cargo fmt --all -- --check` failed on existing unrelated crates, so only touched service-snippet files were formatted with `rustfmt`. |
 
 ## 8. 变更请求
 
@@ -101,3 +103,14 @@ npm run build
 - 做得好的：
 - 需要调整的：
 - 写入 EVOLUTION：
+
+## 11. Snippet 迁移盘点
+
+| 区域 | 当前入口 | 本轮处理 | 后续动作 |
+|------|----------|----------|----------|
+| Domain | `backend/crates/domain/src/snippet.rs` | 保留兼容 | 后续新建 `CliInterface` domain 或明确 alias 策略 |
+| Service crate | `backend/crates/service-snippet/` | 保留 crate 名；parser 改为 CLI interface parser，并导出 `CliInterfaceParser` | 后续评估重命名为 `service-cli-interface` |
+| API route | `/api/v1/snippets` | 保留兼容；API contract 新增 CLI Interfaces 计划段 | 后续新增 `/api/v1/cli-interfaces` 或兼容转发 |
+| Database | `snippets` 表和 repository | 保留兼容，不做 migration | 后续决定 archive / transform / rename |
+| Frontend | `frontend/src/app/snippets`、`snippetsApi` | 本轮不改页面路由，避免与 EVO-002 前端迁移冲突 | Vite 迁移后统一改导航、文案和 API client |
+| Reference docs | `SNIPPET-FORMAT.md` | 标记为 legacy 迁移参考；新增 `CLI-INTERFACE-FORMAT.md` | 后续逐步替换产品文档旧术语 |

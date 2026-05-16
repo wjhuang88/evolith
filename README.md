@@ -69,7 +69,8 @@ Evolith 的定位是构建企业级 AI Agent Harness 平台：为企业内部智
 - [API合约](./docs/reference/API-CONTRACT.md)
 - [多租户设计](./docs/reference/MULTI-TENANT.md)
 - [Skill格式规范](./docs/reference/formats/SKILL-FORMAT.md)
-- [代码片段格式规范](./docs/reference/formats/SNIPPET-FORMAT.md)
+- [CLI 友好接口格式规范](./docs/reference/formats/CLI-INTERFACE-FORMAT.md)
+- [代码片段格式规范](./docs/reference/formats/SNIPPET-FORMAT.md)（legacy 迁移参考）
 - [技术栈说明](./docs/reference/TECH-STACK.md)
 - [测试](./docs/reference/TESTING.md)
 - [计费](./docs/reference/BILLING.md)

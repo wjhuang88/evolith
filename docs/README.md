@@ -70,6 +70,7 @@
 |------|------|------|
 | [需求文档](reference/product/REQUIREMENTS.md) | 产品基线 | 核心需求、功能范围和验收口径 |
 | [Skill 格式](reference/formats/SKILL-FORMAT.md) | 格式规范 | Claude Skills 兼容格式 |
+| [CLI 友好接口格式](reference/formats/CLI-INTERFACE-FORMAT.md) | 格式规范 | 面向大模型和 CLI 调用的接口描述格式 |
 | [Snippet 格式](reference/formats/SNIPPET-FORMAT.md) | 迁移参考 | 旧代码片段格式；新方向见 ADR-0002 |
 | [Ideas](proposals/IDEAS.md) | 候选池 | 零散想法和未来方向，成熟后迁移到 `proposals/` 或 `roadmap/` |
 

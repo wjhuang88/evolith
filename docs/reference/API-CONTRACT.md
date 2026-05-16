@@ -19,11 +19,12 @@ This document describes the complete REST API contract for Evolith, matching the
 9. [Tools](#tools)
 10. [Skills](#skills)
 11. [Snippets](#snippets)
-12. [Members](#members)
-13. [API Keys](#api-keys)
-14. [Billing](#billing)
-15. [Audit Logs](#audit-logs)
-16. [Version History](#version-history)
+12. [CLI Interfaces](#cli-interfaces)
+13. [Members](#members)
+14. [API Keys](#api-keys)
+15. [Billing](#billing)
+16. [Audit Logs](#audit-logs)
+17. [Version History](#version-history)
 
 ---
 
@@ -1047,6 +1048,87 @@ interface SnippetDependencyResponse {
   required: boolean;
 }
 ```
+
+---
+
+## CLI Interfaces
+
+> Planned replacement concept for Snippets. Current backend routes still use
+> `/api/v1/snippets` for compatibility; new product language, documents, and
+> parser logic use `CliInterface`. Route-level rename is intentionally deferred
+> until the migration can cover backend, frontend, database compatibility, and
+> release notes in one story.
+
+### Compatibility Strategy
+
+| Phase | API Path | Status | Notes |
+|-------|----------|--------|-------|
+| Current | `/api/v1/snippets` | Implemented compatibility path | Stores existing rows and can carry CLI interface metadata in `content` / `code` while migration proceeds |
+| Planned | `/api/v1/cli-interfaces` | Not implemented | New canonical path after repository, DTO, frontend, and migration strategy are ready |
+
+### `CliInterface` Document Shape
+
+CLI interface documents use YAML frontmatter + Markdown body. The canonical
+format is documented in [CLI 友好接口格式规范](formats/CLI-INTERFACE-FORMAT.md).
+
+```typescript
+interface CliInterfaceDocument {
+  metadata: CliInterfaceMetadata;
+  body: string; // Markdown usage, notes, constraints
+}
+
+interface CliInterfaceMetadata {
+  name: string;
+  version: string;
+  summary: string;
+  command: string;
+  subcommands?: string[];
+  tags?: string[];
+  visibility?: "private" | "tenant" | "public";
+  inputs?: CliInterfaceParameter[];
+  output?: CliInterfaceOutput;
+  examples?: CliInterfaceExample[];
+  error_model?: CliInterfaceError[];
+}
+
+interface CliInterfaceParameter {
+  name: string;
+  type: "string" | "number" | "boolean" | "enum" | "object" | "array";
+  required?: boolean;
+  description?: string;
+  values?: string[];
+  default?: unknown;
+}
+
+interface CliInterfaceOutput {
+  type: string;
+  description?: string;
+}
+
+interface CliInterfaceExample {
+  title: string;
+  command: string;
+  input?: unknown;
+  output?: unknown;
+}
+
+interface CliInterfaceError {
+  code: string;
+  message: string;
+  retryable?: boolean;
+}
+```
+
+### Legacy Mapping
+
+| Snippet Field | CLI Interface Meaning | Current Handling |
+|---------------|-----------------------|------------------|
+| `name` / `title` | `metadata.name` | Keep as stable interface name |
+| `content` | Markdown body | Keep as usage/notes during compatibility phase |
+| `code` | `metadata.command` or example command | Stop treating as insertable source code for new work |
+| `language` | tag or runtime hint | Keep for compatibility; no longer canonical taxonomy |
+| `framework` | tag | Keep for compatibility |
+| `dependencies` | future runtime/dependency metadata | Keep as legacy field until migration story |
 
 ---
 
