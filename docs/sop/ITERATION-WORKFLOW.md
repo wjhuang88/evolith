@@ -206,5 +206,5 @@ Evolith 的执行者是 AI Agent。Agent 从 Backlog 选取任务时会直接开
 
 - [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
 - [迭代目录](../iterations/README.md)
-- [开发计划](../roadmap/DEVELOPMENT-PLAN.md)
+- [实施路线图](../roadmap/IMPLEMENTATION-ROADMAP.md)
 - [Git 工作流](GIT-WORKFLOW.md)

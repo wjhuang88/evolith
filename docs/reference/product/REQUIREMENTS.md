@@ -402,7 +402,7 @@ Evolith 作为付费 SaaS 平台，需要完整的套餐管理和计费系统。
 ## 5. 验收标准
 
 当前实现推进状态以 [Product Backlog](../../backlog/PRODUCT-BACKLOG.md)、[迭代记录](../../iterations/README.md)
-和 [开发计划](../../roadmap/DEVELOPMENT-PLAN.md) 为准。本文档保留产品基线需求和原始验收口径。
+和 [实施路线图](../../roadmap/IMPLEMENTATION-ROADMAP.md) 为准。本文档保留产品基线需求和原始验收口径。
 
 ### 5.1 功能验收
 

@@ -40,6 +40,7 @@
 - [API 契约优先](sop/CONTRACT-FIRST.md) — 先改合约、再实现和验证的接口变更流程。
 - [数据库迁移](sop/DATABASE-MIGRATION.md) — SQLite/PostgreSQL 双轨 migration 和 repository 检查。
 - [测试与验证](sop/TESTING.md) — 按变更类型选择验证命令和记录结果。
+- [文档一致性检查](sop/DOC-CHECK.md) — 断链、旧术语、提案边界和 ADR 替代关系检查。
 - [发布与部署](sop/RELEASE.md) — 发布前检查、构建、验证和回滚。
 - [Git 工作流](sop/GIT-WORKFLOW.md) — 提交前检查、提交信息和变更拆分。
 
@@ -54,7 +55,7 @@
 ### Roadmap / Proposals
 
 - [工程化路线图](roadmap/ENGINEERING-ROADMAP.md) — 文档治理、流程治理和待补齐能力。
-- [开发计划](roadmap/DEVELOPMENT-PLAN.md) — 需求差距、前端迁移和阶段计划。
+- [实施路线图](roadmap/IMPLEMENTATION-ROADMAP.md) — 阶段顺序、差距盘点和 Backlog / Proposals 归口映射。
 - [提案目录](proposals/README.md) — 尚未进入实施的候选方案。
 - [Evolith Rust CLI](proposals/RUST-CLI.md) — 本地智能体、skill、tool、CLI interface 管理 CLI。
 - [前端嵌入后端](proposals/EMBEDDED-FRONTEND.md) — 前端静态产物打包进后端交付物。

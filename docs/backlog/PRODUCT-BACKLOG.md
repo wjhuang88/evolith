@@ -15,8 +15,8 @@
 
 | ID | 标题 | 类型 | 优先级 | 状态 | 来源 | 备注 |
 |----|------|------|--------|------|------|------|
-| EVO-001 | 前后端 API 对齐 | bug | P0 | Done | [开发计划 Phase A](../roadmap/DEVELOPMENT-PLAN.md#phase-a--现状校准与-api-对齐p0) | 修正 method、字段和不存在的前端 API 调用；snippet 范围已转入 EVO-017 |
-| EVO-002 | 前端迁移到 React + Vite + Bun | tech-debt | P0 | Ready | [开发计划 Phase B](../roadmap/DEVELOPMENT-PLAN.md#phase-b--前端迁移到-react--vite--bunp0) | 去除 Next.js runtime，改静态 SPA |
+| EVO-001 | 前后端 API 对齐 | bug | P0 | Done | [实施路线图 Phase A](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-a--现状校准与-api-对齐done) | 修正 method、字段和不存在的前端 API 调用；snippet 范围已转入 EVO-017 |
+| EVO-002 | 前端迁移到 React + Vite + Bun | tech-debt | P0 | Ready | [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0) | 去除 Next.js runtime，改静态 SPA |
 | EVO-003 | 忘记密码与重置密码闭环 | feature | P0 | Ready | API 501 / 需求 F2.7.7 | 依赖 mailer |
 | EVO-004 | 邀请接受 / Join 流程 | feature | P0 | Ready | API 501 / 需求 F2.5.5 | 租户成员闭环 |
 | EVO-005 | MCP 工具真实执行 | feature | P0 | Ready | 需求 F1.1.3 | 当前 `tools/call` 返回 stub |
@@ -32,6 +32,9 @@
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Ready | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | replaces EVO-007/EVO-008；用面向大模型和 CLI 调用的接口规格替代旧 snippet 概念 |
+| EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Proposed | API 501 / Phase C | `send-verify`、`verify-email`，依赖 mailer |
+| EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
+| EVO-020 | Storage 能力落地 | feature | P2 | Proposed | Phase E placeholder | 实现对象存储基础能力，支撑技能包和附件 |
 
 ## 故事模板
 
@@ -54,8 +57,8 @@
 
 优先选择：
 
-1. `EVO-001` 前后端 API 对齐。
-2. `EVO-017` Snippet 迁移为 CLI 友好接口。
-3. `EVO-002` 前端迁移到 React + Vite + Bun。
+1. `EVO-017` Snippet 迁移为 CLI 友好接口。
+2. `EVO-002` 前端迁移到 React + Vite + Bun。
+3. `EVO-003` / `EVO-004` 认证与邀请闭环。
 
-理由：先修正当前控制台可用性，再做前端工程迁移，随后补 SaaS 用户生命周期。
+理由：EVO-001 已完成；先完成产品概念迁移，再做前端工程迁移，随后补 SaaS 用户生命周期。

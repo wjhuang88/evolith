@@ -18,7 +18,7 @@
 
 ## 进入条件
 
-- MCP tool、Skill、Snippet 三条主线完成 P0/P1 闭环。
+- MCP tool、Skill、CLI interface 三条主线完成 P0/P1 闭环。
 - Storage 能力稳定。
 - CLI 具备基础 push/pull 能力。
 

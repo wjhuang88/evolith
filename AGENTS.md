@@ -45,8 +45,8 @@
 | 发布/部署/回滚 | [docs/sop/RELEASE.md](docs/sop/RELEASE.md) | [docs/reference/SCRIPTS-RELEASE-NOTES.md](docs/reference/SCRIPTS-RELEASE-NOTES.md) |
 | Git 提交 | [docs/sop/GIT-WORKFLOW.md](docs/sop/GIT-WORKFLOW.md) | [EVOLUTION.md](EVOLUTION.md) |
 | 排查问题 | [EVOLUTION.md](EVOLUTION.md) | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) |
-| 文档整理 | [docs/README.md](docs/README.md) | [docs/roadmap/ENGINEERING-ROADMAP.md](docs/roadmap/ENGINEERING-ROADMAP.md) |
-| 技术决策 | [docs/decisions/README.md](docs/decisions/README.md) | [docs/roadmap/DEVELOPMENT-PLAN.md](docs/roadmap/DEVELOPMENT-PLAN.md) |
+| 文档整理 | [docs/sop/DOC-CHECK.md](docs/sop/DOC-CHECK.md) | [docs/README.md](docs/README.md) |
+| 技术决策 | [docs/decisions/README.md](docs/decisions/README.md) | [docs/roadmap/IMPLEMENTATION-ROADMAP.md](docs/roadmap/IMPLEMENTATION-ROADMAP.md) |
 
 ### Current Known Traps
 
@@ -73,7 +73,7 @@
 Evolith is an AI agent development service platform providing:
 - MCP Server tool encapsulation (remote MCP tools)
 - Hybrid skill system (Claude Skills compatible + server-side code execution)
-- Code snippet repository (LLM-optimized documentation)
+- CLI-friendly interface repository (replacing the legacy snippet concept)
 
 **Tech Stack**: Rust + Actix-web (backend), Next.js 14 (frontend), SQLite (dev) / PostgreSQL (prod)
 
@@ -465,7 +465,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [API Contract](./docs/reference/API-CONTRACT.md)
 - [Multi-Tenant Design](./docs/reference/MULTI-TENANT.md)
 - [Skill Format](./docs/reference/formats/SKILL-FORMAT.md)
-- [Snippet Format](./docs/reference/formats/SNIPPET-FORMAT.md)
+- [Snippet Format](./docs/reference/formats/SNIPPET-FORMAT.md) — legacy migration reference
 - [Tech Stack](./docs/reference/TECH-STACK.md)
 - [Testing](./docs/reference/TESTING.md)
 - [Billing](./docs/reference/BILLING.md)

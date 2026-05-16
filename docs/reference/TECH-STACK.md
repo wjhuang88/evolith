@@ -172,7 +172,7 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 
 > 当前实现仍是 Next.js 14。项目已决定后续迁移为 `React + Vite + Bun` 静态 SPA，见
 > [ADR-0001](../decisions/ADR-0001-react-vite-bun-frontend.md) 和
-> [开发计划 Phase B](../roadmap/DEVELOPMENT-PLAN.md#phase-b--前端迁移到-react--vite--bunp0)。
+> [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0)。
 
 ### 3.1 核心框架
 
