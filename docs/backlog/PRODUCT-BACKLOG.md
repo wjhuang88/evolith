@@ -31,7 +31,7 @@
 | EVO-014 | Stripe webhook 恢复 | feature | P2 | Proposed | routes TODO | 计费闭环 |
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
-| EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | In Progress | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；用面向大模型和 CLI 调用的接口规格替代旧 snippet 概念 |
+| EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
 | EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Proposed | API 501 / Phase C | `send-verify`、`verify-email`，依赖 mailer |
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
 | EVO-020 | Storage 能力落地 | feature | P2 | Proposed | Phase E placeholder | 实现对象存储基础能力，支撑技能包和附件 |
@@ -57,8 +57,8 @@
 
 优先选择：
 
-1. `EVO-017` Snippet 迁移为 CLI 友好接口。
-2. `EVO-002` 前端迁移到 React + Vite + Bun（高优先级工程门禁）。
-3. `EVO-003` / `EVO-004` 认证与邀请闭环。
+1. `EVO-002` 前端迁移到 React + Vite + Bun（高优先级工程门禁）。
+2. `EVO-003` / `EVO-004` 认证与邀请闭环。
+3. `EVO-005` MCP 工具真实执行。
 
-理由：EVO-001 已完成；先完成产品概念迁移，再做前端工程迁移。Next.js 去除是企业级 harness 平台交付形态的高优先级前置工作，随后再补 SaaS 用户生命周期。
+理由：EVO-001 和 EVO-017 已完成；Next.js 去除是企业级 harness 平台交付形态的高优先级前置工作，随后再补 SaaS 用户生命周期和核心工具执行闭环。

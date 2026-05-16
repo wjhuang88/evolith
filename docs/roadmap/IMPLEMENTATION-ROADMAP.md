@@ -164,12 +164,11 @@ nginx serve dist/
 
 近期建议按以下顺序执行：
 
-1. **EVO-017：CLI interface 产品概念迁移**，先稳定术语、模型和 API 方向。
-2. **EVO-002：React + Vite + Bun 迁移拆分并实施**，去掉 Next.js runtime；这是当前最高优先级工程门禁。
-3. **EVO-003 / EVO-004 / EVO-018：认证与邀请闭环**，补齐 SaaS 用户生命周期。
-4. **EVO-005：MCP 工具执行闭环**，让核心价值真正可用。
-5. **EVO-006 / EVO-009 / EVO-019 / EVO-020：Skill 与 CLI interface 完整性**。
-6. **EVO-010 至 EVO-014：租户管理、计费和审计增强**。
+1. **EVO-002：React + Vite + Bun 迁移拆分并实施**，去掉 Next.js runtime；这是当前最高优先级工程门禁。
+2. **EVO-003 / EVO-004 / EVO-018：认证与邀请闭环**，补齐 SaaS 用户生命周期。
+3. **EVO-005：MCP 工具执行闭环**，让核心价值真正可用。
+4. **EVO-006 / EVO-009 / EVO-019 / EVO-020：Skill 与 CLI interface 完整性**。
+5. **EVO-010 至 EVO-014：租户管理、计费和审计增强**。
 
 ## 6. 暂缓事项
 
@@ -216,7 +215,7 @@ nginx serve dist/
 | Phase C send/verify email | EVO-018 | Proposed |
 | Phase D MCP 工具执行闭环 | EVO-005 | Ready |
 | Phase E Skill update | EVO-006 | Proposed |
-| Phase E CLI interface 迁移 | EVO-017 / EVO-009 | Ready / Proposed |
+| Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Proposed |
 | Phase E Skill registry | EVO-019 | Proposed |
 | Phase E Storage | EVO-020 | Proposed |
 | Phase F tenant members/api keys/settings/audit/billing | EVO-010 至 EVO-014 | Proposed |

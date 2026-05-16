@@ -14,7 +14,7 @@
 
 | ID | 标题 | 优先级 | 负责人 | 状态 |
 |----|------|--------|--------|------|
-| EVO-017 | Snippet 迁移为 CLI 友好接口 | P0 | Agent | In Progress |
+| EVO-017 | Snippet 迁移为 CLI 友好接口 | P0 | Agent | Done |
 
 ## 3. 不做事项
 
@@ -27,11 +27,11 @@
 
 - [x] 新增或更新 CLI 友好接口格式文档，说明 frontmatter/schema、usage、examples、error model。
 - [x] 更新 API 合约，明确 `CliInterface` 对外字段、创建/读取/更新/删除或迁移兼容策略。
-- [ ] README、roadmap 或相关入口明确企业级 AI Agent Harness 平台定位。
+- [x] README、roadmap 或相关入口明确企业级 AI Agent Harness 平台定位。
 - [x] 盘点并记录 snippet 相关后端、前端、数据库和文档入口的处理方式：保留兼容 / 重命名 / 废弃 / 后续迁移。
 - [x] 实现最小代码改动，避免新功能继续依赖旧 snippet 命名作为产品主线。
-- [ ] 更新 backlog、roadmap 或 ADR 链接，确保旧 snippet 故事替代关系清晰。
-- [ ] EVO-002 Next.js 去除保持 P0 高优先级，并明确为 EVO-017 后优先启动的工程门禁。
+- [x] 更新 backlog、roadmap 或 ADR 链接，确保旧 snippet 故事替代关系清晰。
+- [x] EVO-002 Next.js 去除保持 P0 高优先级，并明确为 EVO-017 后优先启动的工程门禁。
 
 ## 5. 验证计划
 
@@ -95,14 +95,26 @@ npm run build
 ## 9. Review
 
 - 完成：
+  - 明确企业级 AI Agent Harness 平台定位，并同步 README / AGENTS / roadmap。
+  - 将 EVO-002 Next.js 去除提升为 EVO-017 后优先启动的 P0 工程门禁。
+  - 新增 CLI 友好接口格式规范。
+  - 在 API 合约中新增 CLI Interfaces 兼容策略和 `CliInterface` document shape。
+  - 将 `service-snippet` parser 从 placeholder 替换为 CLI interface frontmatter parser，并保留兼容 alias。
+  - 记录 snippet 后端、前端、数据库、API 和文档迁移盘点。
 - 未完成：
+  - 未新增 `/api/v1/cli-interfaces` 路由；按计划留给后续迁移故事，避免本轮扩大数据库和前端路由变更。
+  - 未重命名 `service-snippet` crate 或 `snippets` 数据表；保留兼容。
 - 验证结果：
+  - `cargo test -p service-snippet`：通过，4 个 parser 单测通过。
+  - Markdown 相对链接检查：通过。
+  - `git diff --check`：通过。
+  - `cargo fmt --all -- --check`：失败于既有无关 crate 格式差异；本次触碰的 service-snippet 文件已单独 `rustfmt`。
 
 ## 10. Retrospective
 
-- 做得好的：
-- 需要调整的：
-- 写入 EVOLUTION：
+- 做得好的：中途需求补充按 change-control 记录；先建立格式、合约和 parser 基线，没有贸然重命名数据库或 API route。
+- 需要调整的：全量 cargo fmt 基线不干净，后续应独立处理或在验证 SOP 中说明局部格式化策略。
+- 写入 EVOLUTION：已写入“全量 cargo fmt 检查存在既有格式基线问题”。
 
 ## 11. Snippet 迁移盘点
 
