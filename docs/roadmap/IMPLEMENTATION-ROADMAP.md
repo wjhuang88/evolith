@@ -13,12 +13,14 @@
 
 ## 1. 当前判断
 
+Evolith 的产品定位是企业级 AI Agent Harness 平台：为企业内部智能体提供可治理、可审计、可复用、可集成的工具、技能、CLI 友好接口和运行支撑能力。后续路线优先服务这个定位，不再按“代码片段仓库”或纯演示控制台扩展。
+
 Evolith 的后端主体架构已经成型：数据库 repository、双数据库 migration、认证、RBAC、CSRF、基础 CRUD、Docker sandbox、部署栈和 CI/CD 都已具备。
 
 下一阶段不应继续扩展大而散的新功能，而应先处理三类问题：
 
 1. **需求闭环缺口**：需求和 API 合约中仍存在 501、stub、前端 mock 和服务 crate placeholder。
-2. **前端工程简化**：当前前端是 Next.js，但项目定位是 SaaS 控制台，不需要 SSR；建议迁移为 `React + Vite + Bun` 的静态 SPA。
+2. **前端工程简化**：当前前端是 Next.js，但企业级 harness 控制台不需要 SSR；迁移为 `React + Vite + Bun` 静态 SPA 是 P0 工程门禁，完成后再推进前端嵌入后端发布物。
 3. **产品概念迁移**：旧 snippet 主线停止扩展，后续替换为面向大模型和 CLI 调用的 CLI 友好接口，见 [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md)。
 
 具体需求池维护在 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)。本文档只保留阶段方向和优先级判断。
@@ -118,13 +120,13 @@ nginx serve dist/
 
 状态：Done。验证记录见 [Iteration 001](../iterations/ITERATION-001.md)。
 
-### Phase B — 前端迁移到 React + Vite + Bun（P0）
+### Phase B — 前端迁移到 React + Vite + Bun（P0 / 高优先级）
 
-目标：去掉 Next.js SSR/runtime，保留 React 生态，改为静态 SPA。
+目标：去掉 Next.js SSR/runtime，保留 React 生态，改为静态 SPA。该阶段是企业级 harness 平台交付形态的高优先级基础工作。
 
 归口：EVO-002。
 
-实施前要求：EVO-002 需要拆成多个 0.5-2 天故事，例如构建工具迁移、路由迁移、运行时配置、Docker/Nginx 调整、CI 调整。
+实施前要求：EVO-002 需要拆成多个 0.5-2 天故事，例如构建工具迁移、路由迁移、运行时配置、Docker/Nginx 调整、CI 调整。EVO-017 完成概念迁移后，应优先进入 EVO-002，不再被普通 P0 业务功能后置。
 
 ### Phase C — 认证闭环（P0/P1）
 
@@ -163,7 +165,7 @@ nginx serve dist/
 近期建议按以下顺序执行：
 
 1. **EVO-017：CLI interface 产品概念迁移**，先稳定术语、模型和 API 方向。
-2. **EVO-002：React + Vite + Bun 迁移拆分并实施**，去掉 Next.js runtime。
+2. **EVO-002：React + Vite + Bun 迁移拆分并实施**，去掉 Next.js runtime；这是当前最高优先级工程门禁。
 3. **EVO-003 / EVO-004 / EVO-018：认证与邀请闭环**，补齐 SaaS 用户生命周期。
 4. **EVO-005：MCP 工具执行闭环**，让核心价值真正可用。
 5. **EVO-006 / EVO-009 / EVO-019 / EVO-020：Skill 与 CLI interface 完整性**。
@@ -208,7 +210,7 @@ nginx serve dist/
 | 路线图内容 | 当前归口 | 状态 |
 |----------------------|----------|------|
 | Phase A API 对齐 | EVO-001 | Done |
-| Phase B React + Vite + Bun | EVO-002 | Ready；实施前应按 DoR 拆成更小故事 |
+| Phase B React + Vite + Bun | EVO-002 | Ready；P0 高优先级；实施前应按 DoR 拆成更小故事 |
 | Phase C forgot/reset password | EVO-003 | Ready |
 | Phase C invitation join | EVO-004 | Ready |
 | Phase C send/verify email | EVO-018 | Proposed |

@@ -1,4 +1,4 @@
-# Evolith - AI Agent Development Platform
+# Evolith - Enterprise AI Agent Harness Platform
 
 > 本文件是 AI Agent 的启动文档。先读本文件建立约束和任务路由；复杂步骤不要堆在这里，按任务读取 `docs/sop/`、`docs/reference/` 或 `EVOLUTION.md`。
 
@@ -70,12 +70,13 @@
 
 ## Project Overview
 
-Evolith is an AI agent development service platform providing:
+Evolith is an enterprise-grade AI Agent Harness platform providing:
 - MCP Server tool encapsulation (remote MCP tools)
 - Hybrid skill system (Claude Skills compatible + server-side code execution)
 - CLI-friendly interface repository (replacing the legacy snippet concept)
+- Governance, audit, permission, and deployment foundations for enterprise agent adoption
 
-**Tech Stack**: Rust + Actix-web (backend), Next.js 14 (frontend), SQLite (dev) / PostgreSQL (prod)
+**Tech Stack**: Rust + Actix-web (backend), current Next.js 14 frontend with P0 migration target React + Vite + Bun static SPA, SQLite (dev) / PostgreSQL (prod)
 
 ## Architecture
 
