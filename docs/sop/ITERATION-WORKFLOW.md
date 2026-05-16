@@ -8,7 +8,7 @@
 - 需要从当前 backlog 中选择下一批任务并形成迭代计划。
 - 需要结束一次迭代并沉淀经验。
 
-新需求进入、拆分、排期前先按 [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md) 检查 DoR。开发中收到需求变更时按 [迭代中需求变更](CHANGE-CONTROL.md) 处理。
+开始一次新迭代前先按 [开始一次迭代](START-ITERATION.md) 执行固定步骤。新需求进入、拆分、排期前先按 [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md) 检查 DoR。开发中收到需求变更时按 [迭代中需求变更](CHANGE-CONTROL.md) 处理。
 
 ## 核心原则
 
@@ -98,6 +98,7 @@
 ## 相关文档
 
 - [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md)
+- [开始一次迭代](START-ITERATION.md)
 - [迭代中需求变更](CHANGE-CONTROL.md)
 - [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
 - [迭代目录](../iterations/README.md)

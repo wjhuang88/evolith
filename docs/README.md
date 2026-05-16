@@ -35,6 +35,7 @@
 ### SOP
 
 - [需求进入与 Backlog 整理](sop/REQUIREMENT-INTAKE.md) — 需求分流、Proposal 晋升、DoR 和 backlog 状态。
+- [开始一次迭代](sop/START-ITERATION.md) — 选择 Ready story、创建迭代记录、同步 backlog 和验证链接。
 - [特性迭代工作流](sop/ITERATION-WORKFLOW.md) — 迭代计划、XP 开发循环、DoD、Review 和 Retro。
 - [迭代中需求变更](sop/CHANGE-CONTROL.md) — 开发中变更分类、半成品处理和防呆检查。
 - [本地开发](sop/LOCAL-DEV.md) — lite/full 模式、常用检查、日志位置。

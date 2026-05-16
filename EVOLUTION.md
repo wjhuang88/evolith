@@ -22,6 +22,12 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-05-16 开始迭代也需要独立 SOP
+**现象**: 用户要求“提交一下然后开始一个新的迭代”时，执行过程包含选择 Ready story、创建 iteration 文件、更新 backlog、处理临时需求补充和验证链接多个固定动作，但 AGENTS 只把入口指向通用迭代工作流。
+**根因**: `ITERATION-WORKFLOW.md` 描述的是迭代内循环，不足以约束“开始迭代”这个跨 backlog、iterations、验证和变更控制的流程动作。
+**方案**: 新增 `docs/sop/START-ITERATION.md`，并将 AGENTS Task Router 的“开始一次迭代”入口指向该 SOP。
+**教训**: 只要一个动作会同时修改 backlog 和 iteration，就应有独立 SOP；否则后续 Agent 容易只建文件、不改状态或漏掉验证。
+
 ### 2026-05-16 过长 SOP 要按任务入口拆分
 **现象**: `ITERATION-WORKFLOW.md` 同时承载需求准入、Backlog refinement、迭代执行、变更控制和状态定义，AGENTS Task Router 只能把多个不同任务都指向同一个长文档。
 **根因**: 初次流程改造优先保证闭环，把相邻流程放在一起；随着防呆要求提升，过长 SOP 会让后续 Agent 难以定位必读步骤。

@@ -82,6 +82,7 @@ npm run build
 |------|------|
 | 2026-05-16 | Iteration 002 started. 选入 EVO-017；目标是先完成 CLI 友好接口概念迁移的合约、格式和最小实现边界。 |
 | 2026-05-16 | Change request received: 用户确认项目定位为企业级 harness 平台，并要求 Next.js 去除工作提到高优先级。按 scope-change 处理：当前故事继续，补充定位和优先级文档，不切换到 EVO-002。 |
+| 2026-05-16 | Process improvement: 用户指出“开始新迭代”也应成为固定 SOP。新增 START-ITERATION SOP，并把 AGENTS Task Router 的开始迭代入口切到该文件。 |
 
 ## 8. 变更请求
 

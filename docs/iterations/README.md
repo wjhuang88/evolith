@@ -25,9 +25,10 @@ ITERATION-002.md
 
 迭代开始：
 
-1. 从 [Product Backlog](../backlog/PRODUCT-BACKLOG.md) 选择 Ready 项。
-2. 创建 `ITERATION-<N>.md`。
-3. 明确本轮不做什么。
+1. 先按 [开始一次迭代 SOP](../sop/START-ITERATION.md) 执行固定检查。
+2. 从 [Product Backlog](../backlog/PRODUCT-BACKLOG.md) 选择 Ready 项。
+3. 创建 `ITERATION-<N>.md`。
+4. 明确本轮不做什么。
 
 迭代结束：
 
