@@ -9,8 +9,8 @@
 - **流程操作先查 Task Router**：涉及需求进入、迭代变更、发布部署、数据库迁移等流程性操作时，必须先查下方 Task Router 找到必读 SOP，读完再动手——即使操作本身看起来很简单。
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
-- **迭代推进**：进入开发前按 `docs/sop/ITERATION-WORKFLOW.md` 检查 DoR；完成时检查 DoD 并更新 backlog/iteration 状态。
-- **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更` 做变更分类、backlog/ADR/iteration 记录，再继续。
+- **迭代推进**：进入开发前按 `docs/sop/REQUIREMENT-INTAKE.md` 检查 DoR，再按 `docs/sop/ITERATION-WORKFLOW.md` 推进；完成时检查 DoD 并更新 backlog/iteration 状态。
+- **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/CHANGE-CONTROL.md` 做变更分类、backlog/ADR/iteration 记录，再继续。
 - **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，远期提案写 `docs/proposals/`，历史快照写 `docs/archive/`。
 - **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
 - **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
@@ -33,9 +33,9 @@
 | 任务类型 | 必读文档 | 按需参考 |
 |----------|----------|----------|
 | 了解项目结构 | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) | [docs/README.md](docs/README.md) |
-| 需求进入/拆分/排期 | [docs/sop/ITERATION-WORKFLOW.md](docs/sop/ITERATION-WORKFLOW.md) | [docs/backlog/PRODUCT-BACKLOG.md](docs/backlog/PRODUCT-BACKLOG.md) |
-| 迭代中需求变更 | [docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更](docs/sop/ITERATION-WORKFLOW.md#5-迭代中需求变更) | [docs/decisions/README.md](docs/decisions/README.md) |
-| 开始一次迭代 | [docs/iterations/README.md](docs/iterations/README.md) | [docs/iterations/ITERATION-TEMPLATE.md](docs/iterations/ITERATION-TEMPLATE.md) |
+| 需求进入/拆分/排期 | [docs/sop/REQUIREMENT-INTAKE.md](docs/sop/REQUIREMENT-INTAKE.md) | [docs/backlog/PRODUCT-BACKLOG.md](docs/backlog/PRODUCT-BACKLOG.md) |
+| 迭代中需求变更 | [docs/sop/CHANGE-CONTROL.md](docs/sop/CHANGE-CONTROL.md) | [docs/decisions/README.md](docs/decisions/README.md) |
+| 开始一次迭代 | [docs/sop/ITERATION-WORKFLOW.md](docs/sop/ITERATION-WORKFLOW.md) | [docs/iterations/README.md](docs/iterations/README.md) |
 | 本地启动/调试 | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) | [EVOLUTION.md](EVOLUTION.md) |
 | 新增功能/API/页面 | [docs/sop/NEW-FEATURE.md](docs/sop/NEW-FEATURE.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
 | API 合约变更 | [docs/sop/CONTRACT-FIRST.md](docs/sop/CONTRACT-FIRST.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
@@ -169,7 +169,7 @@ pub enum AppError {
 ### Adding New Features
 
 1. **Create or update backlog item** in `docs/backlog/PRODUCT-BACKLOG.md`
-2. **Check iteration readiness** using `docs/sop/ITERATION-WORKFLOW.md`
+2. **Check iteration readiness** using `docs/sop/REQUIREMENT-INTAKE.md`, then execute with `docs/sop/ITERATION-WORKFLOW.md`
 3. **Update API contract** in `docs/reference/API-CONTRACT.md` when interfaces change
 4. **Define domain models** in `crates/domain/`
 5. **Implement repository trait** in domain layer

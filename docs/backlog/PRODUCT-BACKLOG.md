@@ -1,6 +1,6 @@
 # Product Backlog
 
-> 状态维护规则见 [特性迭代工作流](../sop/ITERATION-WORKFLOW.md)。
+> 状态维护和 DoR 规则见 [需求进入与 Backlog 整理](../sop/REQUIREMENT-INTAKE.md)；完成检查见 [特性迭代工作流](../sop/ITERATION-WORKFLOW.md)。
 
 ## 优先级说明
 

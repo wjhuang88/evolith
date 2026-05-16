@@ -1,6 +1,6 @@
 # Backlog 目录
 
-本目录是 Evolith 的可执行需求池。Agent 从这里选取任务并直接开工，因此所有条目必须满足 [Definition of Ready](../sop/ITERATION-WORKFLOW.md#definition-of-ready)。
+本目录是 Evolith 的可执行需求池。Agent 从这里选取任务并直接开工，因此所有条目必须满足 [Definition of Ready](../sop/REQUIREMENT-INTAKE.md#definition-of-ready)。
 
 ## 与 Proposals 的关系
 
@@ -15,9 +15,9 @@
 1. 新功能、缺陷、技术债先进入 backlog。
 2. 远期想法先放 `docs/proposals/`，满足晋升条件后再进入 backlog。
 3. 每个 backlog item 必须有 ID、优先级、状态和验收标准。
-4. 进入迭代前必须满足 [Definition of Ready](../sop/ITERATION-WORKFLOW.md#definition-of-ready)。
+4. 进入迭代前必须满足 [Definition of Ready](../sop/REQUIREMENT-INTAKE.md#definition-of-ready)。
 5. 完成后必须满足 [Definition of Done](../sop/ITERATION-WORKFLOW.md#definition-of-done)。
-6. 迭代中需求变更必须按 [迭代中需求变更](../sop/ITERATION-WORKFLOW.md#5-迭代中需求变更) 处理，不允许直接覆盖原故事。
+6. 迭代中需求变更必须按 [迭代中需求变更](../sop/CHANGE-CONTROL.md) 处理，不允许直接覆盖原故事。
 
 ## 防呆字段
 
