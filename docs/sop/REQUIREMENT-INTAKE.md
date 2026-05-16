@@ -8,6 +8,9 @@
 - `docs/proposals/` 中的提案准备进入实施。
 - 需要拆分、排期或调整 `docs/backlog/PRODUCT-BACKLOG.md`。
 - 迭代开始前需要确认候选故事是否 Ready。
+- 当前迭代期间用户提出新想法，但它不改变当前 `In Progress` story 的验收标准或实现方向。
+
+> 如果新输入会改变当前 `In Progress` story 的验收标准、领域概念、优先级或交付范围，改走 [迭代中需求变更](CHANGE-CONTROL.md)。如果只是给未来新增任务，不要污染当前 iteration 的 change request，按本文进入 backlog 或 proposal。
 
 ## 输入分流
 
@@ -32,6 +35,28 @@
 - 依赖或阻塞
 - 影响范围：backend / frontend / db / docs / deploy
 - 最小验证方式
+
+## Backlog 结构规则
+
+`docs/backlog/PRODUCT-BACKLOG.md` 采用“总表 + 详情块”结构：
+
+| 区域 | 责任 | 防呆规则 |
+|------|------|----------|
+| 当前需求池总表 | 路由、排序、状态和来源索引 | 每个 backlog item 必须有一行；备注只写一句关键状态，不写完整需求 |
+| 待细化故事详情块 | 用户价值、验收标准、依赖、影响范围和验证方式 | `Ready`、`In Progress`、`Review`、`Done` 的 story 必须有详情块或明确链接到等价文档 |
+| Proposal / ADR / Roadmap | 背景、远期方向和重大取舍 | 不替代 backlog 详情；进入实施前仍要有 backlog item |
+
+`Proposed` item 可以先只有总表行；晋升 `Ready` 前必须补齐详情块。Agent 选择任务时不得只凭总表备注开工。
+
+## Epic / Story 拆分规则
+
+当一个 backlog item 超过 0.5-2 天或需要跨多个独立切片实施时，将它作为 Epic 处理：
+
+1. 父项备注写明拆分范围，例如“已拆分为 EVO-021 至 EVO-025”。
+2. 子项必须各自满足 DoR，并可以独立验证。
+3. 父项通常不直接进入开发；如果用于表示总体推进中，可标记 `In Progress`，但实际迭代只选一个子项。
+4. 父项 `Done` 的条件是所有必需子项 `Done`，或 roadmap 明确剩余子项已 Deferred / Dropped。
+5. 新增子项时同步更新父项备注和 roadmap 归口映射。
 
 ## Proposal 晋升
 

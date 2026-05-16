@@ -15,12 +15,19 @@
 | 4 | SQLite 与 PostgreSQL 行为不一致 | 只改了一侧 migration/repository | 同步修改 `migrations/sqlite`、`migrations/postgres` 和两套 repository |
 | 5 | CSRF 403 | 状态变更请求缺少 `csrf_token` cookie 或 `X-CSRF-Token` header | 先完成登录/刷新，再由 API client 自动带 header |
 | 6 | Skill 执行未进入 Docker 沙箱 | Docker 初始化失败后降级到 default executor | 查看后端启动日志中的 sandbox warn |
+| 7 | lite 模式种子账号不能登录 | migrations 中的测试/admin 密码哈希是占位值，且 SQLite 内存库重启即清空 | 启动后通过注册接口创建临时账号 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-05-17 SOP 要区分“当前故事变更”和“迭代期间新需求进入”
+**现象**: 在 EVO-021 路由适配迭代期间，用户提出 Skill 多来源导入、版本验证和 Snippets 残留处理等后续规划；这些需求需要进入 backlog/roadmap，但并不改变当前路由适配故事。
+**根因**: `CHANGE-CONTROL.md` 只说明“迭代中收到需求变更”要停手记录，未明确独立新需求应回到 `REQUIREMENT-INTAKE.md`，容易把未来需求写进当前 iteration 的 change request。
+**方案**: 更新 `REQUIREMENT-INTAKE.md`、`CHANGE-CONTROL.md`、`START-ITERATION.md`、`DOC-CHECK.md`、`GIT-WORKFLOW.md` 和 `LOCAL-DEV.md`，补充独立新需求分流、Epic/Story 拆分、旧概念检查、混合文档提交和本地测试账号规则。
+**教训**: 迭代期间的新输入先判断是否改变当前 story；不改变当前 story 的，进入 backlog/proposal，不污染当前迭代变更记录。
 
 ### 2026-05-16 结对开发应采用分阶段角色切换
 **现象**: 在讨论极限编程结对编程时，直接让同一 Agent 在同一上下文中同时扮演 Driver 和 Navigator，可能导致目标混杂、责任不清和上下文污染。

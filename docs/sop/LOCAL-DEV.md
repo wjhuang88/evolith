@@ -56,6 +56,25 @@ npm run type-check
 npm run build
 ```
 
+## 本地测试账号
+
+SQLite lite 模式默认使用内存库，每次后端重启都会清空数据。当前 migrations 中的 `test@example.com` 和 `admin@example.com` 仅为历史种子示例，密码哈希是占位值，不应假定可登录。
+
+推荐在每次 lite 启动后通过注册流程创建临时账号：
+
+```bash
+curl -i -s -X POST http://127.0.0.1:8080/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dev@example.com","username":"dev","password":"TestPassword123!"}'
+```
+
+随后可在前端使用：
+
+- 邮箱：`dev@example.com`
+- 密码：`TestPassword123!`
+
+如改用持久化 SQLite 文件或 PostgreSQL，账号生命周期以对应数据库为准。
+
 ## 失败恢复
 
 | 现象 | 排查 |
@@ -64,6 +83,7 @@ npm run build
 | 后端启动后数据库异常 | 检查 `DATABASE__DATABASE_TYPE` 和 `DATABASE__URL` |
 | 前端请求 404 | 检查 `NEXT_PUBLIC_API_URL` 是否包含 `/api/v1` |
 | CSRF 403 | 先完成登录，让浏览器拿到 `csrf_token` cookie |
+| 种子账号登录 500 或失败 | 不要继续尝试历史种子账号；按“本地测试账号”注册临时账号 |
 | sandbox 不生效 | 检查 Docker 是否可用，以及后端启动日志是否降级到 default executor |
 
 ## 注意事项

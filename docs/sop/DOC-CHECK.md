@@ -61,12 +61,24 @@ git diff --check
 3. 更新 backlog 的替代关系。
 4. 更新 roadmap 的执行顺序和进入条件。
 5. 更新 proposals 的前置依赖。
+6. 在相关 backlog item 的验收标准或 DoD 中加入旧术语搜索命令，直到迁移完成。
+
+旧术语命中必须分类：
+
+| 分类 | 是否允许 | 处理 |
+|------|----------|------|
+| 用户可见新功能文案 | 不允许 | 改成新概念 |
+| 新 roadmap / backlog 目标 | 不允许 | 改成新概念，或新增替代关系 |
+| 当前实现事实 | 允许 | 标注 legacy / compatibility / current implementation |
+| 历史迭代、ADR 背景、迁移参考 | 允许 | 保留，但避免作为下一步目标 |
 
 示例：
 
 ```bash
 rg -n "snippet|Snippet|片段" docs AGENTS.md README.md
 ```
+
+如果旧概念仍存在前端页面或 API client，必须新增或更新 backlog item，写清楚迁移范围、依赖和验证方式；不要只在对话中说明“后续处理”。
 
 ## Proposal 晋升检查
 

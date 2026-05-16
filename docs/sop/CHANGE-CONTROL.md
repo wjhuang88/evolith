@@ -8,6 +8,16 @@
 - 需求描述改变了验收标准、领域概念、优先级或交付范围。
 - 实现过程中发现原故事无法按原计划完成，需要缩小、暂停或切换。
 
+## 非触发条件
+
+以下情况不走本 SOP，改走 [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md)：
+
+- 用户提出未来要做的新能力，但当前 `In Progress` story 的验收标准不变。
+- 用户指出页面或文档中的残留问题，结论是“后续单独处理”，不改变当前实现切片。
+- 用户补充远期目标、候选方案或参考资料，只需要进入 proposal/backlog。
+
+防呆判断：先问一句“这个输入是否要求我改变当前 story 的验收标准或正在写的代码？”如果答案是否，记录到 backlog/proposal，不写入当前 iteration 的 change request 表。
+
 ## 先停手规则
 
 收到变更后立即执行：
@@ -16,6 +26,8 @@
 2. 在当前 iteration `执行记录` 增加 change request 行。
 3. 选定唯一变更类型。
 4. 完成 backlog / ADR / iteration 的记录后，再继续代码或文档改动。
+
+如果判断为“非触发条件”，仍应暂停扩大实现范围，先把新需求按 `REQUIREMENT-INTAKE.md` 记录清楚，再回到当前 story。
 
 ## 变更分类
 
@@ -41,6 +53,7 @@
 
 ## 防呆检查表
 
+- [ ] 已确认该输入确实改变当前 `In Progress` story，而不是独立新需求。
 - [ ] 已在当前 iteration `执行记录` 增加 change request 行。
 - [ ] 已选定唯一变更类型。
 - [ ] 如果是 `product-pivot`，已新增 ADR。

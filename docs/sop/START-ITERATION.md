@@ -23,6 +23,7 @@
 3. 如果多个 P0 并列，优先选择能解除后续阻塞的工程门禁或产品概念迁移。
 4. 不从 `docs/proposals/` 直接开工；提案必须先晋升到 backlog。
 5. 单个 Agent 会话默认只选 1 个 story，除非用户明确要求多故事迭代。
+6. 如果候选项是 Epic，只能选择已拆出的 `Ready` 子 story；不要把整个 Epic 放入一次 Agent 微迭代。
 
 ## 操作步骤
 
@@ -73,6 +74,8 @@ git diff --check
 ## 失败处理
 
 - 候选 story 不满足 DoR：不要创建迭代；先回到 `REQUIREMENT-INTAKE.md` 补齐 backlog。
+- 候选 story 只有总表行、没有详情块：先补用户价值、验收标准、依赖、影响范围和最小验证方式，再开始迭代。
+- 候选 story 是父级 Epic：先拆出 0.5-2 天子 story，并让子 story 满足 DoR。
 - 已有 `In Progress` story：先结束、暂停或记录切换原因，再开始新迭代。
 - 忘记同步 backlog：先补 backlog 状态，再继续。
 - 用户开始迭代时改变范围：按 `CHANGE-CONTROL.md` 记录，不要直接覆盖原计划。
