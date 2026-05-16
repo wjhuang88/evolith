@@ -702,7 +702,7 @@ ApiResponse<{
 ### `POST /api/v1/skills`
 
 - **Auth:** JWT
-- **Description:** Create a new skill
+- **Description:** Create a new skill from direct `SKILL.md` content. Multi-source creation is planned under EVO-027.
 
 **Request:**
 ```typescript
@@ -725,6 +725,55 @@ interface DependencyInput {
 **Response:**
 ```typescript
 ApiResponse<SkillResponse>
+```
+
+---
+
+### Planned Skill Import Endpoints ⚠️ Not implemented
+
+These endpoints define the target contract for EVO-027 and EVO-028. They are not available in the current service.
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/v1/skills/import/zip` | Upload a ZIP package containing a standard Skill directory |
+| `POST /api/v1/skills/import/git` | Import or preview a Skill from a Git repository, branch/tag/commit, and optional subdirectory |
+| `POST /api/v1/skills/import/skillhub` | Sync a Skill from SkillHub or a compatible registry |
+| `POST /api/v1/skills/validate` | Validate direct `SKILL.md` content or a staged package without creating a Skill |
+| `GET /api/v1/skills/{id}/versions` | List versions for a Skill |
+| `GET /api/v1/skills/{id}/versions/{version}` | Get one version and its validation report |
+| `POST /api/v1/skills/{id}/versions/{version}/default` | Set the default version |
+| `POST /api/v1/skills/{id}/versions/{version}/rollback` | Roll back the default version pointer |
+
+Planned validation baseline:
+
+- A Skill package must contain `SKILL.md`.
+- `SKILL.md` must contain YAML frontmatter and Markdown body.
+- Frontmatter must include `name` and `description`.
+- `name` must be 1-64 characters, lowercase alphanumeric or hyphen only, must not start or end with a hyphen, must not contain consecutive hyphens, and must match the Skill directory name.
+- `description` must be 1-1024 characters and should explain both capability and activation conditions.
+- `scripts/`, `references/`, `assets/`, `license`, `compatibility`, `metadata`, and `allowed-tools` must be parsed for compatibility even if Evolith does not execute or enforce all of them initially.
+
+Planned import response:
+
+```typescript
+interface SkillImportReport {
+  source_type: 'manual' | 'zip' | 'git' | 'skillhub';
+  source_ref?: string;
+  skill_id?: string;
+  skill_name?: string;
+  version?: string;
+  status: 'accepted' | 'accepted_with_warnings' | 'rejected' | 'draft';
+  files: string[];
+  errors: SkillValidationIssue[];
+  warnings: SkillValidationIssue[];
+}
+
+interface SkillValidationIssue {
+  code: string;
+  message: string;
+  path?: string;
+  line?: number;
+}
 ```
 
 ---

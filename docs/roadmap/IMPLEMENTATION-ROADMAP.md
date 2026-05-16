@@ -144,13 +144,13 @@ nginx serve dist/
 
 阶段完成标准：MCP `initialize`、`tools/list`、`tools/call` 可由 API key 调用；私有工具不能被越权调用；HTTP tool 返回值能被 MCP content 包装。
 
-### Phase E — Skill / CLI 友好接口完整性（P1）
+### Phase E — Skill 生命周期 / CLI 友好接口完整性（P1）
 
-目标：补齐 Skill 编辑能力，并将旧 snippet 主线迁移为 CLI 友好接口。
+目标：把 Skill 从“可手工创建和执行”的基础能力升级为企业级 Skill 生命周期管理：支持 ZIP 上传、Git 仓库接入、SkillHub 同步、版本管理、正确性验证和专业描述检查；同时将旧 snippet 主线迁移为 CLI 友好接口。
 
-归口：EVO-006、EVO-009、EVO-017、EVO-019、EVO-020。
+归口：EVO-006、EVO-009、EVO-017、EVO-019、EVO-020、EVO-026、EVO-027、EVO-028、EVO-029。
 
-阶段完成标准：Skill CRUD 完整；CLI interface 描述可直接给 LLM 使用，也可被 Rust CLI 复用；格式 parser 对示例文档有测试覆盖。
+阶段完成标准：Skill CRUD 完整；创建入口覆盖手写、ZIP、Git 和 SkillHub 同步；每次导入或更新都有版本记录、校验报告和回滚路径；Skill 描述满足 Agent Skills 的发现要求，能说明能力、触发场景和关键词；CLI interface 描述可直接给 LLM 使用，也可被 Rust CLI 复用；格式 parser 对示例文档有测试覆盖。
 
 ### Phase F — 租户管理、计费和审计增强（P1/P2）
 
@@ -167,7 +167,7 @@ nginx serve dist/
 1. **EVO-002：React + Vite + Bun 迁移拆分并实施**，去掉 Next.js runtime；这是当前最高优先级工程门禁。
 2. **EVO-003 / EVO-004 / EVO-018：认证与邀请闭环**，补齐 SaaS 用户生命周期。
 3. **EVO-005：MCP 工具执行闭环**，让核心价值真正可用。
-4. **EVO-006 / EVO-009 / EVO-019 / EVO-020：Skill 与 CLI interface 完整性**。
+4. **EVO-006 / EVO-009 / EVO-019 / EVO-020 / EVO-026 至 EVO-029：Skill 生命周期与 CLI interface 完整性**。
 5. **EVO-010 至 EVO-014：租户管理、计费和审计增强**。
 
 ## 6. 暂缓事项
@@ -218,6 +218,10 @@ nginx serve dist/
 | Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Proposed |
 | Phase E Skill registry | EVO-019 | Proposed |
 | Phase E Storage | EVO-020 | Proposed |
+| Phase E Frontend snippet residue | EVO-026 | Proposed |
+| Phase E Skill import sources | EVO-027 | Proposed |
+| Phase E Skill versioning and validation | EVO-028 | Proposed |
+| Phase E Skill discovery description | EVO-029 | Proposed |
 | Phase F tenant members/api keys/settings/audit/billing | EVO-010 至 EVO-014 | Proposed |
 | Rust CLI | Proposal: [RUST-CLI](../proposals/RUST-CLI.md) | Deferred |
 | 前端嵌入后端发布物 | Proposal: [EMBEDDED-FRONTEND](../proposals/EMBEDDED-FRONTEND.md) | Deferred |

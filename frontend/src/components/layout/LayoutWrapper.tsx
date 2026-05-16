@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname } from '@/lib/router';
 import { MainLayout } from './MainLayout';
 import { AuthGuard } from '@/components/AuthGuard';
 

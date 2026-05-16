@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/router';
 import { useAuthStore } from '@/stores/authStore';
 import { getToken } from '@/lib/api';
 
