@@ -22,6 +22,12 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-05-16 结对开发应采用分阶段角色切换
+**现象**: 在讨论极限编程结对编程时，直接让同一 Agent 在同一上下文中同时扮演 Driver 和 Navigator，可能导致目标混杂、责任不清和上下文污染。
+**根因**: 双角色并行适合两个人或两个独立上下文；单上下文中更需要阶段边界和检查表，而不是角色互相争论。
+**方案**: 新增 `docs/sop/PAIRING-WORKFLOW.md`，采用 Driver 实现小切片、Navigator 检查、Driver 修正、Navigator 提交前检查的顺序模式。
+**教训**: AI Agent 的结对开发应优先做“分阶段审查”，而不是“同上下文双人格”；Navigator 必须基于 SOP、ADR、backlog、diff 或具体风险给结论。
+
 ### 2026-05-16 全量 cargo fmt 检查存在既有格式基线问题
 **现象**: 在 EVO-017 parser 改动后运行 `cargo fmt --all -- --check`，命令失败并输出多个无关 crate 的格式差异，同时 stable rustfmt 对部分 nightly-only 配置项发出 warning。
 **根因**: workspace 里已有未格式化文件或 rustfmt 配置与 stable 工具链不完全匹配；全量 fmt 检查会把无关历史差异和本次改动混在一起。

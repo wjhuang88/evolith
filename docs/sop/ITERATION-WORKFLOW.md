@@ -99,6 +99,7 @@
 
 - [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md)
 - [开始一次迭代](START-ITERATION.md)
+- [分阶段结对开发](PAIRING-WORKFLOW.md)
 - [迭代中需求变更](CHANGE-CONTROL.md)
 - [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
 - [迭代目录](../iterations/README.md)

@@ -10,6 +10,7 @@
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
 - **迭代推进**：开始迭代按 `docs/sop/START-ITERATION.md` 固定步骤执行；进入开发前按 `docs/sop/REQUIREMENT-INTAKE.md` 检查 DoR，再按 `docs/sop/ITERATION-WORKFLOW.md` 推进；完成时检查 DoD 并更新 backlog/iteration 状态。
+- **复杂任务分阶段结对**：跨多层、合约、数据库、权限、发布或高风险改动时，按 `docs/sop/PAIRING-WORKFLOW.md` 在 Driver 实现后切换 Navigator 审查；不要在同一段推理中并行扮演双角色。
 - **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/CHANGE-CONTROL.md` 做变更分类、backlog/ADR/iteration 记录，再继续。
 - **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，远期提案写 `docs/proposals/`，历史快照写 `docs/archive/`。
 - **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
@@ -36,6 +37,7 @@
 | 需求进入/拆分/排期 | [docs/sop/REQUIREMENT-INTAKE.md](docs/sop/REQUIREMENT-INTAKE.md) | [docs/backlog/PRODUCT-BACKLOG.md](docs/backlog/PRODUCT-BACKLOG.md) |
 | 迭代中需求变更 | [docs/sop/CHANGE-CONTROL.md](docs/sop/CHANGE-CONTROL.md) | [docs/decisions/README.md](docs/decisions/README.md) |
 | 开始一次迭代 | [docs/sop/START-ITERATION.md](docs/sop/START-ITERATION.md) | [docs/iterations/README.md](docs/iterations/README.md) |
+| 复杂任务结对审查 | [docs/sop/PAIRING-WORKFLOW.md](docs/sop/PAIRING-WORKFLOW.md) | [docs/sop/ITERATION-WORKFLOW.md](docs/sop/ITERATION-WORKFLOW.md) |
 | 本地启动/调试 | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) | [EVOLUTION.md](EVOLUTION.md) |
 | 新增功能/API/页面 | [docs/sop/NEW-FEATURE.md](docs/sop/NEW-FEATURE.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
 | API 合约变更 | [docs/sop/CONTRACT-FIRST.md](docs/sop/CONTRACT-FIRST.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
