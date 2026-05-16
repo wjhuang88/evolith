@@ -440,9 +440,11 @@ npm run dev
 
 ## 5. 持续集成
 
-### 5.1 CI Pipeline (`.github/workflows/ci.yml`)
+### 5.1 当前状态
 
-CI 在每次 push/PR 时自动运行以下步骤：
+GitHub Actions workflow 在前端迁移期间暂不作为当前门禁；后续由 backlog `EVO-030` 基于最终构建、测试和部署命令重建。
+
+重建时建议覆盖以下步骤：
 
 1. `cargo fmt --check` — 格式检查
 2. `cargo clippy --workspace -- -D warnings` — Lint 检查（warnings 视为错误）

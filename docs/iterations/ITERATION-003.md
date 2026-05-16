@@ -19,7 +19,8 @@
 
 - 不新增 Vite 构建入口；归属 EVO-022。
 - 不迁移 `NEXT_PUBLIC_*` 环境变量；归属 EVO-023。
-- 不修改 Docker / Nginx / CI；归属 EVO-024。
+- 不修改 Docker / Nginx；归属 EVO-024。
+- 不创建或恢复 GitHub CI/CD workflow；归属 EVO-030。
 - 不删除 Next.js 依赖、middleware 或 App Router 文件；归属 EVO-025。
 
 ## 4. 验收标准

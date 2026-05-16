@@ -36,14 +36,15 @@
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
 | EVO-020 | Storage 能力落地 | feature | P2 | Proposed | Phase E placeholder | 实现对象存储基础能力，支撑技能包和附件 |
 | EVO-021 | 前端路由适配层 | tech-debt | P0 | Done | EVO-002 split | Iteration 003；已新增 `frontend/src/lib/router.tsx`，页面和共享组件不再直接导入 Next 路由模块 |
-| EVO-022 | Vite + Bun 构建骨架 | tech-debt | P0 | Ready | EVO-002 split | 新增 Vite 入口、React Router 根路由和并行构建脚本 |
+| EVO-022 | Vite + Bun 构建骨架 | tech-debt | P0 | In Progress | EVO-002 split | Iteration 004；新增 Vite 入口、React Router 根路由和并行构建脚本 |
 | EVO-023 | 前端运行时配置迁移 | tech-debt | P0 | Ready | EVO-002 split | 从 `NEXT_PUBLIC_*` 迁移到 Vite/runtime config，保留 `/api/v1` 约束 |
-| EVO-024 | Docker / Nginx / CI 切换到静态 SPA | tech-debt | P0 | Ready | EVO-002 split | 用 `dist/` 静态产物替代 Next standalone runtime |
+| EVO-024 | Docker / Nginx 切换到静态 SPA | tech-debt | P0 | Ready | EVO-002 split | 用 `dist/` 静态产物替代 Next standalone runtime；不包含 GitHub CI/CD |
 | EVO-025 | 移除 Next.js 依赖和遗留入口 | tech-debt | P0 | Ready | EVO-002 split | 删除 App Router、middleware、next config 和 Next package 依赖 |
 | EVO-026 | 前端 Snippets 入口迁移为 CLI 友好接口 | product-change | P1 | Proposed | EVO-017 / 页面残留 | Vite 迁移后统一替换导航、路由文案、API client 和 i18n 旧 snippet 概念 |
 | EVO-027 | Skill 多来源创建 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 支持 ZIP 上传、Git 仓库接入、SkillHub 同步三种创建入口 |
 | EVO-028 | Skill 版本管理与正确性验证 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 建立版本历史、回滚、agentskills 规范校验、描述质量检查和导入报告 |
 | EVO-029 | Skill 专业描述与发现质量提升 | feature | P2 | Proposed | Agent Skills spec | 提升 description、触发关键词、兼容性、资源索引和搜索排序质量 |
+| EVO-030 | GitHub CI/CD 重建 | tech-debt | P2 | Proposed | EVO-002 split / 工程收尾 | 放到项目后段统一做；基于最终构建、测试、部署命令重建 workflow |
 
 ## 故事模板
 
@@ -68,9 +69,87 @@
 
 1. `EVO-022` Vite + Bun 构建骨架。
 2. `EVO-023` 前端运行时配置迁移。
-3. `EVO-024` Docker / Nginx / CI 切换到静态 SPA。
+3. `EVO-024` Docker / Nginx 切换到静态 SPA。
+4. `EVO-025` 移除 Next.js 依赖和遗留入口。
 
-理由：EVO-001 和 EVO-017 已完成；Next.js 去除是企业级 harness 平台交付形态的高优先级前置工作，随后再补 SaaS 用户生命周期和核心工具执行闭环。
+理由：EVO-001 和 EVO-017 已完成；Next.js 去除是企业级 harness 平台交付形态的高优先级前置工作。EVO-024 仍属于前端迁移链，因为生产镜像和 Nginx 必须从 Next standalone runtime 切到 `dist/` 静态产物；GitHub CI/CD 不再混入 EVO-024，改由 EVO-030 在项目后段统一重建。
+
+## 已细化故事
+
+### EVO-022 Vite + Bun 构建骨架
+
+- 类型：tech-debt
+- 优先级：P0
+- 状态：In Progress
+- 用户价值或技术目标：建立 Vite + Bun 构建入口，使用 React Router 替代 Next.js App Router 路由，实现与现有 Next 构建并行的双构建能力。这是前端迁移链的第一步，后续 EVO-023/024/025 依赖本故事的产物。
+- 范围：
+  - 在 `frontend/` 中新增 Vite 配置（`vite.config.ts`）。
+  - 新增 Vite 入口 HTML（`index.html`）和 SPA 入口（`src/main-spa.tsx`）。
+  - 用 React Router v6 建立 SPA 路由树，复用 Iteration 003 建立的路由适配层 `router.tsx`。
+  - 新增 `package.json` scripts：`dev:spa`（Vite dev server）、`build:spa`（Vite 构建）、`preview:spa`（Vite preview）。
+  - 保留现有 Next 构建不被破坏（双构建并行）。
+- 不做：
+  - 不迁移 `NEXT_PUBLIC_*` 环境变量；归属 EVO-023。
+  - 不修改 Docker / Nginx 配置；归属 EVO-024。
+  - 不创建或恢复 GitHub CI/CD workflow；归属 EVO-030。
+  - 不删除 Next.js 依赖、App Router 或 middleware；归属 EVO-025。
+  - 不改变 API client 或业务逻辑。
+- 验收标准：
+  - [ ] `vite.config.ts` 存在且配置了 React 插件、路径别名（`@/`）、Tailwind。
+  - [ ] `index.html` SPA 入口可加载。
+  - [ ] React Router 路由树覆盖当前所有 22 个页面路由。
+  - [ ] `bun run dev:spa` 启动 Vite dev server，SPA 可访问。
+  - [ ] `bun run build:spa` 产出 `dist/` 静态文件。
+  - [ ] 现有 `npm run build` / `npm run type-check` 不受影响。
+  - [ ] 路由适配层 `router.tsx` 在 Vite 环境使用 React Router 实现。
+- 技术备注：
+  - 路由适配层在 Iteration 003 已建立（`frontend/src/lib/router.tsx`），当前委托 Next；本故事需要让该层在 Vite 环境下使用 React Router 实现。
+  - TanStack Query 暂不在本故事引入；当前项目使用 Zustand + Axios，保持不变。
+  - Bun 作为包管理和脚本运行时，Vite 作为构建工具。
+- 依赖：EVO-021（路由适配层）已完成。
+- 影响范围：frontend
+- 最小验证方式：`bun run build:spa` 成功产出 `dist/`；`npm run build` 不报错；手动访问 SPA 验证路由。
+
+### EVO-024 Docker / Nginx 切换到静态 SPA
+
+- 类型：tech-debt
+- 优先级：P0
+- 状态：Ready
+- 用户价值或技术目标：让生产部署形态匹配 Vite 静态 SPA，避免继续依赖 Next standalone runtime，为后续移除 Next.js 依赖提供部署侧前置条件。
+- 范围：
+  - 更新前端 Dockerfile 或生产镜像构建流程，使用 Vite `dist/` 静态产物。
+  - 更新 Nginx 配置，支持 SPA history fallback、静态资源缓存和 `/api/v1` 反向代理。
+  - 更新 `docker-compose.prod.yml` 中与前端构建产物、服务启动命令、挂载路径相关的配置。
+  - 保留或补充运行时配置 `/config.js` 的部署方式。
+- 不做：
+  - 不创建或恢复 `.github/workflows/*.yml`；归属 EVO-030。
+  - 不删除 Next.js 依赖、App Router 或 middleware；归属 EVO-025。
+  - 不改变后端 API 合约。
+- 验收标准：
+  - [ ] 生产前端镜像不再依赖 Next standalone server。
+  - [ ] Nginx 能托管 `dist/` 并对 SPA 路由返回入口 HTML。
+  - [ ] `/api/v1` 请求仍代理到后端，且前端 API base URL 保持 `/api/v1` 约束。
+  - [ ] Docker production stack 可启动到前端静态页面和后端 health endpoint。
+  - [ ] 文档说明 GitHub CI/CD 已拆到 EVO-030，避免误以为 EVO-024 包含 workflow。
+- 依赖或阻塞：EVO-022、EVO-023。
+- 影响范围：frontend / deploy / docs
+- 最小验证方式：`bun run build:spa`；本地或容器内验证 Nginx 静态托管和 `/api/v1` 代理；`git diff --check`。
+
+### EVO-030 GitHub CI/CD 重建
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 用户价值或技术目标：在前端迁移、部署形态和核心项目结构稳定后，基于最终命令重建 GitHub CI/CD，避免在迁移中反复维护过时 workflow。
+- 验收标准：
+  - [ ] 新建 `.github/workflows/ci.yml`，覆盖后端 fmt/clippy/test、前端 type-check/build、必要的安全扫描。
+  - [ ] 如仍需要部署自动化，新建 `.github/workflows/deploy.yml` 或明确替代方案。
+  - [ ] CI 中使用最终前端命令，不再引用 Next standalone 构建路径。
+  - [ ] PostgreSQL/Redis 或容器依赖的验证策略明确。
+  - [ ] 更新测试与发布相关参考文档。
+- 依赖或阻塞：EVO-024、EVO-025，以及项目主线功能稳定后统一排期。
+- 影响范围：deploy / docs
+- 最小验证方式：workflow lint 或一次 GitHub Actions dry run / 手动触发记录；本地执行对应命令。
 
 ## 待细化故事
 

@@ -218,6 +218,8 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 
 ### 4.2 CI/CD
 
+GitHub Actions workflow 暂缓到 EVO-030 重建，避免在前端迁移期间维护过时的 Next.js 构建路径。下表是目标形态，不代表当前仓库已有 workflow 文件。
+
 | 阶段 | 工具 | 任务 |
 |------|------|------|
 | 构建 | GitHub Actions | 编译、测试、构建镜像 |
@@ -409,7 +411,7 @@ evolith/
 │
 ├── deploy/                   # Nginx 配置
 ├── scripts/                  # dev.sh, backup.sh, deploy.sh
-├── .github/workflows/        # CI/CD (ci.yml, deploy.yml)
+├── .github/workflows/        # CI/CD workflow（EVO-030 重建）
 ├── docs/                     # 文档
 ├── docker-compose.prod.yml   # 生产 Docker 编排
 └── README.md

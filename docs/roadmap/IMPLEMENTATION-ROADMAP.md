@@ -1,7 +1,7 @@
 # Evolith 实施路线图
 
 > 制定日期：2026-05-15
-> 最近更新：2026-05-16
+> 最近更新：2026-05-17
 > 目标：维护阶段优先级、实施顺序和 Backlog / Proposals 归口关系。
 
 本文档不是任务池。Agent 不应直接从本文档开工：
@@ -15,7 +15,7 @@
 
 Evolith 的产品定位是企业级 AI Agent Harness 平台：为企业内部智能体提供可治理、可审计、可复用、可集成的工具、技能、CLI 友好接口和运行支撑能力。后续路线优先服务这个定位，不再按“代码片段仓库”或纯演示控制台扩展。
 
-Evolith 的后端主体架构已经成型：数据库 repository、双数据库 migration、认证、RBAC、CSRF、基础 CRUD、Docker sandbox、部署栈和 CI/CD 都已具备。
+Evolith 的后端主体架构已经成型：数据库 repository、双数据库 migration、认证、RBAC、CSRF、基础 CRUD、Docker sandbox 和部署栈都已具备。GitHub CI/CD 在前端迁移期间暂不作为主线门禁，待项目结构和部署命令稳定后统一重建。
 
 下一阶段不应继续扩展大而散的新功能，而应先处理三类问题：
 
@@ -126,7 +126,7 @@ nginx serve dist/
 
 归口：EVO-002。
 
-实施前要求：EVO-002 需要拆成多个 0.5-2 天故事，例如构建工具迁移、路由迁移、运行时配置、Docker/Nginx 调整、CI 调整。EVO-017 完成概念迁移后，应优先进入 EVO-002，不再被普通 P0 业务功能后置。
+实施前要求：EVO-002 需要拆成多个 0.5-2 天故事，例如构建工具迁移、路由迁移、运行时配置、Docker/Nginx 静态托管调整、Next.js 遗留入口移除。GitHub CI/CD 不混入前端迁移链，单独归口到项目后段的 EVO-030。EVO-017 完成概念迁移后，应优先进入 EVO-002，不再被普通 P0 业务功能后置。
 
 ### Phase C — 认证闭环（P0/P1）
 
@@ -160,6 +160,14 @@ nginx serve dist/
 
 阶段完成标准：tenant settings / members / api keys 页面不再使用 mock 数据；计费和配额至少对创建工具、技能、CLI interface 有基础限制。
 
+### Phase G — GitHub CI/CD 重建（P2 / 项目后段）
+
+目标：在前端迁移、部署形态和核心项目结构稳定后，基于最终命令重建 GitHub Actions，避免在迁移期间维护过时的 Next.js workflow。
+
+归口：EVO-030。
+
+阶段完成标准：CI 覆盖后端 fmt/clippy/test、前端 type-check/build、必要安全扫描；如恢复部署自动化，deploy workflow 使用静态 SPA 生产镜像和最终部署脚本。
+
 ## 5. 推荐执行顺序
 
 近期建议按以下顺序执行：
@@ -169,6 +177,7 @@ nginx serve dist/
 3. **EVO-005：MCP 工具执行闭环**，让核心价值真正可用。
 4. **EVO-006 / EVO-009 / EVO-019 / EVO-020 / EVO-026 至 EVO-029：Skill 生命周期与 CLI interface 完整性**。
 5. **EVO-010 至 EVO-014：租户管理、计费和审计增强**。
+6. **EVO-030：GitHub CI/CD 重建**，放到项目后段，等前端迁移、部署形态和核心命令稳定后统一做。
 
 ## 6. 暂缓事项
 
@@ -209,7 +218,7 @@ nginx serve dist/
 | 路线图内容 | 当前归口 | 状态 |
 |----------------------|----------|------|
 | Phase A API 对齐 | EVO-001 | Done |
-| Phase B React + Vite + Bun | EVO-002 | Ready；P0 高优先级；实施前应按 DoR 拆成更小故事 |
+| Phase B React + Vite + Bun | EVO-002 / EVO-021 至 EVO-025 | In Progress；P0 高优先级；GitHub CI/CD 已拆出到 EVO-030 |
 | Phase C forgot/reset password | EVO-003 | Ready |
 | Phase C invitation join | EVO-004 | Ready |
 | Phase C send/verify email | EVO-018 | Proposed |
@@ -223,6 +232,7 @@ nginx serve dist/
 | Phase E Skill versioning and validation | EVO-028 | Proposed |
 | Phase E Skill discovery description | EVO-029 | Proposed |
 | Phase F tenant members/api keys/settings/audit/billing | EVO-010 至 EVO-014 | Proposed |
+| Phase G GitHub CI/CD 重建 | EVO-030 | Proposed；项目后段统一做 |
 | Rust CLI | Proposal: [RUST-CLI](../proposals/RUST-CLI.md) | Deferred |
 | 前端嵌入后端发布物 | Proposal: [EMBEDDED-FRONTEND](../proposals/EMBEDDED-FRONTEND.md) | Deferred |
 | AI Gateway / Agent Runtime | Proposals | 远期想法，不进当前实施路线 |
