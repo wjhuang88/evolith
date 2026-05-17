@@ -32,10 +32,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ===== Next.js =====
+# ===== Next.js (legacy, kept for safety) =====
 frontend/.next/
 frontend/out/
 frontend/.turbo/
+
+# ===== Vite =====
+.vite/
 
 # ===== Build =====
 dist/
