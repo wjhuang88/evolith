@@ -17,8 +17,8 @@
 |----|------|------|--------|------|------|------|
 | EVO-001 | 前后端 API 对齐 | bug | P0 | Done | [实施路线图 Phase A](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-a--现状校准与-api-对齐done) | 修正 method、字段和不存在的前端 API 调用；snippet 范围已转入 EVO-017 |
 | EVO-002 | 前端迁移到 React + Vite + Bun | tech-debt | P0 | Done | [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0--高优先级) | EVO-021 至 EVO-025 全部完成 |
-| EVO-003 | 忘记密码与重置密码闭环 | feature | P0 | Ready | API 501 / 需求 F2.7.7 | 依赖 mailer |
-| EVO-004 | 邀请接受 / Join 流程 | feature | P0 | Ready | API 501 / 需求 F2.5.5 | 租户成员闭环 |
+| EVO-003 | 忘记密码与重置密码闭环 | feature | P0 | Done | Iteration 005 | handler 实现 + 前端 API 接入，Playwright 验证通过 |
+| EVO-004 | 邀请接受 / Join 流程 | feature | P0 | Done | Iteration 005 | handler 实现，cargo test 通过 |
 | EVO-005 | MCP 工具真实执行 | feature | P0 | Ready | 需求 F1.1.3 | 当前 `tools/call` 返回 stub |
 | EVO-006 | Skill 更新接口 | feature | P1 | Proposed | API 501 | `PUT /skills/{id}` |
 | EVO-007 | Snippet 更新接口 | feature | P1 | Deferred | API 501 | 被 EVO-017 替代方向覆盖，暂停继续投入 |
@@ -67,12 +67,10 @@
 
 优先选择：
 
-1. `EVO-022` Vite + Bun 构建骨架。
-2. `EVO-023` 前端运行时配置迁移。
-3. `EVO-024` Docker / Nginx 切换到静态 SPA。
-4. `EVO-025` 移除 Next.js 依赖和遗留入口。
+1. `EVO-003` 忘记密码与重置密码闭环。
+2. `EVO-004` 邀请接受 / Join 流程。
 
-理由：EVO-001 和 EVO-017 已完成；Next.js 去除是企业级 harness 平台交付形态的高优先级前置工作。EVO-024 仍属于前端迁移链，因为生产镜像和 Nginx 必须从 Next standalone runtime 切到 `dist/` 静态产物；GitHub CI/CD 不再混入 EVO-024，改由 EVO-030 在项目后段统一重建。
+理由：Phase B（前端迁移）已完成；Phase C（认证闭环）是下一阶段。EVO-003 和 EVO-004 都是 P0 Ready，实现后用户生命周期关键流程（注册→登录→改密→忘记密码→邀请加入）基本闭环。EVO-018 邮箱验证可与 EVO-003 共用 token 生成逻辑，但优先级 P1，不在本次迭代。
 
 ## 已细化故事
 
@@ -150,6 +148,71 @@
 - 依赖或阻塞：EVO-024、EVO-025，以及项目主线功能稳定后统一排期。
 - 影响范围：deploy / docs
 - 最小验证方式：workflow lint 或一次 GitHub Actions dry run / 手动触发记录；本地执行对应命令。
+
+### EVO-003 忘记密码与重置密码闭环
+
+- 类型：feature
+- 优先级：P0
+- 状态：Ready
+- 用户价值或技术目标：用户忘记密码时能通过邮箱收到重置链接，点击后设置新密码，完成用户生命周期闭环。当前 `POST /auth/forgot-password` 和 `POST /auth/reset-password` 返回 501。
+- 范围：
+  - 实现 `forgot_password` handler：查找用户 → 生成随机 token → 存储到 password_reset_tokens 表 → 通过 Mailer 发送重置邮件。
+  - 实现 `reset_password` handler：验证 token 有效性和过期时间 → 更新用户密码（Argon2id 哈希）→ 删除已用 token → 返回成功。
+  - 新增 SQLite 和 PostgreSQL migration：`password_reset_tokens` 表（id, user_id, token_hash, expires_at, created_at）。
+  - 在 `domain::repository` 新增 `PasswordResetTokenRepository` trait（create, find_by_token, delete）。
+  - 在 `infra::db` 实现 SQLite 和 PostgreSQL 版本。
+  - AppState 新增 `password_reset_repo: Arc<dyn PasswordResetTokenRepository>`。
+  - handler 注入 Mailer 和 Repository，不再返回 501。
+- 不做：
+  - 不实现邮箱验证发送（EVO-018）。
+  - 不修改前端页面逻辑（前端已有 forgot-password 和 reset-password 页面和表单）。
+  - 不改变现有 DTO 结构（`ForgotPasswordRequest`、`ResetPasswordRequest` 已定义）。
+- 验收标准：
+  - [ ] `POST /api/v1/auth/forgot-password` 接受邮箱，存在时发送重置邮件（ConsoleMailer 打印 token），不存在时静默返回成功（防枚举）。
+  - [ ] `POST /api/v1/auth/reset-password` 接受 token + 新密码，验证通过后更新密码，token 失效。
+  - [ ] Token 有效期 1 小时，过期返回明确错误。
+  - [ ] SQLite 和 PostgreSQL migration 都有。
+  - [ ] `cargo test --workspace` 通过。
+- 技术备注：
+  - Mailer trait 已有 `send_password_reset_email` 方法，SmtpMailer 和 ConsoleMailer 都已实现。
+  - DTO 已定义（`ForgotPasswordRequest { email }`、`ResetPasswordRequest { token, password }`）。
+  - Token 使用 crypto-random 生成，存储时只存 SHA-256 hash，原始 token 仅在邮件中传递。
+  - 可复用 `service-auth` 中的 `hash_password`（Argon2id）。
+- 依赖：Mailer（已有）。
+- 影响范围：backend / db
+- 最小验证方式：`cargo test -p api` 覆盖 forgot/reset 端到端；ConsoleMailer 输出 token 用于手工验证。
+
+### EVO-004 邀请接受 / Join 流程
+
+- 类型：feature
+- 优先级：P0
+- 状态：Ready
+- 用户价值或技术目标：被邀请的用户可以通过邮件中的邀请链接注册账号并自动加入租户，完成邀请闭环。当前 `POST /tenant/{id}/members/join` 返回 501。
+- 范围：
+  - 实现 `accept_invitation` handler：验证 token → 检查过期 → 检查邮箱是否已注册 → 创建用户（Argon2id）→ 标记邀请为 accepted → 分配租户成员角色 → 返回 JWT token。
+  - 利用已有的 `InvitationRepository::find_by_token` 查找邀请。
+  - 利用已有的 `UserRepository::create` 创建用户。
+  - 利用已有的 `MemberRepository` 添加租户成员关系。
+  - 利用 Mailer 发送欢迎邮件（可选，非阻塞）。
+- 不做：
+  - 不修改邀请创建逻辑（`invite_member` handler 已实现）。
+  - 不修改前端页面（前端已有 accept-invite 流程）。
+  - 不修改 DTO（`AcceptInviteRequest { token, password, username }` 已定义）。
+- 验收标准：
+  - [ ] `POST /api/v1/tenant/{tenant_id}/members/join` 接受 token + username + password，创建用户并加入租户。
+  - [ ] Token 过期返回明确错误。
+  - [ ] 同邮箱已注册时返回明确错误（建议提示登录后接受邀请）。
+  - [ ] 成功后返回 JWT token（用户可直接使用系统）。
+  - [ ] 邀请被标记为 accepted，不可重复使用。
+  - [ ] `cargo test --workspace` 通过。
+- 技术备注：
+  - `InvitationRepository` trait 已有 `find_by_token` 方法。
+  - `AcceptInviteRequest` DTO 已定义（token, password, username）。
+  - `invite_member` handler 已实现，会生成 token 并通过 Mailer 发送邀请邮件。
+  - 路由已注册：`/tenant/{tenant_id}/members/join`。
+- 依赖：Mailer（已有）、EVO-003（可共用 token 验证模式，但无硬依赖）。
+- 影响范围：backend
+- 最小验证方式：`cargo test -p api` 覆盖 accept_invitation 端到端。
 
 ## 待细化故事
 

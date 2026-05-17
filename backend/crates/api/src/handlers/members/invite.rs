@@ -1,15 +1,20 @@
 //! Invite member and accept invitation handlers
 
+use actix_web::cookie::{time::Duration, Cookie, SameSite};
 use actix_web::{web, HttpResponse, Responder};
 use chrono::Utc;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::dto::auth_dto::{AuthResponseData, TenantInfo, UserInfo};
 use crate::dto::common::ApiResponse;
 use crate::dto::member_dto::*;
 use crate::middleware::auth::AuthenticatedUser;
+use crate::middleware::csrf::CSRF_COOKIE_NAME;
+use crate::middleware::rbac::JWT_COOKIE_NAME;
 use crate::state::AppState;
 use domain::repository::NewInvitation;
+use domain::user::{NewUser, TenantRole};
 
 /// Generate a random invitation token
 fn generate_invite_token() -> String {
@@ -117,9 +122,8 @@ pub async fn invite_member(
 /// Accept invitation and create account
 pub async fn accept_invitation(
     body: web::Json<AcceptInviteRequest>,
-    _state: web::Data<AppState>,
+    state: web::Data<AppState>,
 ) -> impl Responder {
-    // Validate request
     if let Err(errors) = body.validate() {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
             "VALIDATION_ERROR",
@@ -127,16 +131,168 @@ pub async fn accept_invitation(
         ));
     }
 
-    // This is a complex operation that requires:
-    // 1. Validate invitation token
-    // 2. Check if token expired
-    // 3. Check if email already registered
-    // 4. Create user account with hashed password
-    // 5. Mark invitation as accepted
-    //
-    // For now, return 501 Not Implemented
-    HttpResponse::NotImplemented().json(ApiResponse::<()>::error(
-        "NOT_IMPLEMENTED",
-        "Accept invitation is not yet implemented",
-    ))
+    let invitation = match state.invitation_repo.find_by_token(&body.token).await {
+        Ok(Some(inv)) => inv,
+        Ok(None) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_TOKEN",
+                "Invalid invitation token",
+            ));
+        }
+        Err(e) => {
+            tracing::error!("Failed to find invitation: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to accept invitation",
+            ));
+        }
+    };
+
+    if invitation.accepted_at.is_some() {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "TOKEN_USED",
+            "Invitation has already been used",
+        ));
+    }
+
+    if Utc::now() > invitation.expires_at {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "TOKEN_EXPIRED",
+            "Invitation has expired",
+        ));
+    }
+
+    if let Err(e) = state.hasher.validate_strength(&body.password) {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "WEAK_PASSWORD",
+            &format!("Password does not meet requirements: {}", e),
+        ));
+    }
+
+    let password_hash = match state.hasher.hash_password(&body.password) {
+        Ok(hash) => hash,
+        Err(e) => {
+            tracing::error!("Failed to hash password: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to accept invitation",
+            ));
+        }
+    };
+
+    let new_user = NewUser {
+        username: body.username.clone(),
+        email: invitation.email.clone(),
+        password: password_hash,
+    };
+
+    let tenant_role = match invitation.role.as_str() {
+        "admin" => TenantRole::Admin,
+        _ => TenantRole::Member,
+    };
+
+    let user = match state
+        .user_repo
+        .create(new_user, invitation.tenant_id, tenant_role)
+        .await
+    {
+        Ok(user) => user,
+        Err(e) => {
+            tracing::error!("Failed to create user from invitation: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to create account",
+            ));
+        }
+    };
+
+    if let Err(e) = state.invitation_repo.accept(invitation.id).await {
+        tracing::warn!("Failed to mark invitation as accepted: {}", e);
+    }
+
+    let tenant = match state.tenant_repo.find_by_id(invitation.tenant_id).await {
+        Ok(Some(t)) => t,
+        Ok(None) => {
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Tenant not found",
+            ));
+        }
+        Err(e) => {
+            tracing::error!("Failed to find tenant: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to accept invitation",
+            ));
+        }
+    };
+
+    let role_str = serde_json::to_value(&user.role)
+        .ok()
+        .and_then(|v| v.as_str().map(String::from))
+        .unwrap_or_else(|| "user".to_string());
+    let tenant_role_str = serde_json::to_value(&user.tenant_role)
+        .ok()
+        .and_then(|v| v.as_str().map(String::from))
+        .unwrap_or_else(|| "member".to_string());
+
+    let (token, expires_at) = match state
+        .jwt
+        .generate_token(user.id, &role_str, tenant.id, &tenant_role_str)
+    {
+        Ok(result) => result,
+        Err(e) => {
+            tracing::error!("Failed to generate token: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Account created but login failed",
+            ));
+        }
+    };
+
+    let is_production = state.config.is_production();
+    let csrf_token = Uuid::new_v4().to_string();
+
+    let jwt_cookie = Cookie::build(JWT_COOKIE_NAME, &token)
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .secure(is_production)
+        .max_age(Duration::seconds(
+            expires_at - chrono::Utc::now().timestamp(),
+        ))
+        .finish();
+
+    let csrf_cookie = Cookie::build(CSRF_COOKIE_NAME, &csrf_token)
+        .path("/")
+        .http_only(false)
+        .same_site(SameSite::Lax)
+        .secure(is_production)
+        .max_age(Duration::seconds(
+            expires_at - chrono::Utc::now().timestamp(),
+        ))
+        .finish();
+
+    HttpResponse::Created()
+        .cookie(jwt_cookie)
+        .cookie(csrf_cookie)
+        .json(ApiResponse::success(AuthResponseData {
+            token,
+            expires_at,
+            user: UserInfo {
+                id: user.id.to_string(),
+                email: user.email,
+                username: user.username,
+                role: role_str,
+                tenant_id: tenant.id.to_string(),
+                tenant_role: tenant_role_str,
+                email_verified: user.email_verified,
+            },
+            tenant: TenantInfo {
+                id: tenant.id.to_string(),
+                name: tenant.name,
+                slug: tenant.slug,
+                plan: format!("{}", tenant.plan),
+            },
+        }))
 }

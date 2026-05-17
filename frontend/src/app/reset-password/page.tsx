@@ -5,6 +5,7 @@ import { Link, useRouter, useSearchParams } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { apiClient } from '@/lib/api/client';
 
 function ResetPasswordForm() {
   const { t } = useTranslation();
@@ -35,8 +36,7 @@ function ResetPasswordForm() {
     setIsLoading(true);
 
     try {
-      // TODO: Call API to reset password
-      // await api.post('/auth/reset-password', { token, password });
+      await apiClient.post('/auth/reset-password', { token, password });
       setSuccess(true);
     } catch {
       setError(t('auth.resetPasswordPage.linkExpired'));

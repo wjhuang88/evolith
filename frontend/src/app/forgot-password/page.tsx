@@ -5,6 +5,7 @@ import { Link, useRouter } from '@/lib/router';
 import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { apiClient } from '@/lib/api/client';
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
@@ -20,8 +21,7 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      // TODO: Call API to send password reset email
-      // await api.post('/auth/forgot-password', { email });
+      await apiClient.post('/auth/forgot-password', { email });
       setSubmitted(true);
     } catch (err) {
       setError(t('auth.forgotPasswordPage.sendFailed'));
