@@ -1,27 +1,35 @@
-'use client';
-
-import NextLink from 'next/link';
 import {
-  useParams as useNextParams,
-  usePathname as useNextPathname,
-  useRouter as useNextRouter,
-  useSearchParams as useNextSearchParams,
-} from 'next/navigation';
+  Link as RRLink,
+  useParams as useRRParams,
+  useLocation,
+  useNavigate,
+  useSearchParams as useRRSearchParams,
+} from 'react-router-dom';
 
-export const Link = NextLink;
+export const Link = RRLink;
 
 export function useRouter() {
-  return useNextRouter();
+  const navigate = useNavigate();
+  return {
+    push: (href: string) => navigate(href),
+    replace: (href: string) => navigate(href, { replace: true }),
+    back: () => navigate(-1),
+    forward: () => navigate(1),
+    refresh: () => navigate(0),
+    prefetch: () => {},
+  };
 }
 
 export function usePathname() {
-  return useNextPathname();
+  const { pathname } = useLocation();
+  return pathname;
 }
 
 export function useParams<T extends Record<string, string | string[]> = Record<string, string | string[]>>() {
-  return useNextParams<T>();
+  return useRRParams() as T;
 }
 
 export function useSearchParams() {
-  return useNextSearchParams();
+  const [searchParams, setSearchParams] = useRRSearchParams();
+  return [searchParams, setSearchParams] as const;
 }

@@ -41,9 +41,7 @@ export default function ToolsPage() {
             {t('tools.subtitle')}
           </p>
         </div>
-        <Link href="/tools/new">
-          <Button>{t('tools.createTool')}</Button>
-        </Link>
+        <Link to="/tools/new"><Button>{t('tools.createTool')}</Button></Link>
       </div>
 
       {loading && (
@@ -67,7 +65,7 @@ export default function ToolsPage() {
       {!loading && !error && tools.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tools.map((tool) => (
-            <Link key={tool.id} href={`/tools/${tool.id}`}>
+            <Link key={tool.id} to={`/tools/${tool.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

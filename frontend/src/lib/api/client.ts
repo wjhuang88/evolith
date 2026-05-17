@@ -1,7 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse, ErrorInfo, AuthToken } from './types';
+import config from '@/lib/config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = config.apiBaseUrl;
 
 // ============================================
 // Token Management

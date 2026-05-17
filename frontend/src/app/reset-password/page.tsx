@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 function ResetPasswordForm() {
   const { t } = useTranslation();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   
   const [password, setPassword] = useState('');
@@ -60,11 +60,9 @@ function ResetPasswordForm() {
           {t('auth.resetPasswordPage.invalidLinkDesc')}
         </p>
         <div className="mt-6">
-          <Link href="/forgot-password">
-            <Button variant="outline" className="w-full">
-              {t('auth.resetPasswordPage.requestNewLink')}
-            </Button>
-          </Link>
+          <Link to="/forgot-password"><Button variant="outline" className="w-full">
+            {t('auth.resetPasswordPage.requestNewLink')}
+          </Button></Link>
         </div>
       </div>
     );
@@ -85,11 +83,9 @@ function ResetPasswordForm() {
           {t('auth.resetPasswordPage.resetCompleteDesc')}
         </p>
         <div className="mt-6">
-          <Link href="/login">
-            <Button className="w-full">
-              {t('auth.resetPasswordPage.signIn')}
-            </Button>
-          </Link>
+          <Link to="/login"><Button className="w-full">
+            {t('auth.resetPasswordPage.signIn')}
+          </Button></Link>
         </div>
       </div>
     );
@@ -144,9 +140,7 @@ function ResetPasswordForm() {
       </form>
 
       <div className="mt-4 text-center text-sm text-muted-foreground">
-        <Link href="/login" className="text-primary hover:underline">
-          {t('auth.resetPasswordPage.backToSignIn')}
-        </Link>
+        <Link to="/login"className="text-primary hover:underline">{t('auth.resetPasswordPage.backToSignIn')}</Link>
       </div>
     </div>
   );
@@ -159,11 +153,9 @@ export default function ResetPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-              <span className="text-white font-bold">E</span>
-            </div>
-          </Link>
+          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+            <span className="text-white font-bold">E</span>
+          </div></Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.resetPasswordPage.title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {t('auth.resetPasswordPage.subtitle')}

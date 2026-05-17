@@ -24,18 +24,14 @@ export default function NotFound() {
 
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/">
-            <Button variant="outline" size="lg" className="w-full sm:w-auto">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-               {t('errors.notFound.goBack')}
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button size="lg" className="w-full sm:w-auto">
-              <Home className="mr-2 h-4 w-4" />
-               {t('errors.notFound.goToDashboard')}
-            </Button>
-          </Link>
+          <Link to="/"><Button variant="outline" size="lg" className="w-full sm:w-auto">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+             {t('errors.notFound.goBack')}
+          </Button></Link>
+          <Link to="/dashboard"><Button size="lg" className="w-full sm:w-auto">
+            <Home className="mr-2 h-4 w-4" />
+             {t('errors.notFound.goToDashboard')}
+          </Button></Link>
         </div>
 
         {/* Decorative Element */}

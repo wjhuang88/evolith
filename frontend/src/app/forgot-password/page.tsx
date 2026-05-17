@@ -47,11 +47,9 @@ export default function ForgotPasswordPage() {
               <Trans i18nKey="auth.forgotPasswordPage.sentInstructions" values={{ email }} components={{ strong: <strong /> }} />
             </p>
             <div className="mt-6">
-              <Link href="/login">
-                <Button variant="outline" className="w-full">
-                  {t('auth.forgotPasswordPage.backToSignIn')}
-                </Button>
-              </Link>
+              <Link to="/login"><Button variant="outline" className="w-full">
+                {t('auth.forgotPasswordPage.backToSignIn')}
+              </Button></Link>
             </div>
           </div>
         </div>
@@ -63,11 +61,9 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-              <span className="text-white font-bold">E</span>
-            </div>
-          </Link>
+          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+            <span className="text-white font-bold">E</span>
+          </div></Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.forgotPasswordPage.title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {t('auth.forgotPasswordPage.subtitle')}
@@ -107,9 +103,7 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.forgotPasswordPage.rememberPassword')}{' '}
-            <Link href="/login" className="text-primary hover:underline">
-              {t('auth.forgotPasswordPage.signIn')}
-            </Link>
+            <Link to="/login"className="text-primary hover:underline">{t('auth.forgotPasswordPage.signIn')}</Link>
           </div>
         </div>
       </div>

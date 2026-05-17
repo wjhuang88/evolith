@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -51,11 +51,9 @@ export default function VerifyEmailPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-              <span className="text-white font-bold">E</span>
-            </div>
-          </Link>
+          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+            <span className="text-white font-bold">E</span>
+          </div></Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">
             {status === 'loading' && t('auth.verifyEmailPage.verifying')}
             {status === 'success' && t('auth.verifyEmailPage.success')}
@@ -123,9 +121,7 @@ export default function VerifyEmailPage() {
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   {t('auth.verifyEmailPage.needNewLink')}{' '}
-                  <Link href="/login" className="text-primary hover:underline">
-                    {t('auth.verifyEmailPage.loginToResend')}
-                  </Link>
+                  <Link to="/login"className="text-primary hover:underline">{t('auth.verifyEmailPage.loginToResend')}</Link>
                 </p>
               </div>
             )}

@@ -16,7 +16,7 @@
 | ID | 标题 | 类型 | 优先级 | 状态 | 来源 | 备注 |
 |----|------|------|--------|------|------|------|
 | EVO-001 | 前后端 API 对齐 | bug | P0 | Done | [实施路线图 Phase A](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-a--现状校准与-api-对齐done) | 修正 method、字段和不存在的前端 API 调用；snippet 范围已转入 EVO-017 |
-| EVO-002 | 前端迁移到 React + Vite + Bun | tech-debt | P0 | In Progress | [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0--高优先级) | 高优先级工程门禁；已拆分为 EVO-021 至 EVO-025 |
+| EVO-002 | 前端迁移到 React + Vite + Bun | tech-debt | P0 | Done | [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0--高优先级) | EVO-021 至 EVO-025 全部完成 |
 | EVO-003 | 忘记密码与重置密码闭环 | feature | P0 | Ready | API 501 / 需求 F2.7.7 | 依赖 mailer |
 | EVO-004 | 邀请接受 / Join 流程 | feature | P0 | Ready | API 501 / 需求 F2.5.5 | 租户成员闭环 |
 | EVO-005 | MCP 工具真实执行 | feature | P0 | Ready | 需求 F1.1.3 | 当前 `tools/call` 返回 stub |
@@ -36,10 +36,10 @@
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
 | EVO-020 | Storage 能力落地 | feature | P2 | Proposed | Phase E placeholder | 实现对象存储基础能力，支撑技能包和附件 |
 | EVO-021 | 前端路由适配层 | tech-debt | P0 | Done | EVO-002 split | Iteration 003；已新增 `frontend/src/lib/router.tsx`，页面和共享组件不再直接导入 Next 路由模块 |
-| EVO-022 | Vite + Bun 构建骨架 | tech-debt | P0 | In Progress | EVO-002 split | Iteration 004；新增 Vite 入口、React Router 根路由和并行构建脚本 |
-| EVO-023 | 前端运行时配置迁移 | tech-debt | P0 | Ready | EVO-002 split | 从 `NEXT_PUBLIC_*` 迁移到 Vite/runtime config，保留 `/api/v1` 约束 |
-| EVO-024 | Docker / Nginx 切换到静态 SPA | tech-debt | P0 | Ready | EVO-002 split | 用 `dist/` 静态产物替代 Next standalone runtime；不包含 GitHub CI/CD |
-| EVO-025 | 移除 Next.js 依赖和遗留入口 | tech-debt | P0 | Ready | EVO-002 split | 删除 App Router、middleware、next config 和 Next package 依赖 |
+| EVO-022 | Vite + Bun 构建骨架 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；新增 Vite 入口、React Router 根路由和并行构建脚本 |
+| EVO-023 | 前端运行时配置迁移 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；`src/lib/config.ts` 统一运行时环境变量，替换所有 `process.env` 引用 |
+| EVO-024 | Docker / Nginx 切换到静态 SPA | tech-debt | P0 | Done | EVO-002 split | Iteration 004；Dockerfile 改为 Vite build + Nginx 静态服务，SPA fallback |
+| EVO-025 | 移除 Next.js 依赖和遗留入口 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；删除 next 依赖、App Router、middleware、config；router.tsx 改为 React Router |
 | EVO-026 | 前端 Snippets 入口迁移为 CLI 友好接口 | product-change | P1 | Proposed | EVO-017 / 页面残留 | Vite 迁移后统一替换导航、路由文案、API client 和 i18n 旧 snippet 概念 |
 | EVO-027 | Skill 多来源创建 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 支持 ZIP 上传、Git 仓库接入、SkillHub 同步三种创建入口 |
 | EVO-028 | Skill 版本管理与正确性验证 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 建立版本历史、回滚、agentskills 规范校验、描述质量检查和导入报告 |

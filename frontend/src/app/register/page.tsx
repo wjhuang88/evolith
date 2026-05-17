@@ -93,11 +93,9 @@ export default function RegisterPage() {
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-                <span className="text-white font-bold">E</span>
-              </div>
-            </Link>
+            <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+              <span className="text-white font-bold">E</span>
+            </div></Link>
             <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.registerPage.checkEmail')}</h1>
           </div>
 
@@ -126,19 +124,12 @@ export default function RegisterPage() {
               {verificationLink && (
                 <div className="mb-4 rounded-md bg-muted p-3">
                   <p className="mb-2 text-sm text-muted-foreground">{t('auth.registerPage.devVerificationLink')}</p>
-                  <Link
-                    href={verificationLink}
-                    className="break-all text-sm text-primary hover:underline"
-                  >
-                    {verificationLink}
-                  </Link>
+                  <Link to={verificationLink}className="break-all text-sm text-primary hover:underline">{verificationLink}</Link>
                 </div>
               )}
 
               <div className="mt-6 space-y-3">
-                <Link href="/login">
-                  <Button className="w-full">{t('auth.registerPage.goToLogin')}</Button>
-                </Link>
+                <Link to="/login"><Button className="w-full">{t('auth.registerPage.goToLogin')}</Button></Link>
                 <p className="text-sm text-muted-foreground">
                   {t('auth.registerPage.didntReceive')}{' '}
                   <button
@@ -160,11 +151,9 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-              <span className="text-white font-bold">E</span>
-            </div>
-          </Link>
+          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+            <span className="text-white font-bold">E</span>
+          </div></Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.registerPage.title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {t('auth.registerPage.subtitle')}
@@ -293,9 +282,7 @@ export default function RegisterPage() {
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.registerPage.alreadyHaveAccount')}{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
-              {t('auth.registerPage.signIn')}
-            </Link>
+            <Link to="/login"className="font-medium text-primary hover:underline">{t('auth.registerPage.signIn')}</Link>
           </p>
         </div>
       </div>

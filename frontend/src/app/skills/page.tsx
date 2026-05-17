@@ -41,9 +41,7 @@ export default function SkillsPage() {
             {t('skills.subtitle')}
           </p>
         </div>
-        <Link href="/skills/new">
-          <Button>{t('skills.createSkill')}</Button>
-        </Link>
+        <Link to="/skills/new"><Button>{t('skills.createSkill')}</Button></Link>
       </div>
 
       {loading && (
@@ -67,7 +65,7 @@ export default function SkillsPage() {
       {!loading && !error && skills.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {skills.map((skill) => (
-            <Link key={skill.id} href={`/skills/${skill.id}`}>
+            <Link key={skill.id} to={`/skills/${skill.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

@@ -30,11 +30,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-              <span className="text-white font-bold">E</span>
-            </div>
-          </Link>
+          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+            <span className="text-white font-bold">E</span>
+          </div></Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.loginPage.welcome')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {t('auth.loginPage.subtitle')}
@@ -78,9 +76,7 @@ export default function LoginPage() {
             </div>
 
             <div className="text-right text-sm">
-              <Link href="/forgot-password" className="text-primary hover:underline">
-                {t('auth.loginPage.forgotPassword')}
-              </Link>
+              <Link to="/forgot-password"className="text-primary hover:underline">{t('auth.loginPage.forgotPassword')}</Link>
             </div>
 
             <Button
@@ -94,9 +90,7 @@ export default function LoginPage() {
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.loginPage.noAccount')}{' '}
-            <Link href="/register" className="text-primary hover:underline">
-              {t('auth.loginPage.signUp')}
-            </Link>
+            <Link to="/register"className="text-primary hover:underline">{t('auth.loginPage.signUp')}</Link>
           </div>
         </div>
       </div>

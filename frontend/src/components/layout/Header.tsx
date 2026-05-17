@@ -20,12 +20,10 @@ export function Header() {
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-background px-4 md:px-6 shadow-sm">
       <div className="flex items-center gap-4">
         <MobileNav />
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
-            <span className="text-white font-bold text-sm">E</span>
-          </div>
-          <span className="text-xl font-semibold text-foreground">Evolith</span>
-        </Link>
+        <Link to="/"className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+          <span className="text-white font-bold text-sm">E</span>
+        </div>
+        <span className="text-xl font-semibold text-foreground">Evolith</span></Link>
       </div>
       
       <div className="flex items-center gap-4">
@@ -55,12 +53,7 @@ function UserMenu() {
 
   if (!isAuthenticated) {
     return (
-      <Link
-        href="/login"
-        className="rounded-full border border-border bg-muted px-4 py-2 text-sm font-medium hover:bg-muted/80"
-      >
-        {t('nav.signIn')}
-      </Link>
+      <Link to="/login"className="rounded-full border border-border bg-muted px-4 py-2 text-sm font-medium hover:bg-muted/80">{t('nav.signIn')}</Link>
     );
   }
 
@@ -80,20 +73,10 @@ function UserMenu() {
       
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 rounded-md border border-border bg-card py-1 shadow-lg">
-          <Link
-            href="/profile"
-            className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
-            onClick={() => setIsOpen(false)}
-          >
-            {t('nav.profile')}
-          </Link>
-          <Link
-            href="/settings"
-            className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
-            onClick={() => setIsOpen(false)}
-          >
-            {t('nav.settings')}
-          </Link>
+          <Link to="/profile"className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
+          onClick={() => setIsOpen(false)}>{t('nav.profile')}</Link>
+          <Link to="/settings"className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
+          onClick={() => setIsOpen(false)}>{t('nav.settings')}</Link>
           <hr className="my-1 border-border" />
           <button
             onClick={handleLogout}
@@ -119,7 +102,7 @@ export function Sidebar() {
   return (
     <Link
       key={item.name}
-      href={item.href}
+      to={item.href}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
         isActive
           ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400'
@@ -158,7 +141,7 @@ export function MobileNav() {
   return (
     <Link
       key={item.name}
-      href={item.href}
+      to={item.href}
       onClick={() => setIsOpen(false)}
       className={`block rounded-lg px-3 py-2 text-base font-medium ${
         isActive

@@ -15,25 +15,19 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-              <span className="text-lg font-bold text-white">E</span>
-            </div>
-            <span className="text-xl font-bold text-white">Evolith</span>
-          </Link>
+          <Link to="/"className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+            <span className="text-lg font-bold text-white">E</span>
+          </div>
+          <span className="text-xl font-bold text-white">Evolith</span></Link>
           
           <div className="flex items-center gap-6">
             <LanguageSwitcher />
-            <Link href="/login">
-              <Button variant="ghost" className="text-white hover:bg-white/10">
-                {t('auth.login')}
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                {t('auth.register')}
-              </Button>
-            </Link>
+            <Link to="/login"><Button variant="ghost" className="text-white hover:bg-white/10">
+              {t('auth.login')}
+            </Button></Link>
+            <Link to="/register"><Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+              {t('auth.register')}
+            </Button></Link>
           </div>
         </div>
       </nav>
@@ -54,16 +48,12 @@ export default function LandingPage() {
               {t('landing.hero.subtitle')}
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/register">
-                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 px-8 hover:from-purple-600 hover:to-pink-600">
-                  {t('landing.hero.getStarted')}
-                </Button>
-              </Link>
-              <Link href="/docs">
-                <Button variant="outline" size="lg" className="border-white/20 text-white hover:bg-white/10">
-                  {t('landing.hero.learnMore')}
-                </Button>
-              </Link>
+              <Link to="/register"><Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 px-8 hover:from-purple-600 hover:to-pink-600">
+                {t('landing.hero.getStarted')}
+              </Button></Link>
+              <Link to="/docs"><Button variant="outline" size="lg" className="border-white/20 text-white hover:bg-white/10">
+                {t('landing.hero.learnMore')}
+              </Button></Link>
             </div>
           </div>
         </div>
@@ -82,29 +72,23 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-3">
-            <Link href="/tools" className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
-                <ToolsIcon />
-              </div>
-              <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.tools.title')}</h3>
-              <p className="mt-2 text-purple-200/60">{t('landing.features.tools.description')}</p>
-            </Link>
+            <Link to="/tools"className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10"><div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
+              <ToolsIcon />
+            </div>
+            <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.tools.title')}</h3>
+            <p className="mt-2 text-purple-200/60">{t('landing.features.tools.description')}</p></Link>
 
-            <Link href="/skills" className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
-                <SkillsIcon />
-              </div>
-              <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.skills.title')}</h3>
-              <p className="mt-2 text-purple-200/60">{t('landing.features.skills.description')}</p>
-            </Link>
+            <Link to="/skills"className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10"><div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
+              <SkillsIcon />
+            </div>
+            <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.skills.title')}</h3>
+            <p className="mt-2 text-purple-200/60">{t('landing.features.skills.description')}</p></Link>
 
-            <Link href="/snippets" className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
-                <SnippetsIcon />
-              </div>
-              <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.snippets.title')}</h3>
-              <p className="mt-2 text-purple-200/60">{t('landing.features.snippets.description')}</p>
-            </Link>
+            <Link to="/snippets"className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10"><div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
+              <SnippetsIcon />
+            </div>
+            <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.snippets.title')}</h3>
+            <p className="mt-2 text-purple-200/60">{t('landing.features.snippets.description')}</p></Link>
           </div>
         </div>
       </section>
@@ -143,11 +127,9 @@ export default function LandingPage() {
             {t('landing.cta.subtitle')}
           </p>
           <div className="mt-8">
-            <Link href="/register">
-              <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 px-10 hover:from-purple-600 hover:to-pink-600">
-                {t('landing.cta.button')}
-              </Button>
-            </Link>
+            <Link to="/register"><Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 px-10 hover:from-purple-600 hover:to-pink-600">
+              {t('landing.cta.button')}
+            </Button></Link>
           </div>
         </div>
       </section>
@@ -163,15 +145,9 @@ export default function LandingPage() {
               <span className="text-lg font-semibold text-white">Evolith</span>
             </div>
             <div className="flex gap-6 text-sm text-purple-200/60">
-              <Link href="/docs" className="hover:text-white">
-                {t('landing.footer.docs')}
-              </Link>
-              <Link href="/privacy" className="hover:text-white">
-                {t('landing.footer.privacy')}
-              </Link>
-              <Link href="/terms" className="hover:text-white">
-                {t('landing.footer.terms')}
-              </Link>
+              <Link to="/docs"className="hover:text-white">{t('landing.footer.docs')}</Link>
+              <Link to="/privacy"className="hover:text-white">{t('landing.footer.privacy')}</Link>
+              <Link to="/terms"className="hover:text-white">{t('landing.footer.terms')}</Link>
             </div>
             <p className="text-sm text-purple-200/40">
               © 2024 Evolith. All rights reserved.

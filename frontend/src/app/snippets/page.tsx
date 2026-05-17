@@ -41,9 +41,7 @@ export default function SnippetsPage() {
             {t('snippets.subtitle')}
           </p>
         </div>
-        <Link href="/snippets/new">
-          <Button>{t('snippets.createSnippet')}</Button>
-        </Link>
+        <Link to="/snippets/new"><Button>{t('snippets.createSnippet')}</Button></Link>
       </div>
 
       <div className="mb-6">
@@ -71,7 +69,7 @@ export default function SnippetsPage() {
       {!loading && !error && snippets.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {snippets.map((snippet) => (
-            <Link key={snippet.id} href={`/snippets/${snippet.id}`}>
+            <Link key={snippet.id} to={`/snippets/${snippet.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import config from '@/lib/config';
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
 
 interface ErrorProps {
@@ -38,7 +39,7 @@ export default function Error({ error, reset }: ErrorProps) {
         </p>
 
         {/* Error Details (for debugging) */}
-        {process.env.NODE_ENV === 'development' && (
+        {config.nodeEnv === 'development' && (
           <div className="mt-6 p-4 rounded-lg bg-muted text-left">
             <p className="text-sm font-mono text-muted-foreground break-all">
               {error.message}

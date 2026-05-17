@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { paymentMethodApi, type PaymentMethod } from '@/lib/api';
+import config from '@/lib/config';
 
 interface PaymentMethodsProps {
   tenantId: string;
@@ -70,7 +71,7 @@ export function PaymentMethods({ tenantId }: PaymentMethodsProps) {
       });
       
       if (response.success && response.data) {
-        const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+        const stripe = await loadStripe(config.stripePublishableKey);
         if (stripe) {
           const { error } = await stripe.confirmCardSetup(response.data.client_secret);
           if (error) {

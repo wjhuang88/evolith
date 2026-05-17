@@ -118,11 +118,9 @@ export default function DashboardPage() {
                   <span className="font-medium capitalize">{user?.tenant_role || 'member'}</span>
                 </div>
               </div>
-              <Link href="/tenant/billing">
-                <Button variant="outline" className="mt-4 w-full">
-                  {t('dashboard.organization.manageSubscription')}
-                </Button>
-              </Link>
+              <Link to="/tenant/billing"><Button variant="outline" className="mt-4 w-full">
+                {t('dashboard.organization.manageSubscription')}
+              </Button></Link>
             </CardContent>
           </Card>
 
@@ -132,15 +130,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Link href="/tenant/api-keys" className="block text-sm text-primary hover:underline">
-                  → {t('dashboard.quickLinks.manageApiKeys')}
-                </Link>
-                <Link href="/tenant/members" className="block text-sm text-primary hover:underline">
-                  → {t('dashboard.quickLinks.inviteTeamMembers')}
-                </Link>
-                <Link href="/tenant/settings" className="block text-sm text-primary hover:underline">
-                  → {t('dashboard.quickLinks.orgSettings')}
-                </Link>
+                <Link to="/tenant/api-keys"className="block text-sm text-primary hover:underline">
+                  → {t('dashboard.quickLinks.manageApiKeys')}</Link>
+                <Link to="/tenant/members"className="block text-sm text-primary hover:underline">
+                  → {t('dashboard.quickLinks.inviteTeamMembers')}</Link>
+                <Link to="/tenant/settings"className="block text-sm text-primary hover:underline">
+                  → {t('dashboard.quickLinks.orgSettings')}</Link>
               </div>
             </CardContent>
           </Card>
@@ -172,17 +167,15 @@ function StatCard({
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return <Link to={href}>{content}</Link>;
   }
   return content;
 }
 
 function QuickActionButton({ label, href }: { label: string; href: string }) {
   return (
-    <Link href={href}>
-      <Button variant="outline" className="w-full h-20">
-        {label}
-      </Button>
-    </Link>
+    <Link to={href}><Button variant="outline" className="w-full h-20">
+      {label}
+    </Button></Link>
   );
 }
