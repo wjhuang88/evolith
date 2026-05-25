@@ -17,7 +17,11 @@ tracing.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 jsonschema.workspace = true
+reqwest.workspace = true
 
 # Internal crates
 domain.workspace = true
 common.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
