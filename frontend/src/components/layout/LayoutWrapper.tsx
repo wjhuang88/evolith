@@ -4,7 +4,17 @@ import { usePathname } from '@/lib/router';
 import { MainLayout } from './MainLayout';
 import { AuthGuard } from '@/components/AuthGuard';
 
-const noLayoutRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/onboarding'];
+const noLayoutRoutes = [
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+  '/join',
+  '/accept-invitation',
+  '/onboarding',
+];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

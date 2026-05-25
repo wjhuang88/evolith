@@ -1,5 +1,6 @@
 //! API routes configuration
 
+use crate::handlers::members::accept_invitation;
 use actix_web::web;
 
 pub mod api_keys;
@@ -26,6 +27,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             web::scope("/api/v1")
                 // Auth routes - public (login, register)
                 .configure(auth::configure)
+                // Public invitation acceptance route. Tenant-scoped /members/join is kept for compatibility.
+                .route("/invitations/accept", web::post().to(accept_invitation))
                 // Protected routes - require JWT auth
                 .configure(tools::configure)
                 .configure(skills::configure)

@@ -221,7 +221,7 @@ impl Mailer for SmtpMailer {
         token: &str,
         base_url: &str,
     ) -> Result<()> {
-        let invitation_link = format!("{}/accept-invitation?token={}", base_url, token);
+        let invitation_link = format!("{}/join?token={}", base_url, token);
         let subject = format!("You've been invited to {} on Evolith", tenant_name);
 
         let html_body = format!(
@@ -315,7 +315,7 @@ impl Mailer for ConsoleMailer {
             subject = format!("You've been invited to {} on Evolith", tenant_name),
             inviter = %inviter_name,
             tenant = %tenant_name,
-            link = format!("{}/accept-invitation?token={}", base_url, token),
+            link = format!("{}/join?token={}", base_url, token),
             "[ConsoleMailer] Would send invitation email"
         );
         Ok(())

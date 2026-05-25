@@ -108,10 +108,8 @@ pub async fn forgot_password(
     state: web::Data<AppState>,
 ) -> impl Responder {
     if let Err(e) = body.validate() {
-        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
-            "VALIDATION_ERROR",
-            &e.to_string(),
-        ));
+        return HttpResponse::BadRequest()
+            .json(ApiResponse::<()>::error("VALIDATION_ERROR", &e.to_string()));
     }
 
     // Always return success to prevent email enumeration
@@ -139,10 +137,7 @@ pub async fn forgot_password(
     }
 
     // Send reset email (best effort)
-    let base_url = format!(
-        "http://{}:{}",
-        state.config.server.host, state.config.server.port
-    );
+    let base_url = state.config.app.public_url.trim_end_matches('/');
     if let Err(e) = state
         .mailer
         .send_password_reset_email(&user.email, &user.username, &token, &base_url)
@@ -162,10 +157,8 @@ pub async fn reset_password(
     state: web::Data<AppState>,
 ) -> impl Responder {
     if let Err(e) = body.validate() {
-        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
-            "VALIDATION_ERROR",
-            &e.to_string(),
-        ));
+        return HttpResponse::BadRequest()
+            .json(ApiResponse::<()>::error("VALIDATION_ERROR", &e.to_string()));
     }
 
     let user = match state.user_repo.find_by_reset_token(&body.token).await {

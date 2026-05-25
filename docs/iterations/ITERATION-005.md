@@ -37,7 +37,7 @@
 ```
 cargo test -p api        → 34 passed, 0 failed
 cargo check --workspace  → 0 errors
-npm run type-check       → 0 errors
+bun run type-check       → 0 errors
 Playwright: forgot-password → "Check your email" → reset-password → "Password Reset Complete" → login with new password → success
 ```
 

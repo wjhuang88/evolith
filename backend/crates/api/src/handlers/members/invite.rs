@@ -99,6 +99,37 @@ pub async fn invite_member(
 
     match state.invitation_repo.create(new_invitation).await {
         Ok(invitation) => {
+            let tenant_name = match state.tenant_repo.find_by_id(tenant_id).await {
+                Ok(Some(tenant)) => tenant.name,
+                Ok(None) => "your workspace".to_string(),
+                Err(e) => {
+                    tracing::warn!("Failed to load tenant for invitation email: {}", e);
+                    "your workspace".to_string()
+                }
+            };
+            let inviter_name = match state.user_repo.find_by_id(user.user_id).await {
+                Ok(Some(inviter)) => inviter.username,
+                Ok(None) => "A workspace admin".to_string(),
+                Err(e) => {
+                    tracing::warn!("Failed to load inviter for invitation email: {}", e);
+                    "A workspace admin".to_string()
+                }
+            };
+            let public_url = state.config.app.public_url.trim_end_matches('/');
+            if let Err(e) = state
+                .mailer
+                .send_invitation_email(
+                    &invitation.email,
+                    &inviter_name,
+                    &tenant_name,
+                    &invitation.token,
+                    public_url,
+                )
+                .await
+            {
+                tracing::warn!("Failed to send invitation email: {}", e);
+            }
+
             let response = InviteMemberResponse {
                 id: invitation.id.to_string(),
                 email: invitation.email,
@@ -160,6 +191,23 @@ pub async fn accept_invitation(
             "TOKEN_EXPIRED",
             "Invitation has expired",
         ));
+    }
+
+    match state.user_repo.find_by_email(&invitation.email).await {
+        Ok(Some(_)) => {
+            return HttpResponse::Conflict().json(ApiResponse::<()>::error(
+                "EMAIL_EXISTS",
+                "An account with this email already exists",
+            ));
+        }
+        Ok(None) => {}
+        Err(e) => {
+            tracing::error!("Failed to check invited user email: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to accept invitation",
+            ));
+        }
     }
 
     if let Err(e) = state.hasher.validate_strength(&body.password) {
@@ -236,19 +284,20 @@ pub async fn accept_invitation(
         .and_then(|v| v.as_str().map(String::from))
         .unwrap_or_else(|| "member".to_string());
 
-    let (token, expires_at) = match state
-        .jwt
-        .generate_token(user.id, &role_str, tenant.id, &tenant_role_str)
-    {
-        Ok(result) => result,
-        Err(e) => {
-            tracing::error!("Failed to generate token: {}", e);
-            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                "INTERNAL_ERROR",
-                "Account created but login failed",
-            ));
-        }
-    };
+    let (token, expires_at) =
+        match state
+            .jwt
+            .generate_token(user.id, &role_str, tenant.id, &tenant_role_str)
+        {
+            Ok(result) => result,
+            Err(e) => {
+                tracing::error!("Failed to generate token: {}", e);
+                return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "INTERNAL_ERROR",
+                    "Account created but login failed",
+                ));
+            }
+        };
 
     let is_production = state.config.is_production();
     let csrf_token = Uuid::new_v4().to_string();

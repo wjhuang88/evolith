@@ -57,6 +57,7 @@ services:
     restart: unless-stopped
     environment:
       ENVIRONMENT: production
+      APP__PUBLIC_URL: ${APP_PUBLIC_URL:-https://app.evolith.io}
       SERVER__HOST: 0.0.0.0
       SERVER__PORT: 8080
       DATABASE__DATABASE_TYPE: postgres
@@ -70,7 +71,9 @@ services:
       SMTP__PORT: ${SMTP_PORT:-587}
       SMTP__USERNAME: ${SMTP_USERNAME:-}
       SMTP__PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP__FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@evolith.io}
+      SMTP__FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@evolith.io}
+      SMTP__FROM_NAME: ${SMTP_FROM_NAME:-Evolith}
+      SMTP__ENABLED: ${SMTP_ENABLED:-false}
       SANDBOX__ENABLED: ${SANDBOX_ENABLED:-false}
     depends_on:
       postgres:

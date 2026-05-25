@@ -181,6 +181,7 @@ impl RbacMiddleware {
                 "/api/v1/auth/forgot-password".to_string(),
                 "/api/v1/auth/reset-password".to_string(),
                 "/api/v1/auth/verify-email".to_string(),
+                "/api/v1/invitations/accept".to_string(),
             ],
         }
     }
@@ -194,6 +195,11 @@ impl RbacMiddleware {
     pub fn add_public_path(mut self, path: &str) -> Self {
         self.public_paths.push(path.to_string());
         self
+    }
+
+    fn is_public_path(path: &str, public_paths: &[String]) -> bool {
+        public_paths.iter().any(|p| path.starts_with(p))
+            || (path.starts_with("/api/v1/tenant/") && path.ends_with("/members/join"))
     }
 }
 
@@ -252,7 +258,7 @@ where
 
         // Check if the request path is public (doesn't require authentication)
         let path = req.path();
-        let is_public = public_paths.iter().any(|p| path.starts_with(p));
+        let is_public = RbacMiddleware::is_public_path(path, &public_paths);
 
         if is_public {
             // Public path - allow without authentication
@@ -433,5 +439,23 @@ mod tests {
         // Member cannot access admin-level resources
         let result = check_tenant_access(&user, user.tenant_id, TenantRole::Admin);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_public_invitation_accept_paths() {
+        let middleware = RbacMiddleware::new("test-secret".to_string());
+
+        assert!(RbacMiddleware::is_public_path(
+            "/api/v1/invitations/accept",
+            &middleware.public_paths
+        ));
+        assert!(RbacMiddleware::is_public_path(
+            "/api/v1/tenant/11111111-1111-1111-1111-111111111111/members/join",
+            &middleware.public_paths
+        ));
+        assert!(!RbacMiddleware::is_public_path(
+            "/api/v1/tenant/11111111-1111-1111-1111-111111111111/members",
+            &middleware.public_paths
+        ));
     }
 }

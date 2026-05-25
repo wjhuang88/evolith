@@ -6,6 +6,7 @@ ENV_FILE="${ENV_FILE:-$PROJECT_ROOT/.env.development}"
 PID_DIR="$PROJECT_ROOT/.dev-pids"
 LOG_DIR="$PROJECT_ROOT/.dev-logs"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
+FRONTEND_PORT="${FRONTEND_PORT:-3001}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -166,7 +167,7 @@ start_backend() {
 }
 
 start_frontend() {
-    if ! check_port 3000 "frontend"; then
+    if ! check_port "$FRONTEND_PORT" "frontend"; then
         return 1
     fi
 
@@ -175,15 +176,15 @@ start_frontend() {
         return 0
     fi
 
-    log_info "Starting Next.js frontend..."
+    log_info "Starting Vite frontend..."
     cd "$PROJECT_ROOT/frontend"
 
     if [ ! -d "node_modules" ]; then
         log_info "Installing frontend dependencies..."
-        npm install > "$LOG_DIR/frontend-install.log" 2>&1
+        bun install > "$LOG_DIR/frontend-install.log" 2>&1
     fi
 
-    npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
+    bun run dev -- --port "$FRONTEND_PORT" > "$LOG_DIR/frontend.log" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_DIR/frontend.pid"
     cd "$PROJECT_ROOT"
@@ -192,8 +193,8 @@ start_frontend() {
     local max_wait=30
     local waited=0
     while [ $waited -lt $max_wait ]; do
-        if curl -sf http://localhost:3000 >/dev/null 2>&1; then
-            log_ok "Frontend is running at http://localhost:3000"
+        if curl -sf "http://localhost:$FRONTEND_PORT" >/dev/null 2>&1; then
+            log_ok "Frontend is running at http://localhost:$FRONTEND_PORT"
             return 0
         fi
         if ! kill -0 "$pid" 2>/dev/null; then
@@ -264,7 +265,7 @@ show_status() {
     fi
 
     if is_running "frontend"; then
-        echo -e "  ${GREEN}●${NC} Frontend: Running (PID $(cat "$PID_DIR/frontend.pid")) — http://localhost:3000"
+        echo -e "  ${GREEN}●${NC} Frontend: Running (PID $(cat "$PID_DIR/frontend.pid")) — http://localhost:$FRONTEND_PORT"
     else
         echo -e "  ${RED}●${NC} Frontend: Not running"
     fi
@@ -283,7 +284,7 @@ print_ready_banner() {
     echo "  Evolith Development Environment Ready"
     echo "========================================="
     echo ""
-    echo "  Frontend: http://localhost:3000"
+    echo "  Frontend: http://localhost:$FRONTEND_PORT"
     echo "  Backend:  http://localhost:8080"
     echo "  Health:   http://localhost:8080/health"
     echo ""

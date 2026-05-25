@@ -59,12 +59,13 @@ services:
       dockerfile: Dockerfile
     container_name: evolith-backend
     environment:
-      - DATABASE_TYPE=postgres
-      - DATABASE_URL=postgres://evolith:dev_password@postgres:5432/evolith
-      - REDIS_URL=redis://redis:6379
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - APP__PUBLIC_URL=http://localhost:3001
+      - DATABASE__DATABASE_TYPE=postgres
+      - DATABASE__URL=postgres://evolith:dev_password@postgres:5432/evolith
+      - REDIS__URL=redis://redis:6379
+      - STORAGE__ENDPOINT=minio:9000
+      - STORAGE__ACCESS_KEY=minioadmin
+      - STORAGE__SECRET_KEY=minioadmin
     ports:
       - "8080:8080"
     depends_on:
@@ -83,10 +84,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: evolith-frontend
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
     ports:
-      - "3000:3000"
+      - "3001:80"
     depends_on:
       - backend
     profiles:

@@ -75,4 +75,21 @@ export const authApi = {
     });
     return response.data;
   },
+
+  /**
+   * Accept an invitation and create the invited user account.
+   */
+  async acceptInvitation(data: {
+    token: string;
+    username: string;
+    password: string;
+  }): Promise<ApiResponse<AuthToken>> {
+    const response = await apiClient.post<ApiResponse<AuthToken>>('/invitations/accept', data);
+
+    if (response.data.success && response.data.data) {
+      setToken(response.data.data.token, response.data.data.expires_at);
+    }
+
+    return response.data;
+  },
 };

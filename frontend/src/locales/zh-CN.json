@@ -164,6 +164,21 @@
       "passwordTooShort": "密码长度至少为 8 个字符",
       "resetFailed": "重置密码失败，链接可能已过期。"
     },
+    "joinPage": {
+      "title": "加入工作区",
+      "subtitle": "创建账户以接受本次邀请。",
+      "confirmPassword": "确认密码",
+      "usernamePlaceholder": "您的用户名",
+      "passwordPlaceholder": "最少 8 个字符",
+      "confirmPasswordPlaceholder": "再次输入密码",
+      "acceptInvitation": "接受邀请",
+      "joining": "加入中...",
+      "backToSignIn": "返回登录",
+      "invalidLink": "此邀请链接无效或缺少令牌。",
+      "passwordsNoMatch": "两次输入的密码不一致。",
+      "passwordTooShort": "密码长度至少为 8 个字符。",
+      "acceptFailed": "接受邀请失败，链接可能无效或已过期。"
+    },
     "verifyEmailPage": {
       "verifying": "验证邮箱",
       "verifyingMessage": "正在验证您的邮箱...",

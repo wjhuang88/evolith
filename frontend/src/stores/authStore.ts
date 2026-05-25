@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
             const authToken = response.data as AuthToken;
             set({ 
               user: authToken.user, 
-              tenant: (authToken as unknown as { tenant?: TenantInfo }).tenant || null,
+              tenant: authToken.tenant || null,
               isAuthenticated: true,
               isLoading: false 
             });
@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
             const authToken = response.data as AuthToken;
             set({ 
               user: authToken.user, 
-              tenant: (authToken as unknown as { tenant?: TenantInfo }).tenant || null,
+              tenant: authToken.tenant || null,
               isAuthenticated: true,
               isLoading: false 
             });

@@ -3,21 +3,23 @@
 //! Tests the full HTTP auth flow through actix-web's test server, including RbacMiddleware JWT validation.
 
 use actix_web::{test, web, App};
+use chrono::Utc;
 use serde::Deserialize;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
 use api::middleware::rbac::RbacMiddleware;
+use api::routes;
 use api::routes::auth;
 use api::state::AppState;
 use domain::repository::{
-    ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
-    TenantRepository, ToolRepository, UserRepository,
+    ApiKeyRepository, AuditRepository, InvitationRepository, NewInvitation, SkillRepository,
+    SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
 use infra::config::{
-    AppConfig, DatabaseConfig, JwtConfig, LogConfig, RateLimitConfig, RedisConfig, SandboxConfig,
-    ServerConfig, SmtpConfig, StorageConfig, StripeConfig,
+    AppConfig, AppMetaConfig, DatabaseConfig, JwtConfig, LogConfig, RateLimitConfig, RedisConfig,
+    SandboxConfig, ServerConfig, SmtpConfig, StorageConfig, StripeConfig,
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteInvitationRepository,
@@ -26,6 +28,7 @@ use infra::db::{
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
+use uuid::Uuid;
 
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
 const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_tenant.sql");
@@ -139,6 +142,9 @@ async fn run_migration_sql(pool: &SqlitePool, sql: &str) {
 
 fn create_test_config() -> AppConfig {
     AppConfig {
+        app: AppMetaConfig {
+            public_url: "http://localhost:3001".to_string(),
+        },
         server: ServerConfig {
             host: "127.0.0.1".to_string(),
             port: 8080,
@@ -317,6 +323,68 @@ async fn test_register_duplicate_email() {
     assert!(!result.success);
     let error = result.error.expect("Expected error in response");
     assert_eq!(error.code, "EMAIL_EXISTS");
+}
+
+#[actix_rt::test]
+async fn test_accept_invitation_existing_email_returns_conflict() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool.clone());
+    let jwt_secret = app_state.config.jwt.secret.clone();
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new(jwt_secret))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "invited-existing@example.com",
+            "username": "existing",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+
+    let invite_token = "inv_existing_email_token";
+    let invitation_repo = SqliteInvitationRepository::new(pool);
+    invitation_repo
+        .create(NewInvitation::new(
+            Uuid::parse_str(&auth_data.tenant.id).expect("Invalid tenant UUID"),
+            "invited-existing@example.com".to_string(),
+            "member".to_string(),
+            invite_token.to_string(),
+            Utc::now() + chrono::Duration::days(1),
+            Uuid::parse_str(&auth_data.user.id).expect("Invalid user UUID"),
+        ))
+        .await
+        .expect("Failed to create invitation");
+
+    let accept_req = test::TestRequest::post()
+        .uri("/api/v1/invitations/accept")
+        .set_json(serde_json::json!({
+            "token": invite_token,
+            "username": "duplicate",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let accept_resp = test::call_service(&app, accept_req).await;
+    assert_eq!(accept_resp.status(), actix_web::http::StatusCode::CONFLICT);
+    let accept_body = test::read_body(accept_resp).await;
+    let accept_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&accept_body).expect("Failed to parse accept response");
+    assert_eq!(
+        accept_result.error.expect("Expected error").code,
+        "EMAIL_EXISTS"
+    );
 }
 
 #[actix_rt::test]

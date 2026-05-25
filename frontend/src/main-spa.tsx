@@ -11,6 +11,7 @@ import LoginPage from './app/login/page';
 import RegisterPage from './app/register/page';
 import ForgotPasswordPage from './app/forgot-password/page';
 import ResetPasswordPage from './app/reset-password/page';
+import JoinPage from './app/join/page';
 import OnboardingPage from './app/onboarding/page';
 import ProfilePage from './app/profile/page';
 import VerifyEmailPage from './app/verify-email/page';
@@ -50,6 +51,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/join" element={<JoinPage />} />
+            <Route path="/accept-invitation" element={<JoinPage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />

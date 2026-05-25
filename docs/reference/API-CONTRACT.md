@@ -82,6 +82,7 @@ State-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) require CSRF validati
 - `/mcp`
 - `/api/v1/auth/login`, `/api/v1/auth/register`
 - `/api/v1/auth/forgot-password`, `/api/v1/auth/reset-password`, `/api/v1/auth/verify-email`
+- `/api/v1/invitations/accept`, `/api/v1/tenant/{tenant_id}/members/join`
 
 **CSRF error response:**
 ```json
@@ -1203,7 +1204,7 @@ interface MemberListResponse {
 ### `POST /api/v1/tenant/{tenant_id}/members/invite`
 
 - **Auth:** JWT (admin only)
-- **Description:** Invite a member
+- **Description:** Invite a member and send an invitation email when mailer is configured. The response also includes the relative join URL for admin copy/paste fallback.
 
 **Request:**
 ```typescript
@@ -1268,10 +1269,10 @@ ApiResponse<MessageResponse>
 
 ---
 
-### `POST /api/v1/tenant/{tenant_id}/members/join` ⚠️ Not implemented (501)
+### `POST /api/v1/invitations/accept`
 
 - **Auth:** None
-- **Description:** Accept invitation
+- **Description:** Accept invitation and create the invited account. This is the canonical public endpoint used by the SPA join page.
 
 **Request:**
 ```typescript
@@ -1282,7 +1283,27 @@ interface AcceptInviteRequest {
 }
 ```
 
-**Response:** 501 NOT_IMPLEMENTED
+**Response:**
+```typescript
+ApiResponse<AuthResponseData>
+```
+
+**Errors:**
+- `INVALID_TOKEN` — token does not exist
+- `TOKEN_USED` — invitation already accepted
+- `TOKEN_EXPIRED` — invitation expired
+- `WEAK_PASSWORD` — password does not meet password policy
+
+---
+
+### `POST /api/v1/tenant/{tenant_id}/members/join`
+
+- **Auth:** None
+- **Description:** Compatibility alias for accepting invitations. Prefer `POST /api/v1/invitations/accept` because the token already identifies the tenant.
+
+**Request:** same as `POST /api/v1/invitations/accept`
+
+**Response:** same as `POST /api/v1/invitations/accept`
 
 ---
 

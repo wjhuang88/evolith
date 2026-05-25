@@ -164,6 +164,21 @@
       "passwordTooShort": "Password must be at least 8 characters",
       "resetFailed": "Failed to reset password. The link may have expired."
     },
+    "joinPage": {
+      "title": "Join workspace",
+      "subtitle": "Create your account to accept this invitation.",
+      "confirmPassword": "Confirm password",
+      "usernamePlaceholder": "your-name",
+      "passwordPlaceholder": "Minimum 8 characters",
+      "confirmPasswordPlaceholder": "Repeat password",
+      "acceptInvitation": "Accept invitation",
+      "joining": "Joining...",
+      "backToSignIn": "Back to sign in",
+      "invalidLink": "This invitation link is invalid or missing a token.",
+      "passwordsNoMatch": "Passwords do not match.",
+      "passwordTooShort": "Password must be at least 8 characters.",
+      "acceptFailed": "Failed to accept invitation. The link may be invalid or expired."
+    },
     "verifyEmailPage": {
       "verifying": "Verifying Email",
       "verifyingMessage": "Verifying your email...",

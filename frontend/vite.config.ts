@@ -11,7 +11,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: process.env.VITE_ENABLE_SOURCEMAP === 'true',
   },
   server: {
     port: 3001,

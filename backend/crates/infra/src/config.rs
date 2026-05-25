@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
+    pub app: AppMetaConfig,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub redis: RedisConfig,
@@ -15,6 +16,12 @@ pub struct AppConfig {
     pub stripe: StripeConfig,
     pub smtp: SmtpConfig,
     pub rate_limit: RateLimitConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppMetaConfig {
+    /// Public URL used in emails and user-facing links.
+    pub public_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -105,6 +112,7 @@ impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         let config = Config::builder()
             // Set defaults
+            .set_default("app.public_url", "http://localhost:3001")?
             .set_default("server.host", "0.0.0.0")?
             .set_default("server.port", 8080)?
             .set_default("database.database_type", "sqlite")?

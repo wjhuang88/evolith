@@ -38,13 +38,14 @@
 | EVO-021 | 前端路由适配层 | tech-debt | P0 | Done | EVO-002 split | Iteration 003；已新增 `frontend/src/lib/router.tsx`，页面和共享组件不再直接导入 Next 路由模块 |
 | EVO-022 | Vite + Bun 构建骨架 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；新增 Vite 入口、React Router 根路由和并行构建脚本 |
 | EVO-023 | 前端运行时配置迁移 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；`src/lib/config.ts` 统一运行时环境变量，替换所有 `process.env` 引用 |
-| EVO-024 | Docker / Nginx 切换到静态 SPA | tech-debt | P0 | Done | EVO-002 split | Iteration 004；Dockerfile 改为 Vite build + Nginx 静态服务，SPA fallback |
+| EVO-024 | Docker / Nginx 切换到静态 SPA | tech-debt | P0 | Done | EVO-002 split | Iteration 004；过渡部署形态，Dockerfile 改为 Bun + Vite build + Nginx 静态服务，SPA fallback |
 | EVO-025 | 移除 Next.js 依赖和遗留入口 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；删除 next 依赖、App Router、middleware、config；router.tsx 改为 React Router |
 | EVO-026 | 前端 Snippets 入口迁移为 CLI 友好接口 | product-change | P1 | Proposed | EVO-017 / 页面残留 | Vite 迁移后统一替换导航、路由文案、API client 和 i18n 旧 snippet 概念 |
 | EVO-027 | Skill 多来源创建 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 支持 ZIP 上传、Git 仓库接入、SkillHub 同步三种创建入口 |
 | EVO-028 | Skill 版本管理与正确性验证 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 建立版本历史、回滚、agentskills 规范校验、描述质量检查和导入报告 |
 | EVO-029 | Skill 专业描述与发现质量提升 | feature | P2 | Proposed | Agent Skills spec | 提升 description、触发关键词、兼容性、资源索引和搜索排序质量 |
 | EVO-030 | GitHub CI/CD 重建 | tech-debt | P2 | Proposed | EVO-002 split / 工程收尾 | 放到项目后段统一做；基于最终构建、测试、部署命令重建 workflow |
+| EVO-031 | Iteration 004/005 质量修复与流程防呆 | bug | P0 | Done | 质量审查 2026-05-17 | 修复静态资源反代、邀请接受闭环、公开接口放行、邮件公开 URL、sourcemap 默认关闭和流程规约 |
 
 ## 故事模板
 
@@ -67,10 +68,11 @@
 
 优先选择：
 
-1. `EVO-003` 忘记密码与重置密码闭环。
-2. `EVO-004` 邀请接受 / Join 流程。
+1. `EVO-005` MCP 工具真实执行。
+2. `EVO-018` 邮箱验证发送与确认闭环。
+3. `EVO-006` Skill 更新接口。
 
-理由：Phase B（前端迁移）已完成；Phase C（认证闭环）是下一阶段。EVO-003 和 EVO-004 都是 P0 Ready，实现后用户生命周期关键流程（注册→登录→改密→忘记密码→邀请加入）基本闭环。EVO-018 邮箱验证可与 EVO-003 共用 token 生成逻辑，但优先级 P1，不在本次迭代。
+理由：Phase B（前端迁移）已完成，EVO-003/EVO-004 已完成并经过质量修复；下一步应优先推进核心 MCP 工具执行闭环，再补邮箱验证和 Skill 更新。
 
 ## 已细化故事
 
@@ -78,7 +80,7 @@
 
 - 类型：tech-debt
 - 优先级：P0
-- 状态：In Progress
+- 状态：Done
 - 用户价值或技术目标：建立 Vite + Bun 构建入口，使用 React Router 替代 Next.js App Router 路由，实现与现有 Next 构建并行的双构建能力。这是前端迁移链的第一步，后续 EVO-023/024/025 依赖本故事的产物。
 - 范围：
   - 在 `frontend/` 中新增 Vite 配置（`vite.config.ts`）。
@@ -93,27 +95,27 @@
   - 不删除 Next.js 依赖、App Router 或 middleware；归属 EVO-025。
   - 不改变 API client 或业务逻辑。
 - 验收标准：
-  - [ ] `vite.config.ts` 存在且配置了 React 插件、路径别名（`@/`）、Tailwind。
-  - [ ] `index.html` SPA 入口可加载。
-  - [ ] React Router 路由树覆盖当前所有 22 个页面路由。
-  - [ ] `bun run dev:spa` 启动 Vite dev server，SPA 可访问。
-  - [ ] `bun run build:spa` 产出 `dist/` 静态文件。
-  - [ ] 现有 `npm run build` / `npm run type-check` 不受影响。
-  - [ ] 路由适配层 `router.tsx` 在 Vite 环境使用 React Router 实现。
+  - [x] `vite.config.ts` 存在且配置了 React 插件、路径别名（`@/`）、Tailwind。
+  - [x] `index.html` SPA 入口可加载。
+  - [x] React Router 路由树覆盖当前页面路由。
+  - [x] `bun run dev` 启动 Vite dev server，SPA 可访问。
+  - [x] `bun run build` 产出 `dist/` 静态文件。
+  - [x] `bun run type-check` 通过。
+  - [x] 路由适配层 `router.tsx` 在 Vite 环境使用 React Router 实现。
 - 技术备注：
   - 路由适配层在 Iteration 003 已建立（`frontend/src/lib/router.tsx`），当前委托 Next；本故事需要让该层在 Vite 环境下使用 React Router 实现。
   - TanStack Query 暂不在本故事引入；当前项目使用 Zustand + Axios，保持不变。
   - Bun 作为包管理和脚本运行时，Vite 作为构建工具。
 - 依赖：EVO-021（路由适配层）已完成。
 - 影响范围：frontend
-- 最小验证方式：`bun run build:spa` 成功产出 `dist/`；`npm run build` 不报错；手动访问 SPA 验证路由。
+- 最小验证方式：`bun run build` 成功产出 `dist/`；`bun run type-check` 不报错；手动访问 SPA 验证路由。
 
 ### EVO-024 Docker / Nginx 切换到静态 SPA
 
 - 类型：tech-debt
 - 优先级：P0
-- 状态：Ready
-- 用户价值或技术目标：让生产部署形态匹配 Vite 静态 SPA，避免继续依赖 Next standalone runtime，为后续移除 Next.js 依赖提供部署侧前置条件。
+- 状态：Done
+- 用户价值或技术目标：让当前生产部署形态匹配 Vite 静态 SPA，避免继续依赖 Next standalone runtime。该 Nginx 托管静态资源方案是 EVO-016 前的过渡策略，终局仍计划把前端静态产物嵌入后端发布物。
 - 范围：
   - 更新前端 Dockerfile 或生产镜像构建流程，使用 Vite `dist/` 静态产物。
   - 更新 Nginx 配置，支持 SPA history fallback、静态资源缓存和 `/api/v1` 反向代理。
@@ -124,14 +126,14 @@
   - 不删除 Next.js 依赖、App Router 或 middleware；归属 EVO-025。
   - 不改变后端 API 合约。
 - 验收标准：
-  - [ ] 生产前端镜像不再依赖 Next standalone server。
-  - [ ] Nginx 能托管 `dist/` 并对 SPA 路由返回入口 HTML。
-  - [ ] `/api/v1` 请求仍代理到后端，且前端 API base URL 保持 `/api/v1` 约束。
-  - [ ] Docker production stack 可启动到前端静态页面和后端 health endpoint。
-  - [ ] 文档说明 GitHub CI/CD 已拆到 EVO-030，避免误以为 EVO-024 包含 workflow。
+  - [x] 生产前端镜像不再依赖 Next standalone server。
+  - [x] Nginx 能托管 `dist/` 并对 SPA 路由返回入口 HTML。
+  - [x] `/api/v1` 请求仍代理到后端，且前端 API base URL 保持 `/api/v1` 约束。
+  - [x] Docker production stack 可启动到前端静态页面和后端 health endpoint。
+  - [x] 文档说明 GitHub CI/CD 已拆到 EVO-030，避免误以为 EVO-024 包含 workflow。
 - 依赖或阻塞：EVO-022、EVO-023。
 - 影响范围：frontend / deploy / docs
-- 最小验证方式：`bun run build:spa`；本地或容器内验证 Nginx 静态托管和 `/api/v1` 代理；`git diff --check`。
+- 最小验证方式：`bun run build`；本地或容器内验证 Nginx 静态托管和 `/api/v1` 代理；`git diff --check`。
 
 ### EVO-030 GitHub CI/CD 重建
 

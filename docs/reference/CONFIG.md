@@ -59,6 +59,7 @@ LOG__LEVEL=info
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
+| `APP__PUBLIC_URL` | 对外访问前端 URL，用于邮件链接和用户可点击链接 | `http://localhost:3001` |
 | `SERVER__HOST` | 服务监听地址 | `0.0.0.0` |
 | `SERVER__PORT` | 服务端口 | `8080` |
 | `DATABASE__DATABASE_TYPE` | `sqlite` / `postgres` / `mysql` | `sqlite` |
@@ -95,16 +96,16 @@ LOG__LEVEL=info
 
 ## 前端配置
 
-当前 Next.js 前端使用：
-
-```text
-NEXT_PUBLIC_API_URL
-```
-
-计划迁移到 Vite 后改为：
+当前 Vite 前端使用：
 
 ```text
 VITE_API_URL
+```
+
+兼容层仍会读取旧 `NEXT_PUBLIC_API_URL`，但新配置应使用 `VITE_API_URL`。该值必须包含 `/api/v1`，例如：
+
+```text
+VITE_API_URL=http://localhost:8080/api/v1
 ```
 
 生产建议支持运行时配置：
@@ -119,5 +120,6 @@ VITE_API_URL
 |------|------|----------|
 | `DATABASE_TYPE=postgres` | 后端不会按嵌套配置读取 | 使用 `DATABASE__DATABASE_TYPE=postgres` |
 | 前端 API URL 缺少 `/api/v1` | 登录等请求 404 | 配置完整 base URL |
+| `APP__PUBLIC_URL` 指向后端或容器内地址 | 邮件中的重置密码/邀请链接用户打不开 | 设置为用户可访问的前端地址 |
 | 开发 JWT secret 用于生产 | 启动失败或安全风险 | 生产设置强随机密钥 |
 | SMTP disabled | 邮件不会真实发送 | 开发看 ConsoleMailer，生产启用 SMTP |

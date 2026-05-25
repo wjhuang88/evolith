@@ -31,9 +31,9 @@
 - [x] `vite.config.ts` 存在且配置了 React 插件、路径别名（`@/`）、Tailwind。
 - [x] `index.html` SPA 入口可加载。
 - [x] React Router 路由树覆盖当前所有 22 个页面路由。
-- [x] `npm run dev` 启动 Vite dev server，SPA 可访问。
-- [x] `npm run build` 产出 `dist/` 静态文件。
-- [x] `npm run type-check` 通过，0 错误。
+- [x] `bun run dev` 启动 Vite dev server，SPA 可访问。
+- [x] `bun run build` 产出 `dist/` 静态文件。
+- [x] `bun run type-check` 通过，0 错误。
 - [x] Playwright 验证：Landing → Login → Dashboard → Tools 导航正常。
 - [x] Dockerfile 改为 Vite build + Nginx 静态服务。
 - [x] Nginx 配置包含 SPA fallback `try_files $uri /index.html`。
@@ -42,8 +42,8 @@
 ## 5. 验证结果
 
 ```bash
-npm run type-check   → 0 errors
-npm run build        → ✓ built in 807ms, dist/ 产出正常
+bun run type-check   → 0 errors
+bun run build        → ✓ built in 807ms, dist/ 产出正常
 Playwright           → Landing/Login/Dashboard/Tools 页面渲染正确，0 console errors
 ```
 

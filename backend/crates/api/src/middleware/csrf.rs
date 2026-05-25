@@ -60,6 +60,7 @@ impl CsrfMiddleware {
                 "/api/v1/auth/forgot-password".to_string(),
                 "/api/v1/auth/reset-password".to_string(),
                 "/api/v1/auth/verify-email".to_string(),
+                "/api/v1/invitations/accept".to_string(),
             ],
         }
     }
@@ -69,6 +70,11 @@ impl CsrfMiddleware {
             *method,
             Method::POST | Method::PUT | Method::PATCH | Method::DELETE
         )
+    }
+
+    fn is_exempt_path(path: &str, exempt_paths: &[String]) -> bool {
+        exempt_paths.iter().any(|p| path.starts_with(p))
+            || (path.starts_with("/api/v1/tenant/") && path.ends_with("/members/join"))
     }
 }
 
@@ -116,7 +122,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let path = req.path();
 
-        if self.exempt_paths.iter().any(|p| path.starts_with(p)) {
+        if CsrfMiddleware::is_exempt_path(path, &self.exempt_paths) {
             let fut = self.service.call(req);
             return Box::pin(fut);
         }
@@ -181,29 +187,41 @@ mod tests {
     #[test]
     fn test_exempt_paths() {
         let middleware = CsrfMiddleware::new();
-        assert!(middleware
-            .exempt_paths
-            .iter()
-            .any(|p| "/health".starts_with(p)));
-        assert!(middleware
-            .exempt_paths
-            .iter()
-            .any(|p| "/health/live".starts_with(p)));
-        assert!(middleware
-            .exempt_paths
-            .iter()
-            .any(|p| "/mcp".starts_with(p)));
-        assert!(middleware
-            .exempt_paths
-            .iter()
-            .any(|p| "/api/v1/auth/login".starts_with(p)));
-        assert!(!middleware
-            .exempt_paths
-            .iter()
-            .any(|p| "/api/v1/tools".starts_with(p)));
-        assert!(!middleware
-            .exempt_paths
-            .iter()
-            .any(|p| "/api/v1/skills".starts_with(p)));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/health",
+            &middleware.exempt_paths
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/health/live",
+            &middleware.exempt_paths
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/mcp",
+            &middleware.exempt_paths
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/api/v1/auth/login",
+            &middleware.exempt_paths
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/api/v1/invitations/accept",
+            &middleware.exempt_paths
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/api/v1/tenant/11111111-1111-1111-1111-111111111111/members/join",
+            &middleware.exempt_paths
+        ));
+        assert!(!CsrfMiddleware::is_exempt_path(
+            "/api/v1/tools",
+            &middleware.exempt_paths
+        ));
+        assert!(!CsrfMiddleware::is_exempt_path(
+            "/api/v1/skills",
+            &middleware.exempt_paths
+        ));
+        assert!(!CsrfMiddleware::is_exempt_path(
+            "/api/v1/tenant/11111111-1111-1111-1111-111111111111/members",
+            &middleware.exempt_paths
+        ));
     }
 }

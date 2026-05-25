@@ -39,6 +39,7 @@ export interface AuthToken {
   token: string;
   expires_at: number;
   user: User;
+  tenant?: TenantInfo;
 }
 
 // Updated User interface with tenant fields
