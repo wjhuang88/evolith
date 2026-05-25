@@ -20,7 +20,7 @@ Evolith 的后端主体架构已经成型：数据库 repository、双数据库 
 下一阶段不应继续扩展大而散的新功能，而应先处理三类问题：
 
 1. **需求闭环缺口**：需求和 API 合约中仍存在 501、stub、前端 mock 和服务 crate placeholder。
-2. **前端工程简化**：当前前端是 Next.js，但企业级 harness 控制台不需要 SSR；迁移为 `React + Vite + Bun` 静态 SPA 是 P0 工程门禁，完成后再推进前端嵌入后端发布物。
+2. **前端工程简化**：前端已迁移为 `React + Vite + Bun` 静态 SPA。当前 Nginx 托管静态资源是 EVO-016 前的过渡部署形态，终局仍计划推进前端嵌入后端发布物。
 3. **产品概念迁移**：旧 snippet 主线停止扩展，后续替换为面向大模型和 CLI 调用的 CLI 友好接口，见 [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md)。
 
 具体需求池维护在 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)。本文档只保留阶段方向和优先级判断。
@@ -57,13 +57,15 @@ React + Vite + TypeScript + Tailwind + React Router + Zustand + TanStack Query +
 
 ### 2.2 部署路线
 
-前端构建为纯静态文件，由 Nginx 托管：
+当前过渡阶段前端构建为纯静态文件，由 Nginx 托管：
 
 ```text
 bun install
 bun run build
 nginx serve dist/
 ```
+
+终局目标见 EVO-016 / `EMBEDDED-FRONTEND`：前端静态产物嵌入后端发布物后，Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的必需组件。
 
 生产建议支持运行时配置：
 
@@ -81,12 +83,11 @@ nginx serve dist/
 |------|------|----------|------|
 | Auth | `POST /api/v1/auth/send-verify` | 501 | EVO-018 |
 | Auth | `POST /api/v1/auth/verify-email` | 501 | EVO-018 |
-| Auth | `POST /api/v1/auth/forgot-password` | 501 | EVO-003 |
-| Auth | `POST /api/v1/auth/reset-password` | 501 | EVO-003 |
 | Skills | `PUT /api/v1/skills/{id}` | 501 | EVO-006 |
 | Snippets | `PUT /api/v1/snippets/{id}` | 501 | Deferred by EVO-017 |
-| Members | `POST /api/v1/tenant/{tenant_id}/members/join` | 501 | EVO-004 |
 | Audit | `GET /api/v1/tenant/{tenant_id}/audit-logs/{log_id}` | 501 | EVO-013 |
+
+已在 Iteration 005 / EVO-031 完成：forgot/reset password 与 invitation join 公开入口。
 
 ### 3.2 当前代码中的关键 placeholder
 
@@ -218,9 +219,9 @@ nginx serve dist/
 | 路线图内容 | 当前归口 | 状态 |
 |----------------------|----------|------|
 | Phase A API 对齐 | EVO-001 | Done |
-| Phase B React + Vite + Bun | EVO-002 / EVO-021 至 EVO-025 | In Progress；P0 高优先级；GitHub CI/CD 已拆出到 EVO-030 |
-| Phase C forgot/reset password | EVO-003 | Ready |
-| Phase C invitation join | EVO-004 | Ready |
+| Phase B React + Vite + Bun | EVO-002 / EVO-021 至 EVO-025 | Done；GitHub CI/CD 已拆出到 EVO-030 |
+| Phase C forgot/reset password | EVO-003 | Done |
+| Phase C invitation join | EVO-004 | Done；EVO-031 补齐公开入口与邮件链接 |
 | Phase C send/verify email | EVO-018 | Proposed |
 | Phase D MCP 工具执行闭环 | EVO-005 | Ready |
 | Phase E Skill update | EVO-006 | Proposed |

@@ -50,7 +50,7 @@
 | Rust domain/service | `cargo test -p <crate>` |
 | API handler/middleware | `cargo test -p api` |
 | repository/migration | `cargo test -p infra`，必要时用 PostgreSQL full 模式验证 |
-| 前端类型或页面 | `npm run type-check`，必要时 `npm run build` |
+| 前端类型或页面 | `bun run type-check`，必要时 `bun run build` |
 | 跨端功能 | 后端 crate 测试 + 前端 build + 手工流程 |
 
 ## 完成后 Checklist

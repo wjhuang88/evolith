@@ -9,7 +9,7 @@
 ## 前置检查
 
 - [ ] Rust toolchain 可用。
-- [ ] Node.js / npm 可用。
+- [ ] Node.js / Bun 可用。
 - [ ] 如使用 full 模式，Docker 和 Docker Compose 可用。
 - [ ] 当前工作区没有会被误覆盖的用户改动。
 
@@ -17,8 +17,8 @@
 
 | 模式 | 命令 | 依赖 | 适用场景 |
 |------|------|------|----------|
-| lite | `./scripts/dev.sh lite` | Rust + Node.js | 快速开发，SQLite 内存数据库 |
-| full | `./scripts/dev.sh start` | Docker + Rust + Node.js | 接近生产，PostgreSQL/Redis/MinIO |
+| lite | `./scripts/dev.sh lite` | Rust + Node.js + Bun | 快速开发，SQLite 内存数据库 |
+| full | `./scripts/dev.sh start` | Docker + Rust + Node.js + Bun | 接近生产，PostgreSQL/Redis/MinIO |
 | infra only | `docker compose up -d postgres redis minio` | Docker | 手动启动后端/前端 |
 
 ## 标准流程
@@ -52,8 +52,8 @@ cargo test --workspace
 
 # 前端
 cd frontend
-npm run type-check
-npm run build
+bun run type-check
+bun run build
 ```
 
 ## 本地测试账号
@@ -81,7 +81,7 @@ curl -i -s -X POST http://127.0.0.1:8080/api/v1/auth/register \
 |------|------|
 | 端口占用 | `./scripts/dev.sh status`，再停止占用进程或换端口 |
 | 后端启动后数据库异常 | 检查 `DATABASE__DATABASE_TYPE` 和 `DATABASE__URL` |
-| 前端请求 404 | 检查 `NEXT_PUBLIC_API_URL` 是否包含 `/api/v1` |
+| 前端请求 404 | 检查 `VITE_API_URL` 是否包含 `/api/v1`；旧 `NEXT_PUBLIC_API_URL` 仅兼容读取 |
 | CSRF 403 | 先完成登录，让浏览器拿到 `csrf_token` cookie |
 | 种子账号登录 500 或失败 | 不要继续尝试历史种子账号；按“本地测试账号”注册临时账号 |
 | sandbox 不生效 | 检查 Docker 是否可用，以及后端启动日志是否降级到 default executor |
@@ -90,4 +90,5 @@ curl -i -s -X POST http://127.0.0.1:8080/api/v1/auth/register \
 
 - `.env.development` 和 `.env.example` 应使用双下划线配置键。
 - SQLite 内存库每次重启都会重置数据。
+- Vite 前端默认端口是 `3001`；如需覆盖，设置 `FRONTEND_PORT` 并保持 `APP__PUBLIC_URL` 与实际前端地址一致。
 - full 模式下只改前端无需重启后端；只改后端通常不需要重启 Docker 基础设施。

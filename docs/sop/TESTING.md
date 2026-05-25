@@ -9,10 +9,12 @@
 | Rust domain/service | `cargo test -p <crate>` |
 | API handler/middleware | `cargo test -p api` |
 | repository/migration | `cargo test -p infra` |
-| 前端类型/API client | `npm run type-check` |
-| 前端页面 | `npm run type-check` + `npm run build` |
+| 前端类型/API client | `bun run type-check` |
+| 前端页面 | `bun run type-check` + `bun run build` |
 | 跨端功能 | 后端相关测试 + 前端 build + 手工流程 |
-| 脚本/部署 | 对应 SOP 中的 dry run 或局部命令 |
+| 公开 API / 认证例外 | 后端测试必须覆盖 RBAC public path 和 CSRF exempt path |
+| 邮件链接流程 | 验证邮件链接使用 `APP__PUBLIC_URL`，且前端存在对应公开路由 |
+| 脚本/部署 | 对应 SOP 中的 dry run 或局部命令；静态 SPA 需验证 `/assets/` 实际返回资源 |
 
 ## 后端验证
 
@@ -33,20 +35,18 @@ cargo test -p service-auth
 
 ## 前端验证
 
-当前 Next.js 阶段：
-
-```bash
-cd frontend
-npm run type-check
-npm run build
-```
-
-迁移到 Vite+Bun 后：
+当前 Vite + Bun 阶段：
 
 ```bash
 cd frontend
 bun run type-check
 bun run build
+```
+
+生产构建默认不应输出 sourcemap。需要临时开启时使用：
+
+```bash
+VITE_ENABLE_SOURCEMAP=true bun run build
 ```
 
 ## CI 对齐
@@ -70,12 +70,6 @@ RUST_LOG=evolith::api=trace cargo run
 ```
 
 前端开发模式：
-
-```bash
-npm run dev
-```
-
-或 Vite+Bun 迁移后：
 
 ```bash
 bun run dev

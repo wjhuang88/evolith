@@ -23,6 +23,12 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-05-17 迭代验收需要覆盖部署路径、公开入口和终局/过渡边界
+**现象**: Iteration 004/005 文档显示完成，但复查发现 Nginx `/assets/` 反代会剥离路径前缀、邀请接受接口未同步 RBAC/CSRF 公开例外、邀请邮件/URL 缺少可用前端入口、密码重置链接误用后端监听地址，且 backlog 详情块没有随 Done 状态同步。
+**根因**: 验证只覆盖了本地 build/type-check 和局部 happy path，缺少“生产反代资源路径”“公开状态变更接口的 RBAC/CSRF 双检查”“邮件链接必须指向 `APP__PUBLIC_URL`”“总表与详情块一致性”的流程防呆；同时把 Nginx 静态托管误当成终局，而不是 EVO-016 前的过渡部署策略。
+**方案**: 修复 Nginx assets 反代、公开邀请接受 API/前端 join 页面、RBAC/CSRF 例外、邮件公开 URL、生产 sourcemap 默认关闭和 Bun 构建链；同步更新 Contract/Testing/Release/Iteration/Git/Local Dev SOP 与 backlog 状态。
+**教训**: 迭代完成不能只看本地构建；凡是公开链接、认证例外或部署路径变更，必须同时验证 API 合约、RBAC、CSRF、前端公开路由、邮件 URL、Nginx path rewrite 和 backlog 详情块。
+
 ### 2026-05-17 SOP 要区分“当前故事变更”和“迭代期间新需求进入”
 **现象**: 在 EVO-021 路由适配迭代期间，用户提出 Skill 多来源导入、版本验证和 Snippets 残留处理等后续规划；这些需求需要进入 backlog/roadmap，但并不改变当前路由适配故事。
 **根因**: `CHANGE-CONTROL.md` 只说明“迭代中收到需求变更”要停手记录，未明确独立新需求应回到 `REQUIREMENT-INTAKE.md`，容易把未来需求写进当前 iteration 的 change request。

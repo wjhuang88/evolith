@@ -7,7 +7,7 @@
 | 路径 | 说明 |
 |------|------|
 | `backend/` | Rust workspace，包含 API、domain、infra 和各 service crate |
-| `frontend/` | Next.js 14 前端，App Router + TypeScript + Tailwind |
+| `frontend/` | React + Vite + Bun 静态 SPA，TypeScript + Tailwind |
 | `backend/migrations/sqlite/` | SQLite 开发迁移 |
 | `backend/migrations/postgres/` | PostgreSQL 生产迁移 |
 | `backend/sandbox/` | Python / Node.js skill executor 镜像 |
@@ -37,7 +37,7 @@
 | `frontend/src/stores/authStore.ts` | 登录状态和用户信息 |
 | `frontend/src/components/AuthInitializer.tsx` | 启动时恢复认证状态 |
 | `frontend/src/components/AuthGuard.tsx` | 客户端路由保护 |
-| `frontend/src/middleware.ts` | Cookie-based SSR route guard |
+| `frontend/src/main-spa.tsx` | Vite SPA 入口和 React Router 路由树 |
 | `frontend/src/app/providers.tsx` | React Query、Theme、Toast、Auth 初始化 |
 | `frontend/src/locales/` | `zh-CN` / `en` 国际化资源 |
 
@@ -53,10 +53,10 @@
 
 不要使用单下划线形式替代嵌套配置。Compose、K8s、CI 和 `.env` 都应保持同一命名方式。
 
-前端 API 默认值在 `frontend/src/lib/api/client.ts`：
+前端 API 默认值在 `frontend/src/lib/config.ts`：
 
 ```text
-NEXT_PUBLIC_API_URL || http://localhost:8080/api/v1
+VITE_API_URL || /api/v1
 ```
 
 容器和生产环境也应包含 `/api/v1` 前缀，除非网关明确做了路径重写。

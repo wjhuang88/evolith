@@ -471,10 +471,10 @@ interface VerifyEmailRequest {
 
 ---
 
-### `POST /api/v1/auth/forgot-password` ⚠️ Not implemented (501)
+### `POST /api/v1/auth/forgot-password`
 
 - **Auth:** None
-- **Description:** Forgot password
+- **Description:** Send a password reset link if the account exists. Always returns success for valid requests to avoid email enumeration.
 
 **Request:**
 ```typescript
@@ -483,14 +483,17 @@ interface ForgotPasswordRequest {
 }
 ```
 
-**Response:** 501 NOT_IMPLEMENTED
+**Response:**
+```typescript
+ApiResponse<MessageResponse>
+```
 
 ---
 
-### `POST /api/v1/auth/reset-password` ⚠️ Not implemented (501)
+### `POST /api/v1/auth/reset-password`
 
 - **Auth:** None
-- **Description:** Reset password
+- **Description:** Reset the password using a valid, unexpired reset token.
 
 **Request:**
 ```typescript
@@ -500,7 +503,15 @@ interface ResetPasswordRequest {
 }
 ```
 
-**Response:** 501 NOT_IMPLEMENTED
+**Response:**
+```typescript
+ApiResponse<MessageResponse>
+```
+
+**Errors:**
+- `INVALID_TOKEN` - token does not exist or is invalid
+- `TOKEN_EXPIRED` - token has expired
+- `WEAK_PASSWORD` - replacement password does not meet policy
 
 ---
 
@@ -1292,6 +1303,7 @@ ApiResponse<AuthResponseData>
 - `INVALID_TOKEN` — token does not exist
 - `TOKEN_USED` — invitation already accepted
 - `TOKEN_EXPIRED` — invitation expired
+- `EMAIL_EXISTS` — the invited email already has an account
 - `WEAK_PASSWORD` — password does not meet password policy
 
 ---

@@ -16,7 +16,7 @@
 - **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
 - **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 - **双数据库一致性**：数据库结构或 repository 行为变化必须同时考虑 SQLite 和 PostgreSQL migrations/repositories/tests。
-- **前端 API 前缀**：`NEXT_PUBLIC_API_URL` 应包含 `/api/v1`，除非网关明确做路径重写。
+- **前端 API 前缀**：`VITE_API_URL` 应包含 `/api/v1`，除非网关明确做路径重写；旧 `NEXT_PUBLIC_API_URL` 仅为兼容读取。
 - **配置键格式**：后端嵌套配置使用双下划线环境变量，例如 `DATABASE__DATABASE_TYPE`，不要混用 `DATABASE_TYPE`。
 - **重要取舍写 ADR**：技术栈、部署形态、认证/数据边界等重大决策必须写入 `docs/decisions/`。
 
@@ -53,10 +53,12 @@
 ### Current Known Traps
 
 1. `docker-compose.yml` 里的后端环境变量必须使用 `DATABASE__DATABASE_TYPE` / `DATABASE__URL` 形式，否则 `AppConfig` 不会按预期读取嵌套配置。
-2. 前端容器的 `NEXT_PUBLIC_API_URL` 如果只有 `http://localhost:8080`，请求会打到 `/auth/...` 而不是 `/api/v1/auth/...`。
+2. 前端容器或本地环境的 `VITE_API_URL` 如果只有 `http://localhost:8080`，请求会打到 `/auth/...` 而不是 `/api/v1/auth/...`。
 3. `CsrfMiddleware` 保护所有非豁免状态变更请求，手写 fetch 时要带 `X-CSRF-Token`。
 4. Docker sandbox 初始化失败会降级到 `DefaultSkillExecutor`，不要只看接口返回成功就假定沙箱已启用。
 5. SQLite 和 PostgreSQL SQL 类型、时间、JSON、UUID 行为不同，migration 不能简单复制后不验证。
+6. 邮件链接必须使用 `APP__PUBLIC_URL` 指向前端公开地址；不要用后端监听地址拼 reset/invite 链接。
+7. 当前 Nginx 托管 Vite 静态资源是 EVO-016 前的过渡策略；修改反代时必须验证 `/assets/` 不被 rewrite 成 `index.html`。
 
 ### Session End Checklist
 
@@ -78,7 +80,7 @@ Evolith is an enterprise-grade AI Agent Harness platform providing:
 - CLI-friendly interface repository (replacing the legacy snippet concept)
 - Governance, audit, permission, and deployment foundations for enterprise agent adoption
 
-**Tech Stack**: Rust + Actix-web (backend), current Next.js 14 frontend with P0 migration target React + Vite + Bun static SPA, SQLite (dev) / PostgreSQL (prod)
+**Tech Stack**: Rust + Actix-web (backend), React + Vite + Bun static SPA frontend, SQLite (dev) / PostgreSQL (prod)
 
 ## Architecture
 
@@ -100,7 +102,7 @@ evolith/
 │   │   ├── sqlite/        # SQLite migrations (dev)
 │   │   └── postgres/      # PostgreSQL migrations (prod)
 │   └── sandbox/           # Sandbox Dockerfiles (Python, Node.js)
-├── frontend/              # Next.js 14 + TypeScript + Tailwind
+├── frontend/              # React + Vite + Bun + TypeScript + Tailwind
 │   ├── src/app/          # Pages (22 routes)
 │   ├── src/components/   # UI components
 │   ├── src/lib/          # API client, i18n
@@ -109,7 +111,7 @@ evolith/
 │   └── src/types/        # TypeScript interfaces
 ├── deploy/                # Nginx configs
 ├── scripts/               # dev.sh, backup.sh, deploy.sh
-├── .github/workflows/     # CI/CD pipelines
+├── .github/workflows/     # CI/CD pipelines (EVO-030 rebuild)
 └── docs/                  # Documentation
 ```
 
@@ -227,7 +229,8 @@ Environment variables (see `crates/infra/src/config.rs`):
 | `JWT__EXPIRATION` | Token lifetime | `24h` |
 | `LOG__LEVEL` | trace/debug/info/warn/error | `info` |
 | `ENVIRONMENT` | development/production | `development` |
-| `CORS__ALLOWED_ORIGIN` | Allowed frontend origin | `http://localhost:3000` |
+| `APP__PUBLIC_URL` | Public frontend URL for email links | `http://localhost:3001` |
+| `CORS__ALLOWED_ORIGIN` | Allowed frontend origin | `http://localhost:3001` |
 | `CSRF__ENABLED` | Enable CSRF protection | `true` |
 | `SANDBOX__ENABLED` | Enable sandbox executor | `true` |
 | `SANDBOX__TIMEOUT_SECONDS` | Sandbox execution timeout | `30` |
@@ -288,7 +291,9 @@ MySQL currently has config/pool entry only; main service rejects it because MySQ
 
 | Package | Purpose |
 |---------|---------|
-| Next.js 14 | React framework |
+| Vite | Static SPA build tool |
+| Bun | Package manager and script runtime |
+| React Router | SPA routing |
 | TypeScript | Type safety |
 | Tailwind CSS | Styling |
 | Zustand | State management |
@@ -410,7 +415,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] Both locale files (`zh-CN.json` + `en.json`, ~647 lines each)
 - [x] All 23+ components converted to `t()` calls
 - [x] LanguageSwitcher component wired into Header
-- [x] `npm run build` → 0 errors
+- [x] Legacy frontend build validation → 0 errors (pre-Vite migration)
 
 ### Phase 6 — Frontend Polish ✅ COMPLETE (2026-03-15)
 
@@ -425,7 +430,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] Responsive mobile layout fixes
 - [x] CORS fix for cookie credentials
 - [x] `cargo test --workspace` → 236 passed, 0 failed
-- [x] `npm run build` → 0 errors, 22 routes
+- [x] Legacy frontend build validation → 0 errors, 22 routes (pre-Vite migration)
 
 ### Phase 7 — Sandbox Executor ✅ COMPLETE (2026-03-15)
 
@@ -439,17 +444,17 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] AppState updated with `skill_executor: Arc<dyn SkillExecutor>`
 - [x] `cargo test --workspace` → 236 passed, 0 failed
 
-### Phase 8 — Production Deployment ✅ COMPLETE (2026-04-08)
+### Phase 8 — Production Deployment Baseline ⚠️ PARTIAL (2026-04-08)
 
 **Goal**: Docker production stack, Nginx, CI/CD, security hardening.
 
-**All Phase 8 tasks completed:**
+**Implemented baseline tasks and deferred automation:**
 - [x] Docker multi-stage build — `backend/Dockerfile` (Rust 1.82)
 - [x] Frontend standalone build — `frontend/Dockerfile`
 - [x] Production Docker Compose (5 services: postgres, redis, backend, frontend, nginx) — `docker-compose.prod.yml`
 - [x] Nginx reverse proxy with SSL termination — `deploy/nginx/`
-- [x] CI pipeline (fmt + clippy -D warnings + tests + cargo audit + npm audit + Docker build) — `.github/workflows/ci.yml`
-- [x] Deploy pipeline (manual trigger, GHCR push, SSH deploy, health check, rollback) — `.github/workflows/deploy.yml`
+- [ ] CI pipeline — deferred to EVO-030 after final Bun/Vite commands and deployment shape stabilize
+- [ ] Deploy pipeline — deferred to EVO-030 if deployment automation is still needed
 - [x] `SecurityHeadersMiddleware` (CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy) — `api/src/middleware/security_headers.rs`
 - [x] Log sanitization (redacts password, token, secret, api_key) — `common/src/sanitize.rs`
 - [x] Dev script with lite/full modes — `scripts/dev.sh`
@@ -457,9 +462,11 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] Deploy helper script — `scripts/deploy.sh`
 - [x] Clippy `-D warnings` cleanup across workspace
 - [x] `cargo test --workspace` → 237 passed, 0 failed
-- [x] `npm run build` → 0 errors, 22 routes
+- [x] `bun run build` → 0 errors, Vite static SPA
 
-### All Phases Complete (Phase 0-8) ✅
+### Current Delivery Status
+
+Phases 0-7 and the Phase 8 deployment baseline are implemented. GitHub CI/CD automation remains deferred to EVO-030, and embedded frontend packaging remains deferred to EVO-016.
 
 ## Links
 

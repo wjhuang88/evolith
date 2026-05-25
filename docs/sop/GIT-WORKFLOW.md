@@ -89,8 +89,8 @@ cargo test --workspace
 
 # 前端
 cd frontend
-npm run type-check
-npm run build
+bun run type-check
+bun run build
 ```
 
 最终回复或 PR 描述中说明执行过哪些验证；未执行的验证要说明原因。

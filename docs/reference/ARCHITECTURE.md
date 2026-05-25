@@ -2,7 +2,7 @@
 
 ## 1. 系统概述
 
-Evolith采用前后端分离的微服务架构，后端使用Rust构建高性能API服务，前端使用Next.js构建现代化Web界面。
+Evolith 采用前后端分离的微服务架构，后端使用 Rust 构建高性能 API 服务，前端当前使用 React + Vite + Bun 构建静态 SPA。EVO-016 之前，前端静态产物可由 Nginx 托管；终局状态会把前端产物嵌入后端发布物，Nginx 只作为可选网关、SSL 终止和反向代理层。
 
 ## 2. 整体架构
 
@@ -12,7 +12,7 @@ Evolith采用前后端分离的微服务架构，后端使用Rust构建高性能
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
 │  │   Web App   │  │  MCP Client │  │   Agent SDK (Future)    │  │
-│  │  (Next.js)  │  │  (Claude)   │  │   (Multi-language)      │  │
+│  │React+Vite SPA│ │  (Claude)   │  │   (Multi-language)      │  │
 │  └──────┬──────┘  └──────┬──────┘  └────────────┬────────────┘  │
 └─────────┼────────────────┼──────────────────────┼────────────────┘
           │                │                      │
@@ -21,9 +21,9 @@ Evolith采用前后端分离的微服务架构，后端使用Rust构建高性能
 │                         Gateway Layer                            │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    API Gateway (Nginx)                      │ │
+│  │            Optional Gateway (Nginx / Platform LB)           │ │
 │  │  - SSL Termination                                         │ │
-│  │  - Rate Limiting                                           │ │
+│  │  - Reverse Proxy / Static SPA hosting before EVO-016       │ │
 │  │  - Load Balancing                                          │ │
 │  └────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
@@ -156,24 +156,19 @@ backend/
 ```
 frontend/
 ├── package.json
+├── bun.lock
+├── vite.config.ts
+├── index.html
 ├── src/
-│   ├── app/                      # Next.js App Router
-│   │   ├── layout.tsx           # 根布局
-│   │   ├── page.tsx             # 首页
-│   │   ├── (auth)/              # 认证相关页面
-│   │   │   ├── login/
-│   │   │   └── register/
-│   │   ├── tools/               # 工具管理
-│   │   │   ├── page.tsx
-│   │   │   └── [id]/
-│   │   ├── skills/              # 技能管理
-│   │   │   ├── page.tsx
-│   │   │   ├── [id]/
-│   │   │   └── create/
-│   │   └── snippets/            # 代码片段
-│   │       ├── page.tsx
-│   │       ├── [id]/
-│   │       └── create/
+│   ├── main-spa.tsx             # Vite SPA 入口
+│   ├── app/                     # 页面组件，路由由 React Router 装配
+│   │   ├── login/
+│   │   ├── register/
+│   │   ├── join/
+│   │   ├── dashboard/
+│   │   ├── tools/
+│   │   ├── skills/
+│   │   └── snippets/
 │   │
 │   ├── components/               # 组件
 │   │   ├── ui/                  # 基础UI组件
@@ -608,9 +603,9 @@ CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
 │  └───────────────────────────────────────────────────────────┘│
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Frontend (CDN)                         │  │
-│  │  - Static assets served via CDN                          │  │
-│  │  - Next.js SSR on edge                                   │  │
+│  │                    Frontend Assets                        │  │
+│  │  - Static SPA assets served by Nginx/CDN before EVO-016   │  │
+│  │  - Embedded into backend release artifact at final state  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -632,11 +627,13 @@ CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
 
 | 技术 | 用途 | 选择理由 |
 |------|------|----------|
-| Next.js | 框架 | SSR/SSG支持、React生态 |
+| React | UI 框架 | 生态成熟、组件模型稳定 |
+| Vite | 构建工具 | 静态 SPA 构建快，部署产物简单 |
+| Bun | 包管理与脚本运行 | 与当前前端迁移目标一致，锁文件为 `bun.lock` |
 | TypeScript | 语言 | 类型安全、开发体验好 |
 | Tailwind CSS | 样式 | 快速开发、一致性高 |
 | Zustand | 状态管理 | 轻量、简单易用 |
-| React Query | 数据获取 | 缓存、自动刷新 |
+| TanStack Query | 数据获取 | 缓存、自动刷新 |
 
 ### 8.3 代码执行
 
@@ -739,7 +736,8 @@ ENVIRONMENT=production
 | `JWT__EXPIRATION` | Token过期时间 | `24h` |
 | `LOG__LEVEL` | 日志级别 | `info` |
 | `ENVIRONMENT` | 环境 | `development` |
-| `CORS__ALLOWED_ORIGIN` | 允许的前端域名 | `http://localhost:3000` |
+| `APP__PUBLIC_URL` | 对外访问入口，用于邮件链接等绝对 URL | `http://localhost:3001` |
+| `CORS__ALLOWED_ORIGIN` | 允许的前端域名 | `http://localhost:3001` |
 | `CSRF__ENABLED` | CSRF 保护开关 | `true` |
 | `SANDBOX__ENABLED` | 沙箱执行器开关 | `true` |
 | `SANDBOX__TIMEOUT_SECONDS` | 沙箱执行超时 | `30` |
@@ -749,7 +747,8 @@ ENVIRONMENT=production
 | `RATE_LIMIT__API_KEY_RPM` | API key 请求限流 | `1000` |
 | `SMTP__HOST` | SMTP 邮件服务器 | (无) |
 | `SMTP__PORT` | SMTP 端口 | `587` |
-| `SMTP__FROM` | 发件人地址 | (无) |
+| `SMTP__FROM_ADDRESS` | 发件人地址 | (无) |
+| `SMTP__FROM_NAME` | 发件人名称 | `Evolith` |
 
 ## 11. 相关文档
 

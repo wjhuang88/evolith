@@ -15,6 +15,7 @@ API 契约维护在 [API-CONTRACT.md](../reference/API-CONTRACT.md)，包含：
 - 响应结构
 - 错误码
 - 认证方式
+- 公开接口的 RBAC public path 和 CSRF exempt path
 - 版本历史
 
 ## 标准流程
@@ -43,4 +44,6 @@ API 契约维护在 [API-CONTRACT.md](../reference/API-CONTRACT.md)，包含：
 - [ ] API 契约已更新。
 - [ ] 前端类型或 API client 已更新。
 - [ ] 后端 DTO/handler 已更新。
+- [ ] 如果接口是公开状态变更接口，RBAC 与 CSRF 例外已同步，并有测试覆盖。
+- [ ] 如果接口通过邮件或外部链接进入，前端公开路由和 `APP__PUBLIC_URL` 已同步验证。
 - [ ] 至少有局部测试或手工验证记录。

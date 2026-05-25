@@ -170,7 +170,7 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 
 ## 3. 前端技术栈
 
-> 当前实现仍是 Next.js 14。项目已决定后续迁移为 `React + Vite + Bun` 静态 SPA，见
+> 当前实现是 `React + Vite + Bun` 静态 SPA，见
 > [ADR-0001](../decisions/ADR-0001-react-vite-bun-frontend.md) 和
 > [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0)。
 
@@ -178,9 +178,10 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 
 | 技术 | 版本 | 用途 | 选择理由 |
 |------|------|------|----------|
-| Next.js | 14.x | 框架 | SSR/SSG支持、React生态、App Router |
+| Vite | 8.x | 构建工具 | 静态 SPA 构建、开发启动快 |
 | React | 18.x | UI库 | 组件化、生态成熟、类型支持 |
 | TypeScript | 5.x | 语言 | 类型安全、开发体验好 |
+| React Router | 7.x | 路由 | SPA 路由和 history fallback |
 
 ### 3.2 UI组件
 
@@ -203,6 +204,7 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 |------|------|------|
 | ESLint | 8.x | 代码检查 |
 | Prettier | 3.x | 代码格式化 |
+| Bun | 1.x | 包管理和脚本运行 |
 | Vitest | 1.x | 单元测试 |
 | Playwright | 1.x | E2E测试 |
 
@@ -259,8 +261,8 @@ GitHub Actions workflow 暂缓到 EVO-030 重建，避免在前端迁移期间�
 
 | 工具 | 用途 |
 |------|------|
-| pnpm | 包管理 |
-| Turbopack | 构建工具（Next.js内置） |
+| Bun | 包管理和脚本运行 |
+| Vite | 构建工具和开发服务器 |
 
 ## 7. 环境配置
 
@@ -397,7 +399,7 @@ evolith/
 │   ├── Cargo.toml
 │   └── Cargo.lock
 │
-├── frontend/                 # Next.js前端
+├── frontend/                 # React + Vite + Bun 前端
 │   ├── src/
 │   │   ├── app/             # 页面 (22 路由)
 │   │   ├── components/      # 组件
@@ -407,7 +409,8 @@ evolith/
 │   │   ├── types/           # 类型
 │   │   └── styles/          # 样式
 │   ├── package.json
-│   └── next.config.js
+│   ├── bun.lock
+│   └── vite.config.ts
 │
 ├── deploy/                   # Nginx 配置
 ├── scripts/                  # dev.sh, backup.sh, deploy.sh

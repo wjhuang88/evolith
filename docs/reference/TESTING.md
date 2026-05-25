@@ -225,20 +225,20 @@ curl -X POST http://localhost:8080/mcp \
 
 ### 3.1 构建验证
 
-前端使用 Next.js 的构建系统进行类型检查和构建验证。
+前端使用 Vite + Bun 进行类型检查、构建和本地开发。
 
 ```bash
 # 进入前端目录
 cd frontend
 
 # 类型检查
-npm run type-check
+bun run type-check
 
 # 构建
-npm run build
+bun run build
 
 # 开发模式
-npm run dev
+bun run dev
 ```
 
 ## 4. E2E 测试
@@ -247,7 +247,7 @@ npm run dev
 
 | 项目 | 内容 |
 |:---|:---|
-| **执行环境** | macOS Darwin, Backend (Rust/Actix-web :8080, SQLite in-memory), Frontend (Next.js :3000) |
+| **执行环境** | macOS Darwin, Backend (Rust/Actix-web :8080, SQLite in-memory), Frontend (Vite :3001) |
 | **执行方式** | curl (API) + Playwright MCP (UI) |
 | **最新结果** | **55/55 通过**, 7 个 Bug 已全部修复 (2026-04-09) |
 | **P0 用例通过率** | 100% (14/14) |
@@ -450,7 +450,7 @@ GitHub Actions workflow 在前端迁移期间暂不作为当前门禁；后续�
 2. `cargo clippy --workspace -- -D warnings` — Lint 检查（warnings 视为错误）
 3. `cargo test --workspace` — 全量测试 (237 tests)
 4. `cargo audit` — 依赖安全审计
-5. `npm audit` — 前端依赖安全审计
+5. `bun audit` — 前端依赖安全审计
 6. Docker build — 验证镜像构建
 
 ### 5.2 本地检查
@@ -476,19 +476,19 @@ cargo build --release
 
 ```bash
 # 安装依赖
-cd frontend && npm install
+cd frontend && bun install
 
 # Lint 检查
-npm run lint
+bun run lint
 
 # 类型检查
-npm run type-check
+bun run type-check
 
 # 构建
-npm run build
+bun run build
 
 # 安全审计
-npm audit
+bun audit
 ```
 
 ## 6. 测试覆盖率
@@ -519,10 +519,10 @@ RUST_LOG=evolith::api=trace cargo run
 
 ```bash
 # 开发模式 (支持热重载)
-npm run dev
+bun run dev
 
 # 生产构建分析
-ANALYZE=true npm run build
+VITE_ENABLE_SOURCEMAP=true bun run build
 ```
 
 

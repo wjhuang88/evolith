@@ -64,6 +64,7 @@
 故事完成时更新：
 
 - backlog 状态：Done
+- backlog 详情块：状态、验收标准勾选、最小验证方式和“不做事项”同步到实际完成范围
 - 相关迭代文档：完成情况、验证结果
 - API 合约或 Reference：如果行为变化
 - `EVOLUTION.md`：如果发现新坑
@@ -84,6 +85,7 @@
 - [ ] 代码实现完成。
 - [ ] 测试或验证完成，并记录结果。
 - [ ] API 合约、Reference、SOP 或 Roadmap 已按需更新。
+- [ ] Backlog 总表和详情块状态一致；已完成 story 的验收标准已勾选或说明未完成项。
 - [ ] 无无关变更混入。
 - [ ] 如果修改脚本行为，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 - [ ] 如果发现新经验，更新 `EVOLUTION.md`。

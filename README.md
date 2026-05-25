@@ -50,7 +50,7 @@ Evolith 的定位是构建企业级 AI Agent Harness 平台：为企业内部智
 | 层级 | 技术选型 |
 |------|----------|
 | 后端框架 | Rust + Actix-web |
-| 前端框架 | 当前 Next.js；P0 迁移目标为 React + Vite + Bun 静态 SPA |
+| 前端框架 | React + Vite + Bun 静态 SPA |
 | 数据库 | PostgreSQL |
 | 缓存 | Redis |
 | 对象存储 | MinIO / S3 |
@@ -86,8 +86,8 @@ Evolith 的定位是构建企业级 AI Agent Harness 平台：为企业内部智
 | 依赖 | 最低版本 | 推荐版本 | 说明 |
 |------|----------|----------|------|
 | Rust | 1.75 | 1.82+ | `Cargo.toml` 中 `rust-version = "1.75"`，生产 Dockerfile 使用 1.82 |
-| Node.js | 18 | 20 LTS | 前端 Dockerfile 使用 `node:20-alpine` |
-| npm | 9+ | 10+ | 随 Node.js 安装 |
+| Node.js | 18 | 20 LTS | Vite/React 工具链运行时 |
+| Bun | 1.3 | 1.3.14+ | 前端包管理、锁文件和脚本执行 |
 | Docker | 20.10+ | 24+ | 用于基础设施服务和沙箱执行 |
 | Docker Compose | 2.0+ | 2.20+ | V2 插件模式（`docker compose`，非 `docker-compose`） |
 
