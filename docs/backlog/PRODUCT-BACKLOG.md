@@ -19,7 +19,7 @@
 | EVO-002 | 前端迁移到 React + Vite + Bun | tech-debt | P0 | Done | [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0--高优先级) | EVO-021 至 EVO-025 全部完成 |
 | EVO-003 | 忘记密码与重置密码闭环 | feature | P0 | Done | Iteration 005 | handler 实现 + 前端 API 接入，Playwright 验证通过 |
 | EVO-004 | 邀请接受 / Join 流程 | feature | P0 | Done | Iteration 005 | handler 实现，cargo test 通过 |
-| EVO-005 | MCP 工具真实执行 | feature | P0 | Ready | 需求 F1.1.3 | 当前 `tools/call` 返回 stub |
+| EVO-005 | MCP 工具真实执行 | feature | P0 | Done | 需求 F1.1.3 / Iteration 006 | HTTP handler type 真实执行，Function 类型暂不支持 |
 | EVO-006 | Skill 更新接口 | feature | P1 | Proposed | API 501 | `PUT /skills/{id}` |
 | EVO-007 | Snippet 更新接口 | feature | P1 | Deferred | API 501 | 被 EVO-017 替代方向覆盖，暂停继续投入 |
 | EVO-008 | Snippet reference 格式增强 | feature | P1 | Deferred | 需求 F1.3.4 | 被 EVO-017 替代方向覆盖 |
@@ -64,15 +64,55 @@
 - 依赖：
 ```
 
+### EVO-005 MCP 工具真实执行
+
+- 类型：feature
+- 优先级：P0
+- 状态：Done
+- 用户价值或技术目标：让 MCP `tools/call` 真正执行注册的 HTTP 工具，而不是返回 stub 文本。这是平台核心价值闭环——工具注册后可被外部 AI Agent 通过 MCP 协议真实调用。
+- 范围：
+  - 实现 `HttpToolExecutor`：根据 `Tool.handler` 中的 `HandlerConfig`（type=Http, url, method, timeout）发起真实 HTTP 请求。
+  - 将 `DefaultToolExecutor` 替换为基于 `HandlerType` 分发的执行器。
+  - `handle_tools_call` 中调用 `ToolExecutor` trait 而非硬编码 stub 文本。
+  - HTTP 请求结果映射为 MCP `ToolCallResult`（content type: text，body 为响应体或错误信息）。
+  - 执行超时保护：使用 `handler.timeout`（毫秒，默认 30s）。
+  - 错误分类：连接失败、超时、HTTP 错误状态码、响应体过大等。
+  - 集成测试覆盖 HTTP 工具真实调用。
+- 不做：
+  - 不实现 Function 类型工具的沙箱执行（当前所有工具 handler_type 为 Http）。
+  - 不实现工具发现服务（`discovery.rs` placeholder 留给后续）。
+  - 不修改 MCP 协议层（JSON-RPC、schema validation 已完善）。
+  - 不修改 `ToolRepository` trait 或数据库 migration。
+  - 不实现工具调用审计日志增强（当前已有基础审计）。
+  - 不实现工具调用限流（当前 API key 级别限流已覆盖）。
+- 验收标准：
+  - [x] `POST /mcp` 的 `tools/call` 方法对 handler_type=Http 的工具发起真实 HTTP 请求。
+  - [x] 请求使用 `handler.url`、`handler.method`（默认 POST）、`handler.timeout`（默认 30000ms）。
+  - [x] 成功响应的 body 映射为 MCP content `{"type": "text", "text": "<response body>"}`。
+  - [x] 连接失败、超时、HTTP 4xx/5xx 返回 MCP error（含可读错误信息）。
+  - [x] 私有工具（`visibility != Public`）未被认证用户越权调用。
+  - [x] `cargo test --workspace` 通过，含 HTTP tool 执行集成测试。
+  - [x] `cargo check --workspace` 无错误。
+  - [x] `cargo clippy --workspace` 无错误。
+- 技术备注：
+  - `reqwest` 已在 workspace（`service-payment` 使用），需要添加到 `service-tool/Cargo.toml`。
+  - `Tool` 域模型已有 `HandlerConfig { handler_type, url, method, timeout }`，无需修改 domain 层。
+  - `service-tool/src/executor.rs` 当前 `DefaultToolExecutor` 返回 stub，需要替换为 `HttpToolExecutor`。
+  - `mcp_handlers.rs` line 250 硬编码 stub 文本，需改为调用 `ToolExecutor::execute`。
+  - `AppState` 需要添加 `tool_executor: Arc<dyn ToolExecutor>` 字段。
+- 依赖：无外部依赖阻塞。`reqwest` 已在 workspace。
+- 影响范围：backend
+- 最小验证方式：`cargo test --workspace`；手工 curl 测试 MCP `tools/call` 对 HTTP 工具的真实调用。
+
 ## 下一批建议
 
 优先选择：
 
-1. `EVO-005` MCP 工具真实执行。
-2. `EVO-018` 邮箱验证发送与确认闭环。
-3. `EVO-006` Skill 更新接口。
+1. `EVO-018` 邮箱验证发送与确认闭环。
+2. `EVO-006` Skill 更新接口。
+3. `EVO-009` SKILL.md 与 CLI interface frontmatter parser。
 
-理由：Phase B（前端迁移）已完成，EVO-003/EVO-004 已完成并经过质量修复；下一步应优先推进核心 MCP 工具执行闭环，再补邮箱验证和 Skill 更新。
+理由：EVO-005 MCP 工具真实执行已完成；下一步应补齐认证闭环（邮箱验证），再推进 Skill 生命周期和 CLI interface。
 
 ## 已细化故事
 

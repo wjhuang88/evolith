@@ -223,7 +223,7 @@ nginx serve dist/
 | Phase C forgot/reset password | EVO-003 | Done |
 | Phase C invitation join | EVO-004 | Done；EVO-031 补齐公开入口与邮件链接 |
 | Phase C send/verify email | EVO-018 | Proposed |
-| Phase D MCP 工具执行闭环 | EVO-005 | Ready |
+| Phase D MCP 工具执行闭环 | EVO-005 | Done；Iteration 006 完成 HTTP 工具真实执行 |
 | Phase E Skill update | EVO-006 | Proposed |
 | Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Proposed |
 | Phase E Skill registry | EVO-019 | Proposed |
