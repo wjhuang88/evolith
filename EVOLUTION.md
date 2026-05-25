@@ -23,6 +23,12 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-05-25 迭代状态不能替代命令级验收证据
+**现象**: Iteration 006 将 EVO-005 标为 Done，并勾选全量测试和 Clippy 通过；复查发现 `HttpToolExecutor::new()` 因隐式系统代理探测导致应用状态初始化与测试 panic，匿名请求可触发公开 HTTP 工具执行，HTTP 失败被包装为成功 result，且新增超时测试依赖公网。`cargo fmt`、`cargo clippy -- -D warnings`、`cargo test --workspace` 均未满足记录中的完成声明。
+**根因**: 迭代计划和 Done 状态在实现提交之后一次性补写，流程只要求写验证结果但未要求保留命令级证据或阻止失败门禁被勾选；出站执行与 API Key 边界未被列入强制 Navigator 检查；测试 SOP 未禁止用公网服务作为验收依赖。
+**方案**: 新增 EVO-032 / Iteration 007；禁用 executor 的隐式系统代理探测、强制 `tools/call` API Key、修复 HTTP error 映射并用本地 mock 服务覆盖真实调用；全量验证还暴露并修复了日志脱敏替换同一字段时的无限循环；更新 Start/Iteration/Pairing/Testing 流程，要求计划先于实现、验收逐命令记录、外部执行边界必须审查。
+**教训**: `Done` 必须由可重复的命令和高风险边界测试支撑；涉及出站请求、认证或权限的故事，没有先行计划、Navigator 结论和本地稳定验证，不得标记完成。
+
 ### 2026-05-17 迭代验收需要覆盖部署路径、公开入口和终局/过渡边界
 **现象**: Iteration 004/005 文档显示完成，但复查发现 Nginx `/assets/` 反代会剥离路径前缀、邀请接受接口未同步 RBAC/CSRF 公开例外、邀请邮件/URL 缺少可用前端入口、密码重置链接误用后端监听地址，且 backlog 详情块没有随 Done 状态同步。
 **根因**: 验证只覆盖了本地 build/type-check 和局部 happy path，缺少“生产反代资源路径”“公开状态变更接口的 RBAC/CSRF 双检查”“邮件链接必须指向 `APP__PUBLIC_URL`”“总表与详情块一致性”的流程防呆；同时把 Nginx 静态托管误当成终局，而不是 EVO-016 前的过渡部署策略。

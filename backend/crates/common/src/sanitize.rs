@@ -53,13 +53,16 @@ pub fn sanitize_log_string(input: &str) -> String {
             format!("\"{}\" : \"", field),
         ];
         for pattern in &patterns {
-            while let Some(start) = result.to_lowercase().find(&pattern.to_lowercase()) {
+            let mut search_from = 0;
+            while let Some(relative_start) = result[search_from..]
+                .to_lowercase()
+                .find(&pattern.to_lowercase())
+            {
+                let start = search_from + relative_start;
                 let value_start = start + pattern.len();
                 if let Some(end) = result[value_start..].find('"') {
-                    let before = &result[..start];
-                    let key_part = &result[start..value_start];
-                    let after = &result[value_start + end..];
-                    result = format!("{}{}[REDACTED]{}", before, key_part, after);
+                    result.replace_range(value_start..value_start + end, "[REDACTED]");
+                    search_from = value_start + "[REDACTED]".len() + 1;
                 } else {
                     break;
                 }
@@ -110,6 +113,16 @@ mod tests {
         let output = sanitize_log_string(input);
         assert!(output.contains("[REDACTED]"));
         assert!(!output.contains("mytoken123"));
+    }
+
+    #[test]
+    fn test_sanitize_log_string_replaces_multiple_sensitive_values() {
+        let input = r#"{"password":"one","password":"two","token":"three"}"#;
+        let output = sanitize_log_string(input);
+        assert_eq!(output.matches("[REDACTED]").count(), 3);
+        assert!(!output.contains("one"));
+        assert!(!output.contains("two"));
+        assert!(!output.contains("three"));
     }
 
     #[test]

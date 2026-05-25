@@ -125,7 +125,7 @@ jsonschema = "0.17"
 async-stripe = { version = "0.41", features = ["runtime-tokio-hyper", "webhook-events"] }
 
 # HTTP client for webhooks
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "stream"] }
 
 # HMAC for webhook signature verification
 hmac = "0.12"

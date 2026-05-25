@@ -198,6 +198,18 @@ async fn handle_tools_call(
     tenant_id: Option<Uuid>,
     params: Option<Value>,
 ) -> HttpResponse {
+    let tenant_id = match tenant_id {
+        Some(tenant_id) => tenant_id,
+        None => {
+            return HttpResponse::Ok().json(McpResponse::error(
+                id,
+                -32001,
+                "A valid API key is required to execute tools".to_string(),
+                None,
+            ));
+        }
+    };
+
     let params = match params {
         Some(p) => p,
         None => {
@@ -222,20 +234,11 @@ async fn handle_tools_call(
     match state.tool_repo.find_by_name(&tool_name).await {
         Ok(Some(tool)) => {
             // Check access permissions
-            if let Some(tid) = tenant_id {
-                if tool.tenant_id != tid {
-                    return HttpResponse::Ok().json(McpResponse::error(
-                        id,
-                        -32001,
-                        format!("Tool '{}' not found or access denied", tool_name),
-                        None,
-                    ));
-                }
-            } else if tool.visibility != Visibility::Public {
+            if tool.tenant_id != tenant_id {
                 return HttpResponse::Ok().json(McpResponse::error(
                     id,
                     -32001,
-                    "Authentication required to access this tool".to_string(),
+                    format!("Tool '{}' not found or access denied", tool_name),
                     None,
                 ));
             }
@@ -261,7 +264,11 @@ async fn handle_tools_call(
                         }
                     };
 
-                    let method = tool.handler.method.clone().unwrap_or_else(|| "POST".to_string());
+                    let method = tool
+                        .handler
+                        .method
+                        .clone()
+                        .unwrap_or_else(|| "POST".to_string());
                     let timeout_ms = tool.handler.timeout.unwrap_or(30000);
 
                     let exec_request = ExecuteRequest {
@@ -274,17 +281,21 @@ async fn handle_tools_call(
 
                     match state.tool_executor.execute(exec_request).await {
                         Ok(exec_response) => {
-                            let result_text = if let Some(ref error) = exec_response.error {
-                                format!(
-                                    "Status: {}\nError: {}\nResponse: {}",
-                                    exec_response.status,
+                            if let Some(error) = exec_response.error {
+                                return HttpResponse::Ok().json(McpResponse::error(
+                                    id,
+                                    -32002,
                                     error,
-                                    serde_json::to_string_pretty(&exec_response.result)
-                                        .unwrap_or_default()
-                                )
-                            } else {
-                                serde_json::to_string_pretty(&exec_response.result)
-                                    .unwrap_or_default()
+                                    Some(serde_json::json!({
+                                        "status": exec_response.status,
+                                        "response": exec_response.result,
+                                    })),
+                                ));
+                            }
+
+                            let result_text = match exec_response.result {
+                                Value::String(text) => text,
+                                value => serde_json::to_string_pretty(&value).unwrap_or_default(),
                             };
 
                             let result = service_tool::mcp::ToolCallResult {
@@ -310,14 +321,15 @@ async fn handle_tools_call(
                         }
                     }
                 }
-                HandlerType::Function => {
-                    HttpResponse::Ok().json(McpResponse::error(
-                        id,
-                        -32601,
-                        format!("Function-type tool execution not yet supported: {}", tool_name),
-                        None,
-                    ))
-                }
+                HandlerType::Function => HttpResponse::Ok().json(McpResponse::error(
+                    id,
+                    -32601,
+                    format!(
+                        "Function-type tool execution not yet supported: {}",
+                        tool_name
+                    ),
+                    None,
+                )),
             }
         }
         Ok(None) => HttpResponse::Ok().json(McpResponse::error(

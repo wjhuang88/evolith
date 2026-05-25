@@ -11,6 +11,7 @@
 - [Iteration 004](ITERATION-004.md) — 前端技术栈迁移 React + Vite + Bun（EVO-022~025）。
 - [Iteration 005](ITERATION-005.md) — 认证闭环：忘记密码与邀请接受（EVO-003/004）。
 - [Iteration 006](ITERATION-006.md) — MCP 工具真实执行（EVO-005）。
+- [Iteration 007](ITERATION-007.md) — MCP 工具执行质量修复与流程防呆（EVO-032）。
 
 ## 命名
 

@@ -1,9 +1,10 @@
 //! MCP tool execution integration tests
 
-use actix_web::{test, web, App};
+use actix_web::{dev::ServerHandle, test, web, App, HttpResponse, HttpServer};
+use domain::api_key::NewApiKey;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
-use std::sync::Arc;
+use std::{net::TcpListener, sync::Arc, time::Duration};
 
 use api::middleware::rbac::RbacMiddleware;
 use api::routes;
@@ -12,6 +13,7 @@ use domain::repository::{
     ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
     TenantRepository, ToolRepository, UserRepository,
 };
+use domain::{HandlerConfig, HandlerType, NewTool, Visibility};
 use infra::config::{
     AppConfig, AppMetaConfig, DatabaseConfig, JwtConfig, LogConfig, RateLimitConfig, RedisConfig,
     SandboxConfig, ServerConfig, SmtpConfig, StorageConfig, StripeConfig,
@@ -24,6 +26,7 @@ use infra::db::{
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_tool::executor::{HttpToolExecutor, ToolExecutor};
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
@@ -173,9 +176,138 @@ fn build_app_state(pool: SqlitePool) -> AppState {
     }
 }
 
+const TEST_API_KEY: &str = "evo_sk_11111111111111111111111111111111";
+const TEST_TENANT_ID: &str = "11111111-1111-1111-1111-111111111111";
+const TEST_USER_ID: &str = "22222222-2222-2222-2222-222222222222";
+
+fn test_tenant_id() -> Uuid {
+    Uuid::parse_str(TEST_TENANT_ID).expect("valid tenant test uuid")
+}
+
+fn test_user_id() -> Uuid {
+    Uuid::parse_str(TEST_USER_ID).expect("valid user test uuid")
+}
+
+async fn seed_tenant_identity(pool: &SqlitePool) {
+    sqlx::query(
+        r#"
+        INSERT OR IGNORE INTO tenants (id, name, slug, owner_id)
+        VALUES (?, ?, ?, ?)
+        "#,
+    )
+    .bind(TEST_TENANT_ID)
+    .bind("MCP Test Tenant")
+    .bind("mcp-test-tenant")
+    .bind(TEST_USER_ID)
+    .execute(pool)
+    .await
+    .expect("seed test tenant");
+
+    sqlx::query(
+        r#"
+        INSERT OR IGNORE INTO users (
+            id, username, email, password_hash, role, tenant_id, tenant_role
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(TEST_USER_ID)
+    .bind("mcp-test-user")
+    .bind("mcp-test@example.com")
+    .bind("not-used-in-mcp-tests")
+    .bind("user")
+    .bind(TEST_TENANT_ID)
+    .bind("owner")
+    .execute(pool)
+    .await
+    .expect("seed test user");
+}
+
+async fn seed_api_key(pool: &SqlitePool) {
+    seed_tenant_identity(pool).await;
+    let key_hash = {
+        let mut hasher = Sha256::new();
+        hasher.update(TEST_API_KEY.as_bytes());
+        hex::encode(hasher.finalize())
+    };
+
+    SqliteApiKeyRepository::new(pool.clone())
+        .create(NewApiKey {
+            tenant_id: test_tenant_id(),
+            user_id: test_user_id(),
+            name: "mcp-test-key".to_string(),
+            key_hash,
+            key_prefix: "evo_sk_11111111...".to_string(),
+            permissions: vec!["execute".to_string()],
+            rate_limit: None,
+            expires_at: None,
+        })
+        .await
+        .expect("seed API key");
+}
+
+async fn seed_http_tool(pool: &SqlitePool, name: &str, url: String, visibility: Visibility) {
+    seed_tenant_identity(pool).await;
+    SqliteToolRepository::new(pool.clone())
+        .create(
+            NewTool {
+                name: name.to_string(),
+                description: "test HTTP tool".to_string(),
+                input_schema: serde_json::json!({"type": "object"}),
+                output_schema: None,
+                handler: HandlerConfig {
+                    handler_type: HandlerType::Http,
+                    url: Some(url),
+                    method: Some("POST".to_string()),
+                    timeout: Some(1_000),
+                },
+                visibility: Some(visibility),
+            },
+            test_user_id(),
+            test_tenant_id(),
+        )
+        .await
+        .expect("seed HTTP tool");
+}
+
+fn start_test_server() -> (String, ServerHandle) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind mock HTTP server");
+    let address = listener.local_addr().expect("read mock server address");
+    let server = HttpServer::new(|| {
+        App::new()
+            .route(
+                "/echo",
+                web::post().to(|body: web::Json<serde_json::Value>| async move {
+                    HttpResponse::Ok().json(body.into_inner())
+                }),
+            )
+            .route(
+                "/bad-gateway",
+                web::post().to(|| async { HttpResponse::BadGateway().body("upstream failed") }),
+            )
+            .route(
+                "/slow",
+                web::post().to(|| async {
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+                    HttpResponse::Ok().body("late")
+                }),
+            )
+            .route(
+                "/large",
+                web::post().to(|| async { HttpResponse::Ok().body("x".repeat(1_048_577)) }),
+            )
+    })
+    .listen(listener)
+    .expect("listen on mock server")
+    .run();
+    let handle = server.handle();
+    actix_rt::spawn(server);
+    (format!("http://{}", address), handle)
+}
+
 #[actix_rt::test]
 async fn test_mcp_tools_call_nonexistent_tool() {
     let pool = setup_test_db().await;
+    seed_api_key(&pool).await;
     let app_state = build_app_state(pool.clone());
     let jwt_secret = app_state.config.jwt.secret.clone();
 
@@ -199,6 +331,7 @@ async fn test_mcp_tools_call_nonexistent_tool() {
 
     let req = test::TestRequest::post()
         .uri("/mcp")
+        .insert_header(("X-API-Key", TEST_API_KEY))
         .set_json(&mcp_request)
         .to_request();
 
@@ -208,13 +341,17 @@ async fn test_mcp_tools_call_nonexistent_tool() {
     let body = test::read_body(resp).await;
     let response: serde_json::Value = serde_json::from_slice(&body).expect("Invalid JSON");
 
-    assert!(response["error"].is_object(), "Expected error for nonexistent tool");
+    assert!(
+        response["error"].is_object(),
+        "Expected error for nonexistent tool"
+    );
     assert_eq!(response["error"]["code"], -32601);
 }
 
 #[actix_rt::test]
 async fn test_mcp_tools_call_missing_params() {
     let pool = setup_test_db().await;
+    seed_api_key(&pool).await;
     let app_state = build_app_state(pool.clone());
     let jwt_secret = app_state.config.jwt.secret.clone();
 
@@ -234,6 +371,7 @@ async fn test_mcp_tools_call_missing_params() {
 
     let req = test::TestRequest::post()
         .uri("/mcp")
+        .insert_header(("X-API-Key", TEST_API_KEY))
         .set_json(&mcp_request)
         .to_request();
 
@@ -243,67 +381,175 @@ async fn test_mcp_tools_call_missing_params() {
     let body = test::read_body(resp).await;
     let response: serde_json::Value = serde_json::from_slice(&body).expect("Invalid JSON");
 
-    assert!(response["error"].is_object(), "Expected error for missing params");
+    assert!(
+        response["error"].is_object(),
+        "Expected error for missing params"
+    );
     assert_eq!(response["error"]["code"], -32602);
 }
 
 #[actix_rt::test]
-async fn test_http_executor_connection_failure() {
-    let executor = HttpToolExecutor::new();
+async fn test_mcp_tools_call_requires_api_key_even_for_public_tool() {
+    let pool = setup_test_db().await;
+    seed_http_tool(
+        &pool,
+        "public-tool",
+        "http://127.0.0.1:1/no-call".to_string(),
+        Visibility::Public,
+    )
+    .await;
+    let app_state = build_app_state(pool);
+    let jwt_secret = app_state.config.jwt.secret.clone();
 
-    let request = service_tool::executor::ExecuteRequest {
-        tool_id: "test-tool".to_string(),
-        parameters: serde_json::json!({}),
-        url: "http://localhost:1".to_string(),
-        method: "POST".to_string(),
-        timeout_ms: 1000,
-    };
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new(jwt_secret))
+            .configure(routes::configure_routes),
+    )
+    .await;
 
-    let result = executor.execute(request).await;
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    let err_msg = err.to_string();
-    assert!(
-        err_msg.contains("Failed to connect")
-            || err_msg.contains("connection")
-            || err_msg.contains("timed out"),
-        "Expected connection error, got: {}",
-        err_msg
-    );
+    let req = test::TestRequest::post()
+        .uri("/mcp")
+        .set_json(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "public-tool", "arguments": {}}
+        }))
+        .to_request();
+    let response: serde_json::Value = test::call_and_read_body_json(&app, req).await;
+
+    assert!(response["error"]["message"]
+        .as_str()
+        .expect("error message")
+        .contains("valid API key"));
 }
 
 #[actix_rt::test]
-async fn test_http_executor_timeout() {
-    let executor = HttpToolExecutor::new();
+async fn test_mcp_tools_call_executes_authenticated_http_tool() {
+    let (base_url, handle) = start_test_server();
+    let pool = setup_test_db().await;
+    seed_api_key(&pool).await;
+    seed_http_tool(
+        &pool,
+        "echo-tool",
+        format!("{}/echo", base_url),
+        Visibility::Private,
+    )
+    .await;
+    let app_state = build_app_state(pool);
+    let jwt_secret = app_state.config.jwt.secret.clone();
 
-    let request = service_tool::executor::ExecuteRequest {
-        tool_id: "test-tool".to_string(),
-        parameters: serde_json::json!({}),
-        url: "http://httpbin.org/delay/10".to_string(),
-        method: "GET".to_string(),
-        timeout_ms: 100,
-    };
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new(jwt_secret))
+            .configure(routes::configure_routes),
+    )
+    .await;
 
-    let result = executor.execute(request).await;
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(err.to_string().contains("timed out"));
+    let req = test::TestRequest::post()
+        .uri("/mcp")
+        .insert_header(("X-API-Key", TEST_API_KEY))
+        .set_json(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "echo-tool", "arguments": {"value": "ok"}}
+        }))
+        .to_request();
+    let response: serde_json::Value = test::call_and_read_body_json(&app, req).await;
+    let text = response["result"]["content"][0]["text"]
+        .as_str()
+        .expect("tool result text");
+
+    assert!(response["error"].is_null());
+    assert!(text.contains("\"value\": \"ok\""));
+    handle.stop(true).await;
 }
 
 #[actix_rt::test]
-async fn test_http_executor_invalid_method() {
+async fn test_mcp_tools_call_maps_http_failure_to_mcp_error() {
+    let (base_url, handle) = start_test_server();
+    let pool = setup_test_db().await;
+    seed_api_key(&pool).await;
+    seed_http_tool(
+        &pool,
+        "failure-tool",
+        format!("{}/bad-gateway", base_url),
+        Visibility::Private,
+    )
+    .await;
+    let app_state = build_app_state(pool);
+    let jwt_secret = app_state.config.jwt.secret.clone();
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new(jwt_secret))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let req = test::TestRequest::post()
+        .uri("/mcp")
+        .insert_header(("X-API-Key", TEST_API_KEY))
+        .set_json(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "failure-tool", "arguments": {}}
+        }))
+        .to_request();
+    let response: serde_json::Value = test::call_and_read_body_json(&app, req).await;
+
+    assert_eq!(response["error"]["code"], -32002);
+    assert!(response["error"]["message"]
+        .as_str()
+        .expect("error message")
+        .contains("HTTP 502"));
+    handle.stop(true).await;
+}
+
+#[actix_rt::test]
+async fn test_http_executor_times_out_against_local_server() {
+    let (base_url, handle) = start_test_server();
     let executor = HttpToolExecutor::new();
+    let result = executor
+        .execute(service_tool::executor::ExecuteRequest {
+            tool_id: "slow-tool".to_string(),
+            parameters: serde_json::json!({}),
+            url: format!("{}/slow", base_url),
+            method: "POST".to_string(),
+            timeout_ms: 10,
+        })
+        .await;
 
-    let request = service_tool::executor::ExecuteRequest {
-        tool_id: "test-tool".to_string(),
-        parameters: serde_json::json!({}),
-        url: "http://localhost:8080".to_string(),
-        method: "INVALID".to_string(),
-        timeout_ms: 5000,
-    };
+    assert!(result
+        .expect_err("slow request should time out")
+        .to_string()
+        .contains("timed out"));
+    handle.stop(true).await;
+}
 
-    let result = executor.execute(request).await;
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(err.to_string().contains("Unsupported HTTP method"));
+#[actix_rt::test]
+async fn test_http_executor_rejects_oversized_response() {
+    let (base_url, handle) = start_test_server();
+    let executor = HttpToolExecutor::new();
+    let result = executor
+        .execute(service_tool::executor::ExecuteRequest {
+            tool_id: "large-tool".to_string(),
+            parameters: serde_json::json!({}),
+            url: format!("{}/large", base_url),
+            method: "POST".to_string(),
+            timeout_ms: 1_000,
+        })
+        .await;
+
+    assert!(result
+        .expect_err("large response should be rejected")
+        .to_string()
+        .contains("exceeded"));
+    handle.stop(true).await;
 }

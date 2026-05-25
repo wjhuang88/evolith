@@ -69,6 +69,8 @@
 - API 合约或 Reference：如果行为变化
 - `EVOLUTION.md`：如果发现新坑
 
+验证结果必须逐命令记录实际执行结果。验收标准中的 `[x]` 只能对应已经执行且通过的命令或人工核验；局部测试、历史结果、预期 CI 或“仅已有 warning”不能替代失败的全量门禁。任何必需门禁失败时，story 保持 `Review` 或转入修复 story，不得标为 `Done`。
+
 ### 4. Retrospective
 
 迭代结束时记录：
@@ -84,12 +86,14 @@
 
 - [ ] 代码实现完成。
 - [ ] 测试或验证完成，并记录结果。
+- [ ] 验收勾选与逐命令验证结果一致；没有把失败、未运行或局部替代结果标为通过。
 - [ ] API 合约、Reference、SOP 或 Roadmap 已按需更新。
 - [ ] Backlog 总表和详情块状态一致；已完成 story 的验收标准已勾选或说明未完成项。
 - [ ] 无无关变更混入。
 - [ ] 如果修改脚本行为，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 - [ ] 如果发现新经验，更新 `EVOLUTION.md`。
 - [ ] 如需提交，commit 遵守 [Git 工作流](GIT-WORKFLOW.md)。
+- [ ] 涉及认证、权限、公开入口、出站执行、数据库或发布路径时，已有 Navigator 结论及残余风险记录。
 
 ## WIP 限制
 

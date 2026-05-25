@@ -59,6 +59,7 @@
 5. SQLite 和 PostgreSQL SQL 类型、时间、JSON、UUID 行为不同，migration 不能简单复制后不验证。
 6. 邮件链接必须使用 `APP__PUBLIC_URL` 指向前端公开地址；不要用后端监听地址拼 reset/invite 链接。
 7. 当前 Nginx 托管 Vite 静态资源是 EVO-016 前的过渡策略；修改反代时必须验证 `/assets/` 不被 rewrite 成 `index.html`。
+8. MCP `tools/call` 会触发真实出站请求，必须要求有效 API Key；HTTP executor 不得隐式探测系统代理，相关测试必须使用本地可控服务。
 
 ### Session End Checklist
 

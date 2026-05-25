@@ -140,7 +140,7 @@ pub async fn forgot_password(
     let base_url = state.config.app.public_url.trim_end_matches('/');
     if let Err(e) = state
         .mailer
-        .send_password_reset_email(&user.email, &user.username, &token, &base_url)
+        .send_password_reset_email(&user.email, &user.username, &token, base_url)
         .await
     {
         tracing::warn!("Failed to send reset email: {}", e);

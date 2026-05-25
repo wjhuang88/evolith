@@ -93,7 +93,7 @@ nginx serve dist/
 
 | 区域 | 文件/能力 | 影响 | 归口 |
 |------|-----------|------|------|
-| MCP 工具执行 | `service-tool/src/executor.rs`、`api/src/handlers/mcp_handlers.rs` | `tools/call` 目前返回 stub 文本，不是真执行 | EVO-005 |
+| MCP 工具执行 | `service-tool/src/executor.rs`、`api/src/handlers/mcp_handlers.rs` | HTTP tool 已真实执行；Function executor 仍未支持 | EVO-005 / EVO-032 |
 | Skill registry | `service-skill/src/registry.rs` | service crate 未形成可复用注册能力 | EVO-019 |
 | CLI interface parser/reference | `service-snippet/src/parser.rs`、`reference.rs` | 旧 snippet parser/reference 需要迁移为 CLI 友好接口格式 | EVO-017 / EVO-009 |
 | Storage | `infra/src/storage.rs` | 对象存储未实现，影响技能包/附件 | EVO-020 |
@@ -223,7 +223,7 @@ nginx serve dist/
 | Phase C forgot/reset password | EVO-003 | Done |
 | Phase C invitation join | EVO-004 | Done；EVO-031 补齐公开入口与邮件链接 |
 | Phase C send/verify email | EVO-018 | Proposed |
-| Phase D MCP 工具执行闭环 | EVO-005 | Done；Iteration 006 完成 HTTP 工具真实执行 |
+| Phase D MCP 工具执行闭环 | EVO-005 / EVO-032 | Done；Iteration 007 修复执行鉴权、错误映射和验收可靠性 |
 | Phase E Skill update | EVO-006 | Proposed |
 | Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Proposed |
 | Phase E Skill registry | EVO-019 | Proposed |

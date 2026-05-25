@@ -207,6 +207,7 @@ curl -X POST http://localhost:8080/mcp \
 ```bash
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: <valid-api-key>" \
   -d '{
     "jsonrpc": "2.0",
     "id": 3,
@@ -220,6 +221,8 @@ curl -X POST http://localhost:8080/mcp \
     }
   }'
 ```
+
+自动化验收不得请求 `httpbin.org` 或其他公网服务。HTTP 工具执行测试应启动本地 mock server，覆盖有效 API Key 的成功调用、无 key 拒绝、上游 4xx/5xx、超时和响应大小限制。
 
 ## 3. 前端测试
 
@@ -355,8 +358,10 @@ bun run dev
 |:---|:---|:---|:---|:---|:---|:---:|
 | TC-MCP-001 | JSON-RPC 初始化 | 无 | `POST /mcp`, method: "initialize" | 返回 capabilities | P0 | ✅ |
 | TC-MCP-002 | 列出 MCP 工具 | 已鉴权 | method: "tools/list" | 返回工具定义 | P0 | ✅ |
-| TC-MCP-003 | 调用 MCP 工具 | 工具存在 | method: "tools/call" | 返回执行结果 | P0 | ✅ |
+| TC-MCP-003 | 调用 MCP 工具 | 工具存在且 API Key 有效 | method: "tools/call" | 返回执行结果 | P0 | ✅ |
 | TC-MCP-004 | 无效方法调用 | 无 | 调用不存在的方法 | JSON-RPC Error -32601 | P1 | ✅ |
+| TC-MCP-005 | 匿名工具执行拦截 | Public HTTP tool 存在，无 API Key | method: "tools/call" | JSON-RPC auth error，不发起出站请求 | P0 | ✅ |
+| TC-MCP-006 | 上游 HTTP 失败映射 | API Key 有效，本地 mock 返回 502 | method: "tools/call" | JSON-RPC error，包含上游状态 | P0 | ✅ |
 
 #### 4.2.11 安全与中间件 (Security)
 

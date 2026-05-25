@@ -282,12 +282,14 @@ Example (degraded):
 
 ### `POST /mcp`
 
-- **Auth:** API Key (`Authorization: Bearer <key>` or `X-API-Key`)
+- **Auth:** `tools/call` requires an API Key (`Authorization: Bearer <key>` or `X-API-Key`). Protocol initialization and public tool discovery may be requested without a key.
 - **Description:** JSON-RPC 2.0 endpoint for MCP operations
 
 **Request:**
 JSON-RPC 2.0 object.
 Supported methods: `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`, `ping`
+
+`tools/call` never executes a tool anonymously, even when that tool is visible in public discovery.
 
 **Response:**
 JSON-RPC 2.0 response object.

@@ -2,6 +2,7 @@
 
 use async_trait::async_trait;
 use common::error::{AppError, Result};
+use futures_util::StreamExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -50,9 +51,12 @@ impl HttpToolExecutor {
     /// Create a new HttpToolExecutor with default settings
     pub fn new() -> Self {
         let client = Client::builder()
+            // System proxy discovery can panic in restricted macOS runtimes. Proxy support
+            // needs explicit configuration before it is safe for tool execution.
+            .no_proxy()
             .timeout(Duration::from_secs(30))
             .build()
-            .unwrap_or_default();
+            .expect("static HTTP client configuration must be valid");
 
         Self {
             client,
@@ -63,9 +67,10 @@ impl HttpToolExecutor {
     /// Create a new HttpToolExecutor with a custom default timeout
     pub fn with_timeout(timeout: Duration) -> Self {
         let client = Client::builder()
+            .no_proxy()
             .timeout(timeout)
             .build()
-            .unwrap_or_default();
+            .expect("static HTTP client configuration must be valid");
 
         Self {
             client,
@@ -98,22 +103,28 @@ impl ToolExecutor for HttpToolExecutor {
 
         let status = response.status().as_u16();
         let is_success = response.status().is_success();
-        let body_bytes = response
-            .bytes()
-            .await
-            .map_err(|e| AppError::ExternalServiceError {
+        let mut body_bytes = Vec::new();
+        let mut body_stream = response.bytes_stream();
+        while let Some(chunk) = body_stream.next().await {
+            let chunk = chunk.map_err(|e| AppError::ExternalServiceError {
                 service: "http-tool".to_string(),
                 message: format!("Failed to read response body: {}", e),
             })?;
 
-        // Truncate response body if larger than 1MB
-        let truncated = if body_bytes.len() > MAX_RESPONSE_BYTES {
-            &body_bytes[..MAX_RESPONSE_BYTES]
-        } else {
-            &body_bytes[..]
-        };
+            if body_bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
+                return Err(AppError::ExternalServiceError {
+                    service: "http-tool".to_string(),
+                    message: format!(
+                        "Response body exceeded {} byte limit for {}",
+                        MAX_RESPONSE_BYTES, request.url
+                    ),
+                });
+            }
 
-        let body_text = String::from_utf8_lossy(truncated).into_owned();
+            body_bytes.extend_from_slice(&chunk);
+        }
+
+        let body_text = String::from_utf8_lossy(&body_bytes).into_owned();
         let execution_time_ms = start.elapsed().as_millis() as u64;
 
         // Try to parse as JSON, fall back to text

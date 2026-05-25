@@ -13,6 +13,7 @@
 | 前端页面 | `bun run type-check` + `bun run build` |
 | 跨端功能 | 后端相关测试 + 前端 build + 手工流程 |
 | 公开 API / 认证例外 | 后端测试必须覆盖 RBAC public path 和 CSRF exempt path |
+| 出站 HTTP / MCP 工具执行 | 本地 mock 服务测试成功、鉴权拒绝、上游失败、超时和响应限制；不得依赖公网服务 |
 | 邮件链接流程 | 验证邮件链接使用 `APP__PUBLIC_URL`，且前端存在对应公开路由 |
 | 脚本/部署 | 对应 SOP 中的 dry run 或局部命令；静态 SPA 需验证 `/assets/` 实际返回资源 |
 
@@ -24,6 +25,8 @@ cargo fmt --all -- --check
 cargo clippy --workspace -- -D warnings
 cargo test --workspace
 ```
+
+执行器或 client 被加入共享 `AppState` 时，必须额外运行一个原有无关 API 测试，确认构造阶段不会因环境探测、外部连接或可选基础设施而破坏应用启动。
 
 局部验证：
 

@@ -1,5 +1,7 @@
 # Iteration 006: MCP 工具真实执行
 
+> 质量复核说明（2026-05-25）：本迭代的 `Done` 与全量验证勾选被 Iteration 007 / EVO-032 复核为不成立；保留本页作为原始执行记录，修复与最终验收以 Iteration 007 为准。
+
 > 时间：2026-05-25
 > 目标：让 MCP `tools/call` 真正执行注册的 HTTP 工具，而不是返回 stub 文本。完成平台核心价值闭环。
 
@@ -64,6 +66,7 @@ cargo test --workspace
 |------|------|
 | 2026-05-25 | Iteration 006 started. 选入 EVO-005，补齐 backlog 详情块。 |
 | 2026-05-25 | EVO-005 实现完成。HttpToolExecutor 替代 stub，MCP tools/call 真实执行 HTTP 工具。cargo check/clippy 通过，api+service-tool 测试 18 passed。 |
+| 2026-05-25 | Navigator quality review: blocking findings. `cargo test --workspace` 因 executor 初始化 panic 失败；匿名执行、HTTP error 映射和公网依赖测试存在缺口；转入 EVO-032 / Iteration 007 修复。 |
 
 ## 8. 变更请求
 
