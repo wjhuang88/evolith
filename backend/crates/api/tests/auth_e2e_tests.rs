@@ -28,6 +28,7 @@ use infra::db::{
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
+use service_tool::executor::{HttpToolExecutor, ToolExecutor};
 use uuid::Uuid;
 
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
@@ -224,6 +225,7 @@ fn build_app_state(pool: SqlitePool) -> AppState {
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         skill_executor: Arc::new(DefaultSkillExecutor::new()) as Arc<dyn SkillExecutor>,
+        tool_executor: Arc::new(HttpToolExecutor::new()) as Arc<dyn ToolExecutor>,
     }
 }
 
