@@ -27,6 +27,7 @@ domain.workspace = true
 service-auth.workspace = true
 service-audit.workspace = true
 service-skill.workspace = true
+service-tool.workspace = true
 uuid.workspace = true
 
 [workspace]

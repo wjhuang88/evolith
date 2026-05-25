@@ -11,6 +11,7 @@ use infra::config::AppConfig;
 use infra::mailer::Mailer;
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::SkillExecutor;
+use service_tool::executor::ToolExecutor;
 
 /// Application state containing all shared resources
 pub struct AppState {
@@ -42,4 +43,6 @@ pub struct AppState {
     pub mailer: Arc<dyn Mailer>,
     /// Skill executor for running code in sandboxed environment
     pub skill_executor: Arc<dyn SkillExecutor>,
+    /// Tool executor for executing HTTP-based MCP tools
+    pub tool_executor: Arc<dyn ToolExecutor>,
 }

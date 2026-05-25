@@ -30,6 +30,7 @@ use infra::mailer::create_mailer;
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_skill::{DockerExecutor, SandboxConfig};
+use service_tool::executor::{HttpToolExecutor, ToolExecutor};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -80,6 +81,10 @@ async fn main() -> Result<()> {
         Arc::new(DefaultSkillExecutor::new())
     };
 
+    // Initialize HTTP tool executor for MCP tool execution
+    let tool_executor: Arc<dyn ToolExecutor> = Arc::new(HttpToolExecutor::new());
+    info!("HTTP tool executor initialized");
+
     let app_state = match db_pool {
         DatabasePool::Sqlite(pool) => {
             info!("Running SQLite migrations...");
@@ -109,6 +114,7 @@ async fn main() -> Result<()> {
                 cache: cache.clone(),
                 mailer: mailer.clone(),
                 skill_executor: skill_executor.clone(),
+                tool_executor: tool_executor.clone(),
             }
         }
         DatabasePool::Postgres(pool) => {
@@ -139,6 +145,7 @@ async fn main() -> Result<()> {
                 cache: cache.clone(),
                 mailer: mailer.clone(),
                 skill_executor: skill_executor.clone(),
+                tool_executor: tool_executor.clone(),
             }
         }
         DatabasePool::MySql(_pool) => {

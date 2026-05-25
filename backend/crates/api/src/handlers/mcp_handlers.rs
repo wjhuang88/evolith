@@ -14,8 +14,9 @@ use uuid::Uuid;
 use crate::dto::common::ApiResponse;
 use crate::handlers::api_key_handlers::validate_api_key;
 use crate::state::AppState;
-use domain::tool::Visibility;
+use domain::tool::{HandlerType, Visibility};
 use domain::ToolFilter;
+use service_tool::executor::ExecuteRequest;
 use service_tool::mcp::{
     self, build_initialize_result, McpRequest, McpResponse, ToolCallParams, ToolsListResult,
 };
@@ -245,21 +246,79 @@ async fn handle_tools_call(
                 return HttpResponse::Ok().json(McpResponse::error(id, -32602, e, None));
             }
 
-            // Execute tool (for now, just return a stub response)
-            // In production, this would dispatch to the actual tool handler
-            let result_text = format!("Tool '{}' executed with args: {:?}", tool_name, arguments);
+            // Dispatch to appropriate executor based on handler type
+            match tool.handler.handler_type {
+                HandlerType::Http => {
+                    let url = match &tool.handler.url {
+                        Some(u) => u.clone(),
+                        None => {
+                            return HttpResponse::Ok().json(McpResponse::error(
+                                id,
+                                -32603,
+                                "HTTP tool missing URL configuration".to_string(),
+                                None,
+                            ));
+                        }
+                    };
 
-            let result = service_tool::mcp::ToolCallResult {
-                content: vec![service_tool::mcp::ToolContent {
-                    content_type: "text".to_string(),
-                    text: result_text,
-                }],
-            };
+                    let method = tool.handler.method.clone().unwrap_or_else(|| "POST".to_string());
+                    let timeout_ms = tool.handler.timeout.unwrap_or(30000);
 
-            HttpResponse::Ok().json(McpResponse::success(
-                id,
-                serde_json::to_value(result).unwrap_or_default(),
-            ))
+                    let exec_request = ExecuteRequest {
+                        tool_id: tool.id.to_string(),
+                        parameters: arguments,
+                        url,
+                        method,
+                        timeout_ms,
+                    };
+
+                    match state.tool_executor.execute(exec_request).await {
+                        Ok(exec_response) => {
+                            let result_text = if let Some(ref error) = exec_response.error {
+                                format!(
+                                    "Status: {}\nError: {}\nResponse: {}",
+                                    exec_response.status,
+                                    error,
+                                    serde_json::to_string_pretty(&exec_response.result)
+                                        .unwrap_or_default()
+                                )
+                            } else {
+                                serde_json::to_string_pretty(&exec_response.result)
+                                    .unwrap_or_default()
+                            };
+
+                            let result = service_tool::mcp::ToolCallResult {
+                                content: vec![service_tool::mcp::ToolContent {
+                                    content_type: "text".to_string(),
+                                    text: result_text,
+                                }],
+                            };
+
+                            HttpResponse::Ok().json(McpResponse::success(
+                                id,
+                                serde_json::to_value(result).unwrap_or_default(),
+                            ))
+                        }
+                        Err(e) => {
+                            tracing::error!("Tool execution failed: {}", e);
+                            HttpResponse::Ok().json(McpResponse::error(
+                                id,
+                                -32603,
+                                format!("Tool execution failed: {}", e),
+                                None,
+                            ))
+                        }
+                    }
+                }
+                HandlerType::Function => {
+                    HttpResponse::Ok().json(McpResponse::error(
+                        id,
+                        -32601,
+                        format!("Function-type tool execution not yet supported: {}", tool_name),
+                        None,
+                    ))
+                }
+            }
         }
         Ok(None) => HttpResponse::Ok().json(McpResponse::error(
             id,
