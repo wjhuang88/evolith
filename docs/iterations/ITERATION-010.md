@@ -1,7 +1,7 @@
 # Iteration 010: Skill 更新与 CLI Interface 格式基线
 
-> 状态：Planned，未启动
-> 计划目标：在认证闭环之后补齐 Skill 生命周期的更新入口，并建立 CLI 友好接口格式解析基线。
+> 状态：In Progress
+> 计划目标：在认证闭环之后补齐 Skill 生命周期的更新入口，并建立 CLI 友好接口格式解析基线。按 WIP 限制先选入 EVO-009。
 
 ## 1. 计划边界
 
@@ -13,7 +13,7 @@
 | ID | 标题 | 所属 Epic | 优先级 | 当前状态 | 依赖/顺序 |
 |----|------|-----------|--------|----------|-----------|
 | EVO-006 | Skill 更新接口 | 无 | P1 | Proposed | 先明确 API contract 与版本语义 |
-| EVO-009 | SKILL.md 与 CLI interface frontmatter parser | 无 | P1 | Proposed | 与更新校验契约对齐后实施 |
+| EVO-009 | SKILL.md 与 CLI interface frontmatter parser | 无 | P1 | Agent | Done |
 
 ## 3. 目标范围
 
@@ -56,3 +56,5 @@ cargo clippy --workspace -- -D warnings
 | 日期 | 记录 |
 |------|------|
 | 2026-05-26 | Future iteration planned only. 候选 EVO-006 / EVO-009；未启动、未改变 backlog 状态。 |
+| 2026-05-26 | Iteration 010 started. 按 WIP 限制先选入 EVO-009（SKILL.md parser），EVO-006 待 EVO-009 完成后再排期。EVO-009 backlog 详情块已补齐。 |
+| 2026-05-26 | EVO-009 Done：SkillParser 从 stub 升级为生产级解析器，复用 CLI interface parser 模式。6 个单元测试覆盖。cargo check/clippy/test 通过。 |
