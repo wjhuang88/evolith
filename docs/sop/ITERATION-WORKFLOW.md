@@ -38,7 +38,7 @@
 创建或更新 `docs/iterations/ITERATION-<N>.md`：
 
 - 迭代目标。
-- 选入故事列表。
+- 选入 Story 列表、所属 Epic（如有）以及依赖顺序。
 - 不做什么。
 - 验证命令。
 - 风险和回滚点。
@@ -65,6 +65,7 @@
 
 - backlog 状态：Done
 - backlog 详情块：状态、验收标准勾选、最小验证方式和“不做事项”同步到实际完成范围
+- 如果 Story 属于 Epic：同步父项子 Story 表；只有父项完成条件满足时才更新 Epic 为 `Done`
 - 相关迭代文档：完成情况、验证结果
 - API 合约或 Reference：如果行为变化
 - `EVOLUTION.md`：如果发现新坑

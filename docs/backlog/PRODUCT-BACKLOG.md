@@ -48,6 +48,8 @@
 | EVO-031 | Iteration 004/005 质量修复与流程防呆 | bug | P0 | Done | 质量审查 2026-05-17 | 修复静态资源反代、邀请接受闭环、公开接口放行、邮件公开 URL、sourcemap 默认关闭和流程规约 |
 | EVO-032 | Iteration 006 MCP 执行质量修复与流程防呆 | bug | P0 | Done | 质量审查 2026-05-25 | Iteration 007；修复执行器初始化崩溃、工具调用鉴权、错误映射和验收证据失真 |
 | EVO-033 | Rustfmt 全量格式基线与 stable 配置清理 | tech-debt | P2 | Proposed | Iteration 007 验证残余 | 独立处理历史格式差异和 nightly-only 配置告警，避免混入功能修复 |
+| EVO-034 | Epic 与子需求拆分治理规则 | tech-debt | P1 | Done | 流程缺口 2026-05-26 | Iteration 008；已补齐父子编号、依赖、分层 DoR 与跨 Epic 选取约束 |
+| EVO-035 | 治理 skill manifest 接入与一致性审计 | tech-debt | P2 | Proposed | Iteration 008 验证残余 | 建立 `.agent-governance/manifest.yaml` 后运行 bundled validator |
 
 ## 故事模板
 
@@ -57,13 +59,15 @@
 - 类型：
 - 优先级：
 - 状态：
+- 父 Epic：（非子 Story 填无）
 - 用户价值：
 - 范围：
 - 不做：
 - 验收标准：
   - [ ] ...
 - 技术备注：
-- 依赖：
+- 依赖或阻塞：
+- 解锁内容：
 ```
 
 ### EVO-005 MCP 工具真实执行
@@ -136,6 +140,50 @@
 - 依赖或阻塞：Iteration 006 / EVO-005 已合入；历史 workspace rustfmt 基线需要单独处理或明确记录。
 - 影响范围：backend / docs
 - 最小验证方式：`cargo fmt --all -- --check`；`cargo check --workspace`；`cargo clippy --workspace -- -D warnings`；`cargo test --workspace`。
+
+### EVO-034 Epic 与子需求拆分治理规则
+
+- 类型：tech-debt
+- 优先级：P1
+- 状态：Done
+- 用户价值或技术目标：让维护者和 Agent 能把较大需求稳定地组织为 Epic 与可执行子 Story，避免把多阶段工作当成一个模糊任务，或在迭代中遗漏依赖和完成边界。
+- 范围：
+  - 明确 Epic 与普通 Story 的判定标准、拆分维度和子 Story 细度。
+  - 为 Evolith 建立保留 `EVO-*` 前缀的父子编号、依赖记录、DoR 与迭代选取规则。
+  - 在文档一致性检查与经验记录中加入相应防呆。
+  - 将可迁移的方法论同步到 `agent-project-governance` skill，不覆盖该仓库已有外部改动。
+- 不做：
+  - 不批量重编号历史 `EVO-*` 事项；历史拆分关系继续保留。
+  - 不改业务代码、构建流程或部署配置。
+  - 不自动为现有 Proposed 事项建立新的 Epic 层级。
+- 验收标准：
+  - [x] `REQUIREMENT-INTAKE.md` 定义 Epic 判定、拆分维度/粒度、父子编号、依赖校验、Epic/子 Story DoR 和跨 Epic 迭代规则。
+  - [x] `START-ITERATION.md`、`ITERATION-WORKFLOW.md` 与 `DOC-CHECK.md` 承接父子和依赖检查。
+  - [x] `agent-project-governance` skill 提供可按项目编号前缀适配的 Epic/Story 方法论与评估场景。
+  - [x] Markdown 链接校验和 `git diff --check` 通过，skill 结构校验通过。
+- 依赖或阻塞：无；skill 目标目录存在用户未提交的 `README.md` 变更，实施时不得改写该文件。
+- 影响范围：docs / external skill
+- 最小验证方式：执行文档链接校验；`git diff --check`；运行 skill 的 `quick_validate.py`。
+
+### EVO-035 治理 skill manifest 接入与一致性审计
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 用户价值或技术目标：让 Evolith 已有治理文档能被 `agent-project-governance` skill 明确识别为初始化/采用状态，并通过一致性审计发现后续漂移。
+- 范围：
+  - 按当前项目治理现状建立 `.agent-governance/manifest.yaml`。
+  - 核对 capability 状态、标准入口与已有 SOP / reference / backlog / iteration 映射。
+  - 运行 skill bundled validator，并将真实残余写回 backlog 或治理文档。
+- 不做：
+  - 不在 EVO-034 中补造 manifest 以掩盖附加审计失败。
+  - 不顺带改业务逻辑或重写既有迭代历史。
+- 验收标准：
+  - [ ] manifest 能准确表达 Evolith 的治理 profile、入口和能力状态。
+  - [ ] `validate_project_governance.py /Users/GHuang/WorkSpace/AiProjects/evolith` 通过，或将剩余问题拆为明确事项。
+- 依赖或阻塞：EVO-034 已完成；需要单独确认初始化/adoption 范围。
+- 影响范围：docs
+- 最小验证方式：运行 `agent-project-governance/scripts/validate_project_governance.py`。
 
 ## 下一批建议
 

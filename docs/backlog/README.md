@@ -18,6 +18,7 @@
 4. 进入迭代前必须满足 [Definition of Ready](../sop/REQUIREMENT-INTAKE.md#definition-of-ready)。
 5. 完成后必须满足 [Definition of Done](../sop/ITERATION-WORKFLOW.md#definition-of-done)。
 6. 迭代中需求变更必须按 [迭代中需求变更](../sop/CHANGE-CONTROL.md) 处理，不允许直接覆盖原故事。
+7. 多结果、多阶段或超过交付窗口的事项按 [Epic / Story 方法论](../sop/REQUIREMENT-INTAKE.md#epic--story-方法论) 拆分；新父子关系采用 `EVO-NNN` / `EVO-NNN-A`。
 
 ## 防呆字段
 
@@ -26,5 +27,6 @@
 - `类型`：feature / bug / chore / tech-debt / spike / product-change。
 - `状态`：只能使用 SOP 中定义的状态。
 - `取代关系`：如果替代旧故事，在备注中写 “replaces EVO-XXX” 或 “supersedes <旧概念>”。
+- `父子与依赖`：子 Story 写父 Epic、硬依赖和解锁内容；父 Epic 汇总子项状态与所属迭代。
 - `不做`：明确本故事不处理的范围。
 - `验收标准`：至少 1 条可验证检查项。

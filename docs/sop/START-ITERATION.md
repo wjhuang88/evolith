@@ -24,6 +24,8 @@
 4. 不从 `docs/proposals/` 直接开工；提案必须先晋升到 backlog。
 5. 单个 Agent 会话默认只选 1 个 story，除非用户明确要求多故事迭代。
 6. 如果候选项是 Epic，只能选择已拆出的 `Ready` 子 story；不要把整个 Epic 放入一次 Agent 微迭代。
+7. 常规迭代可以跨 Epic 选择子 story，但必须有一致的迭代目标、满足 WIP 限制，并在计划中写明每项父 Epic。
+8. 选择存在依赖关系的多个 story 时，前置项必须已 `Done`，或在本轮明确执行/验证顺序；不得选入循环依赖或未闭合依赖集合。
 
 ## 操作步骤
 
@@ -31,7 +33,8 @@
 2. 创建 `docs/iterations/ITERATION-<N>.md`，优先使用 [迭代模板](../iterations/ITERATION-TEMPLATE.md)。
 3. 在迭代文件中写清楚：
    - 本轮目标；
-   - 选入故事；
+   - 选入故事及其父 Epic（如有）；
+   - 选入故事之间的依赖和执行顺序（如有）；
    - 不做事项；
    - 验收标准；
    - 验证计划；
@@ -77,6 +80,7 @@ git diff --check
 - 候选 story 不满足 DoR：不要创建迭代；先回到 `REQUIREMENT-INTAKE.md` 补齐 backlog。
 - 候选 story 只有总表行、没有详情块：先补用户价值、验收标准、依赖、影响范围和最小验证方式，再开始迭代。
 - 候选 story 是父级 Epic：先拆出 0.5-2 天子 story，并让子 story 满足 DoR。
+- 候选子 story 的依赖未完成或出现循环：保持 `Proposed` / `Blocked`，先调整依赖或完成前置项。
 - 已有 `In Progress` story：先结束、暂停或记录切换原因，再开始新迭代。
 - 忘记同步 backlog：先补 backlog 状态，再继续。
 - 用户开始迭代时改变范围：按 `CHANGE-CONTROL.md` 记录，不要直接覆盖原计划。
