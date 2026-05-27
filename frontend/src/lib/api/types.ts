@@ -332,3 +332,64 @@ export interface PaginatedResponse<T> {
   meta: PaginationMeta;
   error?: ErrorInfo;
 }
+
+// ============================================
+// API Key Types
+// ============================================
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  permissions: string[];
+  expires_at: string | null;
+  rate_limit: number;
+  status: 'active' | 'revoked' | 'expired';
+  request_count: number;
+  last_used_at: string | null;
+  created_at: string;
+}
+
+export interface ApiKeyWithSecret extends ApiKey {
+  key?: string; // Only shown once after creation
+}
+
+export interface CreateApiKeyRequest {
+  name: string;
+  permissions?: string[];
+  rate_limit?: number;
+  expires_in_days?: number;
+}
+
+// ============================================
+// Member & Invitation Types
+// ============================================
+
+export interface Member {
+  id: string;
+  email: string;
+  username: string;
+  full_name: string | null;
+  role: string;
+  tenant_role: string;
+  status: string;
+  joined_at: string | null;
+  last_login_at: string | null;
+  avatar_url: string | null;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  invited_by: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role: string;
+  message?: string;
+}

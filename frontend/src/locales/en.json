@@ -41,7 +41,10 @@
     "configure": "Configure",
     "enable": "Enable",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "networkError": "Network error. Please check your connection.",
+    "retry": "Retry",
+    "never": "Never"
   },
   "nav": {
     "home": "Home",
@@ -473,17 +476,28 @@
         "emailLabel": "Email Address",
         "emailPlaceholder": "colleague@company.com",
         "roleLabel": "Role",
+        "messageLabel": "Message",
+        "messagePlaceholder": "Welcome to the team!",
         "sendInvitation": "Send Invitation"
       },
       "table": {
         "member": "Member",
+        "email": "Email",
         "role": "Role",
         "status": "Status",
         "joined": "Joined",
+        "expires": "Expires",
+        "expired": "Expired",
         "actions": "Actions",
         "pending": "Pending",
         "active": "Active"
       },
+      "tabs": {
+        "members": "Members",
+        "invitations": "Invitations"
+      },
+      "noMembers": "No members found.",
+      "noInvitations": "No pending invitations.",
       "planInfo": "Your plan:",
       "seatsUsed": "{{used}} of {{total}} seats used",
       "roles": {
@@ -511,7 +525,9 @@
       "table": {
         "name": "Name",
         "key": "Key",
+        "status": "Status",
         "created": "Created",
+        "lastUsed": "Last Used",
         "actions": "Actions"
       },
       "revoke": "Revoke"
