@@ -11,7 +11,7 @@ use crate::dto::skill_dto::{
 };
 use crate::middleware::auth::AuthenticatedUser;
 use crate::state::AppState;
-use domain::skill::{Dependency, NewSkill, SkillFilter};
+use domain::skill::{Dependency, NewSkill, SkillFilter, UpdateSkill};
 use domain::tool::Visibility;
 use service_skill::executor::ExecuteRequest;
 
@@ -173,17 +173,115 @@ pub async fn create_skill(
     }
 }
 
-/// Update skill handler - NOT IMPLEMENTED (per production plan)
+/// Update skill handler
 pub async fn update_skill(
-    _path: web::Path<String>,
-    _body: web::Json<UpdateSkillRequest>,
-    _state: web::Data<AppState>,
-    _user: AuthenticatedUser,
+    path: web::Path<String>,
+    body: web::Json<UpdateSkillRequest>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
 ) -> impl Responder {
-    HttpResponse::NotImplemented().json(ApiResponse::<()>::error(
-        "NOT_IMPLEMENTED",
-        "Skill update is not yet supported",
-    ))
+    let id = match Uuid::parse_str(&path) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_ID",
+                "Invalid skill ID format",
+            ));
+        }
+    };
+
+    // Check skill exists and belongs to tenant
+    let existing = match state.skill_repo.find_by_id(id).await {
+        Ok(Some(skill)) => skill,
+        Ok(None) => {
+            return HttpResponse::NotFound()
+                .json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"));
+        }
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                &format!("Failed to find skill: {}", e),
+            ));
+        }
+    };
+
+    if existing.tenant_id != user.tenant_id {
+        return HttpResponse::NotFound()
+            .json(ApiResponse::<()>::error("NOT_FOUND", "Skill not found"));
+    }
+
+    // Check ownership or admin
+    if existing.owner_id != user.user_id && !user.is_admin() {
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "You can only update your own skills",
+        ));
+    }
+
+    // Parse runtime if provided
+    let runtime = if let Some(ref rt) = body.runtime {
+        match parse_runtime(rt) {
+            Ok(r) => Some(r),
+            Err(e) => {
+                return HttpResponse::BadRequest()
+                    .json(ApiResponse::<()>::error("INVALID_RUNTIME", &e));
+            }
+        }
+    } else {
+        None
+    };
+
+    // Convert dependencies if provided
+    let dependencies = body.dependencies.as_ref().map(|deps| {
+        deps.iter().map(|d| d.to_domain()).collect()
+    });
+
+    // Determine visibility if provided
+    let visibility = body.is_public.map(|pub_flag| {
+        if pub_flag {
+            Visibility::Public
+        } else {
+            Visibility::Private
+        }
+    });
+
+    let update = UpdateSkill {
+        name: body.name.clone(),
+        version: body.version.clone(),
+        description: body.description.clone(),
+        skill_md: body.content.clone(),
+        runtime,
+        dependencies,
+        visibility,
+    };
+
+    match state.skill_repo.update(id, update).await {
+        Ok(skill) => HttpResponse::Ok().json(ApiResponse::success(SkillResponse::from(skill))),
+        Err(e) => {
+            let (status, code, msg) = match e {
+                common::error::AppError::NotFoundError(msg) => {
+                    (actix_web::http::StatusCode::NOT_FOUND, "NOT_FOUND", msg)
+                }
+                common::error::AppError::ValidationError(msg) => (
+                    actix_web::http::StatusCode::BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    msg,
+                ),
+                common::error::AppError::DatabaseError(msg) => (
+                    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "DATABASE_ERROR",
+                    msg,
+                ),
+                other => (
+                    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    other.to_string(),
+                ),
+            };
+            HttpResponse::build(status)
+                .json(ApiResponse::<()>::error(code, &msg))
+        }
+    }
 }
 
 /// Delete skill handler
