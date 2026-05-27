@@ -59,6 +59,7 @@ impl CsrfMiddleware {
                 "/api/v1/auth/register".to_string(),
                 "/api/v1/auth/forgot-password".to_string(),
                 "/api/v1/auth/reset-password".to_string(),
+                "/api/v1/auth/send-verify".to_string(),
                 "/api/v1/auth/verify-email".to_string(),
                 "/api/v1/invitations/accept".to_string(),
             ],

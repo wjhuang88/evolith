@@ -959,3 +959,128 @@ async fn test_update_skill_not_found() {
     let update_resp = test::call_service(&app, update_req).await;
     assert_eq!(update_resp.status(), actix_web::http::StatusCode::NOT_FOUND);
 }
+
+#[actix_rt::test]
+async fn test_send_verification_email_returns_success() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new("test_secret".to_string()))
+            .service(web::scope("/api/v1").configure(auth::configure)),
+    )
+    .await;
+
+    let register_payload = serde_json::json!({
+        "email": "verify-send@example.com",
+        "username": "verifysenduser",
+        "password": "TestPassword123!",
+    });
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(&register_payload)
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+
+    let req = test::TestRequest::post()
+        .uri("/api/v1/auth/send-verify")
+        .set_json(serde_json::json!({
+            "email": "verify-send@example.com",
+        }))
+        .to_request();
+
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+
+    let body = test::read_body(resp).await;
+    let result: ApiResponse<MessageResponse> =
+        serde_json::from_slice(&body).expect("Failed to parse response");
+    assert!(result.success);
+}
+
+#[actix_rt::test]
+async fn test_verify_email_with_valid_token() {
+    let pool = setup_test_db().await;
+    let state = build_app_state(pool.clone());
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(RbacMiddleware::new("test_secret".to_string()))
+            .service(web::scope("/api/v1").configure(auth::configure)),
+    )
+    .await;
+
+    let register_payload = serde_json::json!({
+        "email": "verify-valid@example.com",
+        "username": "verifyvaliduser",
+        "password": "TestPassword123!",
+    });
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(&register_payload)
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+    let user_id = Uuid::parse_str(&auth_data.user.id).expect("Invalid user UUID");
+
+    let test_token = "evt_test_valid_token_12345";
+    let user_repo = SqliteUserRepository::new(pool);
+    user_repo
+        .set_verify_token(user_id, test_token)
+        .await
+        .expect("Failed to set verify token");
+
+    let req = test::TestRequest::post()
+        .uri("/api/v1/auth/verify-email")
+        .set_json(serde_json::json!({
+            "token": test_token,
+        }))
+        .to_request();
+
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+
+    let body = test::read_body(resp).await;
+    let result: ApiResponse<MessageResponse> =
+        serde_json::from_slice(&body).expect("Failed to parse response");
+    assert!(result.success);
+}
+
+#[actix_rt::test]
+async fn test_verify_email_with_invalid_token() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new("test_secret".to_string()))
+            .service(web::scope("/api/v1").configure(auth::configure)),
+    )
+    .await;
+
+    let req = test::TestRequest::post()
+        .uri("/api/v1/auth/verify-email")
+        .set_json(serde_json::json!({
+            "token": "evt_bogus_token_that_does_not_exist",
+        }))
+        .to_request();
+
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::BAD_REQUEST);
+
+    let body = test::read_body(resp).await;
+    let result: ApiResponse<MessageResponse> =
+        serde_json::from_slice(&body).expect("Failed to parse response");
+    assert!(!result.success);
+    let error = result.error.expect("Expected error in response");
+    assert_eq!(error.code, "INVALID_TOKEN");
+}
