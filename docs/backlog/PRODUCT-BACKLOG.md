@@ -24,15 +24,15 @@
 | EVO-007 | Snippet 更新接口 | feature | P1 | Deferred | API 501 | 被 EVO-017 替代方向覆盖，暂停继续投入 |
 | EVO-008 | Snippet reference 格式增强 | feature | P1 | Deferred | 需求 F1.3.4 | 被 EVO-017 替代方向覆盖 |
 | EVO-009 | SKILL.md 与 CLI interface frontmatter parser | feature | P1 | Done | 格式规范 / EVO-017 / Iteration 010 | CLI interface parser 已有基线；SKILL.md parser 已实现 |
-| EVO-010 | 租户 Members 页面接真实 API | feature | P1 | Proposed | 前端 TODO | 列表、邀请、移除 |
-| EVO-011 | API Key 页面接真实 API | feature | P1 | Proposed | 前端 TODO | 创建、列表、revoke |
+| EVO-010 | 租户 Members 页面接真实 API | feature | P1 | Done | Iteration 011 | 后端 find_by_tenant + remove_from_tenant + 前端接线 |
+| EVO-011 | API Key 页面接真实 API | feature | P1 | Done | Iteration 011 | types + api module + page 重写 |
 | EVO-012 | 租户设置保存 | feature | P2 | Proposed | 前端 TODO | tenant settings |
 | EVO-013 | Audit log detail 接口 | feature | P2 | Proposed | API 501 | `GET /audit-logs/{log_id}` |
 | EVO-014 | Stripe webhook 恢复 | feature | P2 | Proposed | routes TODO | 计费闭环 |
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
-| EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Proposed | API 501 / Phase C | `send-verify`、`verify-email`，依赖 mailer |
+| EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Done | Iteration 009 | Handler 实现 + 3 e2e 测试 |
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
 | EVO-020 | Storage 能力落地 | feature | P2 | Proposed | Phase E placeholder | 实现对象存储基础能力，支撑技能包和附件 |
 | EVO-021 | 前端路由适配层 | tech-debt | P0 | Done | EVO-002 split | Iteration 003；已新增 `frontend/src/lib/router.tsx`，页面和共享组件不再直接导入 Next 路由模块 |
@@ -369,6 +369,37 @@
 - 最小验证方式：`cargo test -p api` 覆盖 accept_invitation 端到端。
 
 ## 待细化故事
+
+### EVO-018 邮箱验证发送与确认闭环
+
+- 类型：feature
+- 优先级：P1
+- 状态：In Progress
+- 用户价值或技术目标：完成用户生命周期最后一块——注册后可验证邮箱，确认邮箱真实性。与 forgot/reset password、invite/join 形成完整的认证闭环。
+- 范围：
+  - 实现 `send_verification_email` handler：查找用户 → 生成 crypto-random token → `set_verify_token` → 通过 Mailer 发送验证邮件（链接使用 `APP__PUBLIC_URL`）。
+  - 实现 `verify_email` handler：`find_by_verify_token` → 校验 token → `verify_email`（设置 email_verified=true, 清除 token）→ 返回成功。
+  - 防枚举：`send_verification_email` 无论邮箱是否存在都返回成功（与 forgot-password 一致）。
+  - 已验证的邮箱不重复发送。
+- 不做：
+  - 不修改 DTO（`SendVerifyEmailRequest { email }`、`VerifyEmailRequest { token }` 已定义）。
+  - 不修改 Repository trait 或数据库 migration（`verify_email`/`set_verify_token`/`find_by_verify_token` 已实现）。
+  - 不修改 Mailer trait（`send_verification_email` 已实现）。
+  - 不创建前端页面（验证链接指向已有或待建的 `/verify-email` 路由）。
+- 验收标准：
+  - [ ] `POST /api/v1/auth/send-verify` 接受邮箱，存在时发送验证邮件，不存在时静默返回成功。
+  - [ ] `POST /api/v1/auth/verify-email` 接受 token，验证通过后设置 `email_verified=true`。
+  - [ ] 验证邮件使用 `APP__PUBLIC_URL` 生成公开前端链接。
+  - [ ] `cargo test -p api` 通过，含 send-verify / verify-email 集成测试。
+  - [ ] `cargo check --workspace` 无错误。
+- 技术备注：
+  - DTO 已定义：`SendVerifyEmailRequest { email }`、`VerifyEmailRequest { token }`。
+  - Repository 已实现：`verify_email(id)`、`set_verify_token(id, token)`、`find_by_verify_token(token)`。
+  - Mailer 已实现：`send_verification_email(to, username, token, base_url)`。
+  - 参考实现：`forgot_password` handler（同模式：查找用户→生成 token→发邮件→防枚举）。
+- 依赖：Mailer（已有）。
+- 影响范围：backend
+- 最小验证方式：`cargo test -p api`；ConsoleMailer 输出 token 用于手工验证。
 
 ### EVO-026 前端 Snippets 入口迁移为 CLI 友好接口
 

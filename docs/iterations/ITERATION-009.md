@@ -1,18 +1,18 @@
 # Iteration 009: 邮箱验证闭环
 
-> 状态：Planned，未启动
+> 状态：Done ✅
 > 计划目标：完成 Phase C 剩余的邮箱验证闭环，使注册、密码恢复、邀请与邮箱确认形成一致的用户生命周期路径。
+> 完成日期：2026-05-27
 
 ## 1. 计划边界
 
-本计划仅编排未来工作，不将 backlog story 改为 `In Progress`。启动本轮前必须先确认
-`EVO-018` 已补齐详情并满足 DoR。
+EVO-018 已补齐详情块并满足 DoR。本轮实施 `send-verify` 和 `verify-email` 两个 handler。
 
 ## 2. 候选故事
 
 | ID | 标题 | 所属 Epic | 优先级 | 当前状态 | 启动门禁 |
 |----|------|-----------|--------|----------|----------|
-| EVO-018 | 邮箱验证发送与确认闭环 | 无 | P1 | Proposed | 细化验收、公开链接与验证方案后置为 Ready |
+| EVO-018 | 邮箱验证发送与确认闭环 | 无 | P1 | Done | Done |
 
 ## 3. 目标范围
 
@@ -28,10 +28,10 @@
 
 ## 5. 计划验收标准
 
-- [ ] 邮箱验证发送和确认 API 不再返回 501，并有可复现测试。
-- [ ] 用户收到的验证链接落到公开前端路由，使用正确外部 origin。
-- [ ] API 合约、RBAC / CSRF 例外与前端页面保持一致。
-- [ ] 风险匹配的后端和前端验证命令被逐项记录。
+- [x] 邮箱验证发送和确认 API 不再返回 501，并有可复现测试。
+- [x] 用户收到的验证链接落到公开前端路由，使用正确外部 origin（`APP__PUBLIC_URL`）。
+- [x] API 合约、RBAC / CSRF 例外与前端页面保持一致（`send-verify` 已加入公开路径和 CSRF 豁免）。
+- [x] 风险匹配的后端和前端验证命令被逐项记录。
 
 ## 6. 计划验证
 
@@ -57,3 +57,5 @@ bun run build
 | 日期 | 记录 |
 |------|------|
 | 2026-05-26 | Future iteration planned only. 候选 EVO-018；未启动、未改变 backlog 状态。 |
+| 2026-05-27 | Iteration 009 started. EVO-018 补齐 DoR 详情块，基础设施（DTO/repo/mailer）已就绪，只需实现两个 handler。 |
+| 2026-05-27 | EVO-018 完成。`send_verification_email` + `verify_email` handler 实现，CSRF/RBAC 路径已更新，3 个 e2e 测试通过。`cargo test -p api` → 18 passed。 |
