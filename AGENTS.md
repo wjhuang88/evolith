@@ -10,6 +10,9 @@
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
 - **迭代推进**：开始迭代按 `docs/sop/START-ITERATION.md` 固定步骤执行；进入开发前按 `docs/sop/REQUIREMENT-INTAKE.md` 检查 DoR，再按 `docs/sop/ITERATION-WORKFLOW.md` 推进；完成时检查 DoD 并更新 backlog/iteration 状态。
+- **开始迭代先盘点既有计划**：用户要求开始迭代时，先检查 `docs/iterations/` 中
+  `Active / In Progress / Review / Planned / Blocked` 的迭代并记录处置结论；未处理
+  既有迭代前，不得直接从 backlog 选择新的 story。
 - **实施任务必须闭环**：凡是修改代码、配置或治理文档的实施任务，完成声明前必须按 `docs/sop/TASK-CLOSURE.md` 核对产物、状态同步、验证证据与残余归口；任一适用项缺失只能报告 `Partial` 或 `Blocked`，不得报告完成。
 - **已发布迭代计划不可覆写**：已提交到仓库的 `Planned` iteration 是计划基线；启动同一范围时只能追加实际选入、执行、验证和复盘记录。若改为另一组 story 或另一目标，保留原计划并新建迭代编号，不得把旧计划文档改造成新工作的完成记录。
 - **复杂任务分阶段结对**：跨多层、合约、数据库、权限、发布或高风险改动时，按 `docs/sop/PAIRING-WORKFLOW.md` 在 Driver 实现后切换 Navigator 审查；不要在同一段推理中并行扮演双角色。
@@ -65,12 +68,15 @@
 8. MCP `tools/call` 会触发真实出站请求，必须要求有效 API Key；HTTP executor 不得隐式探测系统代理，相关测试必须使用本地可控服务。
 9. 已发布的 future iteration 可能承载后续依赖；不得用更高优先级工作就地改写其目标，否则会丢失原计划和依赖链。改线时创建新 iteration，并显式标注原计划保留或阻塞。
 10. 文件已生成或代码已修改不等于任务完成；若验证、backlog/iteration 同步或已知残余归口缺失，必须按 `Partial` 报告并继续收口。
+11. backlog 中没有 `In Progress` story 不表示可以直接开新迭代；iteration 文档可能
+    仍处于待收口、待激活或阻塞状态，必须先盘点并处置。
 
 ### Session End Checklist
 
 - [ ] 是否留下未说明的代码或文档变更？
 - [ ] 新功能/缺陷/技术债是否已进入 backlog，或说明了为什么不需要？
 - [ ] 如果推进了迭代故事，是否更新了 backlog/iteration 状态？
+- [ ] 如果开始了新迭代，是否先盘点并处置 `Active / In Progress / Review / Planned / Blocked` 的既有 iteration？
 - [ ] 如果启动或改线了已发布的 planned iteration，是否保留原计划基线并避免就地替换目标？
 - [ ] 如果发生中途需求变更，是否按变更分类表更新了 backlog、iteration、ADR 和半成品处理记录？
 - [ ] 是否运行了与风险匹配的验证？未运行是否说明原因？

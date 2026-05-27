@@ -53,6 +53,7 @@
 | EVO-036 | 已发布迭代计划基线保护与改线防呆 | tech-debt | P1 | Done | 计划覆写复盘 2026-05-27 | Iteration 013；修复 EVO-016 计划追踪并同步治理 skill |
 | EVO-037 | 治理 skill 弱模型闭环执行防呆 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 014；为初始化、迁移和修复任务增加强制闭环协议 |
 | EVO-038 | 本项目实施任务闭环 SOP 与完成声明门禁 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 015；将闭环协议落实到 Evolith 自身流程 |
+| EVO-039 | 迭代启动前库存盘点与既有计划优先规则 | bug | P1 | Done | 流程缺口 2026-05-27 | Iteration 016；先处理在途/已规划迭代再选择新 story |
 
 ## 故事模板
 
@@ -267,6 +268,35 @@
 - 依赖或阻塞：EVO-037 已完成外部 skill 的闭环协议；本轮将同类规则本地化。
 - 影响范围：docs
 - 最小验证方式：执行文档相对链接检查；`git diff --check`。
+
+### EVO-039 迭代启动前库存盘点与既有计划优先规则
+
+- 类型：bug
+- 优先级：P1
+- 状态：Done
+- 用户价值或技术目标：当用户要求开始迭代时，Agent 必须先发现并处理仍在推进、
+  待收口或已规划的 iteration，不因直接扫描 backlog 而跳过在途目标或制造状态漂移。
+- 范围：
+  - 在迭代启动与迭代工作流中加入库存盘点门禁，定义 `Active / In Progress / Review /
+    Planned / Blocked` 的处置优先级。
+  - 规定仅在已有迭代均完成 disposition 后，才可从 backlog 选择新的 `Ready` story。
+  - 修复已发现的 Iteration 010 状态漂移：保留其未核验项并转为 `Review`，不得伪造关闭。
+  - 将可迁移的“iteration inventory before backlog selection”规则同步到治理 skill。
+- 不做：
+  - 不在本故事核验或补做 Iteration 010 尚未证明完成的格式依赖文档内容。
+  - 不解除 Iteration 012 的 EVO-016 前置阻塞，也不实施 embedded frontend。
+  - 不将外部 skill 仓库的独立修改纳入 Evolith 仓库提交。
+- 验收标准：
+  - [x] `START-ITERATION.md` 明确迭代库存盘点先于 backlog story 选择。
+  - [x] `AGENTS.md`、迭代工作流、目录说明与文档检查均能防止绕过现有未完成计划。
+  - [x] Iteration 010 的故事完成事实与迭代收口缺口均可追溯，Iteration 012 的阻塞保留。
+  - [x] `agent-project-governance` skill 包含同类生成/审计与评估规则。
+  - [x] 项目文档检查、`git diff --check` 与 skill 结构校验通过。
+- 依赖或阻塞：本故事为治理缺陷修复，可在产品迭代重新选取前实施；Iteration 010
+  收口证据缺口和 Iteration 012 阻塞仍需分别处置。
+- 影响范围：docs / external skill
+- 最小验证方式：执行文档相对链接检查；`git diff --check`；运行 skill 的
+  `quick_validate.py`。
 
 ## 下一批建议
 

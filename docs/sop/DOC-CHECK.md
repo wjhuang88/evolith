@@ -22,6 +22,7 @@
 | AGENTS 入口 | 新 SOP 或关键入口必须出现在 Task Router 或 docs README |
 | 验证记录 | 迭代文档必须记录实际执行过的验证命令和结果 |
 | 迭代计划基线 | 已发布 `Planned` iteration 的目标、范围、候选 story 和依赖不得被不同目标覆盖；改线必须保留基线并新建编号 |
+| 启动前迭代库存 | 开始新迭代前必须先处置既有 `Active / In Progress / Review / Planned / Blocked` iteration，再从 backlog 选新 story |
 | 闭环声明 | 实施任务或已关闭 iteration 声称完成时，必须能追溯产物、状态同步、验证证据和残余归口 |
 
 ## 标准命令
@@ -110,6 +111,8 @@ Proposal 进入 backlog 前必须满足：
 
 当启动、结束、改线或复核已发布 iteration 时检查：
 
+- [ ] 开始新迭代前已列出既有非终态 iteration，并记录继续、收口、激活、阻塞、延期或改线处置。
+- [ ] 未因 backlog 无 `In Progress` story 而忽略仍处于 `In Progress` / `Review` 的 iteration。
 - [ ] 提交历史中原计划目标、范围、候选 story、依赖和风险在当前文档仍可追溯。
 - [ ] 同一目标的执行只追加实际状态、证据、Review 和复盘，没有把计划基线改写为完成叙述。
 - [ ] 实际目标与已发布计划不一致时，原 iteration 记录延期/阻塞/被替代原因，新工作使用新编号。
@@ -136,5 +139,7 @@ Proposal 进入 backlog 前必须满足：
 - 发现 proposal 误入 backlog：回滚 backlog 项，除非用户明确确认排期且已满足 DoR。
 - 发现验证记录缺失：补迭代执行记录，不要只在对话里说明。
 - 发现已发布计划被就地改线：不要删实际执行结果；补回原基线与偏差说明，将未完成的原目标重新排期。
+- 发现开始新迭代时跳过非终态 iteration：暂停新 story 选取；先修状态漂移并记录
+  disposition，再决定激活既有计划还是另开工作。
 - 发现完成声明没有闭环证据：将结论降为 `Partial` 或恢复 `Review`，补台账、状态
   与残余归口后再关闭。

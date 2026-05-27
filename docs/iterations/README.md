@@ -14,12 +14,14 @@
 - [Iteration 007](ITERATION-007.md) — MCP 工具执行质量修复与流程防呆（EVO-032）。
 - [Iteration 008](ITERATION-008.md) — Epic 与子需求拆分治理规则（EVO-034）。
 - [Iteration 009](ITERATION-009.md) — 邮箱验证闭环（EVO-018）。
-- [Iteration 010](ITERATION-010.md) — Skill 更新与 SKILL.md parser（EVO-006 / EVO-009）。
+- [Iteration 010](ITERATION-010.md) — Skill 更新与 SKILL.md parser（EVO-006 / EVO-009；
+  Review：stories Done，迭代收口证据待核对）。
 - [Iteration 011](ITERATION-011.md) — Members 与 API Keys 前端接真实 API
   （EVO-010 / EVO-011；替换了原 EVO-016 计划，已补偏差记录）。
 - [Iteration 013](ITERATION-013.md) — 已发布迭代计划基线保护与改线防呆（EVO-036）。
 - [Iteration 014](ITERATION-014.md) — 治理 skill 弱模型闭环执行防呆（EVO-037）。
 - [Iteration 015](ITERATION-015.md) — 本项目实施任务闭环 SOP 与完成声明门禁（EVO-038）。
+- [Iteration 016](ITERATION-016.md) — 迭代启动前库存盘点与既有计划优先规则（EVO-039）。
 
 ## 未来计划
 
@@ -27,6 +29,14 @@
 
 - [Iteration 012](ITERATION-012.md) — Embedded Frontend 文件服务与单容器交付
   （Blocked for activation：需重新排期 EVO-016 refinement）。
+
+## 非终态库存
+
+启动任何新的产品迭代前，必须先按启动 SOP 处置：
+
+- [Iteration 010](ITERATION-010.md) — `Review`：核对未勾选验收项的证据，关闭或登记残余。
+- [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞或在 EVO-016
+  refinement 重新排期后更新激活条件。
 
 ## 命名
 
@@ -56,9 +66,12 @@ ITERATION-002.md
 迭代开始：
 
 1. 先按 [开始一次迭代 SOP](../sop/START-ITERATION.md) 执行固定检查。
-2. 从 [Product Backlog](../backlog/PRODUCT-BACKLOG.md) 选择 Ready 项。
-3. 创建 `ITERATION-<N>.md`。
-4. 明确本轮不做什么。
+2. 盘点本目录中的 `Active / In Progress / Review / Planned / Blocked` 文档并记录
+   disposition；在途或待收口迭代优先处理。
+3. 已规划迭代可以按原计划激活时优先激活；继续阻塞、延期或改线时先补记录。
+4. 只有既有 iteration 已处置后，才从 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
+   选择新的 Ready 项并创建 `ITERATION-<N>.md`。
+5. 明确本轮不做什么。
 
 迭代结束：
 

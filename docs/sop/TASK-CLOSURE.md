@@ -76,6 +76,8 @@
 
 - backlog 总表、详情块和验收标准；
 - iteration 执行记录、Review、Retrospective 和状态；
+- iteration inventory 中仍为 `Active / In Progress / Review / Planned / Blocked`
+  的条目及其下一步 disposition；
 - 依赖、阻塞、计划改线或 Epic 子项汇总；
 - API contract、Reference、ADR、Roadmap 或 Proposal 替代关系；
 - `EVOLUTION.md` 的新经验和 `SCRIPTS-RELEASE-NOTES.md` 的脚本行为变化；

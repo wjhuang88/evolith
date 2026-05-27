@@ -23,6 +23,19 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-05-27 开始迭代必须先盘点既有 iteration
+
+**现象**: 流程已经禁止覆写已发布计划，但用户要求“开始迭代”时，启动 SOP 仍先围绕
+backlog 候选 story 展开，不能保证 Agent 先发现仍显示 `In Progress` 的 Iteration 010
+或仍为 `Planned / Blocked` 的 Iteration 012。
+**根因**: 规则保护了单份计划文档的基线，却没有定义 iteration 集合的启动优先级；
+story WIP 检查不能替代对在途、待收口和已排期 iteration 的库存盘点。
+**方案**: 登记 EVO-039 / Iteration 016；新增 iteration inventory gate，要求先为
+`Active / In Progress / Review / Planned / Blocked` 作 disposition，再允许从 backlog
+选新 story；将 Iteration 010 修复为待收口 Review，并同步规则到治理 skill。
+**教训**: backlog 回答“还有什么可做”，iteration inventory 回答“已经承诺或正在做
+什么”；开始新工作前必须先回答后者。
+
 ### 2026-05-27 治理 skill 必须为弱闭环模型提供机械收口协议
 
 **现象**: skill 已能说明初始化、迁移和缺陷写回方法，但依赖使用模型自行判断是否完成；

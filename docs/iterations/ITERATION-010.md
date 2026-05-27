@@ -1,7 +1,11 @@
 # Iteration 010: Skill 更新与 CLI Interface 格式基线
 
-> 状态：In Progress
+> 状态：Review（stories 已 Done，迭代收口证据待核对）
 > 计划目标：在认证闭环之后补齐 Skill 生命周期的更新入口，并建立 CLI 友好接口格式解析基线。按 WIP 限制先选入 EVO-009。
+>
+> 状态审计说明（2026-05-27）：backlog 已将 EVO-006 / EVO-009 标为 `Done`，但本页
+> 仍有未勾选验收项且此前未关闭 iteration。保留完成事实，本迭代进入 `Review`，
+> 待核对格式依赖文档证据后再决定关闭或登记残余。
 
 ## 1. 计划边界
 
@@ -12,8 +16,8 @@
 
 | ID | 标题 | 所属 Epic | 优先级 | 当前状态 | 依赖/顺序 |
 |----|------|-----------|--------|----------|-----------|
-| EVO-006 | Skill 更新接口 | 无 | P1 | Agent | Done |
-| EVO-009 | SKILL.md 与 CLI interface frontmatter parser | 无 | P1 | Agent | Done |
+| EVO-006 | Skill 更新接口 | 无 | P1 | Done | EVO-009 后实施 |
+| EVO-009 | SKILL.md 与 CLI interface frontmatter parser | 无 | P1 | Done | 先实施 |
 
 ## 3. 目标范围
 
@@ -59,3 +63,4 @@ cargo clippy --workspace -- -D warnings
 | 2026-05-26 | Iteration 010 started. 按 WIP 限制先选入 EVO-009（SKILL.md parser），EVO-006 待 EVO-009 完成后再排期。EVO-009 backlog 详情块已补齐。 |
 | 2026-05-26 | EVO-009 Done：SkillParser 从 stub 升级为生产级解析器，复用 CLI interface parser 模式。6 个单元测试覆盖。cargo check/clippy/test 通过。 |
 | 2026-05-26 | EVO-006 Done：实现 PUT /skills/{id} 全栈（domain UpdateSkill + repo update + handler + 测试）。API 不再返回 501。cargo check/clippy/test 通过。 |
+| 2026-05-27 | Inventory audit: stories 已为 Done，但“格式选择与后续导入/版本管理的依赖关系写入相关参考文档”仍无本页完成证据；状态由 `In Progress` 修正为 `Review`，启动新产品迭代前应先处置该收口缺口。 |

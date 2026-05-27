@@ -22,6 +22,9 @@
 8. **Plan baseline is evidence**：已发布的迭代计划用于对照实际执行，不因启动、改线或完成而被覆盖。
 9. **Closure before completion**：产物完成不等于故事完成；声明完成前必须按
    [任务收口与完成声明](TASK-CLOSURE.md) 核对状态、证据和残余归口。
+10. **Iteration inventory before backlog selection**：启动新一轮前先处置已存在的
+    `Active / In Progress / Review / Planned / Blocked` iteration；backlog 选取只能
+    发生在既有承诺和阻塞已明确处理之后。
 
 ## 角色映射
 
@@ -36,7 +39,12 @@
 
 ### 1. Iteration Planning
 
-开始前先确认选入故事已经满足 [Definition of Ready](REQUIREMENT-INTAKE.md#definition-of-ready)。
+开始前先按 [开始一次迭代](START-ITERATION.md) 完成 iteration inventory disposition：
+
+- `Active / In Progress / Review` 优先继续或收口，不绕过后另开产品迭代。
+- `Planned` 优先判断能否按基线激活；`Blocked` 先复核阻塞及其对新工作的影响。
+- 只有既有 iteration 已处置，才检查新选入故事满足
+  [Definition of Ready](REQUIREMENT-INTAKE.md#definition-of-ready) 并从 backlog 新建计划。
 
 创建或更新 `docs/iterations/ITERATION-<N>.md`：
 
