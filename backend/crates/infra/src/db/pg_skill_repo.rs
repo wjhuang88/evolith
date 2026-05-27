@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
 use domain::repository::SkillRepository;
-use domain::skill::{NewSkill, Runtime, Skill, SkillFilter, Visibility};
+use domain::skill::{NewSkill, Runtime, Skill, SkillFilter, UpdateSkill, Visibility};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -230,6 +230,72 @@ impl SkillRepository for PgSkillRepository {
             .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(row.count as u32)
+    }
+
+    async fn update(&self, id: Uuid, skill: UpdateSkill) -> Result<Skill> {
+        let existing = self.find_by_id(id).await?;
+        let existing = existing.ok_or_else(|| {
+            AppError::NotFoundError(format!("Skill with id {} not found", id))
+        })?;
+
+        let now = Utc::now();
+
+        let name = skill.name.unwrap_or(existing.name);
+        let version = skill.version.unwrap_or(existing.version);
+        let description = skill.description.unwrap_or(existing.description);
+        let skill_md = skill.skill_md.unwrap_or(existing.skill_md);
+        let runtime = skill.runtime.unwrap_or(existing.runtime);
+        let dependencies = skill.dependencies.unwrap_or(existing.dependencies);
+        let visibility = skill.visibility.unwrap_or(existing.visibility);
+
+        let runtime_str = match runtime {
+            Runtime::Python311 => "python311",
+            Runtime::Node20 => "node20",
+            Runtime::Wasm => "wasm",
+        };
+        let visibility_str = match visibility {
+            Visibility::Public => "public",
+            Visibility::Private => "private",
+        };
+
+        sqlx::query(
+            r#"
+            UPDATE skills SET
+                name = $1, version = $2, description = $3, skill_md = $4,
+                runtime = $5, dependencies = $6, visibility = $7, updated_at = $8
+            WHERE id = $9
+            "#,
+        )
+        .bind(&name)
+        .bind(&version)
+        .bind(&description)
+        .bind(&skill_md)
+        .bind(runtime_str)
+        .bind(serde_json::to_value(&dependencies).map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
+        })?)
+        .bind(visibility_str)
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
+
+        Ok(Skill {
+            id,
+            name,
+            version,
+            description,
+            skill_md,
+            code_package_path: existing.code_package_path,
+            runtime,
+            dependencies,
+            owner_id: existing.owner_id,
+            tenant_id: existing.tenant_id,
+            visibility,
+            created_at: existing.created_at,
+            updated_at: now,
+        })
     }
 
     async fn delete(&self, id: Uuid) -> Result<()> {

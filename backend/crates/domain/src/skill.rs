@@ -52,6 +52,17 @@ pub struct NewSkill {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct UpdateSkill {
+    pub name: Option<String>,
+    pub version: Option<String>,
+    pub description: Option<String>,
+    pub skill_md: Option<String>,
+    pub runtime: Option<Runtime>,
+    pub dependencies: Option<Vec<Dependency>>,
+    pub visibility: Option<Visibility>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct SkillFilter {
     pub tenant_id: Option<Uuid>,
     pub search: Option<String>,

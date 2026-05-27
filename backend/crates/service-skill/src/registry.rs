@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use common::error::Result;
 use domain::repository::SkillRepository;
-use domain::{NewSkill, Skill, SkillFilter};
+use domain::{NewSkill, Skill, SkillFilter, UpdateSkill};
 use uuid::Uuid;
 
 pub struct SkillRegistry;
@@ -28,6 +28,10 @@ impl SkillRepository for SkillRegistry {
 
     async fn count(&self, _filter: &SkillFilter) -> Result<u32> {
         Ok(0)
+    }
+
+    async fn update(&self, _id: Uuid, _skill: UpdateSkill) -> Result<Skill> {
+        todo!("Skill registry not implemented")
     }
 
     async fn delete(&self, _id: Uuid) -> Result<()> {
