@@ -45,6 +45,8 @@ Driver 在开始实现前确认：
 - 本次最小切片。
 - 需要修改的层：backend / frontend / db / docs / deploy。
 - 需要运行的最小验证。
+- 按 [任务收口与完成声明](TASK-CLOSURE.md) 记录产物、状态同步归口、验证证据和
+  残余工作归口。
 
 如果切片明显超过 0.5-2 天，回到 [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md) 拆分。
 
@@ -106,6 +108,7 @@ Driver 只处理 Navigator 明确指出的问题。
 - [ ] DoD 已满足或未满足项已说明。
 - [ ] backlog / iteration 状态已同步。
 - [ ] 验证命令和结果已记录。
+- [ ] `TASK-CLOSURE.md` 的完成声明与证据一致；已知残余已有归口。
 - [ ] 需要写 `EVOLUTION.md` 的经验已写入。
 - [ ] commit message 有语义前缀和 `[model: <name>]`。
 
@@ -130,3 +133,4 @@ Driver 只处理 Navigator 明确指出的问题。
 - [迭代中需求变更](CHANGE-CONTROL.md)
 - [开始一次迭代](START-ITERATION.md)
 - [Git 工作流](GIT-WORKFLOW.md)
+- [任务收口与完成声明](TASK-CLOSURE.md)

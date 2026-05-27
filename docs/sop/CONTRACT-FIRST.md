@@ -47,3 +47,8 @@ API 契约维护在 [API-CONTRACT.md](../reference/API-CONTRACT.md)，包含：
 - [ ] 如果接口是公开状态变更接口，RBAC 与 CSRF 例外已同步，并有测试覆盖。
 - [ ] 如果接口通过邮件或外部链接进入，前端公开路由和 `APP__PUBLIC_URL` 已同步验证。
 - [ ] 至少有局部测试或手工验证记录。
+- [ ] 合约、实现、验证及残余状态已按 [任务收口与完成声明](TASK-CLOSURE.md) 同步。
+
+## 相关文档
+
+- [任务收口与完成声明](TASK-CLOSURE.md)

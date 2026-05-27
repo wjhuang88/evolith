@@ -15,6 +15,8 @@
 - [ ] 已读取 [特性迭代工作流](ITERATION-WORKFLOW.md)，确认 WIP 限制和 DoD。
 - [ ] 当前没有另一个未关闭的 `In Progress` story，或已明确为什么允许切换。
 - [ ] 如用户在开始迭代时补充需求，已按 [迭代中需求变更](CHANGE-CONTROL.md) 分类记录。
+- [ ] 如果目标编号已有已发布 `Planned` 文档，已核对实际选择是否仍与其计划基线同范围。
+- [ ] 已读取 [任务收口与完成声明](TASK-CLOSURE.md)，并准备在 iteration 中记录闭环台账。
 
 ## 选故事规则
 
@@ -26,6 +28,20 @@
 6. 如果候选项是 Epic，只能选择已拆出的 `Ready` 子 story；不要把整个 Epic 放入一次 Agent 微迭代。
 7. 常规迭代可以跨 Epic 选择子 story，但必须有一致的迭代目标、满足 WIP 限制，并在计划中写明每项父 Epic。
 8. 选择存在依赖关系的多个 story 时，前置项必须已 `Done`，或在本轮明确执行/验证顺序；不得选入循环依赖或未闭合依赖集合。
+
+## 已发布计划基线保护
+
+`docs/iterations/ITERATION-<N>.md` 一旦已提交并标记为 `Planned`，其中的计划目标、候选
+story、范围、不做事项、计划验收、计划验证和风险即构成发布计划基线：
+
+1. 实际启动仍服务于原计划目标时，保留基线内容，只在执行记录、实际验证、Review 和
+   Retrospective 中追加事实；允许在页首更新执行状态，但不得把计划目标替换成执行结论。
+2. 实际要处理另一组 story、另一目标或另一 Epic 时，不启动该编号；在原计划中追加
+   `Deferred / Superseded / Blocked` 说明，并按最大编号新建 iteration 文档承载新工作。
+3. 若依赖某计划的后续 iteration 已发布，而前置计划被延后或改线，必须将后续计划标注
+   为 `Blocked for activation`，直至新的前置 iteration 明确完成。
+4. 发现历史上已发生就地改线时，不删除实际执行证据；在原文档补回发布计划基线和
+   流程偏差说明，并登记流程修复事项。
 
 ## 操作步骤
 
@@ -39,12 +55,15 @@
    - 验收标准；
    - 验证计划；
    - 风险与回滚；
+   - 闭环台账：请求结果、产物、状态同步归口、验证证据和残余工作归口；
    - 第一条执行记录。
 4. 把选入 story 的 backlog 状态改为 `In Progress`，备注中写明迭代编号。
 5. 更新 [迭代目录](../iterations/README.md)，加入新迭代链接。
 6. 如果开始迭代时发生范围补充或优先级调整，在迭代文件 `变更请求` 中记录。
 7. 运行文档一致性验证。
 8. 在任何实现提交前，确保 iteration 与 backlog 已处于 `In Progress` 并包含验收与验证计划。紧急修复允许先止血，但必须在同一会话补记插队原因，不能在收尾提交中同时伪装“开始并已完成”。
+9. 如果使用已发布 planned iteration，先执行“已发布计划基线保护”检查；目标不一致时必须改用新编号。
+10. 进入实现前核对闭环台账已填；台账缺项时 iteration 不能声称具备完成路径。
 
 ## 验证
 
@@ -86,11 +105,14 @@ git diff --check
 - 用户开始迭代时改变范围：按 `CHANGE-CONTROL.md` 记录，不要直接覆盖原计划。
 - 断链或目录未更新：先修复链接和 `docs/iterations/README.md`，再提交。
 - 实现提交已经出现但 iteration 尚未开始：将其记录为流程偏差或 urgent-fix，先补审查与验收证据，不得直接补写为无异常完成。
+- 已发布计划被改造成不同目标的执行记录：保留实际证据，补回原计划基线并登记偏差；后续不得继续复用该编号承载原计划。
+- iteration 已开始但没有闭环台账：按 `TASK-CLOSURE.md` 补写产物、状态、证据和残余归口，再推进实现或收尾。
 
 ## 相关文档
 
 - [需求进入与 Backlog 整理](REQUIREMENT-INTAKE.md)
 - [特性迭代工作流](ITERATION-WORKFLOW.md)
 - [迭代中需求变更](CHANGE-CONTROL.md)
+- [任务收口与完成声明](TASK-CLOSURE.md)
 - [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
 - [迭代目录](../iterations/README.md)

@@ -42,6 +42,10 @@ cargo test --workspace
 
 如变更涉及 PostgreSQL 特性，应使用 full 模式或本地 PostgreSQL 额外验证。
 
+验证与 SQLite/PostgreSQL 双侧状态必须纳入
+[任务收口与完成声明](TASK-CLOSURE.md)；任一适用数据库路径未覆盖时不得声明
+迁移任务 `Complete`。
+
 ## 从 SQLite 切换到 PostgreSQL
 
 ```bash
@@ -63,3 +67,7 @@ cargo sqlx migrate run --source backend/migrations/postgres
 3. 分页、大小写搜索、NULL 排序可能存在行为差异。
 4. migration 一旦进入生产应视为不可修改，新增修正 migration。
 5. Repository trait 不应泄漏具体数据库类型。
+
+## 相关文档
+
+- [任务收口与完成声明](TASK-CLOSURE.md)

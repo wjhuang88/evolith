@@ -16,6 +16,8 @@
 - [ ] `APP__PUBLIC_URL` 指向用户可访问的前端地址，用于重置密码和邀请邮件链接。
 - [ ] Vite 生产构建未默认暴露 sourcemap，除非本次发布明确需要调试。
 - [ ] 涉及脚本行为变更时，已更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
+- [ ] 发布相关实施任务已按 [任务收口与完成声明](TASK-CLOSURE.md) 记录验证、状态
+      与未解除风险；存在阻塞时不得声明发布闭环完成。
 
 ## 本地生产栈验证
 
@@ -68,6 +70,7 @@ curl -f http://localhost/health/live
 
 ## 相关文档
 
+- [任务收口与完成声明](TASK-CLOSURE.md)
 - [本地开发](LOCAL-DEV.md)
 - [项目地图](../reference/PROJECT-MAP.md)
 - [API 合约](../reference/API-CONTRACT.md)

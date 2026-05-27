@@ -2,6 +2,9 @@
 
 稳定测试策略和测试用例索引见 [测试参考](../reference/TESTING.md)。本文档只保留执行流程。
 
+验证结果是 [任务收口与完成声明](TASK-CLOSURE.md) 的完成证据之一。未执行、失败或
+被更窄检查替代的必需验证必须如实记录，并阻止 `Complete` 声明。
+
 ## 按变更范围选择验证
 
 | 改动类型 | 最小验证 |
@@ -84,3 +87,7 @@ bun run dev
 cargo install cargo-tarpaulin
 cargo tarpaulin --workspace --out Html
 ```
+
+## 相关文档
+
+- [任务收口与完成声明](TASK-CLOSURE.md)

@@ -7,6 +7,8 @@
 
 ## 前置确认
 
+- [ ] 功能已进入 backlog/iteration，且按 [任务收口与完成声明](TASK-CLOSURE.md)
+      记录了本轮闭环台账。
 - [ ] 功能归属：tool / skill / snippet / auth / tenant / billing / infra / frontend。
 - [ ] 是否需要数据库字段或新表。
 - [ ] 是否影响 SQLite 和 PostgreSQL 两套实现。
@@ -60,3 +62,8 @@
 - [ ] 错误响应、权限和审计符合现有模式。
 - [ ] 测试覆盖了成功路径和关键失败路径。
 - [ ] 新增流程或踩坑已写入 SOP 或 `EVOLUTION.md`。
+- [ ] 已按 `TASK-CLOSURE.md` 同步状态、验证和残余归口，并给出真实完成声明。
+
+## 相关文档
+
+- [任务收口与完成声明](TASK-CLOSURE.md)

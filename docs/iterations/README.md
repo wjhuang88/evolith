@@ -15,13 +15,18 @@
 - [Iteration 008](ITERATION-008.md) — Epic 与子需求拆分治理规则（EVO-034）。
 - [Iteration 009](ITERATION-009.md) — 邮箱验证闭环（EVO-018）。
 - [Iteration 010](ITERATION-010.md) — Skill 更新与 SKILL.md parser（EVO-006 / EVO-009）。
-- [Iteration 011](ITERATION-011.md) — Members 与 API Keys 前端接真实 API（EVO-010 / EVO-011）。
+- [Iteration 011](ITERATION-011.md) — Members 与 API Keys 前端接真实 API
+  （EVO-010 / EVO-011；替换了原 EVO-016 计划，已补偏差记录）。
+- [Iteration 013](ITERATION-013.md) — 已发布迭代计划基线保护与改线防呆（EVO-036）。
+- [Iteration 014](ITERATION-014.md) — 治理 skill 弱模型闭环执行防呆（EVO-037）。
+- [Iteration 015](ITERATION-015.md) — 本项目实施任务闭环 SOP 与完成声明门禁（EVO-038）。
 
 ## 未来计划
 
 以下文档仅为排期草案，未启动实施，也不代表候选事项已进入 `In Progress`：
 
-- [Iteration 012](ITERATION-012.md) — Embedded Frontend 文件服务与单容器交付（依赖 EVO-016 refinement）。
+- [Iteration 012](ITERATION-012.md) — Embedded Frontend 文件服务与单容器交付
+  （Blocked for activation：需重新排期 EVO-016 refinement）。
 
 ## 命名
 
@@ -35,6 +40,16 @@ ITERATION-002.md
 
 - 常规迭代：1 周。
 - Agent 微迭代：一次会话只完成一个 backlog story 或一个明确切片。
+
+## 发布计划基线规则
+
+`Planned` iteration 一旦提交即为计划基线，不是可复用的编号占位符：
+
+1. 实际执行仍属于原目标时，在同一文档追加激活、验证、Review 和复盘，不删除原计划。
+2. 实际要做另一目标或另一组 story 时，原文档追加延期/阻塞说明，新工作创建新的
+   iteration 编号。
+3. 已发布的后续计划依赖被改线计划时，标注 `Blocked for activation`，直至新的前置
+   计划完成。
 
 ## 状态同步
 

@@ -10,6 +10,8 @@
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
 - **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
 - **迭代推进**：开始迭代按 `docs/sop/START-ITERATION.md` 固定步骤执行；进入开发前按 `docs/sop/REQUIREMENT-INTAKE.md` 检查 DoR，再按 `docs/sop/ITERATION-WORKFLOW.md` 推进；完成时检查 DoD 并更新 backlog/iteration 状态。
+- **实施任务必须闭环**：凡是修改代码、配置或治理文档的实施任务，完成声明前必须按 `docs/sop/TASK-CLOSURE.md` 核对产物、状态同步、验证证据与残余归口；任一适用项缺失只能报告 `Partial` 或 `Blocked`，不得报告完成。
+- **已发布迭代计划不可覆写**：已提交到仓库的 `Planned` iteration 是计划基线；启动同一范围时只能追加实际选入、执行、验证和复盘记录。若改为另一组 story 或另一目标，保留原计划并新建迭代编号，不得把旧计划文档改造成新工作的完成记录。
 - **复杂任务分阶段结对**：跨多层、合约、数据库、权限、发布或高风险改动时，按 `docs/sop/PAIRING-WORKFLOW.md` 在 Driver 实现后切换 Navigator 审查；不要在同一段推理中并行扮演双角色。
 - **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/CHANGE-CONTROL.md` 做变更分类、backlog/ADR/iteration 记录，再继续。
 - **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，远期提案写 `docs/proposals/`，历史快照写 `docs/archive/`。
@@ -43,6 +45,7 @@
 | API 合约变更 | [docs/sop/CONTRACT-FIRST.md](docs/sop/CONTRACT-FIRST.md) | [docs/reference/API-CONTRACT.md](docs/reference/API-CONTRACT.md) |
 | 数据库迁移 | [docs/sop/DATABASE-MIGRATION.md](docs/sop/DATABASE-MIGRATION.md) | [docs/reference/CONFIG.md](docs/reference/CONFIG.md) |
 | 测试与验证 | [docs/sop/TESTING.md](docs/sop/TESTING.md) | [docs/reference/TESTING.md](docs/reference/TESTING.md) |
+| 任务收口/完成声明 | [docs/sop/TASK-CLOSURE.md](docs/sop/TASK-CLOSURE.md) | [docs/sop/ITERATION-WORKFLOW.md](docs/sop/ITERATION-WORKFLOW.md) |
 | 配置排查 | [docs/reference/CONFIG.md](docs/reference/CONFIG.md) | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) |
 | 发布/部署/回滚 | [docs/sop/RELEASE.md](docs/sop/RELEASE.md) | [docs/reference/SCRIPTS-RELEASE-NOTES.md](docs/reference/SCRIPTS-RELEASE-NOTES.md) |
 | Git 提交 | [docs/sop/GIT-WORKFLOW.md](docs/sop/GIT-WORKFLOW.md) | [EVOLUTION.md](EVOLUTION.md) |
@@ -60,14 +63,18 @@
 6. 邮件链接必须使用 `APP__PUBLIC_URL` 指向前端公开地址；不要用后端监听地址拼 reset/invite 链接。
 7. 当前 Nginx 托管 Vite 静态资源是 EVO-016 前的过渡策略；修改反代时必须验证 `/assets/` 不被 rewrite 成 `index.html`。
 8. MCP `tools/call` 会触发真实出站请求，必须要求有效 API Key；HTTP executor 不得隐式探测系统代理，相关测试必须使用本地可控服务。
+9. 已发布的 future iteration 可能承载后续依赖；不得用更高优先级工作就地改写其目标，否则会丢失原计划和依赖链。改线时创建新 iteration，并显式标注原计划保留或阻塞。
+10. 文件已生成或代码已修改不等于任务完成；若验证、backlog/iteration 同步或已知残余归口缺失，必须按 `Partial` 报告并继续收口。
 
 ### Session End Checklist
 
 - [ ] 是否留下未说明的代码或文档变更？
 - [ ] 新功能/缺陷/技术债是否已进入 backlog，或说明了为什么不需要？
 - [ ] 如果推进了迭代故事，是否更新了 backlog/iteration 状态？
+- [ ] 如果启动或改线了已发布的 planned iteration，是否保留原计划基线并避免就地替换目标？
 - [ ] 如果发生中途需求变更，是否按变更分类表更新了 backlog、iteration、ADR 和半成品处理记录？
 - [ ] 是否运行了与风险匹配的验证？未运行是否说明原因？
+- [ ] 是否按 `TASK-CLOSURE.md` 给出 `Complete / Partial / Blocked` 结论，且适用的状态同步和残余归口均已落文档？
 - [ ] 是否触发了 `EVOLUTION.md` 写回条件？
 - [ ] 是否做了重大技术取舍但忘记写 ADR？
 - [ ] 是否修改了脚本行为但忘记更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`？

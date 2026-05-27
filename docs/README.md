@@ -44,6 +44,7 @@
 - [API 契约优先](sop/CONTRACT-FIRST.md) — 先改合约、再实现和验证的接口变更流程。
 - [数据库迁移](sop/DATABASE-MIGRATION.md) — SQLite/PostgreSQL 双轨 migration 和 repository 检查。
 - [测试与验证](sop/TESTING.md) — 按变更类型选择验证命令和记录结果。
+- [任务收口与完成声明](sop/TASK-CLOSURE.md) — 实施任务的闭环台账、状态同步、残余归口和完成判定。
 - [文档一致性检查](sop/DOC-CHECK.md) — 断链、旧术语、提案边界和 ADR 替代关系检查。
 - [发布与部署](sop/RELEASE.md) — 发布前检查、构建、验证和回滚。
 - [Git 工作流](sop/GIT-WORKFLOW.md) — 提交前检查、提交信息和变更拆分。
