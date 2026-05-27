@@ -845,3 +845,117 @@ async fn test_logout() {
     let data = result.data.expect("Expected message data in response");
     assert!(data.message.contains("Logged out") || data.message.contains("success"));
 }
+
+#[actix_rt::test]
+async fn test_update_skill_success() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+    let jwt_secret = app_state.config.jwt.secret.clone();
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new(jwt_secret))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "skill-update@example.com",
+            "username": "skillupdater",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+    let token = auth_data.token;
+
+    let create_req = test::TestRequest::post()
+        .uri("/api/v1/skills")
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .set_json(serde_json::json!({
+            "name": "Test Skill",
+            "version": "1.0.0",
+            "description": "Original description",
+            "content": "# Original content",
+            "runtime": "python311",
+            "dependencies": [],
+            "is_public": false,
+        }))
+        .to_request();
+    let create_resp = test::call_service(&app, create_req).await;
+    assert_eq!(create_resp.status(), actix_web::http::StatusCode::CREATED);
+    let create_body = test::read_body(create_resp).await;
+    let create_result: ApiResponse<serde_json::Value> =
+        serde_json::from_slice(&create_body).expect("Failed to parse create response");
+    let skill_data = create_result.data.expect("Expected skill data");
+    let skill_id = skill_data["id"].as_str().expect("Expected skill id");
+
+    let update_req = test::TestRequest::put()
+        .uri(&format!("/api/v1/skills/{}", skill_id))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .set_json(serde_json::json!({
+            "description": "Updated description",
+            "content": "# Updated content",
+        }))
+        .to_request();
+    let update_resp = test::call_service(&app, update_req).await;
+    assert_eq!(update_resp.status(), actix_web::http::StatusCode::OK);
+
+    let update_body = test::read_body(update_resp).await;
+    let update_result: ApiResponse<serde_json::Value> =
+        serde_json::from_slice(&update_body).expect("Failed to parse update response");
+    assert!(update_result.success);
+    let updated_skill = update_result.data.expect("Expected updated skill data");
+    assert_eq!(updated_skill["description"], "Updated description");
+    assert_eq!(updated_skill["content"], "# Updated content");
+    assert_eq!(updated_skill["name"], "Test Skill");
+}
+
+#[actix_rt::test]
+async fn test_update_skill_not_found() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+    let jwt_secret = app_state.config.jwt.secret.clone();
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(RbacMiddleware::new(jwt_secret))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "skill-404@example.com",
+            "username": "skill404user",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+    let token = auth_data.token;
+
+    let fake_id = Uuid::new_v4();
+    let update_req = test::TestRequest::put()
+        .uri(&format!("/api/v1/skills/{}", fake_id))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .set_json(serde_json::json!({
+            "description": "Should fail",
+        }))
+        .to_request();
+    let update_resp = test::call_service(&app, update_req).await;
+    assert_eq!(update_resp.status(), actix_web::http::StatusCode::NOT_FOUND);
+}
