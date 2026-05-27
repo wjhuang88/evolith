@@ -13,9 +13,10 @@
 - [Iteration 006](ITERATION-006.md) — MCP 工具真实执行（EVO-005）。
 - [Iteration 007](ITERATION-007.md) — MCP 工具执行质量修复与流程防呆（EVO-032）。
 - [Iteration 008](ITERATION-008.md) — Epic 与子需求拆分治理规则（EVO-034）。
-- [Iteration 009](ITERATION-009.md) — 邮箱验证闭环（EVO-018）。
+- [Iteration 009](ITERATION-009.md) — 邮箱验证闭环（EVO-018；
+  Review：代码/测试记录存在，contract/testing/roadmap reference 收口待修复）。
 - [Iteration 010](ITERATION-010.md) — Skill 更新与 SKILL.md parser（EVO-006 / EVO-009；
-  Review：stories Done，迭代收口证据待核对）。
+  Review：stories Done，API contract 与迭代收口证据待核对）。
 - [Iteration 011](ITERATION-011.md) — Members 与 API Keys 前端接真实 API
   （EVO-010 / EVO-011；替换了原 EVO-016 计划，已补偏差记录）。
 - [Iteration 013](ITERATION-013.md) — 已发布迭代计划基线保护与改线防呆（EVO-036）。
@@ -29,14 +30,30 @@
 
 - [Iteration 012](ITERATION-012.md) — Embedded Frontend 文件服务与单容器交付
   （Blocked for activation：需重新排期 EVO-016 refinement）。
+- [Iteration 017](ITERATION-017.md) — 前端 CLI Interface 概念收口（EVO-026；
+  Blocked for activation：需先处置 Iteration 009 / 010 Review）。
+- [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
+  Blocked for activation：候选仍需 DoR/refinement）。
+- [Iteration 019](ITERATION-019.md) — Skill 多来源导入闭环（EVO-027；
+  Blocked for activation：依赖 Iteration 018 前置结论与交付）。
+- [Iteration 020](ITERATION-020.md) — Skill 版本与正确性验证（EVO-028；
+  Blocked for activation：依赖 Iteration 019 导入模型）。
 
 ## 非终态库存
 
 启动任何新的产品迭代前，必须先按启动 SOP 处置：
 
-- [Iteration 010](ITERATION-010.md) — `Review`：核对未勾选验收项的证据，关闭或登记残余。
+- [Iteration 009](ITERATION-009.md) — `Review`：按 EVO-040 修复 API contract /
+  testing / roadmap reference 状态漂移并重新核验完成声明。
+- [Iteration 010](ITERATION-010.md) — `Review`：按 EVO-040 修复 API contract 漂移，
+  并核对未勾选验收项的证据后关闭或登记残余。
 - [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞或在 EVO-016
   refinement 重新排期后更新激活条件。
+- [Iteration 017](ITERATION-017.md) — `Planned / Blocked`：只发布计划基线；激活前先
+  收口 Iteration 009 / 010 并重新核对 EVO-026 的 DoR。
+- [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
+  `Planned / Blocked`：按 Phase E 依赖链保留排期，待前置计划和各 story DoR 满足后
+  逐轮激活。
 
 ## 命名
 

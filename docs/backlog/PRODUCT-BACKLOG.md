@@ -32,7 +32,7 @@
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
-| EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Done | Iteration 009 | Handler 实现 + 3 e2e 测试 |
+| EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Review | Iteration 009 | Handler 与测试存在；contract / testing / roadmap reference 收口待修复 |
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
 | EVO-020 | Storage 能力落地 | feature | P2 | Proposed | Phase E placeholder | 实现对象存储基础能力，支撑技能包和附件 |
 | EVO-021 | 前端路由适配层 | tech-debt | P0 | Done | EVO-002 split | Iteration 003；已新增 `frontend/src/lib/router.tsx`，页面和共享组件不再直接导入 Next 路由模块 |
@@ -40,7 +40,7 @@
 | EVO-023 | 前端运行时配置迁移 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；`src/lib/config.ts` 统一运行时环境变量，替换所有 `process.env` 引用 |
 | EVO-024 | Docker / Nginx 切换到静态 SPA | tech-debt | P0 | Done | EVO-002 split | Iteration 004；过渡部署形态，Dockerfile 改为 Bun + Vite build + Nginx 静态服务，SPA fallback |
 | EVO-025 | 移除 Next.js 依赖和遗留入口 | tech-debt | P0 | Done | EVO-002 split | Iteration 004；删除 next 依赖、App Router、middleware、config；router.tsx 改为 React Router |
-| EVO-026 | 前端 Snippets 入口迁移为 CLI 友好接口 | product-change | P1 | Proposed | EVO-017 / 页面残留 | Vite 迁移后统一替换导航、路由文案、API client 和 i18n 旧 snippet 概念 |
+| EVO-026 | 前端 Snippets 入口迁移为 CLI 友好接口 | product-change | P1 | Ready | EVO-017 / 页面残留 | Vite 迁移后统一替换导航、路由文案、API client 和 i18n 旧 snippet 概念 |
 | EVO-027 | Skill 多来源创建 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 支持 ZIP 上传、Git 仓库接入、SkillHub 同步三种创建入口 |
 | EVO-028 | Skill 版本管理与正确性验证 | feature | P1 | Proposed | 用户需求 / Agent Skills spec | 建立版本历史、回滚、agentskills 规范校验、描述质量检查和导入报告 |
 | EVO-029 | Skill 专业描述与发现质量提升 | feature | P2 | Proposed | Agent Skills spec | 提升 description、触发关键词、兼容性、资源索引和搜索排序质量 |
@@ -54,6 +54,7 @@
 | EVO-037 | 治理 skill 弱模型闭环执行防呆 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 014；为初始化、迁移和修复任务增加强制闭环协议 |
 | EVO-038 | 本项目实施任务闭环 SOP 与完成声明门禁 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 015；将闭环协议落实到 Evolith 自身流程 |
 | EVO-039 | 迭代启动前库存盘点与既有计划优先规则 | bug | P1 | Done | 流程缺口 2026-05-27 | Iteration 016；先处理在途/已规划迭代再选择新 story |
+| EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Ready | 排期库存审计 2026-05-27 | Iteration 009 / 010；修复邮箱验证与 Skill 更新接口的收口漂移 |
 
 ## 故事模板
 
@@ -298,6 +299,30 @@
 - 最小验证方式：执行文档相对链接检查；`git diff --check`；运行 skill 的
   `quick_validate.py`。
 
+### EVO-040 已实现接口完成声明与参考文档状态修复
+
+- 类型：bug
+- 优先级：P1
+- 状态：Ready
+- 用户价值或技术目标：使已实现接口事实、API 合约、测试/路线图参考和迭代完成声明
+  一致，避免 Agent 依据冲突文档规划或回归错误行为。
+- 范围：
+  - 复核 `send-verify` / `verify-email` 与 `PUT /skills/{id}` 的代码及已存在测试证据。
+  - 将 API contract、testing reference 与 roadmap 中仍标为未实现或过期状态的内容
+    更新为真实接口行为和验证口径。
+  - 核验证据后同步 EVO-018 / Iteration 009 与 Iteration 010 的最终收口状态。
+- 不做：
+  - 不在本故事新增邮箱验证或 Skill 更新业务能力，也不改变认证策略。
+  - 不混入 Phase E、embedded frontend 或 CI/CD 实施。
+- 验收标准：
+  - [ ] API contract 不再将已实现的邮箱验证与 Skill 更新端点标为未实现。
+  - [ ] testing reference 与 roadmap 对实际接口路径、状态和验证口径保持一致。
+  - [ ] 必需验证重新执行并记录后，Iteration 009 / 010 状态一致可追溯。
+- 依赖或阻塞：当前代码与历史测试记录可作为复核起点；完成前 Iteration 009 / 010
+  保持 `Review`，不作为新产品迭代已处置依据。
+- 影响范围：docs / backend validation
+- 最小验证方式：`cargo test -p api`；Markdown 相对链接检查；`git diff --check`。
+
 ## 下一批建议
 
 优先选择：
@@ -487,7 +512,7 @@
 
 - 类型：feature
 - 优先级：P1
-- 状态：In Progress
+- 状态：Review
 - 用户价值或技术目标：完成用户生命周期最后一块——注册后可验证邮箱，确认邮箱真实性。与 forgot/reset password、invite/join 形成完整的认证闭环。
 - 范围：
   - 实现 `send_verification_email` handler：查找用户 → 生成 crypto-random token → `set_verify_token` → 通过 Mailer 发送验证邮件（链接使用 `APP__PUBLIC_URL`）。
@@ -513,12 +538,15 @@
 - 依赖：Mailer（已有）。
 - 影响范围：backend
 - 最小验证方式：`cargo test -p api`；ConsoleMailer 输出 token 用于手工验证。
+- 状态审计（2026-05-27）：代码与 Iteration 009 记录显示 handler / e2e 已存在，但
+  `API-CONTRACT.md`、`TESTING.md` 与 roadmap 仍存在未实现/过期状态描述；按 EVO-040
+  修复并重新核验之前，不恢复 `Done`。
 
 ### EVO-026 前端 Snippets 入口迁移为 CLI 友好接口
 
 - 类型：product-change
 - 优先级：P1
-- 状态：Proposed
+- 状态：Ready
 - 用户价值或技术目标：消除前端旧 Snippet 产品概念残留，让页面语言与 CLI 友好接口方向一致。
 - 验收标准：
   - [ ] 导航、页面标题、空状态、按钮、详情页和新建页不再以 Snippet 作为用户可见主概念。

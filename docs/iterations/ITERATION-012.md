@@ -62,3 +62,4 @@ cargo clippy --workspace -- -D warnings
 |------|------|
 | 2026-05-26 | Future iteration planned only. 规划候选子 Story `EVO-016-B`，依赖 `EVO-016-A`；未变更 backlog。 |
 | 2026-05-27 | Activation blocked. 原 Iteration 011 计划被其他目标占用，等待以新 iteration 编号重新完成 EVO-016 refinement。 |
+| 2026-05-27 | Planning disposition. 后续 Phase E 排期与本 embedded frontend 计划无依赖关系；本迭代继续 `Blocked for activation`，不得因另行规划而视作已解除 EVO-016 前置条件。 |

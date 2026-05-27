@@ -1,8 +1,12 @@
 # Iteration 009: 邮箱验证闭环
 
-> 状态：Done ✅
+> 状态：Review（实现记录存在，参考文档与验证收口待核对）
 > 计划目标：完成 Phase C 剩余的邮箱验证闭环，使注册、密码恢复、邀请与邮箱确认形成一致的用户生命周期路径。
 > 完成日期：2026-05-27
+>
+> 状态审计说明（2026-05-27）：本页记录 handler 与 e2e 已完成，但当前
+> `API-CONTRACT.md` / `TESTING.md` / roadmap 仍将邮箱验证接口描述为未实现或旧状态。
+> 已登记 EVO-040；完成修复和复验前，本迭代不维持 `Done` 声明。
 
 ## 1. 计划边界
 
@@ -59,3 +63,4 @@ bun run build
 | 2026-05-26 | Future iteration planned only. 候选 EVO-018；未启动、未改变 backlog 状态。 |
 | 2026-05-27 | Iteration 009 started. EVO-018 补齐 DoR 详情块，基础设施（DTO/repo/mailer）已就绪，只需实现两个 handler。 |
 | 2026-05-27 | EVO-018 完成。`send_verification_email` + `verify_email` handler 实现，CSRF/RBAC 路径已更新，3 个 e2e 测试通过。`cargo test -p api` → 18 passed。 |
+| 2026-05-27 | Inventory audit: 代码与 e2e 记录存在，但 API contract / testing / roadmap reference 仍声明相关接口未实现或为旧状态；登记 EVO-040，迭代转为 `Review` 待真实收口。 |
