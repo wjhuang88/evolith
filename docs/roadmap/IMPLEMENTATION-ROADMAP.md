@@ -224,7 +224,7 @@ nginx serve dist/
 | Phase C invitation join | EVO-004 | Done；EVO-031 补齐公开入口与邮件链接 |
 | Phase C send/verify email | EVO-018 | Proposed |
 | Phase D MCP 工具执行闭环 | EVO-005 / EVO-032 | Done；Iteration 007 修复执行鉴权、错误映射和验收可靠性 |
-| Phase E Skill update | EVO-006 | Proposed |
+| Phase E Skill update | EVO-006 | Done；Iteration 010 完成 PUT /skills/{id} |
 | Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Proposed |
 | Phase E Skill registry | EVO-019 | Proposed |
 | Phase E Storage | EVO-020 | Proposed |
