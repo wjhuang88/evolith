@@ -31,6 +31,8 @@ pub trait UserRepository: Send + Sync {
     async fn find_by_reset_token(&self, token: &str) -> Result<Option<User>>;
     async fn clear_reset_token(&self, id: Uuid) -> Result<()>;
     async fn update_password(&self, id: Uuid, password_hash: &str) -> Result<()>;
+    async fn find_by_tenant(&self, tenant_id: Uuid) -> Result<Vec<User>>;
+    async fn remove_from_tenant(&self, user_id: Uuid) -> Result<()>;
 }
 
 /// Tool repository trait

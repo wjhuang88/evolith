@@ -11,11 +11,10 @@ use crate::state::AppState;
 pub async fn remove_member(
     path: web::Path<(Uuid, Uuid)>,
     user: AuthenticatedUser,
-    _state: web::Data<AppState>,
+    state: web::Data<AppState>,
 ) -> impl Responder {
-    let (tenant_id, _member_id) = path.into_inner();
+    let (tenant_id, member_id) = path.into_inner();
 
-    // Verify user has admin access to this tenant
     if user.tenant_id != tenant_id {
         return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
             "FORBIDDEN",
@@ -23,7 +22,6 @@ pub async fn remove_member(
         ));
     }
 
-    // Only admins can remove members
     if !user.is_admin() {
         return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
             "FORBIDDEN",
@@ -31,13 +29,25 @@ pub async fn remove_member(
         ));
     }
 
-    // Note: This requires updating the user's tenant_id or deleting the user
-    // The UserRepository doesn't have a method for this yet
-    // For now, return success as a stub
+    if member_id == user.user_id {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "BAD_REQUEST",
+            "Cannot remove yourself from the tenant",
+        ));
+    }
 
-    HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
-        serde_json::json!({
-            "message": "Member removed successfully"
-        }),
-    ))
+    match state.user_repo.remove_from_tenant(member_id).await {
+        Ok(()) => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
+            serde_json::json!({
+                "message": "Member removed successfully"
+            }),
+        )),
+        Err(e) => {
+            tracing::error!("Failed to remove member: {}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to remove member",
+            ))
+        }
+    }
 }

@@ -13,11 +13,10 @@ use crate::state::AppState;
 pub async fn list_members(
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
-    _state: web::Data<AppState>,
+    state: web::Data<AppState>,
 ) -> impl Responder {
     let tenant_id = tenant_id.into_inner();
 
-    // Verify user has access to this tenant
     if user.tenant_id != tenant_id {
         return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
             "FORBIDDEN",
@@ -25,16 +24,47 @@ pub async fn list_members(
         ));
     }
 
-    // Note: UserRepository doesn't have find_by_tenant method yet
-    // For now, return empty list until the repository trait is updated
-    // In production, this would call: state.user_repo.find_by_tenant(tenant_id).await
-
-    HttpResponse::Ok().json(ApiResponse::<MemberListResponse>::success(
-        MemberListResponse {
-            members: vec![],
-            total: 0,
-        },
-    ))
+    match state.user_repo.find_by_tenant(tenant_id).await {
+        Ok(users) => {
+            let members: Vec<MemberInfo> = users
+                .into_iter()
+                .map(|u| MemberInfo {
+                    id: u.id.to_string(),
+                    email: u.email,
+                    username: u.username,
+                    full_name: None,
+                    role: match u.role {
+                        domain::user::UserRole::Admin => "admin".to_string(),
+                        domain::user::UserRole::User => "user".to_string(),
+                    },
+                    tenant_role: match u.tenant_role {
+                        domain::user::TenantRole::Owner => "owner".to_string(),
+                        domain::user::TenantRole::Admin => "admin".to_string(),
+                        domain::user::TenantRole::Member => "member".to_string(),
+                    },
+                    status: if u.email_verified {
+                        "active".to_string()
+                    } else {
+                        "pending".to_string()
+                    },
+                    joined_at: Some(u.created_at.to_rfc3339()),
+                    last_login_at: Some(u.updated_at.to_rfc3339()),
+                    avatar_url: None,
+                })
+                .collect();
+            let total = members.len();
+            HttpResponse::Ok().json(ApiResponse::<MemberListResponse>::success(
+                MemberListResponse { members, total },
+            ))
+        }
+        Err(e) => {
+            tracing::error!("Failed to list members: {}", e);
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to list members",
+            ))
+        }
+    }
 }
 
 /// Get pending invitations for a tenant

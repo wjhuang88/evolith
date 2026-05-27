@@ -232,6 +232,31 @@ impl UserRepository for SqliteUserRepository {
             .map_err(|e| AppError::DatabaseError(e.to_string()))?;
         Ok(())
     }
+
+    async fn find_by_tenant(&self, tenant_id: Uuid) -> Result<Vec<User>> {
+        let rows = sqlx::query_as::<_, UserRow>(
+            r#"SELECT * FROM users WHERE tenant_id = ? ORDER BY created_at ASC"#,
+        )
+        .bind(tenant_id.to_string())
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
+
+        Ok(rows.into_iter().map(|r| r.into()).collect())
+    }
+
+    async fn remove_from_tenant(&self, user_id: Uuid) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        sqlx::query(
+            r#"UPDATE users SET tenant_id = NULL, tenant_role = NULL, updated_at = ? WHERE id = ?"#,
+        )
+        .bind(now)
+        .bind(user_id.to_string())
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow)]
