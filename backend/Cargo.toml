@@ -64,7 +64,7 @@ tokio = { version = "1.35", features = ["full"] }
 futures-util = "0.3"
 
 # ZIP archive (for embedded frontend)
-zip = "2"
+zip = "8"
 
 # Docker
 bollard = "0.17"

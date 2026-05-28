@@ -17,15 +17,17 @@ struct FileEntry {
 
 struct FrontendIndex {
     files: HashMap<String, FileEntry>,
+    metadata: Arc<zip::read::ZipArchiveMetadata>,
 }
 
 static FRONTEND_INDEX: std::sync::OnceLock<Result<Arc<FrontendIndex>, String>> =
     std::sync::OnceLock::new();
 
 fn build_index() -> Result<Arc<FrontendIndex>, String> {
-    let archive = ZipArchive::new(Cursor::new(FRONTEND_ZIP))
+    let mut archive = ZipArchive::new(Cursor::new(FRONTEND_ZIP))
         .map_err(|e| format!("Failed to parse embedded frontend ZIP: {}", e))?;
 
+    let metadata = archive.metadata();
     let len = archive.len();
     let mut files = HashMap::with_capacity(len);
 
@@ -36,9 +38,7 @@ fn build_index() -> Result<Arc<FrontendIndex>, String> {
 
         let normalized = name.strip_prefix("./").unwrap_or(name).to_string();
 
-        let mut tmp = ZipArchive::new(Cursor::new(FRONTEND_ZIP))
-            .map_err(|e| format!("Failed to reopen ZIP for index {}: {}", i, e))?;
-        let file = tmp
+        let file = archive
             .by_index(i)
             .map_err(|e| format!("Failed to read entry {}: {}", i, e))?;
 
@@ -52,7 +52,7 @@ fn build_index() -> Result<Arc<FrontendIndex>, String> {
         );
     }
 
-    Ok(Arc::new(FrontendIndex { files }))
+    Ok(Arc::new(FrontendIndex { files, metadata }))
 }
 
 fn get_index() -> Result<Arc<FrontendIndex>, HttpResponse> {
@@ -104,14 +104,20 @@ fn compute_etag(path: &str, entry: &FileEntry) -> String {
     }
 }
 
-async fn read_file_from_zip(index: usize) -> Result<Vec<u8>, String> {
+async fn read_file_from_zip(entry_index: usize) -> Result<Vec<u8>, String> {
+    let metadata = {
+        let index = get_index().map_err(|e| format!("{:?}", e))?;
+        index.metadata.clone()
+    };
+
     web::block(move || {
-        let mut archive = ZipArchive::new(Cursor::new(FRONTEND_ZIP))
-            .map_err(|e| format!("Failed to open embedded frontend ZIP: {}", e))?;
+        let mut archive = unsafe {
+            ZipArchive::unsafe_new_with_metadata(Cursor::new(FRONTEND_ZIP), metadata)
+        };
 
         let mut file = archive
-            .by_index(index)
-            .map_err(|e| format!("Failed to find entry at index {}: {}", index, e))?;
+            .by_index(entry_index)
+            .map_err(|e| format!("Failed to find entry at index {}: {}", entry_index, e))?;
 
         let mut buf = Vec::with_capacity(file.size() as usize);
         let mut chunk = [0u8; 16384];

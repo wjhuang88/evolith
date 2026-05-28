@@ -58,6 +58,7 @@
 | EVO-039 | 迭代启动前库存盘点与既有计划优先规则 | bug | P1 | Done | 流程缺口 2026-05-27 | Iteration 016；先处理在途/已规划迭代再选择新 story |
 | EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Done | 排期库存审计 2026-05-27 | Iteration 021；修复邮箱验证与 Skill 更新接口的收口漂移 |
 | EVO-041 | 敏捷实践与 BDD 验收格式适配规则 | tech-debt | P1 | Done | 用户方法论反馈 2026-05-28 | Iteration 022；明确 Evolith iteration 与传统 Sprint、Story 与 BDD 的适配口径 |
+| EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Ready | 用户需求 / Iteration 030 | 审计 backend workspace 所有 crate 依赖，升级到最新稳定版并验证编译/测试通过 |
 
 
 ## 故事模板
@@ -459,6 +460,45 @@
 - 依赖或阻塞：无；本故事为治理改进，可在不激活产品 planned iteration 的情况下实施。
 - 影响范围：docs / external skill
 - 最小验证方式：执行 Markdown 相对链接检查；`git diff --check`；运行 skill 结构校验。
+
+### EVO-043 后端依赖全量版本审计与迁移
+
+- 类型：tech-debt
+- 优先级：P1
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：保持后端 workspace 依赖的时效性和安全性，减少技术债积累。
+  - 我希望/需要：审计 `backend/Cargo.toml` 中 `[workspace.dependencies]` 的所有 crate，找到各依赖的最新稳定版本并迁移，确保编译和测试通过。
+  - 以便：后续功能开发在最新依赖基线上进行，避免安全漏洞和 API 过时问题累积。
+- 范围：
+  - 审计 `[workspace.dependencies]` 中所有依赖的当前版本和最新稳定版本。
+  - 逐个或分批升级依赖到最新稳定版本（优先升级补丁和小版本；大版本升级需确认破坏性变更）。
+  - 重点关注：`actix-web`、`sqlx`、`tokio`、`serde`、`reqwest`、`argon2`、`jsonwebtoken`、`bollard`、`lettre`、`zip`（已升级到 8.x）等核心依赖。
+  - 每次升级后运行 `cargo check --workspace`、`cargo clippy --workspace -- -D warnings`、`cargo test --workspace` 验证。
+  - 记录每个依赖的升级决策：直接升级、需要适配、或暂缓（附原因）。
+- 不做：
+  - 不升级 Rust edition 或 MSRV。
+  - 不升级前端依赖（npm/bun 包）。
+  - 不修改业务逻辑以适配新 API（除非必要且改动最小）。
+  - 不升级已 Deferred 的依赖（如 `mysql` 相关，当前不支持）。
+- 验收标准：
+  - 非行为类：
+    - [ ] 所有 workspace 依赖已审计，版本对比表已记录。
+    - [ ] 可安全升级的依赖已升级到最新稳定版。
+    - [ ] `cargo check --workspace` 通过。
+    - [ ] `cargo clippy --workspace -- -D warnings` 通过。
+    - [ ] `cargo test --workspace` 通过。
+    - [ ] 暂缓升级的依赖有明确的版本限制和原因记录。
+- 技术备注：
+  - 使用 `cargo outdated` 或手动 `cargo update` + `Cargo.lock` 检查。
+  - 大版本升级（如 actix-web 4→5、sqlx 0.7→0.8）需先查阅 CHANGELOG 确认破坏性变更。
+  - `zip` 已在 Iteration 030 中从 2.4.2 升级到 8.6.0。
+  - `sqlx` 0.7 的 future-incompat 警告需要在升级时一并处理。
+- 依赖或阻塞：无。
+- 影响范围：backend（Cargo.toml + 可能的代码适配）
+- 最小验证方式：`cargo test --workspace`；`cargo clippy --workspace -- -D warnings`。
 
 ## 下一批建议
 
