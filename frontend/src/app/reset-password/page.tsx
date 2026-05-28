@@ -24,7 +24,7 @@ function ResetPasswordForm() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError(t('auth.resetPasswordPage.passwordsDoNotMatch'));
+      setError(t('auth.resetPasswordPage.passwordsNoMatch'));
       return;
     }
 

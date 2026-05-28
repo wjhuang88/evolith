@@ -34,13 +34,13 @@ export default function RegisterPage() {
       return t('auth.registerPage.validation.fillRequired');
     }
     if (formData.password !== formData.confirmPassword) {
-      return t('auth.registerPage.validation.passwordsDoNotMatch');
+      return t('auth.registerPage.validation.passwordsNoMatch');
     }
     if (formData.password.length < 8) {
       return t('auth.registerPage.validation.passwordTooShort');
     }
     if (formData.tenantSlug && !/^[a-z0-9-]+$/.test(formData.tenantSlug)) {
-      return t('auth.registerPage.validation.invalidSlug');
+      return t('auth.registerPage.validation.slugInvalid');
     }
     return '';
   };
