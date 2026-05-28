@@ -1,6 +1,6 @@
 # Iteration 017: 前端 CLI Interface 概念收口
 
-> 文档状态：Planned / Blocked for activation
+> 文档状态：Planned / Ready for activation
 > 计划发布日期：2026-05-27
 > 计划目标：完成 Vite SPA 中仍暴露给用户的 Snippet 概念迁移，使前端入口与
 > CLI-friendly interface 产品方向一致。
@@ -17,8 +17,8 @@
 
 激活门禁：
 
-- 先处置 [Iteration 009](ITERATION-009.md) 与 [Iteration 010](ITERATION-010.md) 的
-  `Review` 收口缺口。
+- [Iteration 009](ITERATION-009.md) 与 [Iteration 010](ITERATION-010.md) 的 `Review`
+  收口缺口已由 [Iteration 021](ITERATION-021.md) 处理完成；该阻塞已解除。
 - 激活前重新核对 `EVO-026` 仍满足 DoR，且没有新的依赖或范围变化。
 - 明确旧 `/snippets` 路由采用兼容跳转、别名保留或下线策略。
 
@@ -72,6 +72,7 @@ rg -n "Snippet|snippet|snippets|代码片段" src
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-05-27 | planning | 发布 future plan 基线；EVO-026 总表与详情块已同步为 `Ready`，但因 Iteration 009 / 010 仍为 `Review`，本迭代暂不可激活。 |
+| 2026-05-28 | planning-disposition | Iteration 009 / 010 已由 Iteration 021 关闭；本迭代转为 `Planned / Ready for activation`，激活前仍需核对 EVO-026 DoR 与旧 `/snippets` 路由策略。 |
 
 ## 9. 变更请求
 
@@ -83,7 +84,7 @@ rg -n "Snippet|snippet|snippets|代码片段" src
 - 完成：
 - 未完成：
 - 验证结果：
-- 闭环状态：`Blocked`（仅计划发布，尚未激活）
+- 闭环状态：`Partial`（仅计划发布，尚未激活；阻塞已解除但未启动）
 - 残余归口：激活门禁见第 1 节。
 
 ## 11. Retrospective

@@ -1,7 +1,7 @@
 # Evolith 实施路线图
 
 > 制定日期：2026-05-15
-> 最近更新：2026-05-27
+> 最近更新：2026-05-28
 > 目标：维护阶段优先级、实施顺序和 Backlog / Proposals 归口关系。
 
 本文档不是任务池。Agent 不应直接从本文档开工：
@@ -228,7 +228,7 @@ nginx serve dist/
 | Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Done |
 | Phase E Skill registry | EVO-019 | Proposed |
 | Phase E Storage | EVO-020 | Proposed |
-| Phase E Frontend snippet residue | EVO-026 | Proposed |
+| Phase E Frontend snippet residue | EVO-026 | Ready；Iteration 017 已解除旧 Review 阻塞 |
 | Phase E Skill import sources | EVO-027 | Proposed |
 | Phase E Skill versioning and validation | EVO-028 | Proposed |
 | Phase E Skill discovery description | EVO-029 | Proposed |

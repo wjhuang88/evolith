@@ -27,6 +27,12 @@
   Closed：Iteration 009 / 010 收口完成）。
 - [Iteration 022](ITERATION-022.md) — 敏捷实践与 BDD 验收格式适配规则（EVO-041）。
 - [Iteration 023](ITERATION-023.md) — 治理 skill manifest 接入与一致性审计（EVO-035）。
+- [Iteration 024](ITERATION-024.md) — Embedded Frontend 交付形态 refinement（EVO-016-A）。
+- [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013）。
+- [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014）。
+- [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
+- [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033）。
+- [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030）。
 
 ## 未来计划
 
@@ -35,13 +41,25 @@
 - [Iteration 012](ITERATION-012.md) — Embedded Frontend 文件服务与单容器交付
   （Blocked for activation：需重新排期 EVO-016 refinement）。
 - [Iteration 017](ITERATION-017.md) — 前端 CLI Interface 概念收口（EVO-026；
-  Blocked for activation：需先处置 Iteration 009 / 010 Review）。
+  Ready for activation：Iteration 009 / 010 已收口，激活前重核 EVO-026 DoR 与旧路由策略）。
 - [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
   Blocked for activation：候选仍需 DoR/refinement）。
 - [Iteration 019](ITERATION-019.md) — Skill 多来源导入闭环（EVO-027；
   Blocked for activation：依赖 Iteration 018 前置结论与交付）。
 - [Iteration 020](ITERATION-020.md) — Skill 版本与正确性验证（EVO-028；
   Blocked for activation：依赖 Iteration 019 导入模型）。
+- [Iteration 024](ITERATION-024.md) — Embedded Frontend 交付形态 refinement（EVO-016-A；
+  Ready for activation：一周方案切片，解除 Iteration 012 前置）。
+- [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013；
+  Blocked for activation：候选需 Story/BDD refinement）。
+- [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014；
+  Blocked for activation：候选需 webhook 安全与 mock 验收 refinement）。
+- [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029；
+  Blocked for activation：需核对与 Iteration 019/020 的边界）。
+- [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；
+  Ready for activation：一周工程质量切片）。
+- [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；
+  Blocked for activation：依赖 Iteration 028 与部署边界确认）。
 
 ## 非终态库存
 
@@ -50,12 +68,19 @@
 - [Iteration 009](ITERATION-009.md) — `Closed`：EVO-040 完成收口。
 - [Iteration 010](ITERATION-010.md) — `Closed`：EVO-040 完成收口。
 - [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞或在 EVO-016
-  refinement 重新排期后更新激活条件。
-- [Iteration 017](ITERATION-017.md) — `Planned / Blocked`：只发布计划基线；激活前先
-  重新核对 EVO-026 的 DoR。
+  refinement 完成后更新激活条件；Iteration 024 已规划该 refinement。
+- [Iteration 017](ITERATION-017.md) — `Planned / Ready for activation`：只发布计划
+  基线；激活前重新核对 EVO-026 的 DoR 与旧 `/snippets` 路由策略。
 - [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
   `Planned / Blocked`：按 Phase E 依赖链保留排期，待前置计划和各 story DoR 满足后
   逐轮激活。
+- [Iteration 024](ITERATION-024.md) — `Planned / Ready for activation`：EVO-016-A
+  refinement，解除 Iteration 012 前置。
+- [Iteration 025](ITERATION-025.md) 至 [Iteration 027](ITERATION-027.md) —
+  `Planned / Blocked`：Phase F 与 Skill 发现质量候选需 refinement 或依赖确认。
+- [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033
+  Rustfmt 基线和 CI 命令准备。
+- [Iteration 029](ITERATION-029.md) — `Planned / Blocked`：依赖 Iteration 028 和部署边界。
 
 ## 命名
 
