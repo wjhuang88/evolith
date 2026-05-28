@@ -1,7 +1,7 @@
 # Evolith 实施路线图
 
 > 制定日期：2026-05-15
-> 最近更新：2026-05-17
+> 最近更新：2026-05-27
 > 目标：维护阶段优先级、实施顺序和 Backlog / Proposals 归口关系。
 
 本文档不是任务池。Agent 不应直接从本文档开工：
@@ -81,9 +81,9 @@ nginx serve dist/
 
 | 模块 | 接口 | 当前状态 | 归口 |
 |------|------|----------|------|
-| Auth | `POST /api/v1/auth/send-verify` | 501 | EVO-018 |
-| Auth | `POST /api/v1/auth/verify-email` | 501 | EVO-018 |
-| Skills | `PUT /api/v1/skills/{id}` | 501 | EVO-006 |
+| Auth | `POST /api/v1/auth/send-verify` | ✅ Implemented | EVO-018 / Iteration 009 |
+| Auth | `POST /api/v1/auth/verify-email` | ✅ Implemented | EVO-018 / Iteration 009 |
+| Skills | `PUT /api/v1/skills/{id}` | ✅ Implemented | EVO-006 / Iteration 010 |
 | Snippets | `PUT /api/v1/snippets/{id}` | 501 | Deferred by EVO-017 |
 | Audit | `GET /api/v1/tenant/{tenant_id}/audit-logs/{log_id}` | 501 | EVO-013 |
 
@@ -106,7 +106,7 @@ nginx serve dist/
 |------|------|------|
 | 前端 `PATCH /tools/{id}`，后端是 `PUT /tools/{id}` | 更新工具会失败 | EVO-001 done |
 | 前端存在 `/tools/{id}/execute`，后端无对应 REST route | 工具执行入口不一致 | EVO-001 client guard；真实执行归 EVO-005 |
-| 前端 `PATCH /skills/{id}`，后端是 `PUT /skills/{id}` 且 501 | 更新技能不可用 | EVO-006 |
+| 前端 `PATCH /skills/{id}`，后端是 `PUT /skills/{id}` 且已实现 | 更新技能可用 | EVO-006 Done |
 | 前端请求 skill/snippet categories/versions/languages，后端未提供 | 页面能力和 API 不一致；snippet 相关调用进入 EVO-017 迁移 | EVO-001 guard / EVO-017 |
 | 前端 auth `changePassword` 发送 `current_password`，后端 DTO 是 `old_password` | 修改密码会失败 | EVO-001 done |
 | 前端 snippet 使用 `title/category`，后端 DTO 更接近 `name/language/framework/content/code` | 旧 snippet 字段对齐不再作为独立目标，进入 CLI interface 迁移设计 | Deferred by EVO-017 |
@@ -222,10 +222,10 @@ nginx serve dist/
 | Phase B React + Vite + Bun | EVO-002 / EVO-021 至 EVO-025 | Done；GitHub CI/CD 已拆出到 EVO-030 |
 | Phase C forgot/reset password | EVO-003 | Done |
 | Phase C invitation join | EVO-004 | Done；EVO-031 补齐公开入口与邮件链接 |
-| Phase C send/verify email | EVO-018 | Proposed |
+| Phase C send/verify email | EVO-018 | Done；Iteration 009 实现并测试通过，contract/reference 收口见 EVO-040 |
 | Phase D MCP 工具执行闭环 | EVO-005 / EVO-032 | Done；Iteration 007 修复执行鉴权、错误映射和验收可靠性 |
 | Phase E Skill update | EVO-006 | Done；Iteration 010 完成 PUT /skills/{id} |
-| Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Proposed |
+| Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Done |
 | Phase E Skill registry | EVO-019 | Proposed |
 | Phase E Storage | EVO-020 | Proposed |
 | Phase E Frontend snippet residue | EVO-026 | Proposed |

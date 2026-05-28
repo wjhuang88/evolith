@@ -49,11 +49,11 @@ cargo test --package service-auth test_jwt
 
 #### 测试统计
 
-> **最新数据 (2026-04-08)**: `cargo test --workspace` → **237 passed, 0 failed**
+> **最新数据 (2026-05-27)**: `cargo test -p api` → **48 passed, 0 failed** (23 unit + 18 auth e2e + 7 MCP e2e)
 
 | Crate | 测试数 | 说明 |
 |-------|--------|------|
-| api | 34 | Handler 测试 + E2E 认证测试 (12 个) |
+| api | 48 | Handler/middleware 测试 (23) + 认证 E2E (18, 含邮箱验证与 Skill 更新) + MCP 工具执行 E2E (7) |
 | common | 9 | 错误类型、日志配置、日志脱敏 |
 | domain | 35 | 用户/租户/审计/邀请模型验证 |
 | infra | 124 | 8 个 Repository 集成测试 (user, tenant, invitation, audit, tool, skill, snippet, api_key) |
@@ -283,7 +283,7 @@ bun run dev
 | TC-ATH-008 | 修改密码流程 | 已登录 | `POST /api/v1/auth/change-password` | 200, 旧密码失效 | P1 | ✅ |
 | TC-ATH-009 | 退出登录 | 已登录 | `POST /api/v1/auth/logout` | 200, Cookies 清除 | P0 | ⚠️ |
 | TC-ATH-010 | 令牌刷新 | 有效 Token | `POST /api/v1/auth/refresh` | 200, 返回新 token | P1 | ✅ |
-| TC-ATH-011 | 未实现功能拦截 | 已登录 | `POST /api/v1/auth/send-verify` | 501 Not Implemented | P2 | ⚠️ |
+| TC-ATH-011 | 发送邮箱验证 | 已注册 | `POST /api/v1/auth/send-verify` | 200, 返回 success（防枚举） | P2 | ✅ |
 
 #### 4.2.3 工具管理 (Tools CRUD)
 

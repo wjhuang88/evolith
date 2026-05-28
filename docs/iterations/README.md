@@ -23,6 +23,8 @@
 - [Iteration 014](ITERATION-014.md) — 治理 skill 弱模型闭环执行防呆（EVO-037）。
 - [Iteration 015](ITERATION-015.md) — 本项目实施任务闭环 SOP 与完成声明门禁（EVO-038）。
 - [Iteration 016](ITERATION-016.md) — 迭代启动前库存盘点与既有计划优先规则（EVO-039）。
+- [Iteration 021](ITERATION-021.md) — 已实现接口完成声明与参考文档状态修复（EVO-040；
+  Closed：Iteration 009 / 010 收口完成）。
 
 ## 未来计划
 
@@ -43,14 +45,12 @@
 
 启动任何新的产品迭代前，必须先按启动 SOP 处置：
 
-- [Iteration 009](ITERATION-009.md) — `Review`：按 EVO-040 修复 API contract /
-  testing / roadmap reference 状态漂移并重新核验完成声明。
-- [Iteration 010](ITERATION-010.md) — `Review`：按 EVO-040 修复 API contract 漂移，
-  并核对未勾选验收项的证据后关闭或登记残余。
+- [Iteration 009](ITERATION-009.md) — `Closed`：EVO-040 完成收口。
+- [Iteration 010](ITERATION-010.md) — `Closed`：EVO-040 完成收口。
 - [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞或在 EVO-016
   refinement 重新排期后更新激活条件。
 - [Iteration 017](ITERATION-017.md) — `Planned / Blocked`：只发布计划基线；激活前先
-  收口 Iteration 009 / 010 并重新核对 EVO-026 的 DoR。
+  重新核对 EVO-026 的 DoR。
 - [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
   `Planned / Blocked`：按 Phase E 依赖链保留排期，待前置计划和各 story DoR 满足后
   逐轮激活。

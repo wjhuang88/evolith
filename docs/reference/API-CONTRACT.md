@@ -441,10 +441,10 @@ ApiResponse<MessageResponse>
 
 ---
 
-### `POST /api/v1/auth/send-verify` ⚠️ Not implemented (501)
+### `POST /api/v1/auth/send-verify`
 
 - **Auth:** None
-- **Description:** Send verification email
+- **Description:** Send verification email. Always returns success for valid requests to avoid email enumeration. If the email exists and is not yet verified, a verification token is generated and sent via the configured mailer.
 
 **Request:**
 ```typescript
@@ -453,14 +453,20 @@ interface SendVerifyEmailRequest {
 }
 ```
 
-**Response:** 501 NOT_IMPLEMENTED
+**Response:**
+```typescript
+ApiResponse<MessageResponse>
+```
+
+**Errors:**
+- `VALIDATION_ERROR` — email format invalid
 
 ---
 
-### `POST /api/v1/auth/verify-email` ⚠️ Not implemented (501)
+### `POST /api/v1/auth/verify-email`
 
 - **Auth:** None
-- **Description:** Verify email
+- **Description:** Verify email address using a valid verification token.
 
 **Request:**
 ```typescript
@@ -469,7 +475,13 @@ interface VerifyEmailRequest {
 }
 ```
 
-**Response:** 501 NOT_IMPLEMENTED
+**Response:**
+```typescript
+ApiResponse<MessageResponse>
+```
+
+**Errors:**
+- `INVALID_TOKEN` — token does not exist or is invalid
 
 ---
 
@@ -804,10 +816,10 @@ ApiResponse<SkillResponse>
 
 ---
 
-### `PUT /api/v1/skills/{id}` ⚠️ Not implemented (501)
+### `PUT /api/v1/skills/{id}`
 
 - **Auth:** JWT
-- **Description:** Update skill
+- **Description:** Update skill. Supports partial updates — only provided fields are changed. Tenant isolation enforced (cross-tenant skill returns 404). Owner or admin can update.
 
 **Request:**
 ```typescript
@@ -822,7 +834,15 @@ interface UpdateSkillRequest {
 }
 ```
 
-**Response:** 501 NOT_IMPLEMENTED
+**Response:**
+```typescript
+ApiResponse<SkillResponse>
+```
+
+**Errors:**
+- `NOT_FOUND` — skill does not exist or belongs to another tenant
+- `FORBIDDEN` — user is not the owner or admin
+- `INVALID_RUNTIME` — unknown runtime string
 
 ---
 
@@ -1609,6 +1629,7 @@ interface AuditLogResponse {
 
 ## Version History
 
+- **2026-05-27:** Removed ⚠️ markers from `send-verify`, `verify-email` (implemented in Iteration 009) and `PUT /skills/{id}` (implemented in Iteration 010). Added response shapes and error codes. Synced with EVO-040 / Iteration 021.
 - **2026-03-15:** Phase 6 updates — Added Authentication section documenting cookie-based auth (httpOnly `evolith_token` + `csrf_token`), CSRF protection (double-submit cookie pattern), `X-CSRF-Token` header requirement. Added `CSRF_ERROR` to error codes. Updated login/register/logout/refresh descriptions to mention cookie behavior. Updated Table of Contents.
 - **2026-03-15:** Phase 3 updates — Added `/health/live` and `/health/ready` endpoints. Added Common Headers section (`X-Request-ID`). Added Rate Limiting section (429 responses). Updated Table of Contents. Health endpoint now returns `status`+`version` directly (not wrapped in `ApiResponse`).
 - **2026-03-14:** Full rewrite for production contract. All endpoints, DTOs, validation, and error codes updated to match handler implementations (Phase 0 complete). Stub endpoints marked with ⚠️. Table of Contents and consistent TypeScript-style formatting added.

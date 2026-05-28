@@ -1,12 +1,13 @@
 # Iteration 009: 邮箱验证闭环
 
-> 状态：Review（实现记录存在，参考文档与验证收口待核对）
+> 状态：Closed
 > 计划目标：完成 Phase C 剩余的邮箱验证闭环，使注册、密码恢复、邀请与邮箱确认形成一致的用户生命周期路径。
 > 完成日期：2026-05-27
 >
-> 状态审计说明（2026-05-27）：本页记录 handler 与 e2e 已完成，但当前
-> `API-CONTRACT.md` / `TESTING.md` / roadmap 仍将邮箱验证接口描述为未实现或旧状态。
-> 已登记 EVO-040；完成修复和复验前，本迭代不维持 `Done` 声明。
+> 收口说明（2026-05-27）：Iteration 021 / EVO-040 已修复 `API-CONTRACT.md`、`TESTING.md`
+> 与 `IMPLEMENTATION-ROADMAP.md` 中的状态漂移。`cargo test -p api` → 48 passed, 0 failed，
+> 含 `test_send_verification_email_returns_success`、`test_verify_email_with_valid_token`、
+> `test_verify_email_with_invalid_token` 三个邮箱验证 e2e 测试。所有验收标准满足，迭代关闭。
 
 ## 1. 计划边界
 
@@ -64,3 +65,18 @@ bun run build
 | 2026-05-27 | Iteration 009 started. EVO-018 补齐 DoR 详情块，基础设施（DTO/repo/mailer）已就绪，只需实现两个 handler。 |
 | 2026-05-27 | EVO-018 完成。`send_verification_email` + `verify_email` handler 实现，CSRF/RBAC 路径已更新，3 个 e2e 测试通过。`cargo test -p api` → 18 passed。 |
 | 2026-05-27 | Inventory audit: 代码与 e2e 记录存在，但 API contract / testing / roadmap reference 仍声明相关接口未实现或为旧状态；登记 EVO-040，迭代转为 `Review` 待真实收口。 |
+| 2026-05-27 | EVO-040 / Iteration 021 完成参考文档修复。`API-CONTRACT.md` 中 `send-verify` / `verify-email` 从 `⚠️ Not implemented (501)` 更新为完整响应描述。`TESTING.md` TC-ATH-011 从 `501` 更新为 `200`。`IMPLEMENTATION-ROADMAP.md` Phase C 邮箱验证状态更新为 Done。`cargo test -p api` → 48 passed, 0 failed。迭代转为 `Closed`。 |
+
+## 10. Review
+
+- 完成：EVO-018 邮箱验证发送与确认闭环 — 两个 handler 实现、3 个 e2e 测试、RBAC/CSRF 路径更新、API contract / testing / roadmap 参考文档收口。
+- 未完成：无。
+- 验证结果：`cargo test -p api` → 48 passed, 0 failed（含 `test_send_verification_email_returns_success`、`test_verify_email_with_valid_token`、`test_verify_email_with_invalid_token`）。
+- 闭环状态：`Complete`
+- 残余归口：无。
+
+## 11. Retrospective
+
+- 做得好的：handler 实现与测试在一次迭代中完成；收口缺口通过 EVO-040 明确归口并闭环。
+- 需要调整的：实现完成后应立即同步参考文档，避免 Review 漂移。
+- 写入 EVOLUTION：参考文档状态漂移是迭代收口的常见陷阱；实现完成后需同步更新 API contract / testing / roadmap。
