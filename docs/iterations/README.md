@@ -33,6 +33,7 @@
 - [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
 - [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033）。
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030）。
+- [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（EVO-016-B）。
 
 ## 未来计划
 
@@ -60,6 +61,8 @@
   Ready for activation：一周工程质量切片）。
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；
   Blocked for activation：依赖 Iteration 028 与部署边界确认）。
+- [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（EVO-016-B；
+  Active：纯流式 body + 静态索引 + HTTP 缓存策略）。
 
 ## 非终态库存
 
@@ -67,8 +70,8 @@
 
 - [Iteration 009](ITERATION-009.md) — `Closed`：EVO-040 完成收口。
 - [Iteration 010](ITERATION-010.md) — `Closed`：EVO-040 完成收口。
-- [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞或在 EVO-016
-  refinement 完成后更新激活条件；Iteration 024 已规划该 refinement。
+- [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞，等待 EVO-016-B
+  (Iteration 030) 完成后更新激活条件；Iteration 030 已启动流式实现。
 - [Iteration 017](ITERATION-017.md) — `Planned / Ready for activation`：只发布计划
   基线；激活前重新核对 EVO-026 的 DoR 与旧 `/snippets` 路由策略。
 - [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
@@ -81,6 +84,7 @@
 - [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033
   Rustfmt 基线和 CI 命令准备。
 - [Iteration 029](ITERATION-029.md) — `Planned / Blocked`：依赖 Iteration 028 和部署边界。
+- [Iteration 030](ITERATION-030.md) — `Active`：EVO-016-B ZIP 流式响应与静态索引。
 
 ## 命名
 
