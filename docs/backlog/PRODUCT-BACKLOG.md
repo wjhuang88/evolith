@@ -31,6 +31,7 @@
 | EVO-014 | Stripe webhook 恢复 | feature | P2 | Proposed | routes TODO | 计费闭环 |
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
+| EVO-016-A | Embedded Frontend 交付形态 refinement | tech-debt | P2 | Ready | EVO-016 split / Iteration 024 | 先确认后端静态服务、单容器边界和 Nginx 终局角色，解除 Iteration 012 前置 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
 | EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Done | Iteration 009 | Handler 与测试存在，Iteration 021 完成 contract/testing/roadmap 收口 |
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
@@ -129,6 +130,37 @@
 - 依赖：无外部依赖阻塞。`reqwest` 已在 workspace。
 - 影响范围：backend
 - 最小验证方式：`cargo test --workspace`；手工 curl 测试 MCP `tools/call` 对 HTTP 工具的真实调用。
+
+### EVO-016-A Embedded Frontend 交付形态 refinement
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 父 Epic：EVO-016
+- Story 形态：Technical
+- 用户故事或技术目标：
+  - 作为/为了：维护者需要明确前端嵌入后端发布物的交付边界。
+  - 我希望/需要：形成后端静态服务、SPA fallback、Nginx 角色、Docker 构建和验证方案。
+  - 以便：Iteration 012 的 `EVO-016-B` 能按清晰方案实施，不再依赖过渡 Nginx 静态托管。
+- 范围：
+  - 明确前端静态产物由后端服务的目录、路由优先级和 SPA fallback 行为。
+  - 明确 `/api/v1`、`/health`、`/mcp` 与 `/assets/` 的优先级和验证矩阵。
+  - 明确生产 Docker 形态：是否单 backend 容器承载 API + 静态资源，Nginx 是否仅保留为可选网关。
+  - 明确 Bun/Vite 构建产物如何进入后端发布物或镜像。
+  - 输出 `EVO-016-B` 的实施边界、风险和验证命令。
+- 不做：
+  - 不在 refinement 中改业务代码或切换生产部署。
+  - 不实现单二进制 `include_dir` 实验；可作为后续候选。
+  - 不重建 GitHub CI/CD；归 EVO-030。
+- 验收标准：
+  - [ ] 写清 embedded frontend 的目标部署形态与当前 Nginx 过渡策略差异。
+  - [ ] 写清路由优先级、SPA fallback 和静态资源缓存/路径策略。
+  - [ ] 写清 Docker/build 输入输出和本地/容器验证矩阵。
+  - [ ] 更新 Iteration 012 的激活条件或确认仍阻塞。
+  - [ ] 将实施切片 `EVO-016-B` 的范围、依赖和验证方式补齐。
+- 依赖或阻塞：Vite SPA 与 Bun 构建已完成；需要基于当前部署文档和代码确认最终策略。
+- 影响范围：docs / deploy / backend / frontend
+- 最小验证方式：Markdown 链接检查；`git diff --check`；必要时只读检查当前 Docker/Nginx/backend route 配置。
 
 ### EVO-032 Iteration 006 MCP 执行质量修复与流程防呆
 
