@@ -37,6 +37,19 @@ Given/When/Then，非行为类工作使用命令级或一致性验证、状态�
 **教训**: 用户故事规范的核心不是统一句式，而是让身份、目标、价值、范围、不做、
 验收和验证都可判断；BDD 只强制用于行为验收，技术和治理工作必须有等价证据。
 
+### 2026-05-28 Governance manifest 是 skill adoption 的可验证入口
+
+**现象**: Evolith 已有完整 AGENTS、SOP、backlog、iteration 和经验记录，但运行
+`agent-project-governance` bundled validator 时仍失败，原因是缺少
+`.agent-governance/manifest.yaml`。
+**根因**: 项目事实上已经采用治理结构，但没有写入 skill 可机械识别的 adoption
+manifest；只有文档存在不足以让外部 skill 判断 profile、capability 状态和入口映射。
+**方案**: 以 EVO-035 / Iteration 023 补齐 manifest，记录 `high-risk / conformant`
+profile、标准 entrypoints、capabilities、风险门禁和迁移映射，并把 validator 作为
+后续治理变更后的固定验证。
+**教训**: 面向可复用治理 skill，manifest 是“已初始化”的机器可读证据；新增或改变
+治理能力后，必须同步 manifest 并运行 validator。
+
 ### 2026-05-27 开始迭代必须先盘点既有 iteration
 
 **现象**: 流程已经禁止覆写已发布计划，但用户要求“开始迭代”时，启动 SOP 仍先围绕

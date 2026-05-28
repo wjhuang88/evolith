@@ -65,25 +65,25 @@ cargo test --package service-auth test_jwt
 
 | Crate | 测试文件 | 测试内容 |
 |-------|---------|---------|
-| service-auth | `src/jwt.rs` | JWT 令牌生成与验证 |
-| service-auth | `src/password.rs` | 密码哈希与验证 (Argon2id) |
-| domain | `src/user.rs` | 用户、租户邀请模型验证 |
-| domain | `src/tenant.rs` | 租户、配额模型验证 |
-| domain | `src/audit.rs` | 审计日志模型验证 |
-| common | `src/error.rs` | 错误类型定义 |
-| common | `src/log.rs` | 日志配置 |
-| common | `src/sanitize.rs` | 日志脱敏 (password, token, secret, api_key) |
-| api | `src/middleware/tenant.rs` | 多租户中间件 |
-| api | `src/middleware/rbac.rs` | RBAC 角色访问控制 |
-| api | `tests/auth_e2e_tests.rs` | 12 个认证端到端测试 |
-| infra | `tests/user_repo_test.rs` | 用户 Repository 集成测试 |
-| infra | `tests/tenant_repo_test.rs` | 租户 Repository 集成测试 |
-| infra | `tests/invitation_repo_test.rs` | 邀请 Repository 集成测试 |
-| infra | `tests/audit_repo_test.rs` | 审计 Repository 集成测试 |
-| infra | `tests/tool_repo_test.rs` | 工具 Repository 集成测试 |
-| infra | `tests/skill_repo_test.rs` | 技能 Repository 集成测试 |
-| infra | `tests/snippet_repo_test.rs` | 片段 Repository 集成测试 |
-| infra | `tests/api_key_repo_test.rs` | API Key Repository 集成测试 |
+| service-auth | `backend/crates/service-auth/src/jwt.rs` | JWT 令牌生成与验证 |
+| service-auth | `backend/crates/service-auth/src/password.rs` | 密码哈希与验证 (Argon2id) |
+| domain | `backend/crates/domain/src/user.rs` | 用户、租户邀请模型验证 |
+| domain | `backend/crates/domain/src/tenant.rs` | 租户、配额模型验证 |
+| domain | `backend/crates/domain/src/audit.rs` | 审计日志模型验证 |
+| common | `backend/crates/common/src/error.rs` | 错误类型定义 |
+| common | `backend/crates/common/src/log.rs` | 日志配置 |
+| common | `backend/crates/common/src/sanitize.rs` | 日志脱敏 (password, token, secret, api_key) |
+| api | `backend/crates/api/src/middleware/tenant.rs` | 多租户中间件 |
+| api | `backend/crates/api/src/middleware/rbac.rs` | RBAC 角色访问控制 |
+| api | `backend/crates/api/tests/auth_e2e_tests.rs` | 12 个认证端到端测试 |
+| infra | `backend/crates/infra/tests/user_repo_test.rs` | 用户 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/tenant_repo_test.rs` | 租户 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/invitation_repo_test.rs` | 邀请 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/audit_repo_test.rs` | 审计 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/tool_repo_test.rs` | 工具 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/skill_repo_test.rs` | 技能 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/snippet_repo_test.rs` | 片段 Repository 集成测试 |
+| infra | `backend/crates/infra/tests/api_key_repo_test.rs` | API Key Repository 集成测试 |
 
 #### 示例: JWT 测试
 

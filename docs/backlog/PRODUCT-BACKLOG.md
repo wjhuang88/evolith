@@ -49,7 +49,7 @@
 | EVO-032 | Iteration 006 MCP 执行质量修复与流程防呆 | bug | P0 | Done | 质量审查 2026-05-25 | Iteration 007；修复执行器初始化崩溃、工具调用鉴权、错误映射和验收证据失真 |
 | EVO-033 | Rustfmt 全量格式基线与 stable 配置清理 | tech-debt | P2 | Proposed | Iteration 007 验证残余 | 独立处理历史格式差异和 nightly-only 配置告警，避免混入功能修复 |
 | EVO-034 | Epic 与子需求拆分治理规则 | tech-debt | P1 | Done | 流程缺口 2026-05-26 | Iteration 008；已补齐父子编号、依赖、分层 DoR 与跨 Epic 选取约束 |
-| EVO-035 | 治理 skill manifest 接入与一致性审计 | tech-debt | P2 | Proposed | Iteration 008 验证残余 | 建立 `.agent-governance/manifest.yaml` 后运行 bundled validator |
+| EVO-035 | 治理 skill manifest 接入与一致性审计 | tech-debt | P2 | Done | Iteration 008 验证残余 | Iteration 023；已建立 manifest 并通过 bundled validator |
 | EVO-036 | 已发布迭代计划基线保护与改线防呆 | tech-debt | P1 | Done | 计划覆写复盘 2026-05-27 | Iteration 013；修复 EVO-016 计划追踪并同步治理 skill |
 | EVO-037 | 治理 skill 弱模型闭环执行防呆 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 014；为初始化、迁移和修复任务增加强制闭环协议 |
 | EVO-038 | 本项目实施任务闭环 SOP 与完成声明门禁 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 015；将闭环协议落实到 Evolith 自身流程 |
@@ -189,7 +189,7 @@
 
 - 类型：tech-debt
 - 优先级：P2
-- 状态：Proposed
+- 状态：Done
 - 用户价值或技术目标：让 Evolith 已有治理文档能被 `agent-project-governance` skill 明确识别为初始化/采用状态，并通过一致性审计发现后续漂移。
 - 范围：
   - 按当前项目治理现状建立 `.agent-governance/manifest.yaml`。
@@ -199,9 +199,9 @@
   - 不在 EVO-034 中补造 manifest 以掩盖附加审计失败。
   - 不顺带改业务逻辑或重写既有迭代历史。
 - 验收标准：
-  - [ ] manifest 能准确表达 Evolith 的治理 profile、入口和能力状态。
-  - [ ] `validate_project_governance.py /Users/GHuang/WorkSpace/AiProjects/evolith` 通过，或将剩余问题拆为明确事项。
-- 依赖或阻塞：EVO-034 已完成；需要单独确认初始化/adoption 范围。
+  - [x] manifest 能准确表达 Evolith 的治理 profile、入口和能力状态。
+  - [x] `validate_project_governance.py /Users/GHuang/WorkSpace/AiProjects/evolith` 通过，或将剩余问题拆为明确事项。
+- 依赖或阻塞：EVO-034 已完成；本轮按当前治理状态采用 `high-risk / conformant` profile。
 - 影响范围：docs
 - 最小验证方式：运行 `agent-project-governance/scripts/validate_project_governance.py`。
 

@@ -431,7 +431,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 **Goal**: Full Chinese/English internationalization for all frontend components.
 
 **All Phase 5 tasks completed:**
-- [x] i18n configuration (`src/lib/i18n.ts`)
+- [x] i18n configuration (`frontend/src/lib/i18n.ts`)
 - [x] Both locale files (`zh-CN.json` + `en.json`, ~647 lines each)
 - [x] All 23+ components converted to `t()` calls
 - [x] LanguageSwitcher component wired into Header
