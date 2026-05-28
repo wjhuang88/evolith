@@ -32,6 +32,7 @@
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
 | EVO-016-A | Embedded Frontend 交付形态 refinement | tech-debt | P2 | Ready | EVO-016 split / Iteration 024 | 先确认后端静态服务、单容器边界和 Nginx 终局角色，解除 Iteration 012 前置 |
+| EVO-016-B | Embedded Frontend 流式响应与静态索引 | tech-debt | P0 | Ready | EVO-016 split / 用户需求 | 纯流式响应 + 静态文件索引 + HTTP 缓存头 + content-length；replaces 当前 Vec<u8> 全量读取实现 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
 | EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Done | Iteration 009 | Handler 与测试存在，Iteration 021 完成 contract/testing/roadmap 收口 |
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
@@ -57,6 +58,7 @@
 | EVO-039 | 迭代启动前库存盘点与既有计划优先规则 | bug | P1 | Done | 流程缺口 2026-05-27 | Iteration 016；先处理在途/已规划迭代再选择新 story |
 | EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Done | 排期库存审计 2026-05-27 | Iteration 021；修复邮箱验证与 Skill 更新接口的收口漂移 |
 | EVO-041 | 敏捷实践与 BDD 验收格式适配规则 | tech-debt | P1 | Done | 用户方法论反馈 2026-05-28 | Iteration 022；明确 Evolith iteration 与传统 Sprint、Story 与 BDD 的适配口径 |
+
 
 ## 故事模板
 
@@ -161,6 +163,63 @@
 - 依赖或阻塞：Vite SPA 与 Bun 构建已完成；需要基于当前部署文档和代码确认最终策略。
 - 影响范围：docs / deploy / backend / frontend
 - 最小验证方式：Markdown 链接检查；`git diff --check`；必要时只读检查当前 Docker/Nginx/backend route 配置。
+
+### EVO-016-B Embedded Frontend 流式响应与静态索引
+
+- 类型：tech-debt
+- 优先级：P0
+- 状态：Ready
+- 父 Epic：EVO-016
+- Story 形态：Technical
+- 用户故事或技术目标：
+  - 作为/为了：后端单二进制部署的前端静态文件服务。
+  - 我希望/需要：将当前 `Vec<u8>` 全量读取改造为纯流式响应，利用 ZIP 流式解压特性和预构建静态索引避免每次请求重复扫描中央目录。
+  - 以便：每个请求的内存占用恒定（不随文件大小增长），中央目录解析开销为零，单二进制前端服务在高并发下内存稳定、延迟可预测。
+- 范围：
+  - 重写 `backend/src/frontend.rs`，实现以下架构：
+  - **启动时构建静态索引**：`OnceLock<FrontendIndex>` 在首次访问时解析 ZIP 中央目录一次，构建 `HashMap<String, FileEntry>` 映射路径 → (zip_index, uncompressed_size, compressed_size, crc32, compression_method)。后续请求直接按索引号定位，不再调用 `by_name()` 扫描中央目录。
+  - **纯流式响应**：利用 `zip` crate v2 的 `ZipFile: Read` trait 实现分块流式解压，替换当前 `read_to_end(&mut Vec<u8>)` 全量读取。使用 actix-web `HttpResponse::streaming()` 返回 `Stream<Item = Result<Bytes, Error>>`，每个 chunk 从 ZIP 流式解压器直接读取（16KB chunk size）。任何单个文件请求的堆内存峰值不超过 16KB + 元数据。
+  - **零中央目录重解析**：利用 `ZipArchive::metadata()` 获取 `Arc<ZipArchiveMetadata>`，通过 `unsafe_new_with_metadata(cursor, metadata)` 为每个请求创建独立 reader（复用已解析中央目录），不触发中央目录解析。
+  - **同步 IO 桥接**：ZIP 解压是同步 `std::io::Read`，使用 `actix_web::web::block()` 将解压操作放到阻塞线程池，避免阻塞 tokio 异步运行时。
+  - **HTTP 缓存头**：为 Vite 哈希文件名资源（`/assets/index-*.js`、`/assets/*.css`）添加 `Cache-Control: public, max-age=31536000, immutable`；为非哈希资源（`index.html`、`/config.js`、`favicon.ico`）添加 `Cache-Control: no-cache`。
+  - **Content-Length**：利用索引中的 `uncompressed_size` 在响应头中设置 `Content-Length`，使客户端和中间代理可准确传输。
+  - **ETag 与条件请求**：对 `/assets/index-ABC123.js` 形式的哈希文件名提取哈希段作为 ETag（无需计算）；对非哈希文件使用索引中的 CRC32 作为 ETag。支持 `If-None-Match` → 304 Not Modified。
+  - **SPA fallback 保留**：SPA 路由 fallback 到 `index.html` 的行为不变，fallback 响应也走流式 + `Cache-Control: no-cache`。
+  - **`/config.js` 保留动态生成**：运行时配置注入行为不变，不在本故事改造范围。
+- 不做：
+  - 不预解压所有文件到内存（启动时只解析中央目录、不解压）。
+  - 不修改 `/config.js` 动态生成逻辑。
+  - 不修改 API 路由、中间件或业务逻辑。
+  - 不重建 GitHub CI/CD（归 EVO-030）。
+  - 不修改前端构建流程或 Dockerfile。
+- 验收标准：
+  - 非行为类：
+    - [ ] `cargo test --workspace --features embedded-frontend` 通过，含新增索引构建、流式读取和缓存头测试。
+    - [ ] `cargo clippy --workspace --features embedded-frontend -- -D warnings` 通过。
+    - [ ] `OnceLock<FrontendIndex>` 仅初始化一次；后续请求直接从索引查找文件，O(1) 路径查找。
+    - [ ] 每个请求不再调用 `ZipArchive::new()` 重新解析中央目录；通过 `metadata()` 复用已解析目录。
+    - [ ] 响应 body 为 `HttpResponse::streaming()`（非 `Vec<u8>` 全量 body），chunk size 不超过 16KB。
+    - [ ] 任何单个文件请求的堆内存峰值不超过 16KB + 元数据（非文件大小）。
+    - [ ] 哈希文件名资源返回 `Cache-Control: public, max-age=31536000, immutable`。
+    - [ ] `index.html` 和 `/config.js` 返回 `Cache-Control: no-cache`。
+    - [ ] 所有响应包含 `Content-Length` 头（值等于索引中的 `uncompressed_size`）。
+    - [ ] 支持 `If-None-Match` 条件请求，返回 304 Not Modified。
+    - [ ] 同步 IO 通过 `web::block()` 执行，不阻塞异步运行时。
+- 技术备注：
+  - `zip` crate v2.x（当前 8.6.0）关键 API：
+    - `ZipArchive::metadata() → Arc<ZipArchiveMetadata>`：已解析的中央目录，可跨请求共享。
+    - `ZipArchive::unsafe_new_with_metadata(reader, metadata.clone())`：复用元数据创建独立 reader，避免重复扫描中央目录。
+    - `ZipFile: std::io::Read`：分块流式解压，`read(&mut buf)` 每次返回最多 `buf.len()` 解压后字节。
+    - `ZipFile::size()` / `ZipFile::crc32()`：未压缩大小和 CRC32，可用于 Content-Length 和 ETag。
+  - actix-web streaming：`HttpResponse::streaming(stream)` 其中 `stream: impl Stream<Item = Result<Bytes, actix_web::Error>>`。
+  - 同步桥接：`web::block(move || { ... })` 返回 `Result<_, BlockingError>`，在 actix-web 阻塞线程池执行。
+  - `FRONTEND_ZIP` 常量（`include_bytes!`）不变；`ZipArchiveMetadata` 是 `Arc`，可安全跨线程共享。
+  - 参考 oc-platform `serve.rs`：同样未优化（每次重解析 + 全量读取），本故事要超越参考实现。
+  - workspace 有 `#![deny(clippy::unwrap_used)]`，所有错误处理使用 `?` 或显式 match。
+- 依赖或阻塞：EVO-016-A 基础 ZIP 嵌入实现已完成（`frontend.rs` + feature flag + placeholder ZIP）。
+- 解锁内容：完成后进入 Iteration 012 单容器 Dockerfile 集成；消除 Nginx 静态托管依赖。
+- 影响范围：backend（`frontend.rs` 重写）
+- 最小验证方式：`cargo test --workspace --features embedded-frontend`；`curl -v localhost:8080/index.html` 检查响应头和流式行为；连续请求验证内存稳定。
 
 ### EVO-032 Iteration 006 MCP 执行质量修复与流程防呆
 
