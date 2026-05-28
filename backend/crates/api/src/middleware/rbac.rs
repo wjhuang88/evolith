@@ -201,6 +201,7 @@ impl RbacMiddleware {
     fn is_public_path(path: &str, public_paths: &[String]) -> bool {
         public_paths.iter().any(|p| path.starts_with(p))
             || (path.starts_with("/api/v1/tenant/") && path.ends_with("/members/join"))
+            || (!path.starts_with("/api/") && !path.starts_with("/mcp"))
     }
 }
 

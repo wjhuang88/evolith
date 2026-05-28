@@ -10,22 +10,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use api::configure_routes;
 
-#[cfg(feature = "embedded-frontend")]
 mod frontend;
 
-macro_rules! maybe_configure_frontend {
-    ($app:expr) => {{
-        #[cfg(feature = "embedded-frontend")]
-        {
-            $app.route("/config.js", web::get().to(frontend::config_js))
-                .default_service(web::route().to(frontend::spa_fallback))
-        }
-        #[cfg(not(feature = "embedded-frontend"))]
-        {
-            $app
-        }
-    }};
-}
 use api::middleware::csrf::CsrfMiddleware;
 use api::middleware::rate_limit::create_unauthenticated_limiter;
 use api::middleware::rbac::RbacMiddleware;
@@ -183,8 +169,7 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         let governor_config = create_unauthenticated_limiter(&rate_limit_config);
 
-        maybe_configure_frontend!(
-            App::new()
+        App::new()
                 .app_data(app_state.clone())
                 .wrap(CsrfMiddleware::new())
                 .wrap(RbacMiddleware::new(jwt_secret.clone()))
@@ -194,7 +179,8 @@ async fn main() -> Result<()> {
                 .wrap(cors_configuration(is_dev))
                 .wrap(SecurityHeadersMiddleware::new(is_dev))
                 .configure(configure_routes)
-        )
+                .route("/config.js", web::get().to(frontend::config_js))
+                .default_service(web::route().to(frontend::spa_fallback))
     })
     .bind((host.as_str(), port))?
     .shutdown_timeout(30)

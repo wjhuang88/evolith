@@ -29,8 +29,8 @@ service-audit.workspace = true
 service-skill.workspace = true
 service-tool.workspace = true
 uuid.workspace = true
-zip = { workspace = true, optional = true }
-futures-util.workspace = true
+rust-embed-for-web = "11.3"
+actix-web-rust-embed-responder = "2.3"
 
 [workspace]
 resolver = "2"
@@ -63,8 +63,9 @@ repository = "https://github.com/wjhuang88/evolith"
 tokio = { version = "1.35", features = ["full"] }
 futures-util = "0.3"
 
-# ZIP archive (for embedded frontend)
-zip = "8"
+# Embedded frontend
+rust-embed-for-web = "11.3"
+actix-web-rust-embed-responder = "2.3"
 
 # Docker
 bollard = "0.17"
@@ -161,10 +162,6 @@ domain = { path = "crates/domain" }
 infra = { path = "crates/infra" }
 common = { path = "crates/common" }
 service-audit = { path = "crates/service-audit" }
-
-[features]
-default = []
-embedded-frontend = ["zip"]
 
 [profile.release]
 lto = true
