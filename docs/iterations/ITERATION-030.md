@@ -1,12 +1,10 @@
 # Iteration 030: ZIP 嵌入前端流式响应与静态索引
 
-> 文档状态：Active
+> 文档状态：Superseded → Iteration 031
 > 计划发布日期：2026-05-28
-> 计划目标：将 ZIP 嵌入前端服务从 Vec<u8> 全量读取改造为纯流式响应 + 静态索引，
-> 利用 ZIP 流式解压和 Arc<ZipArchiveMetadata> 零重解析，使每个请求内存恒定。
->
-> 基线保护：本文件一旦提交，以下"发布计划基线"内容不可因实施或改线而覆写；
-> 同目标执行只向执行区追加事实，换目标必须保留本页并新建 iteration 编号。
+> 计划目标：~~将 ZIP 嵌入前端服务从 Vec<u8> 全量读取改造为纯流式响应 + 静态索引~~
+> 已改线：经调研确认 ZIP 流式方案为过度工程，改用 rust-embed-for-web 零拷贝 + 预压缩方案。
+> 新迭代：Iteration 031。
 > 闭环步骤：实施和收尾时按 [任务收口与完成声明](../sop/TASK-CLOSURE.md) 执行。
 
 ## 1. 发布计划基线：目标
@@ -104,17 +102,18 @@ cargo check --workspace --features embedded-frontend
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
 |------|------|------|------|------------|
+| 2026-05-28 | 改线 | ZIP 流式方案取消，改用 rust-embed-for-web 零拷贝 + 预压缩方案 | EVO-016-B backlog 已更新；Iteration 030 标记 Superseded；新建 Iteration 031 | 已实现的 ZIP 代码（OnceLock 索引、web::block、缓存头）将在 Iteration 031 中被完全替换 |
 
 ## 10. Review
 
-- 完成：
-- 未完成：
-- 验证结果：
-- 闭环状态：`Blocked`（刚激活，尚未开始实现）
-- 残余归口：
+- 完成：ZIP 基础嵌入（EVO-016-A）、OnceLock 静态索引、ETag/缓存策略、zip crate 8.6.0 升级
+- 未完成：纯流式响应（已确认无必要）
+- 验证结果：ZIP 方案 clippy/test 全部通过
+- 闭环状态：`Superseded` — 改线到 rust-embed-for-web 方案（Iteration 031）
+- 残余归口：Iteration 031 将替换所有 ZIP 相关代码
 
 ## 11. Retrospective
 
-- 做得好的：
-- 需要调整的：
-- 写入 EVOLUTION：
+- 做得好的：ZIP 方案验证了前端嵌入的可行性和 API 设计；zip crate 深入分析消除了不确定因素
+- 需要调整的：应在开始实现前进行更广的方案调研（不只局限于 ZIP），可能更早发现 rust-embed-for-web
+- 写入 EVOLUTION：方案选型应先广后深——先调研所有可行方案再深入实现，避免对单一方案过度优化

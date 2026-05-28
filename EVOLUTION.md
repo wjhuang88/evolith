@@ -23,6 +23,27 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-05-28 方案选型应先广后深，避免对单一方案过度优化
+
+**现象**: EVO-016 前端嵌入方案从一开始就聚焦在 ZIP 上，经历了基础嵌入（EVO-016-A）、
+静态索引优化、zip crate 2.4→8.6 升级、OnceLock + Arc<ZipArchiveMetadata>、
+web::block + channel 流式架构设计等大量深度工作。最终调研发现 rust-embed-for-web
+直接消除了整个问题域。
+
+**根因**: 方案选型时没有先做广度调研（grep 所有可选方案），而是直接沿用参考项目的
+ZIP 方案并持续优化。对 ZIP 的深度优化本身就是浪费——如果先花 10 分钟广度搜索
+"Rust embedded static files" 就会发现 rust-embed-for-web。
+
+**规则**: 涉及技术方案选型时，必须先做广度调研（至少 3 个替代方案），
+再对最优方案深度验证。具体步骤：
+1. 明确问题域和约束
+2. 广度搜索所有可行方案（librarian 交叉验证）
+3. 快速对比淘汰到 1-2 个候选
+4. 深度验证最终候选
+5. 写 ADR 记录决策
+
+**相关**: [ADR-0003](docs/decisions/ADR-0003-embedded-frontend-rust-embed-for-web.md)
+
 ### 2026-05-28 Story 格式要按任务性质分型，而不是机械套用户故事
 
 **现象**: 讨论传统敏捷、Sprint、用户故事和 BDD 时，如果只引入通用 Scrum/BDD

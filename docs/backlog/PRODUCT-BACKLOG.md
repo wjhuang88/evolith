@@ -32,7 +32,7 @@
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
 | EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
 | EVO-016-A | Embedded Frontend 交付形态 refinement | tech-debt | P2 | Ready | EVO-016 split / Iteration 024 | 先确认后端静态服务、单容器边界和 Nginx 终局角色，解除 Iteration 012 前置 |
-| EVO-016-B | Embedded Frontend 流式响应与静态索引 | tech-debt | P0 | In Progress | EVO-016 split / 用户需求 / Iteration 030 | 纯流式响应 + 静态文件索引 + HTTP 缓存头 + content-length；replaces 当前 Vec<u8> 全量读取实现 |
+| EVO-016-B | 前端静态服务迁移到 rust-embed-for-web | tech-debt | P0 | In Progress | EVO-016 split / 用户需求 / Iteration 031 | 替代 ZIP 方案：用 rust-embed-for-web 实现零拷贝 + 预压缩 + 自动缓存协商；replaces ZIP 流式方案 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
 | EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Done | Iteration 009 | Handler 与测试存在，Iteration 021 完成 contract/testing/roadmap 收口 |
 | EVO-019 | Skill registry 服务化 | tech-debt | P2 | Proposed | Phase E placeholder | 将 `service-skill/src/registry.rs` 从 placeholder 补成可复用注册能力 |
@@ -165,7 +165,7 @@
 - 影响范围：docs / deploy / backend / frontend
 - 最小验证方式：Markdown 链接检查；`git diff --check`；必要时只读检查当前 Docker/Nginx/backend route 配置。
 
-### EVO-016-B Embedded Frontend 流式响应与静态索引
+### EVO-016-B 前端静态服务迁移到 rust-embed-for-web
 
 - 类型：tech-debt
 - 优先级：P0
@@ -174,53 +174,68 @@
 - Story 形态：Technical
 - 用户故事或技术目标：
   - 作为/为了：后端单二进制部署的前端静态文件服务。
-  - 我希望/需要：将当前 `Vec<u8>` 全量读取改造为纯流式响应，利用 ZIP 流式解压特性和预构建静态索引避免每次请求重复扫描中央目录。
-  - 以便：每个请求的内存占用恒定（不随文件大小增长），中央目录解析开销为零，单二进制前端服务在高并发下内存稳定、延迟可预测。
+  - 我希望/需要：将当前基于 ZIP 解压的前端静态服务方案替换为 `rust-embed-for-web` + `actix-web-rust-embed-responder`，实现零拷贝、预压缩和自动 HTTP 缓存协商。
+  - 以便：彻底消除每请求 ZIP 解压 CPU 开销和 spawn_blocking 线程池占用；利用构建时预压缩（gzip + brotli）实现零运行时 CPU 的 Content-Encoding 协商；利用构建时预计算 SHA-256 ETag 和 Last-Modified 实现自动 304 条件响应。
+- 方案决策背景：
+  - 经过多方调研（librarian 交叉验证、OpenObserve 生产实现参考、zip crate 源码分析），确认 ZIP 方案的 spawn_blocking + channel + 流式解压是过度工程。
+  - `rust-embed-for-web` 直接消除整个问题域：`&'static [u8]` 零拷贝访问，无需解压、无需 channel、无需线程池桥接。
+  - `actix-web-rust-embed-responder` 自动处理 ETag（SHA-256 + Base85）、Last-Modified、If-None-Match 304、Accept-Encoding 协商（gzip/brotli 预压缩数据）。
+  - Debug 模式自动从文件系统读取 `frontend/dist/`，前端改动无需重编译 Rust。
+  - 唯一代价：二进制体积增加约 2-4 倍（一个典型 SPA 约 5-15MB 额外），对服务端二进制可接受。
+  - 参考：OpenObserve（生产级可观测平台）使用相同方案，但未启用预压缩和自动缓存协商。
 - 范围：
-  - 重写 `backend/src/frontend.rs`，实现以下架构：
-  - **启动时构建静态索引**：`OnceLock<FrontendIndex>` 在首次访问时解析 ZIP 中央目录一次，构建 `HashMap<String, FileEntry>` 映射路径 → (zip_index, uncompressed_size, compressed_size, crc32, compression_method)。后续请求直接按索引号定位，不再调用 `by_name()` 扫描中央目录。
-  - **纯流式响应**：利用 `zip` crate v2 的 `ZipFile: Read` trait 实现分块流式解压，替换当前 `read_to_end(&mut Vec<u8>)` 全量读取。使用 actix-web `HttpResponse::streaming()` 返回 `Stream<Item = Result<Bytes, Error>>`，每个 chunk 从 ZIP 流式解压器直接读取（16KB chunk size）。任何单个文件请求的堆内存峰值不超过 16KB + 元数据。
-  - **零中央目录重解析**：利用 `ZipArchive::metadata()` 获取 `Arc<ZipArchiveMetadata>`，通过 `unsafe_new_with_metadata(cursor, metadata)` 为每个请求创建独立 reader（复用已解析中央目录），不触发中央目录解析。
-  - **同步 IO 桥接**：ZIP 解压是同步 `std::io::Read`，使用 `actix_web::web::block()` 将解压操作放到阻塞线程池，避免阻塞 tokio 异步运行时。
-  - **HTTP 缓存头**：为 Vite 哈希文件名资源（`/assets/index-*.js`、`/assets/*.css`）添加 `Cache-Control: public, max-age=31536000, immutable`；为非哈希资源（`index.html`、`/config.js`、`favicon.ico`）添加 `Cache-Control: no-cache`。
-  - **Content-Length**：利用索引中的 `uncompressed_size` 在响应头中设置 `Content-Length`，使客户端和中间代理可准确传输。
-  - **ETag 与条件请求**：对 `/assets/index-ABC123.js` 形式的哈希文件名提取哈希段作为 ETag（无需计算）；对非哈希文件使用索引中的 CRC32 作为 ETag。支持 `If-None-Match` → 304 Not Modified。
-  - **SPA fallback 保留**：SPA 路由 fallback 到 `index.html` 的行为不变，fallback 响应也走流式 + `Cache-Control: no-cache`。
-  - **`/config.js` 保留动态生成**：运行时配置注入行为不变，不在本故事改造范围。
+  - 重写 `backend/src/frontend.rs`，用 `rust-embed-for-web` 替代当前 ZIP 实现：
+  - **移除 ZIP 依赖**：删除 `zip` crate 依赖、`frontend.zip` 占位文件、`ZipArchive`/`ZipArchiveMetadata`/`FileEntry`/`FrontendIndex` 等数据结构、`build_index()`/`read_file_from_zip()` 等函数。
+  - **移除 `embedded-frontend` feature flag**：`rust-embed-for-web` 的 Debug/Release 行为切换由 crate 内置处理（Debug 读文件系统、Release 零拷贝嵌入），不再需要外部 feature flag。删除 `maybe_configure_frontend!` 宏，路由注册变为无条件。
+  - **引入 `rust-embed-for-web`**：`#[derive(RustEmbed)] #[folder = "../frontend/dist/"]` 编译时嵌入前端产物。
+  - **引入 `actix-web-rust-embed-responder`**：用 `EmbedResponse` 作为 handler 返回类型，自动处理 ETag、Last-Modified、304、Content-Encoding 协商。
+  - **SPA fallback**：`Embed::get(path).or_else(|| Embed::get("index.html")).into_response()`。
+  - **保留 `/config.js` 动态生成**：运行时环境变量注入行为不变，不在 `RustEmbed` 嵌入范围内。
+  - **保留 `Cache-Control` 手动设置**：responder 不自动处理 Cache-Control。对 Vite 哈希文件名资源设 `immutable`，对 `index.html` 设 `no-cache`。
+  - **Content-Type**：resender 自动根据文件扩展名推断 MIME 类型（替代当前手动 match）。
 - 不做：
-  - 不预解压所有文件到内存（启动时只解析中央目录、不解压）。
   - 不修改 `/config.js` 动态生成逻辑。
   - 不修改 API 路由、中间件或业务逻辑。
   - 不重建 GitHub CI/CD（归 EVO-030）。
   - 不修改前端构建流程或 Dockerfile。
+  - 不启用 zstd 预压缩（需 C 绑定，gzip + brotli 足够覆盖主流浏览器）。
 - 验收标准：
   - 非行为类：
-    - [ ] `cargo test --workspace --features embedded-frontend` 通过，含新增索引构建、流式读取和缓存头测试。
-    - [ ] `cargo clippy --workspace --features embedded-frontend -- -D warnings` 通过。
-    - [ ] `OnceLock<FrontendIndex>` 仅初始化一次；后续请求直接从索引查找文件，O(1) 路径查找。
-    - [ ] 每个请求不再调用 `ZipArchive::new()` 重新解析中央目录；通过 `metadata()` 复用已解析目录。
-    - [ ] 响应 body 为 `HttpResponse::streaming()`（非 `Vec<u8>` 全量 body），chunk size 不超过 16KB。
-    - [ ] 任何单个文件请求的堆内存峰值不超过 16KB + 元数据（非文件大小）。
-    - [ ] 哈希文件名资源返回 `Cache-Control: public, max-age=31536000, immutable`。
-    - [ ] `index.html` 和 `/config.js` 返回 `Cache-Control: no-cache`。
-    - [ ] 所有响应包含 `Content-Length` 头（值等于索引中的 `uncompressed_size`）。
+    - [ ] `zip` crate 依赖和 `frontend.zip` 已从 `backend/` 移除。
+    - [ ] `embedded-frontend` feature flag 已移除；`cargo check --workspace` 无需 `--features` 即可通过。
+    - [ ] `rust-embed-for-web` 和 `actix-web-rust-embed-responder` 已添加为 `backend/Cargo.toml` 依赖。
+    - [ ] `cargo test --workspace` 通过。
+    - [ ] `cargo clippy --workspace -- -D warnings` 通过。
+    - [ ] Release 模式下 `Assets::get("index.html")` 返回 `Some(EmbeddedFile)`，`data()` 为 `&'static [u8]`（零拷贝）。
+    - [ ] Debug 模式下前端改动后刷新浏览器即可生效（无需重编译 Rust）。
+    - [ ] 响应包含 ETag header（SHA-256 + Base85）。
     - [ ] 支持 `If-None-Match` 条件请求，返回 304 Not Modified。
-    - [ ] 同步 IO 通过 `web::block()` 执行，不阻塞异步运行时。
+    - [ ] 哈希文件名资源返回 `Cache-Control: public, max-age=31536000, immutable`。
+    - [ ] `index.html` 返回 `Cache-Control: no-cache`。
+    - [ ] 客户端支持 brotli 时，响应包含 `Content-Encoding: br`（零 CPU 预压缩数据）。
+    - [ ] 客户端支持 gzip 但不支持 brotli 时，响应包含 `Content-Encoding: gzip`（零 CPU 预压缩数据）。
+    - [ ] SPA fallback：未知路径返回 `index.html` 的 200 响应。
+    - [ ] `/config.js` 仍然由环境变量动态生成。
+    - [ ] `frontend.rs` 代码量 ≤ 80 行（从当前 ~280 行大幅缩减）。
 - 技术备注：
-  - `zip` crate v2.x（当前 8.6.0）关键 API：
-    - `ZipArchive::metadata() → Arc<ZipArchiveMetadata>`：已解析的中央目录，可跨请求共享。
-    - `ZipArchive::unsafe_new_with_metadata(reader, metadata.clone())`：复用元数据创建独立 reader，避免重复扫描中央目录。
-    - `ZipFile: std::io::Read`：分块流式解压，`read(&mut buf)` 每次返回最多 `buf.len()` 解压后字节。
-    - `ZipFile::size()` / `ZipFile::crc32()`：未压缩大小和 CRC32，可用于 Content-Length 和 ETag。
-  - actix-web streaming：`HttpResponse::streaming(stream)` 其中 `stream: impl Stream<Item = Result<Bytes, actix_web::Error>>`。
-  - 同步桥接：`web::block(move || { ... })` 返回 `Result<_, BlockingError>`，在 actix-web 阻塞线程池执行。
-  - `FRONTEND_ZIP` 常量（`include_bytes!`）不变；`ZipArchiveMetadata` 是 `Arc`，可安全跨线程共享。
-  - 参考 oc-platform `serve.rs`：同样未优化（每次重解析 + 全量读取），本故事要超越参考实现。
+  - 关键 crate：
+    - `rust-embed-for-web = "11"` — 编译时嵌入 + 预压缩（gzip + brotli）+ SHA-256 ETag + Base85 编码 + MIME 推断。Debug 模式从文件系统读取（`DynamicFile`），Release 模式零拷贝嵌入（`EmbeddedFile`）。
+    - `actix-web-rust-embed-responder = "2"` — actix-web Responder 实现，自动处理 ETag/Last-Modified/304/Content-Encoding 协商。`Compress::IfPrecompressed` 模式仅使用预压缩数据，零运行时 CPU。
+  - Debug/Release 自动切换：
+    - Debug：`DynamicFile`，从 `frontend/dist/` 读文件系统，前端改动无需重编译。
+    - Release：`EmbeddedFile`，`include_bytes!` 编译时嵌入，`data()` 返回 `&'static [u8]`。
+  - 与当前 ZIP 方案对比：
+    - 每请求 CPU：ZIP 方案（deflate 解压 + spawn_blocking）→ 新方案（零 CPU）。
+    - 每请求内存：ZIP 方案（Vec<u8> + channel 缓冲）→ 新方案（零分配，`&'static [u8]` 切片）。
+    - 代码复杂度：ZIP 方案（~280 行）→ 新方案（~50-80 行）。
+    - ETag 强度：ZIP 方案（CRC32 或文件名 hash）→ 新方案（SHA-256 + Base85）。
+    - Content-Encoding：ZIP 方案（无）→ 新方案（自动 br/gzip 协商）。
   - workspace 有 `#![deny(clippy::unwrap_used)]`，所有错误处理使用 `?` 或显式 match。
-- 依赖或阻塞：EVO-016-A 基础 ZIP 嵌入实现已完成（`frontend.rs` + feature flag + placeholder ZIP）。
+  - 生产参考：OpenObserve 使用 `rust-embed-for-web` + axum 提供前端静态文件。
+- 依赖或阻塞：EVO-016-A 基础嵌入实现已完成（可被本故事完全替换）。
 - 解锁内容：完成后进入 Iteration 012 单容器 Dockerfile 集成；消除 Nginx 静态托管依赖。
-- 影响范围：backend（`frontend.rs` 重写）
-- 最小验证方式：`cargo test --workspace --features embedded-frontend`；`curl -v localhost:8080/index.html` 检查响应头和流式行为；连续请求验证内存稳定。
+- 影响范围：backend（`frontend.rs` 重写、`Cargo.toml` 依赖变更、`main.rs` 移除 feature flag 和宏）
+- 最小验证方式：`cargo test --workspace`；`cargo clippy --workspace -- -D warnings`；Release 模式 `curl -v localhost:8080/index.html` 检查 ETag/Cache-Control/Content-Encoding；`curl -H "If-None-Match: <etag>"` 验证 304。
 
 ### EVO-032 Iteration 006 MCP 执行质量修复与流程防呆
 

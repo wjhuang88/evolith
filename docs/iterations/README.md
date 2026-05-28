@@ -33,7 +33,8 @@
 - [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
 - [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033）。
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030）。
-- [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（EVO-016-B）。
+- [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（Superseded：改线到 Iteration 031）。
+- [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B）。
 
 ## 未来计划
 
@@ -84,7 +85,10 @@
 - [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033
   Rustfmt 基线和 CI 命令准备。
 - [Iteration 029](ITERATION-029.md) — `Planned / Blocked`：依赖 Iteration 028 和部署边界。
-- [Iteration 030](ITERATION-030.md) — `Active`：EVO-016-B ZIP 流式响应与静态索引。
+- [Iteration 030](ITERATION-030.md) — `Superseded`：ZIP 流式方案改线到
+  rust-embed-for-web（Iteration 031）。
+- [Iteration 031](ITERATION-031.md) — `Active`：EVO-016-B 前端静态服务迁移到
+  rust-embed-for-web。
 
 ## 命名
 
