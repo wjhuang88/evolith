@@ -7,6 +7,7 @@ PID_DIR="$PROJECT_ROOT/.dev-pids"
 LOG_DIR="$PROJECT_ROOT/.dev-logs"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 FRONTEND_PORT="${FRONTEND_PORT:-3001}"
+EMBEDDED_FRONTEND="${EMBEDDED_FRONTEND:-false}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -122,6 +123,22 @@ stop_infra() {
     log_ok "Infrastructure stopped"
 }
 
+build_frontend_zip() {
+    local dist_dir="$PROJECT_ROOT/frontend/dist"
+    local zip_file="$PROJECT_ROOT/backend/frontend.zip"
+
+    if [ ! -d "$dist_dir" ]; then
+        log_warn "Frontend dist directory not found at $dist_dir — skipping ZIP build"
+        return 1
+    fi
+
+    log_info "Building frontend.zip from $dist_dir..."
+    cd "$dist_dir"
+    zip -qr "$zip_file" .
+    cd "$PROJECT_ROOT"
+    log_ok "frontend.zip built ($(du -h "$zip_file" | cut -f1))"
+}
+
 start_backend() {
     if ! check_port 8080 "backend"; then
         return 1
@@ -132,15 +149,30 @@ start_backend() {
         return 0
     fi
 
+    if [ "$EMBEDDED_FRONTEND" = "true" ]; then
+        local dist_dir="$PROJECT_ROOT/frontend/dist"
+        local zip_file="$PROJECT_ROOT/backend/frontend.zip"
+        if [ -d "$dist_dir" ]; then
+            if [ ! -f "$zip_file" ] || [ "$dist_dir" -nt "$zip_file" ]; then
+                build_frontend_zip || true
+            fi
+        fi
+    fi
+
     log_info "Building and starting Rust backend..."
     cd "$PROJECT_ROOT/backend"
 
-    if ! cargo build 2>"$LOG_DIR/backend-build.log"; then
+    local cargo_args=()
+    if [ "$EMBEDDED_FRONTEND" = "true" ]; then
+        cargo_args=(--features embedded-frontend)
+    fi
+
+    if ! cargo build "${cargo_args[@]}" 2>"$LOG_DIR/backend-build.log"; then
         log_error "Backend build failed! Check $LOG_DIR/backend-build.log"
         return 1
     fi
 
-    cargo run > "$LOG_DIR/backend.log" 2>&1 &
+    cargo run "${cargo_args[@]}" > "$LOG_DIR/backend.log" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_DIR/backend.pid"
     cd "$PROJECT_ROOT"
@@ -295,18 +327,19 @@ print_ready_banner() {
 }
 
 usage() {
-    echo "Usage: $0 {start|lite|stop|infra|backend|frontend|status|logs|clean}"
+    echo "Usage: $0 {start|lite|embedded|stop|infra|backend|frontend|status|logs|clean}"
     echo ""
     echo "Commands:"
-    echo "  start    Start infrastructure + backend + frontend (full stack)"
-    echo "  lite     Start backend + frontend only (SQLite in-memory, no Docker)"
-    echo "  stop     Stop all services (backend, frontend, infrastructure)"
-    echo "  infra    Start only infrastructure (PostgreSQL, Redis, MinIO)"
-    echo "  backend  Start only backend (assumes infra or SQLite)"
-    echo "  frontend Start only frontend (assumes backend is running)"
-    echo "  status   Show status of all services"
-    echo "  logs     Tail backend and frontend logs"
-    echo "  clean    Stop everything and remove Docker volumes + logs"
+    echo "  start     Start infrastructure + backend + frontend (full stack)"
+    echo "  lite      Start backend + frontend only (SQLite in-memory, no Docker)"
+    echo "  embedded  Start backend with embedded frontend ZIP (no separate frontend)"
+    echo "  stop      Stop all services (backend, frontend, infrastructure)"
+    echo "  infra     Start only infrastructure (PostgreSQL, Redis, MinIO)"
+    echo "  backend   Start only backend (assumes infra or SQLite)"
+    echo "  frontend  Start only frontend (assumes backend is running)"
+    echo "  status    Show status of all services"
+    echo "  logs      Tail backend and frontend logs"
+    echo "  clean     Stop everything and remove Docker volumes + logs"
 }
 
 case "${1:-}" in
@@ -325,6 +358,27 @@ case "${1:-}" in
         start_backend
         start_frontend
         print_ready_banner
+        ;;
+    embedded)
+        ensure_dirs
+        load_env
+        EMBEDDED_FRONTEND=true
+        export EMBEDDED_FRONTEND
+        log_info "Embedded mode — backend serves frontend from embedded ZIP"
+        build_frontend_zip || true
+        start_backend
+        echo ""
+        echo "========================================="
+        echo "  Evolith Embedded Mode Ready"
+        echo "========================================="
+        echo ""
+        echo "  Backend + Frontend: http://localhost:8080"
+        echo "  Health:             http://localhost:8080/health"
+        echo ""
+        echo "  Stop with:  ./scripts/dev.sh stop"
+        echo "  Logs with:  ./scripts/dev.sh logs"
+        echo "  Status:     ./scripts/dev.sh status"
+        echo ""
         ;;
     stop)
         ensure_dirs
