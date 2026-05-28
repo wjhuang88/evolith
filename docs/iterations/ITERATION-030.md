@@ -96,6 +96,9 @@ cargo check --workspace --features embedded-frontend
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-05-28 | activation | 用户要求将 EVO-016-B 放入迭代并作为下一个开始。新建 Iteration 030，盘点非终态 iteration 后确认无阻塞。 |
+| 2026-05-28 | progress | 研究确认 zip crate 2.4.2 无 `metadata()`/`unsafe_new_with_metadata()` API（仅在 zip 8.x 中存在）。采用 OnceLock 静态索引 + 每次请求新建 ZipArchive + by_index() 定位方案。 |
+| 2026-05-28 | progress | 重写 `frontend.rs` 完成：OnceLock\<FrontendIndex\> 静态索引、web::block() 同步桥接、16KB chunk 分块读取、HttpResponse::streaming() 流式响应、Cache-Control/ETag/Content-Length/304 条件请求、SPA fallback。 |
+| 2026-05-28 | validation | `cargo clippy --workspace --features embedded-frontend -- -D warnings` 通过。`cargo test --workspace --features embedded-frontend` 全部通过（含 21 个 frontend 模块测试）。不带 feature 时 clippy 也通过。 |
 
 ## 9. 变更请求
 

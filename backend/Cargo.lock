@@ -1216,6 +1216,7 @@ dependencies = [
  "api",
  "common",
  "domain",
+ "futures-util",
  "infra",
  "service-audit",
  "service-auth",

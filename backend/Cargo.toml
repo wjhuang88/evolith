@@ -30,6 +30,7 @@ service-skill.workspace = true
 service-tool.workspace = true
 uuid.workspace = true
 zip = { workspace = true, optional = true }
+futures-util.workspace = true
 
 [workspace]
 resolver = "2"
