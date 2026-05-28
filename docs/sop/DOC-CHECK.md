@@ -19,6 +19,7 @@
 | 替代关系 | 被替代故事必须标注 `Deferred`、`Dropped` 或 `superseded/replaces` |
 | Epic 父子关系 | 新 Epic 采用 `<前缀>-NNN` / `<前缀>-NNN-A`；父项列子项，子项反向标父项；历史 ID 可显式保留 |
 | Story 依赖 | Ready / In Progress 子项不得有未处理硬依赖；同迭代依赖需记录顺序，父项汇总状态必须同步 |
+| Story 格式与 BDD | Ready 之后的 Story 必须使用匹配任务性质的格式；行为类验收需有 Given/When/Then 或明确豁免，非行为类需有等价技术验收 |
 | AGENTS 入口 | 新 SOP 或关键入口必须出现在 Task Router 或 docs README |
 | 验证记录 | 迭代文档必须记录实际执行过的验证命令和结果 |
 | 迭代计划基线 | 已发布 `Planned` iteration 的目标、范围、候选 story 和依赖不得被不同目标覆盖；改线必须保留基线并新建编号 |
@@ -107,6 +108,22 @@ Proposal 进入 backlog 前必须满足：
 - [ ] 跨 Epic 选取时，迭代目标、WIP 限制和依赖顺序均有记录。
 - [ ] 父 Epic 的 `Done` 与所有必需子项状态或明确范围缩减决定一致。
 
+## Story 格式与 BDD 一致性检查
+
+当新增、细化、选入或关闭 Story 时检查：
+
+- [ ] 标题描述可验收结果，而不是实现动作清单。
+- [ ] Story 形态与任务性质一致：Product / API / Technical / Governance / Spike。
+- [ ] Product / API / Permission / State 类 Story 有角色、目标、价值和 Given/When/Then 场景。
+- [ ] Technical / Governance 类 Story 写明失败模式或工程目标、影响范围、不做事项和等价技术验收。
+- [ ] Spike 有时间盒、关键问题、候选方向和输出决策，不以“代码完成”作为唯一验收。
+- [ ] 验收标准描述外部可观察行为或可证明状态，不把实现步骤当验收。
+- [ ] 每条验收能映射到测试、命令、人工检查或文档一致性验证。
+- [ ] Ready / In Progress / Review / Done 的 Story 有最小验证方式和状态同步归口。
+
+行为类 Story 缺少 BDD 场景时，只能在 Story 中写明不适用原因；不能用“后续补测试”
+替代验收口径。非行为类 Story 如果没有命令级或一致性验证，应保持 `Proposed`。
+
 ## Iteration 基线完整性检查
 
 当启动、结束、改线或复核已发布 iteration 时检查：
@@ -137,6 +154,9 @@ Proposal 进入 backlog 前必须满足：
 - 发现断链：先修链接，再继续其他检查。
 - 发现旧术语误导：改成新术语，或补 `legacy/current implementation` 说明。
 - 发现 proposal 误入 backlog：回滚 backlog 项，除非用户明确确认排期且已满足 DoR。
+- 发现 Story 格式不匹配：先回到 `REQUIREMENT-INTAKE.md` 补身份、目标、价值、
+  验收和验证方式；不要为了排期把模糊事项标为 Ready。
+- 发现行为类 Story 缺 BDD 场景：保持 `Proposed` 或退回 refinement，补齐 Given/When/Then。
 - 发现验证记录缺失：补迭代执行记录，不要只在对话里说明。
 - 发现已发布计划被就地改线：不要删实际执行结果；补回原基线与偏差说明，将未完成的原目标重新排期。
 - 发现开始新迭代时跳过非终态 iteration：暂停新 story 选取；先修状态漂移并记录

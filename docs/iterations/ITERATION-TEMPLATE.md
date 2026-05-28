@@ -24,6 +24,10 @@
 
 ## 4. 发布计划基线：计划验收标准
 
+- Story 格式与 BDD 适用性：
+  - [ ] 每个候选 Story 已标明 Product / API / Technical / Governance / Spike 形态。
+  - [ ] 行为类 Story 使用 Given/When/Then 场景，或记录 BDD 不适用原因。
+  - [ ] 技术、治理或 Spike 使用等价技术验收、状态归口和残余归口。
 - [ ]
 
 ## 5. 发布计划基线：计划验证
@@ -47,6 +51,7 @@
 | 请求结果 |  |
 | 产物 |  |
 | 状态同步归口 |  |
+| Story/BDD 归口 |  |
 | 验证证据 |  |
 | 残余工作归口 |  |
 

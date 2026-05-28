@@ -13,6 +13,9 @@
 - **开始迭代先盘点既有计划**：用户要求开始迭代时，先检查 `docs/iterations/` 中
   `Active / In Progress / Review / Planned / Blocked` 的迭代并记录处置结论；未处理
   既有迭代前，不得直接从 backlog 选择新的 story。
+- **Story 格式先匹配任务性质**：产品/API/权限/状态类行为工作必须写明角色、目标、
+  价值和 Given/When/Then 验收；技术、治理和 Spike 不硬套用户故事，但必须写清
+  工程目标、失败模式、命令级或一致性验证、状态同步和残余归口。
 - **实施任务必须闭环**：凡是修改代码、配置或治理文档的实施任务，完成声明前必须按 `docs/sop/TASK-CLOSURE.md` 核对产物、状态同步、验证证据与残余归口；任一适用项缺失只能报告 `Partial` 或 `Blocked`，不得报告完成。
 - **已发布迭代计划不可覆写**：已提交到仓库的 `Planned` iteration 是计划基线；启动同一范围时只能追加实际选入、执行、验证和复盘记录。若改为另一组 story 或另一目标，保留原计划并新建迭代编号，不得把旧计划文档改造成新工作的完成记录。
 - **复杂任务分阶段结对**：跨多层、合约、数据库、权限、发布或高风险改动时，按 `docs/sop/PAIRING-WORKFLOW.md` 在 Driver 实现后切换 Navigator 审查；不要在同一段推理中并行扮演双角色。
@@ -70,6 +73,8 @@
 10. 文件已生成或代码已修改不等于任务完成；若验证、backlog/iteration 同步或已知残余归口缺失，必须按 `Partial` 报告并继续收口。
 11. backlog 中没有 `In Progress` story 不表示可以直接开新迭代；iteration 文档可能
     仍处于待收口、待激活或阻塞状态，必须先盘点并处置。
+12. 不要把传统 Scrum Sprint 或 BDD 机械套进所有工作；Evolith 的 iteration 是可审计
+    工作批次，BDD 主要约束行为验收，技术/治理工作使用等价验证。
 
 ### Session End Checklist
 
@@ -77,6 +82,7 @@
 - [ ] 新功能/缺陷/技术债是否已进入 backlog，或说明了为什么不需要？
 - [ ] 如果推进了迭代故事，是否更新了 backlog/iteration 状态？
 - [ ] 如果开始了新迭代，是否先盘点并处置 `Active / In Progress / Review / Planned / Blocked` 的既有 iteration？
+- [ ] 新增或选入 Story 时，格式是否匹配 Product / API / Technical / Governance / Spike，行为类是否已有 BDD 场景？
 - [ ] 如果启动或改线了已发布的 planned iteration，是否保留原计划基线并避免就地替换目标？
 - [ ] 如果发生中途需求变更，是否按变更分类表更新了 backlog、iteration、ADR 和半成品处理记录？
 - [ ] 是否运行了与风险匹配的验证？未运行是否说明原因？

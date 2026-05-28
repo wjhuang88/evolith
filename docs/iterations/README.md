@@ -25,6 +25,7 @@
 - [Iteration 016](ITERATION-016.md) — 迭代启动前库存盘点与既有计划优先规则（EVO-039）。
 - [Iteration 021](ITERATION-021.md) — 已实现接口完成声明与参考文档状态修复（EVO-040；
   Closed：Iteration 009 / 010 收口完成）。
+- [Iteration 022](ITERATION-022.md) — 敏捷实践与 BDD 验收格式适配规则（EVO-041）。
 
 ## 未来计划
 
@@ -67,6 +68,8 @@ ITERATION-002.md
 
 - 常规迭代：1 周。
 - Agent 微迭代：一次会话只完成一个 backlog story 或一个明确切片。
+- Evolith iteration 借鉴 Sprint 的小批次、目标、验收和复盘，但本质是可审计工作批次；
+  不强制完整 Scrum 仪式或团队容量统计。
 
 ## 发布计划基线规则
 

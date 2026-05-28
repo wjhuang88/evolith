@@ -35,6 +35,28 @@
 | Customer Tests | API 测试、前端回归、手工验收清单 |
 | Coach | `AGENTS.md` + SOP 约束 |
 
+## Iteration 与 Sprint 的关系
+
+Evolith 的 `iteration` 借鉴传统 Scrum Sprint 的“小批次、目标、验收、复盘”，但不是
+完整 Scrum Sprint：
+
+| 概念 | Evolith 采用 | Evolith 不机械采用 |
+|------|--------------|--------------------|
+| 时间盒 | 常规 1 周；Agent 微迭代可为 0.5-2 天或一个 story | 不强制团队容量、燃尽图或固定仪式 |
+| Sprint Goal | 每个 iteration 有一个清晰目标和不做事项 | 不把多个无关插队任务包装成同一目标 |
+| Backlog selection | 先做 iteration inventory，再选 Ready story | 不只看 backlog 剩余项 |
+| Review | 用命令、测试、人工检查和状态同步证明验收 | 不用状态勾选替代证据 |
+| Retrospective | 把新陷阱写入 `EVOLUTION.md` 并转为流程门禁 | 不写空泛复盘 |
+
+因此，本项目的 iteration 可以是：
+
+- **Agent 微迭代**：一个 Agent 会话内完成一个 Ready story 或治理修复切片。
+- **产品迭代**：围绕一个目标选择少量 Ready story。
+- **发布计划基线**：提前发布的 `Planned / Blocked` 计划，未激活前不等于承诺完成。
+- **治理修复迭代**：用于修复流程、状态、文档或完成声明漂移，不激活产品 planned iteration。
+
+无论属于哪类 iteration，都必须保留计划基线、库存处置、验收证据、状态同步和闭环结论。
+
 ## 工作流
 
 ### 1. Iteration Planning
@@ -51,7 +73,8 @@
 - 迭代目标。
 - 选入 Story 列表、所属 Epic（如有）以及依赖顺序。
 - 不做什么。
-- 验证命令。
+- Story 格式和 BDD 适用性结论。
+- 验收标准与验证命令。
 - 风险和回滚点。
 - 闭环台账：产物、状态同步归口、验证证据和残余工作归口。
 
@@ -67,7 +90,7 @@
 
 对每个故事按以下循环推进：
 
-1. 写下验收标准和测试计划。
+1. 写下 Story 形态、验收标准和测试计划；行为类工作先写 Given/When/Then。
 2. 如果是缺陷，先补失败测试。
 3. 小步实现。
 4. 运行局部验证。
@@ -112,6 +135,7 @@ Review 必须写明 `Complete / Partial / Blocked` 收口结论及残余归口�
 
 - [ ] 代码实现完成。
 - [ ] 测试或验证完成，并记录结果。
+- [ ] Story 格式与任务性质匹配；行为类验收有 BDD 场景或明确不适用理由。
 - [ ] 验收勾选与逐命令验证结果一致；没有把失败、未运行或局部替代结果标为通过。
 - [ ] API 合约、Reference、SOP 或 Roadmap 已按需更新。
 - [ ] Backlog 总表和详情块状态一致；已完成 story 的验收标准已勾选或说明未完成项。

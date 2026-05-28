@@ -55,8 +55,13 @@
 | EVO-038 | 本项目实施任务闭环 SOP 与完成声明门禁 | tech-debt | P1 | Done | 用户反馈 2026-05-27 | Iteration 015；将闭环协议落实到 Evolith 自身流程 |
 | EVO-039 | 迭代启动前库存盘点与既有计划优先规则 | bug | P1 | Done | 流程缺口 2026-05-27 | Iteration 016；先处理在途/已规划迭代再选择新 story |
 | EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Done | 排期库存审计 2026-05-27 | Iteration 021；修复邮箱验证与 Skill 更新接口的收口漂移 |
+| EVO-041 | 敏捷实践与 BDD 验收格式适配规则 | tech-debt | P1 | Done | 用户方法论反馈 2026-05-28 | Iteration 022；明确 Evolith iteration 与传统 Sprint、Story 与 BDD 的适配口径 |
 
 ## 故事模板
+
+行为类 Story 使用用户故事格式；技术、治理和 Spike 使用等价格式，但必须保留价值、
+范围、不做、验收、依赖和验证字段。详细规则见
+[需求进入与 Backlog 整理](../sop/REQUIREMENT-INTAKE.md#story-格式规范与-bdd-验收)。
 
 ```markdown
 ### EVO-XXX <标题>
@@ -65,14 +70,24 @@
 - 优先级：
 - 状态：
 - 父 Epic：（非子 Story 填无）
-- 用户价值：
+- Story 形态：Product / API / Technical / Governance / Spike
+- 用户故事或技术目标：
+  - 作为/为了：
+  - 我希望/需要：
+  - 以便：
 - 范围：
 - 不做：
 - 验收标准：
-  - [ ] ...
+  - 行为类：
+    - Given ...
+      When ...
+      Then ...
+  - 非行为类：
+    - [ ] <命令或人工检查> 证明 <结果>
 - 技术备注：
 - 依赖或阻塞：
 - 解锁内容：
+- 最小验证方式：
 ```
 
 ### EVO-005 MCP 工具真实执行
@@ -303,7 +318,7 @@
 
 - 类型：bug
 - 优先级：P1
-- 状态：Ready
+- 状态：Done
 - 用户价值或技术目标：使已实现接口事实、API 合约、测试/路线图参考和迭代完成声明
   一致，避免 Agent 依据冲突文档规划或回归错误行为。
 - 范围：
@@ -315,13 +330,44 @@
   - 不在本故事新增邮箱验证或 Skill 更新业务能力，也不改变认证策略。
   - 不混入 Phase E、embedded frontend 或 CI/CD 实施。
 - 验收标准：
-  - [ ] API contract 不再将已实现的邮箱验证与 Skill 更新端点标为未实现。
-  - [ ] testing reference 与 roadmap 对实际接口路径、状态和验证口径保持一致。
-  - [ ] 必需验证重新执行并记录后，Iteration 009 / 010 状态一致可追溯。
+  - [x] API contract 不再将已实现的邮箱验证与 Skill 更新端点标为未实现。
+  - [x] testing reference 与 roadmap 对实际接口路径、状态和验证口径保持一致。
+  - [x] 必需验证重新执行并记录后，Iteration 009 / 010 状态一致可追溯。
 - 依赖或阻塞：当前代码与历史测试记录可作为复核起点；完成前 Iteration 009 / 010
   保持 `Review`，不作为新产品迭代已处置依据。
 - 影响范围：docs / backend validation
 - 最小验证方式：`cargo test -p api`；Markdown 相对链接检查；`git diff --check`。
+
+### EVO-041 敏捷实践与 BDD 验收格式适配规则
+
+- 类型：tech-debt
+- 优先级：P1
+- 状态：Done
+- 父 Epic：无
+- 用户价值或技术目标：让 Evolith 的 Agent 迭代治理能吸收传统敏捷和 BDD 的可验证性，
+  同时保留本项目“计划基线、库存盘点、命令级证据、闭环归口”的执行边界，避免后续
+  Agent 机械套用 Scrum 或把所有任务都写成不合适的用户故事。
+- 范围：
+  - 定义 Evolith `iteration` 与传统 Scrum `Sprint` 的关系、差异和适用节奏。
+  - 为产品故事、API/权限/状态故事、技术故事、治理文档故事和 spike 定义不同表述方式。
+  - 明确哪些任务必须使用 Given/When/Then BDD 场景，哪些任务可用等价技术验收。
+  - 将 Story / BDD 质量检查接入 DoR、迭代计划、文档一致性检查和模板。
+  - 写回本次方法论经验，作为后续 Agent 判断依据。
+- 不做：
+  - 不引入完整 Scrum 仪式、团队容量统计或固定冲刺承诺。
+  - 不修改业务代码、测试代码、CI/CD 或部署策略。
+  - 不提交外部 `agent-project-governance` skill；仅按用户要求同步内容，提交由用户另行处理。
+- 验收标准：
+  - [x] `REQUIREMENT-INTAKE.md` 定义 Story 类型、BDD 适用规则与等价技术验收规则。
+  - [x] `ITERATION-WORKFLOW.md` 说明 Evolith iteration 与传统 Sprint 的映射和差异。
+  - [x] `DOC-CHECK.md` 能检查 Story / BDD / 技术验收的一致性。
+  - [x] `ITERATION-TEMPLATE.md` 在计划验收和闭环台账中承接 BDD 适用性。
+  - [x] `AGENTS.md` 入口约束和 `EVOLUTION.md` 经验记录覆盖该方法论。
+  - [x] `agent-project-governance` skill 同步体现 Sprint / iteration / Story / BDD 适配方法。
+  - [x] Markdown 链接检查和 `git diff --check` 通过。
+- 依赖或阻塞：无；本故事为治理改进，可在不激活产品 planned iteration 的情况下实施。
+- 影响范围：docs / external skill
+- 最小验证方式：执行 Markdown 相对链接检查；`git diff --check`；运行 skill 结构校验。
 
 ## 下一批建议
 
