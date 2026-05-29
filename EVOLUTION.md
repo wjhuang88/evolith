@@ -16,6 +16,7 @@
 | 5 | CSRF 403 | 状态变更请求缺少 `csrf_token` cookie 或 `X-CSRF-Token` header | 先完成登录/刷新，再由 API client 自动带 header |
 | 6 | Skill 执行未进入 Docker 沙箱 | Docker 初始化失败后降级到 default executor | 查看后端启动日志中的 sandbox warn |
 | 7 | lite 模式种子账号不能登录 | migrations 中的测试/admin 密码哈希是占位值，且 SQLite 内存库重启即清空 | 启动后通过注册接口创建临时账号 |
+| 8 | 前端改了但 release 二进制没更新 | `rust-embed-for-web` proc macro 不跟踪 dist 目录变更 | 确认 `build.rs` 中有 `cargo:rerun-if-changed` 指向前端 dist |
 
 ---
 
@@ -43,6 +44,26 @@ ZIP 方案并持续优化。对 ZIP 的深度优化本身就是浪费——如�
 5. 写 ADR 记录决策
 
 **相关**: [ADR-0003](docs/decisions/ADR-0003-embedded-frontend-rust-embed-for-web.md)
+
+### 2026-05-28 rust-embed-for-web 嵌入方案需要 build.rs 监听 dist 目录变更
+
+**现象**: 用 `rust-embed-for-web` 替换 ZIP 方案后，只改前端代码（`bun run build` 产出新 dist），
+`cargo build --release` 显示 0.66s 完成，实际二进制中嵌入的仍是旧版前端资源。
+浏览器打开页面看不到前端变更。
+
+**根因**: `rust-embed-for-web` 的 proc macro 在编译时读取 `#[folder]` 指向的文件并嵌入二进制。
+Cargo 的增量编译只跟踪 Rust 源码（`.rs`）和 `build.rs` 输出的 `cargo:rerun-if-changed` 指令。
+前端 dist 目录变更不触发 proc macro 重新执行。
+
+**方案**: 在 `backend/build.rs` 中添加 `cargo:rerun-if-changed=../frontend/dist/index.html` 和
+`cargo:rerun-if-changed=../frontend/dist/assets/` 指令。前端 dist 文件变更时 cargo 检测到
+rerun 触发条件，重新编译包含 `#[derive(RustEmbed)]` 的 crate。
+
+**规则**: 任何使用编译时文件嵌入（`include_bytes!`、`rust-embed`、`rust-embed-for-web`）
+的 Rust 项目，如果嵌入内容来源不是 `.rs` 文件，必须在 `build.rs` 中声明 `cargo:rerun-if-changed`
+指向实际嵌入文件或目录。
+
+**相关**: [ADR-0003](docs/decisions/ADR-0003-embedded-frontend-rust-embed-for-web.md)、Iteration 031
 
 ### 2026-05-28 Story 格式要按任务性质分型，而不是机械套用户故事
 
