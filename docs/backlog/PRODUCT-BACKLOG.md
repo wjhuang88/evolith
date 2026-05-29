@@ -64,6 +64,8 @@
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
 | EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Proposed | EVO-045/047 前置 | 设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路 |
+| EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | feature | P0 | Proposed | 用户反馈 2026-05-29 | Skill 和 CLI 完全兼容 Agent Skills 规范（agentskills.io），支持目录结构、frontmatter 校验、制品打包，成为大生态的一部分 |
+| EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
 
 
 ## 故事模板
@@ -836,7 +838,7 @@
   - [ ] 支持两种模式：平台 serverless 执行 + 外部执行 URL 代理
   - [ ] Agent 可通过 MCP tool 或 CLI endpoint 发现和调用已注册的 CLI 命令
   - [ ] 前端创建/编辑页支持结构化命令定义（不只是代码编辑器）
-- 依赖或阻塞：EVO-048 Serverless 架构设计 Spike 完成
+- 依赖或阻塞：EVO-048 Serverless 架构设计 Spike 完成；EVO-049 Phase 2（CLI 数据模型结构化字段就绪后执行引擎才能正确路由命令）
 - 影响范围：backend（domain、service、API）/ frontend / db migration / docs
 - 最小验证方式：后端集成测试覆盖命令注册+执行+调用全链路；前端创建页手工验证
 - 不做：不实现本地 CLI 客户端（Rust CLI 另建 story）；不实现命令版本管理（EVO-028 范围）
@@ -858,7 +860,7 @@
   - [ ] 一键安装到 Agent 工作空间（记录安装关系，Agent 可引用已安装 Skill）
   - [ ] 已安装 Skill 列表管理（查看、更新、卸载）
   - [ ] Skill 服务移除 Docker sandbox 执行逻辑，sandbox 代码迁移到 CLI/MCP 服务
-- 依赖或阻塞：EVO-048（sandbox 复用方案确定）
+- 依赖或阻塞：EVO-049 Phase 3（Skill 制品打包 API 就绪后才能实现下载和安装）
 - 影响范围：backend（service-skill 重构、新增安装服务）/ frontend / db migration / docs
 - 最小验证方式：下载 API 返回有效制品包；安装后 Agent 工作空间可见已安装 Skill
 - 不做：不实现 Skill 评分/评论（远期市场功能）；不实现 Skill 自动执行
@@ -908,3 +910,158 @@
 - 影响范围：docs（ADR/proposal）
 - 最小验证方式：设计文档通过 review；冷启动基准测试有数据
 - 不做：不实现 serverless runtime（仅设计）；不实现 Vercel 完整模式
+
+### EVO-049 Skill/CLI 生态兼容与行业标准对齐
+
+- 类型：feature / Epic
+- 优先级：P0
+- 状态：Proposed
+- 用户价值或技术目标：让 Evolith 平台的 Skill 和 CLI 完全兼容 Agent Skills 行业规范（agentskills.io），使任何支持该规范的 Agent 工具（Claude Codex、OpenAI Codex 等）都能使用 Evolith 上的 Skill 和 CLI，成为大生态的一部分。
+
+#### 行业标准兼容性现状
+
+Evolith SKILL-FORMAT.md 在 Agent Skills 规范 6 个标准字段（name/description/license/compatibility/metadata/allowed-tools）上完全匹配。主要差距：
+
+| 项目 | 当前状态 | 目标 |
+|------|----------|------|
+| `version`/`author`/`tags` | 顶层 frontmatter 字段（非标准） | 移入 `metadata` 下，顶层保留兼容别名 |
+| `when_to_use` | 缺失 | 新增，Claude Code 扩展字段 |
+| `arguments` | 缺失 | 新增，支持 `$0`/`$name` 位置参数替换 |
+| 目录结构（scripts/references/assets） | 格式文档定义了，但存储只存 `skill_md` 单文本 | 支持完整目录打包和对象存储 |
+| Frontmatter 解析器 | 已实现（`service-skill/parser.rs`、`service-snippet/parser.rs`）但未接线到 handler | 在创建/导入/更新流程中调用 |
+| CLI 结构化字段 | 格式文档定义了（command/inputs/output/error_model），但模型只有 name/language/code/content | 数据模型新增所有 CLI 格式字段 |
+| 制品打包/下载 | 无 | ZIP 打包下载 API，外部工具可直接使用 |
+
+#### 实施子任务与顺序
+
+**Phase 1：数据模型升级（前后端对齐）**
+
+1. **DB migration — skills 表新增列**
+   - SQLite + PostgreSQL 双轨 migration
+   - 新增列：`author TEXT`、`tags JSON`、`skill_type TEXT DEFAULT 'instruction'`、`execution TEXT DEFAULT 'client'`、`entrypoint TEXT`、`timeout INTEGER DEFAULT 30`、`memory_mb INTEGER DEFAULT 256`、`permissions JSON`、`license TEXT`、`compatibility TEXT`、`disable_model_invocation BOOLEAN DEFAULT 0`、`user_invocable BOOLEAN DEFAULT 1`、`argument_hint TEXT`、`skill_package_path TEXT`
+   - 现有 `skill_md` 列保留，存放完整 SKILL.md 原文；新列存放解析后的结构化字段
+
+2. **DB migration — snippets 表新增列（CLI 字段）**
+   - 新增列：`version TEXT`、`summary TEXT`、`command TEXT`、`subcommands JSON`、`inputs JSON`、`output JSON`、`examples JSON`、`error_model JSON`
+   - 现有 `language`/`framework`/`code` 列保留兼容；`command` 替代 `code` 的语义角色
+
+3. **Domain model 更新**
+   - `Skill` 结构体：新增所有 migration 列对应的 Rust 字段
+   - `NewSkill`/`UpdateSkill`：同步新增可选字段
+   - `Snippet` 结构体：新增 CLI Interface 字段（version/summary/command/subcommands/inputs/output/examples/error_model）
+   - `NewSnippet`/`UpdateSnippet`：同步新增
+
+4. **DTO 更新**
+   - `CreateSkillRequest`/`SkillResponse`：新增 author/tags/skill_type/execution/entrypoint/timeout/memory_mb/permissions/license/compatibility 等字段
+   - `CreateSnippetRequest`/`SnippetResponse`：新增 version/summary/command/subcommands/inputs/output/examples/error_model
+   - `SkillResponse`：移除硬编码空字符串的 `category`/`tags`，改为真实字段映射
+
+5. **Repository 实现**
+   - 4 个 repo 实现（SQLite skill/snippet + PostgreSQL skill/snippet）的 SQL 和映射同步更新
+
+**Phase 2：Parser 接线与校验**
+
+6. **Skill handler 接线 SkillParser**
+   - `create_skill`：接收 content → `SkillParser::parse()` → 提取 metadata 字段 → 存入结构化列 + `skill_md` 存原文
+   - `update_skill`：同上
+   - `load_skill`/`execute_skill`：使用 `entrypoint` + `skill_package_path` 定位代码，不再把 `skill_md` 当代码执行
+
+7. **Snippet handler 接线 CliInterfaceParser**
+   - `create_snippet`：接收 content → `CliInterfaceParser::parse()` → 提取 metadata → 存入结构化列
+   - `update_snippet`：实现（当前 501）
+
+8. **Frontmatter 校验**
+   - 创建和导入时校验：name 格式（小写+连字符，≤64字符，无连续/首尾连字符）、description 非空且 ≤1024字符、name 无 XML 标签、name 无保留词（anthropic/claude）
+   - 对齐 OpenAI `quick_validate.py` 规则
+   - 区分 blocking error 和 warning
+
+**Phase 3：制品打包与导入**
+
+9. **Skill 制品打包/下载 API**
+   - `GET /api/v1/skills/{id}/package` → 返回 ZIP（SKILL.md + scripts/ + references/ + assets/ + src/）
+   - ZIP 内目录名 = skill name，符合 Agent Skills 规范
+   - 对象存储（MinIO/S3）存放 ZIP，DB 记录 `skill_package_path`
+
+10. **Skill 导入 API**
+    - `POST /api/v1/skills/import` — 接受 ZIP 上传或 Git URL
+    - 解压/clone → 校验目录结构（必须含 SKILL.md）→ 解析 frontmatter → 存储
+    - 返回导入报告（成功/校验问题/资源清单）
+
+11. **CLI 制品打包/下载 API**
+    - `GET /api/v1/snippets/{id}/package` → 返回 CLI Interface 描述文件（YAML frontmatter + Markdown body）
+
+12. **CLI 导入 API**
+    - `POST /api/v1/snippets/import` — 接受标准 CLI Interface 文件或 URL
+
+**Phase 4：前端升级**
+
+13. **Skill 创建/编辑表单升级**
+    - 支持 runtime 选择（Python/Node/Wasm）
+    - 支持 dependencies 编辑
+    - 支持 SKILL.md 编辑器（带 frontmatter 高亮）
+    - 支持 scripts/references/assets 文件管理（上传/预览）
+    - 导入向导（ZIP 上传 / Git URL）
+
+14. **CLI 创建/编辑表单升级**
+    - 支持 command 输入
+    - 支持 inputs schema 构建器（参数名、类型、必填、默认值、枚举值）
+    - 支持 output schema 编辑
+    - 支持 examples 编辑（command + input + output）
+    - 支持 error_model 编辑（code + message + retryable）
+
+#### 验收标准
+
+- [ ] Skills 表包含 Agent Skills 规范所有标准字段的结构化列
+- [ ] 创建 Skill 时 frontmatter 被解析并存入结构化字段（不再只存原文）
+- [ ] Frontmatter 校验覆盖 name/description/license/compatibility 全部规则
+- [ ] Skill 打包下载 API 返回符合 Agent Skills 规范的 ZIP
+- [ ] 从 GitHub 导入 OpenAI skill-creator 和 cli-creator 成功
+- [ ] Evolith 导出的 Skill 可被 Claude Codex / OpenAI Codex 正确识别
+- [ ] CLI 数据模型包含 command、inputs、output、error_model、examples 结构化字段
+- [ ] CLI 创建表单支持结构化命令定义（不只是代码编辑器）
+- [ ] SQLite + PostgreSQL 双轨 migration 和 repository 同步更新
+- [ ] `cargo test --workspace` 通过；`bun run build` 通过
+
+- 依赖或阻塞：无（可与 EVO-046 并行推进 Phase 1/2）
+- 影响范围：backend（domain model、DTO、service、handler、migration、storage）/ frontend（创建/编辑表单）/ docs（格式规范更新）
+- 最小验证方式：导入 OpenAI skills 仓库中的 skill-creator 和 cli-creator 成功；导出 Skill 可被外部工具解析；全部测试通过
+- 不做：不实现 Skill 执行环境迁移（EVO-046）；不实现 CLI 执行引擎（EVO-045）；不实现评分体系（EVO-050）
+
+#### 依赖关系
+
+```
+EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打包/导入）→ Phase 4（前端）
+                                                        ↗
+                        EVO-046（Skill 制品化）           │
+                        EVO-050（评分体系）────── 依赖 Phase 2 完成
+```
+
+### EVO-050 Skill/CLI 评分与质量体系
+
+- 类型：feature
+- 优先级：P1
+- 状态：Proposed
+- 用户价值或技术目标：平台提供 Skill/CLI 组件的评分和质量评估能力，支撑生态中的发现、信任和筛选。用户可对组件评分，平台自动评估质量指标。
+- 核心设计：
+  1. **用户评分**：1-5 星评分 + 可选文字评价，展示组件平均分和评价数量
+  2. **使用统计**：下载量、安装量、调用频次，作为热门度排序信号
+  3. **质量评估**（自动计算质量分数，0-100）：
+     - **Frontmatter 完整性**（30 分）：必选字段 name+description 满分 20，每多一个可选字段（author/tags/license/compatibility）加 2.5
+     - **Description 质量**（20 分）：非空 10 分，长度 > 50 字符 +5，同时包含"做什么"和"何时使用" +5
+     - **资源丰富度**（30 分）：有 scripts/ +10，有 references/ +10，有 assets/ +5，有 examples +5
+     - **结构合规**（20 分）：name 符合格式 +5，目录名匹配 +5，SKILL.md < 500 行 +5，文件引用正确 +5
+  4. **信任信号**：是否经过验证、官方标记、安全扫描通过
+  5. **排序/筛选**：列表页支持按评分、下载量、更新时间、质量分数排序
+  6. **评分数据模型**：
+     - `Rating`：id, user_id, component_id, component_type(skill/cli), score(1-5), comment, created_at
+     - `ComponentStats`：component_id, component_type, avg_rating, rating_count, download_count, install_count, call_count, quality_score, updated_at
+- 验收标准：
+  - [ ] 组件详情页展示平均评分、评价数、下载量、质量分数
+  - [ ] 用户可对已使用的组件提交 1-5 星评分和文字评价
+  - [ ] 创建/导入时自动计算质量分数（frontmatter 完整性 + description 质量 + 资源丰富度 + 结构合规）
+  - [ ] 列表页支持按评分/下载量/更新时间/质量分数排序
+  - [ ] SQLite + PostgreSQL 双轨 migration
+- 依赖或阻塞：EVO-049 Phase 2（Parser 接线后质量评估维度才准确）
+- 影响范围：backend（新增 Rating/ComponentStats 模型、repository、handler）/ frontend（评分 UI、列表排序）/ db migration
+- 最小验证方式：评分 API 创建和查询；质量评估对 OpenAI skill-creator 产出合理分数（预期 ≥ 80）
+- 不做：不实现安全扫描（远期）；不实现付费推荐/置位（远期市场功能）
