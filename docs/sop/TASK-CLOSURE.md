@@ -70,6 +70,30 @@
 3. 在 iteration / backlog 验收记录中写真实命令及结果。
 4. 失败或未运行的必需检查不得勾选通过；应修复、降为 `Partial` 或登记阻塞。
 
+#### 验证矩阵
+
+根据变更类型选择最低验证要求：
+
+| 变更面 | 最低证据 | 门禁强度 |
+|--------|----------|----------|
+| Rust 业务代码 | `cargo test -p <crate>` 通过 + `lsp_diagnostics` 无 error | hard required |
+| Rust API handler | 上述 + 集成测试覆盖 handler 路径 | hard required |
+| 数据库 migration | SQLite + PostgreSQL 双轨验证 | hard required |
+| API 合约变更 | 更新 `API-CONTRACT.md` + 前端 API client 对齐 | hard required |
+| 前端页面/组件 | `bun run build` 0 errors | hard required |
+| 前端 i18n | key 与 locale 文件匹配（grep 交叉检查） | recommended |
+| 权限/RBAC | 公开/受保护路由矩阵 + 未授权访问测试 | hard required |
+| 配置/环境变量 | `cargo check --workspace` 通过 + 配置文档同步 | hard required |
+| 脚本行为变更 | 测试执行 + `SCRIPTS-RELEASE-NOTES.md` 更新 | hard required |
+| 治理文档 | 链接有效 + 无断链（DOC-CHECK） | recommended |
+| 重构 | 重构前后测试全通过 + 无新增 clippy warning | hard required |
+| 纯文档/注释 | 无代码诊断要求 | documented |
+
+门禁强度说明：
+- **hard required**：未通过不得报告 `Complete`。
+- **recommended**：应执行；跳过需在收口结论中说明原因。
+- **documented**：无需自动验证，但变更应有迹可查。
+
 ### 4. 同步
 
 逐项确认是否适用并更新：
@@ -116,6 +140,14 @@
   `Complete`。
 - 发现残余但不属于当前范围：在 backlog/iteration 中登记归口，再报告当前切片结果。
 - 权限或用户决策阻塞：保留已验证产物，列明等待条件，结论使用 `Blocked`。
+
+## 前向测试
+
+当本 SOP 本身或治理文档被修改时，在交付前用至少一个真实场景验证：
+构造一个"表面完成但实质未闭环"的情境（如：文件已创建但验证未运行、状态未同步、
+残余未登记），确认 Agent 不会仅凭文件存在就声明 `Complete`。
+
+此测试不要求每次收口都执行，仅在治理规则变更时需要。
 
 ## 相关文档
 
