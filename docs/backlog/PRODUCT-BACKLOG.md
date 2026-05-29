@@ -59,6 +59,11 @@
 | EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Done | 排期库存审计 2026-05-27 | Iteration 021；修复邮箱验证与 Skill 更新接口的收口漂移 |
 | EVO-041 | 敏捷实践与 BDD 验收格式适配规则 | tech-debt | P1 | Done | 用户方法论反馈 2026-05-28 | Iteration 022；明确 Evolith iteration 与传统 Sprint、Story 与 BDD 的适配口径 |
 | EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Ready | 用户需求 / Iteration 030 | 审计 backend workspace 所有 crate 依赖，升级到最新稳定版并验证编译/测试通过 |
+| EVO-044 | 前端 CLI 命名简化 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | 导航、页面、i18n 中 "CLI Interfaces" / "CLI 接口" 统一简化为 "CLI" |
+| EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
+| EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
+| EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
+| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Proposed | EVO-045/047 前置 | 设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路 |
 
 
 ## 故事模板
@@ -795,3 +800,111 @@
 - 依赖或阻塞：EVO-028 的校验报告模型。
 - 影响范围：backend / frontend / docs
 - 最小验证方式：描述质量检查单测；前端新建页文案检查；搜索结果基本回归。
+
+### EVO-044 前端 CLI 命名简化
+
+- 类型：product-change
+- 优先级：P1
+- 状态：Proposed
+- 用户价值或技术目标：缩短导航和页面中的 "CLI Interfaces" / "CLI 接口" 为 "CLI"，降低认知负担，与 Tools / Skills 保持同级简洁度。
+- 验收标准：
+  - [ ] 导航栏、页面标题、面包屑、空状态、按钮中 "CLI Interfaces" / "CLI 接口" 统一为 "CLI"
+  - [ ] i18n 两个 locale 文件同步更新
+  - [ ] `bun run build` 通过，无回归
+- 依赖或阻塞：无
+- 影响范围：frontend（i18n、Header、页面组件）
+- 最小验证方式：`bun run build` 0 errors；视觉回归导航和页面标题
+- 不做：不改后端 API 路径、不改数据模型字段名
+
+### EVO-045 CLI 命令执行引擎（Serverless）
+
+- 类型：feature
+- 优先级：P0
+- 状态：Proposed
+- 用户价值或技术目标：将 CLI 从纯代码文本记录升级为可执行的命令接口，让用户在 Agent 工作空间中发现、调用和管理 CLI 命令，获得结构化输入输出和错误语义。
+- 核心设计：
+  1. **结构化命令定义**：command、subcommands、参数 schema（类型、必填、默认值、枚举）、output schema、error model
+  2. **Serverless 执行引擎**：
+     - 本地版（近期）：复用 Phase 7 Docker sandbox 基础设施，按需启动容器执行命令，支持冷启动优化
+     - Vercel 完整模式（远期）：函数部署、自动扩缩、按调用计费
+  3. **外部执行支持**：CLI 也可仅记录外部执行 URL（如用户自建的 serverless 函数），平台做代理调用
+  4. **Agent 集成**：CLI 命令可被 MCP tool 系统发现和调用，或通过独立 CLI endpoint 暴露
+- 验收标准：
+  - [ ] CLI 数据模型支持结构化命令定义（command、parameters、output schema、error model）
+  - [ ] 后端提供 CLI 执行 endpoint（输入命令+参数 → 结构化结果 stdout/stderr/exit code）
+  - [ ] 执行环境有资源限制（CPU/内存/超时）和安全隔离
+  - [ ] 支持两种模式：平台 serverless 执行 + 外部执行 URL 代理
+  - [ ] Agent 可通过 MCP tool 或 CLI endpoint 发现和调用已注册的 CLI 命令
+  - [ ] 前端创建/编辑页支持结构化命令定义（不只是代码编辑器）
+- 依赖或阻塞：EVO-048 Serverless 架构设计 Spike 完成
+- 影响范围：backend（domain、service、API）/ frontend / db migration / docs
+- 最小验证方式：后端集成测试覆盖命令注册+执行+调用全链路；前端创建页手工验证
+- 不做：不实现本地 CLI 客户端（Rust CLI 另建 story）；不实现命令版本管理（EVO-028 范围）
+
+### EVO-046 Skill 可下载制品与 Agent 一键安装
+
+- 类型：product-change
+- 优先级：P1
+- 状态：Proposed
+- 用户价值或技术目标：Skill 从服务端 Docker sandbox 执行改为可下载制品（参考 ClawHub 模式），用户可搜索、下载 Skill 并一键安装到自己的 Agent 工作空间中使用。
+- 核心设计：
+  1. **制品市场**：Skill 作为可搜索、可下载的制品包（SKILL.md + 代码 + 资源文件），类似 npm package
+  2. **一键安装**：用户选择 Skill → 安装到自己的 Agent 工作空间 → Agent 可在本地使用该 Skill
+  3. **版本与来源追踪**：记录安装来源、版本、安装时间，支持更新检查
+  4. **Docker sandbox 迁移**：Phase 7 的 sandbox 执行器从 Skill 服务中移除，挪给 CLI/MCP 使用
+- 验收标准：
+  - [ ] Skill 列表页支持搜索、筛选、预览制品详情
+  - [ ] 提供 Skill 下载 API（打包为 ZIP 或 tar.gz）
+  - [ ] 一键安装到 Agent 工作空间（记录安装关系，Agent 可引用已安装 Skill）
+  - [ ] 已安装 Skill 列表管理（查看、更新、卸载）
+  - [ ] Skill 服务移除 Docker sandbox 执行逻辑，sandbox 代码迁移到 CLI/MCP 服务
+- 依赖或阻塞：EVO-048（sandbox 复用方案确定）
+- 影响范围：backend（service-skill 重构、新增安装服务）/ frontend / db migration / docs
+- 最小验证方式：下载 API 返回有效制品包；安装后 Agent 工作空间可见已安装 Skill
+- 不做：不实现 Skill 评分/评论（远期市场功能）；不实现 Skill 自动执行
+
+### EVO-047 MCP 工具 Serverless 执行
+
+- 类型：feature
+- 优先级：P1
+- 状态：Proposed
+- 用户价值或技术目标：MCP 工具支持 serverless 执行环境（与 CLI 共享基础设施），或仅记录外部执行 URL 由平台代理调用。
+- 核心设计：
+  1. **Serverless 执行**：MCP 工具处理函数部署到 serverless runtime，按需调用
+  2. **外部执行代理**：MCP 工具记录外部 HTTP endpoint，平台做代理调用（当前 HTTP executor 增强）
+  3. **与 CLI 共享基础设施**：复用 EVO-045/048 的 serverless runtime
+- 验收标准：
+  - [ ] MCP 工具支持 serverless 执行模式（工具处理函数部署到 runtime）
+  - [ ] MCP 工具支持外部执行模式（记录 URL，代理调用）
+  - [ ] 执行环境有资源限制和安全隔离
+  - [ ] 与 CLI 共享 serverless runtime 基础设施
+- 依赖或阻塞：EVO-045（CLI serverless）+ EVO-048（架构设计）
+- 影响范围：backend（service-tool 增强）/ db migration / docs
+- 最小验证方式：MCP tool 注册 + serverless 执行 + 调用全链路测试
+- 不做：不实现 MCP 协议完整服务端（当前只做 tool 执行层）
+
+### EVO-048 Serverless 执行架构设计 Spike
+
+- 类型：spike
+- 优先级：P0
+- 状态：Proposed
+- 用户价值或技术目标：为 CLI（EVO-045）和 MCP（EVO-047）设计统一的 serverless 执行架构，确定本地版实现方案和远期 Vercel 模式的演进路径。
+- 调研范围：
+  1. **Phase 7 sandbox 复用评估**：当前 Docker sandbox（bollard + Python/Node runtime）能否作为 serverless 基础？冷启动延迟、资源开销、并发能力
+  2. **本地 serverless runtime 设计**：
+     - 函数部署模型：用户上传代码 → 构建镜像 → 按需启动容器
+     - 冷启动优化：预热池、容器复用、快照恢复
+     - 资源限制：CPU/内存/超时/PIDs（复用现有 sandbox 限制）
+     - 并发模型：请求路由、实例扩缩
+  3. **外部执行代理设计**：统一抽象层，内部 serverless 和外部 HTTP 调用使用相同接口
+  4. **远期 Vercel 模式演进**：哪些组件需要替换（Docker → 真实 serverless 平台），哪些可以保留
+- 验收标准：
+  - [ ] 输出架构设计文档（ADR 或 proposal），包含本地版实现方案和演进路径
+  - [ ] Phase 7 sandbox 复用可行性结论（复用 / 部分复用 / 替换）
+  - [ ] 冷启动延迟基准测试（目标 < 2s）
+  - [ ] 外部执行代理接口设计
+  - [ ] 远期 Vercel 模式的组件替换清单
+- 依赖或阻塞：无
+- 影响范围：docs（ADR/proposal）
+- 最小验证方式：设计文档通过 review；冷启动基准测试有数据
+- 不做：不实现 serverless runtime（仅设计）；不实现 Vercel 完整模式
