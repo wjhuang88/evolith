@@ -71,10 +71,10 @@
 
 - [Iteration 009](ITERATION-009.md) — `Closed`：EVO-040 完成收口。
 - [Iteration 010](ITERATION-010.md) — `Closed`：EVO-040 完成收口。
-- [Iteration 012](ITERATION-012.md) — `Planned / Blocked`：继续阻塞，等待 EVO-016-B
-  (Iteration 030) 完成后更新激活条件；Iteration 030 已启动流式实现。
-- [Iteration 017](ITERATION-017.md) — `Planned / Ready for activation`：只发布计划
-  基线；激活前重新核对 EVO-026 的 DoR 与旧 `/snippets` 路由策略。
+- [Iteration 012](ITERATION-012.md) — `Superseded by Iteration 031`：EVO-016-B 已由
+  Iteration 031 完成，本计划不再激活。
+- [Iteration 017](ITERATION-017.md) — `Closed`：EVO-026 前端 CLI Interface 概念收口；
+  前端代码符号 Snippet→CliInterface 重命名 + UI 迁移完成。
 - [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
   `Planned / Blocked`：按 Phase E 依赖链保留排期，待前置计划和各 story DoR 满足后
   逐轮激活。

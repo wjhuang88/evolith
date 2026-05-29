@@ -51,7 +51,7 @@
     "dashboard": "Dashboard",
     "tools": "Tools",
     "skills": "Skills",
-    "snippets": "Snippets",
+    "interfaces": "CLI Interfaces",
     "docs": "Docs",
     "settings": "Settings",
     "signIn": "Sign in",
@@ -62,7 +62,7 @@
   "landing": {
     "hero": {
       "title": "Build AI Agents Faster",
-      "subtitle": "Evolith provides MCP tools, hybrid skills, and code snippets to accelerate your AI agent development. One platform, endless possibilities.",
+      "subtitle": "Evolith provides MCP tools, hybrid skills, and CLI interfaces to accelerate your AI agent development. One platform, endless possibilities.",
       "getStarted": "Get Started Free",
       "learnMore": "Learn More"
     },
@@ -77,9 +77,9 @@
         "title": "Hybrid Skills",
         "description": "Claude Skills compatible format with server-side execution. Share and reuse skills across projects."
       },
-      "snippets": {
-        "title": "Code Snippets",
-        "description": "LLM-optimized documentation repository. Reduce token consumption and improve development efficiency."
+      "interfaces": {
+        "title": "CLI Interfaces",
+        "description": "Machine-readable interface definitions with stable commands, parameter schemas, and usage examples for LLM and CLI consumption."
       }
     },
     "cta": {
@@ -205,8 +205,8 @@
       "mcpToolsAvailable": "MCP tools available",
       "skills": "Skills",
       "customSkills": "Custom skills",
-      "snippets": "Snippets",
-      "codeSnippets": "Code snippets",
+      "interfaces": "CLI Interfaces",
+      "cliInterfaces": "CLI interface definitions",
       "apiCalls": "API Calls",
       "thisMonth": "This month"
     },
@@ -215,7 +215,7 @@
       "subtitle": "Common tasks to get started",
       "addTool": "Add Tool",
       "createSkill": "Create Skill",
-      "addSnippet": "Add Snippet",
+      "addInterface": "Add CLI Interface",
       "teamMembers": "Team Members"
     },
     "organization": {
@@ -362,11 +362,11 @@
       "failedToCreate": "Failed to create skill"
     }
   },
-  "snippets": {
-    "title": "Code Snippets",
-    "subtitle": "LLM-optimized code snippet repository to reduce token consumption",
-    "createSnippet": "Create Snippet",
-    "noSnippets": "No snippets available yet. Create your first snippet to get started.",
+  "interfaces": {
+    "title": "CLI Interfaces",
+    "subtitle": "Machine-readable interface definitions for LLM and CLI consumption",
+    "createInterface": "Create Interface",
+    "noInterfaces": "No CLI interfaces available yet. Create your first interface to get started.",
     "getReference": "Get Reference",
     "copyCode": "Copy Code",
     "copyJSON": "Copy JSON",
@@ -381,45 +381,66 @@
     "dependencies": "Dependencies",
     "code": "Code",
     "estimatedTokens": "Estimated Tokens",
-    "searchPlaceholder": "Search snippets...",
-    "loadingSnippets": "Loading snippets...",
-    "failedToLoad": "Failed to load snippets",
+    "searchPlaceholder": "Search CLI interfaces...",
+    "loadingInterfaces": "Loading CLI interfaces...",
+    "failedToLoad": "Failed to load CLI interfaces",
     "failedToConnect": "Failed to connect to server",
-    "backToSnippets": "Back to Snippets",
-    "snippetNotFound": "Snippet not found",
-    "failedToLoadSnippet": "Failed to load snippet",
-    "deleteSnippet": "Delete",
-    "confirmDelete": "Are you sure you want to delete this snippet?",
+    "backToInterfaces": "Back to CLI Interfaces",
+    "interfaceNotFound": "CLI interface not found",
+    "failedToLoadInterface": "Failed to load CLI interface",
+    "deleteInterface": "Delete",
+    "confirmDelete": "Are you sure you want to delete this CLI interface?",
     "failedToDelete": "Failed to delete",
-    "failedToDeleteSnippet": "Failed to delete snippet",
+    "failedToDeleteInterface": "Failed to delete CLI interface",
     "languageLabel": "Language",
     "categoryLabel": "Category",
     "referenceTitle": "Reference",
-    "referenceDesc": "Get formatted code for LLM consumption",
+    "referenceDesc": "Get formatted interface definition for LLM consumption",
     "loadingReference": "Loading reference...",
     "noReferenceData": "No reference data",
     "estimatedTokensLabel": "Estimated tokens: {{count}}",
     "importLabel": "Import: {{path}}",
     "usageExample": "Usage Example",
     "codeTitle": "Code",
-    "newSnippet": {
-      "title": "Create New Snippet",
-      "subtitle": "Add a reusable code snippet for LLM consumption",
+    "newInterface": {
+      "title": "Create New CLI Interface",
+      "subtitle": "Add a reusable interface definition for LLM and CLI consumption",
       "basicInfo": "Basic Information",
-      "basicInfoDesc": "Snippet title, description, and metadata",
+      "basicInfoDesc": "Interface title, description, and metadata",
       "titleLabel": "Title *",
-      "titlePlaceholder": "snippet-title",
+      "titlePlaceholder": "interface-name",
       "descLabel": "Description *",
-      "descPlaceholder": "What does this snippet do?",
+      "descPlaceholder": "What does this interface do?",
       "languageLabel": "Language",
       "categoryLabel": "Category",
       "tagsLabel": "Tags (comma separated)",
       "tagsPlaceholder": "tag1, tag2, tag3",
-      "publicSnippet": "Public Snippet",
+      "publicInterface": "Public Interface",
       "codeTitle": "Code",
-      "codeDesc": "The actual code snippet",
-      "codePlaceholder": "// Your code here...",
-      "failedToCreate": "Failed to create snippet"
+      "codeDesc": "The actual interface definition",
+      "codePlaceholder": "// Your interface definition here...",
+      "failedToCreate": "Failed to create CLI interface"
+    },
+    "languages": {
+      "typescript": "TypeScript",
+      "javascript": "JavaScript",
+      "python": "Python",
+      "rust": "Rust",
+      "go": "Go",
+      "java": "Java",
+      "csharp": "C#",
+      "sql": "SQL",
+      "bash": "Bash",
+      "json": "JSON",
+      "yaml": "YAML",
+      "markdown": "Markdown"
+    },
+    "category": {
+      "custom": "Custom",
+      "utility": "Utility",
+      "api": "API",
+      "data": "Data",
+      "ai": "AI"
     }
   },
   "tenant": {
@@ -646,10 +667,10 @@
         "title": "Hybrid Skills",
         "description": "Create and execute skills with server-side code"
       },
-      "feature3": {
-        "title": "Code Snippets",
-        "description": "LLM-optimized code repository for efficient reuse"
-      }
+        "feature3": {
+          "title": "CLI Interfaces",
+          "description": "Machine-readable interface definitions for LLM and CLI consumption"
+        }
     },
     "step2": {
       "title": "Create Your First Tool",

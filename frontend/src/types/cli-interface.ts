@@ -1,4 +1,4 @@
-export interface Snippet {
+export interface CliInterface {
   id: string;
   name: string;
   language: string;
@@ -17,7 +17,7 @@ export interface Snippet {
   updatedAt: string;
 }
 
-export interface SnippetFilter {
+export interface CliInterfaceFilter {
   search?: string;
   language?: string;
   framework?: string;

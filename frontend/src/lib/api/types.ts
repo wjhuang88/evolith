@@ -160,10 +160,10 @@ export interface CreateSkillRequest {
 export interface UpdateSkillRequest extends Partial<CreateSkillRequest> {}
 
 // ============================================
-// Snippet Types
+// CLI Interface Types
 // ============================================
 
-export interface Snippet {
+export interface CliInterface {
   id: string;
   title: string;
   name?: string;
@@ -184,7 +184,7 @@ export interface Snippet {
   updated_at?: string;
 }
 
-export interface CreateSnippetRequest {
+export interface CreateCliInterfaceRequest {
   title: string;
   description: string;
   name?: string;
@@ -199,7 +199,7 @@ export interface CreateSnippetRequest {
   is_public?: boolean;
 }
 
-export interface UpdateSnippetRequest extends Partial<CreateSnippetRequest> {}
+export interface UpdateCliInterfaceRequest extends Partial<CreateCliInterfaceRequest> {}
 
 // ============================================
 // Payment & Billing Types
@@ -215,7 +215,7 @@ export interface Plan {
   max_users: number;
   max_tools: number;
   max_skills: number;
-  max_snippets: number;
+  max_cli_interfaces: number;
   max_api_calls_per_month: number;
   max_storage_mb: number;
   features: Record<string, unknown>;

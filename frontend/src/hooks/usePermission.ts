@@ -117,16 +117,16 @@ export function useResourcePermissions() {
     },
     canPublishSkill: isAdmin,
     
-    // Snippets
-    canCreateSnippet: true,
-    canUpdateSnippet: (snippetOwnerId?: string, currentUserId?: string) => {
+    // CLI Interfaces
+    canCreateInterface: true,
+    canUpdateInterface: (interfaceOwnerId?: string, currentUserId?: string) => {
       if (isAdmin) return true;
-      return snippetOwnerId === currentUserId;
+      return interfaceOwnerId === currentUserId;
     },
-    canDeleteSnippet: (snippetOwnerId?: string, currentUserId?: string) => {
+    canDeleteInterface: (interfaceOwnerId?: string, currentUserId?: string) => {
       if (isAdmin) return true;
-      return snippetOwnerId === currentUserId;
+      return interfaceOwnerId === currentUserId;
     },
-    canPublishSnippet: isAdmin,
+    canPublishInterface: isAdmin,
   };
 }

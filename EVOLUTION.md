@@ -196,6 +196,12 @@ story WIP 检查不能替代对在途、待收口和已排期 iteration 的库�
 **方案**: 新增 `docs/sop/GIT-WORKFLOW.md`，要求语义前缀、提交末尾 `[model: <name>]`、提交前查看 staged diff，脚本行为变更同步 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 **教训**: AI 参与提交必须保留模型和变更边界，Git 规范要写成 SOP，而不是口头约定。
 
+### 2026-05-29 前端概念迁移应先确认后端 API 兼容边界
+**现象**: EVO-026 需要将前端 "Snippet" 概念迁移为 "CLI Interface"，但后端 `/api/v1/snippets` 路径仍需保留。
+**根因**: ADR-0002 已确立 CLI Interface 方向，但后端 API 路由重命名被明确推迟到后续 story。前端迁移范围取决于后端兼容边界。
+**方案**: 前端代码符号全部重命名（Snippet→CliInterface），但 API client URL 路径保持 `/snippets`；旧前端路由 `/snippets*` 添加重定向到 `/interfaces*`。
+**教训**: 概念迁移实施前必须确认后端 API 兼容边界——前端符号可以改名，但 API 路径变更影响契约和客户端，需单独故事处理。
+
 ---
 
 ## Part 3: 维护规则

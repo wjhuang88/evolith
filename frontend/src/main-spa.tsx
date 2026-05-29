@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Providers } from './app/providers';
 import { LayoutWrapper } from './components/layout/LayoutWrapper';
 import '@/styles/globals.css';
@@ -21,9 +21,9 @@ import ToolDetailPage from './app/tools/[id]/page';
 import SkillsPage from './app/skills/page';
 import SkillNewPage from './app/skills/new/page';
 import SkillDetailPage from './app/skills/[id]/page';
-import SnippetsPage from './app/snippets/page';
-import SnippetNewPage from './app/snippets/new/page';
-import SnippetDetailPage from './app/snippets/[id]/page';
+import InterfacesPage from './app/interfaces/page';
+import InterfaceNewPage from './app/interfaces/new/page';
+import InterfaceDetailPage from './app/interfaces/[id]/page';
 import TenantSettingsPage from './app/tenant/settings/page';
 import TenantMembersPage from './app/tenant/members/page';
 import TenantBillingPage from './app/tenant/billing/page';
@@ -63,9 +63,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/skills/new" element={<SkillNewPage />} />
             <Route path="/skills/:id" element={<SkillDetailPage />} />
-            <Route path="/snippets" element={<SnippetsPage />} />
-            <Route path="/snippets/new" element={<SnippetNewPage />} />
-            <Route path="/snippets/:id" element={<SnippetDetailPage />} />
+            <Route path="/interfaces" element={<InterfacesPage />} />
+            <Route path="/interfaces/new" element={<InterfaceNewPage />} />
+            <Route path="/interfaces/:id" element={<InterfaceDetailPage />} />
+            <Route path="/snippets" element={<Navigate to="/interfaces" replace />} />
+            <Route path="/snippets/new" element={<Navigate to="/interfaces/new" replace />} />
+            <Route path="/snippets/:id" element={<Navigate to="/interfaces/:id" replace />} />
             <Route path="/tenant/settings" element={<TenantSettingsPage />} />
             <Route path="/tenant/members" element={<TenantMembersPage />} />
             <Route path="/tenant/billing" element={<TenantBillingPage />} />

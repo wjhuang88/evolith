@@ -37,7 +37,7 @@ function ResourceTypeIcon({ type }: { type: string }) {
     users: '👥',
     tools: '🔧',
     skills: '⚡',
-    snippets: '📝',
+    cli_interfaces: '📝',
     storage_mb: '💾',
   };
   return <span className="text-2xl">{icons[type] || '📊'}</span>;
@@ -49,7 +49,7 @@ function ResourceTypeLabel({ type }: { type: string }) {
     users: 'Users',
     tools: 'Tools',
     skills: 'Skills',
-    snippets: 'Snippets',
+    cli_interfaces: 'CLI Interfaces',
     storage_mb: 'Storage',
   };
   return <span className="font-medium">{labels[type] || type}</span>;

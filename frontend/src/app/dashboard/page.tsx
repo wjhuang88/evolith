@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores';
 import { toolsApi } from '@/lib/api/tools';
 import { skillsApi } from '@/lib/api/skills';
-import { snippetsApi } from '@/lib/api/snippets';
+import { cliInterfacesApi } from '@/lib/api/cli-interfaces';
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     tools: 0,
     skills: 0,
-    snippets: 0,
+    interfaces: 0,
     apiCalls: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -24,16 +24,16 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [toolsRes, skillsRes, snippetsRes] = await Promise.all([
+        const [toolsRes, skillsRes, interfacesRes] = await Promise.all([
           toolsApi.list(),
           skillsApi.list(),
-          snippetsApi.list(),
+          cliInterfacesApi.list(),
         ]);
 
         setStats({
           tools: toolsRes.data?.length || 0,
           skills: skillsRes.data?.length || 0,
-          snippets: snippetsRes.data?.length || 0,
+          interfaces: interfacesRes.data?.length || 0,
           apiCalls: Math.floor(Math.random() * 1000) + 100, // Mock for now
         });
       } catch (error) {
@@ -71,11 +71,11 @@ export default function DashboardPage() {
           description={t('dashboard.stats.customSkills')} 
           href="/skills"
         />
-        <StatCard 
-          title={t('dashboard.stats.snippets')} 
-          value={loading ? '...' : stats.snippets.toString()} 
-          description={t('dashboard.stats.codeSnippets')} 
-          href="/snippets"
+        <StatCard
+          title={t('dashboard.stats.interfaces')}
+          value={loading ? '...' : stats.interfaces.toString()}
+          description={t('dashboard.stats.cliInterfaces')}
+          href="/interfaces"
         />
         <StatCard 
           title={t('dashboard.stats.apiCalls')} 
@@ -94,7 +94,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <QuickActionButton label={t('dashboard.quickActions.addTool')} href="/tools/new" />
             <QuickActionButton label={t('dashboard.quickActions.createSkill')} href="/skills/new" />
-            <QuickActionButton label={t('dashboard.quickActions.addSnippet')} href="/snippets/new" />
+            <QuickActionButton label={t('dashboard.quickActions.addInterface')} href="/interfaces/new" />
             <QuickActionButton label={t('dashboard.quickActions.teamMembers')} href="/tenant/members" />
           </div>
         </CardContent>

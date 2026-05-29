@@ -2,17 +2,17 @@ import { apiClient, buildQueryString } from './client';
 import type {
   ApiResponse,
   PaginatedResponse,
-  Snippet,
-  CreateSnippetRequest,
-  UpdateSnippetRequest,
+  CliInterface,
+  CreateCliInterfaceRequest,
+  UpdateCliInterfaceRequest,
   ListQueryParams,
 } from './types';
 
 // ============================================
-// Snippets Service
+// CLI Interfaces Service
 // ============================================
 
-type BackendSnippetRequest = {
+type BackendCliInterfaceRequest = {
   name: string;
   language: string;
   framework?: string;
@@ -24,7 +24,7 @@ type BackendSnippetRequest = {
   is_public: boolean;
 };
 
-function toBackendSnippetRequest(data: CreateSnippetRequest | UpdateSnippetRequest): Partial<BackendSnippetRequest> {
+function toBackendCliInterfaceRequest(data: CreateCliInterfaceRequest | UpdateCliInterfaceRequest): Partial<BackendCliInterfaceRequest> {
   const name = data.name ?? data.title;
   return {
     ...(name !== undefined ? { name } : {}),
@@ -41,50 +41,50 @@ function toBackendSnippetRequest(data: CreateSnippetRequest | UpdateSnippetReque
   };
 }
 
-export const snippetsApi = {
+export const cliInterfacesApi = {
   /**
-   * List snippets with pagination and filters
+   * List CLI interfaces with pagination and filters
    */
-  async list(params?: ListQueryParams): Promise<PaginatedResponse<Snippet>> {
+  async list(params?: ListQueryParams): Promise<PaginatedResponse<CliInterface>> {
     const qs = params ? buildQueryString(params) : '';
-    const response = await apiClient.get<PaginatedResponse<Snippet>>(`/snippets${qs}`);
+    const response = await apiClient.get<PaginatedResponse<CliInterface>>(`/snippets${qs}`);
     return response.data;
   },
 
   /**
-   * Get a single snippet by ID
+   * Get a single CLI interface by ID
    */
-  async get(id: string): Promise<ApiResponse<Snippet>> {
-    const response = await apiClient.get<ApiResponse<Snippet>>(`/snippets/${id}`);
+  async get(id: string): Promise<ApiResponse<CliInterface>> {
+    const response = await apiClient.get<ApiResponse<CliInterface>>(`/snippets/${id}`);
     return response.data;
   },
 
   /**
-   * Create a new snippet
+   * Create a new CLI interface
    */
-  async create(data: CreateSnippetRequest): Promise<ApiResponse<Snippet>> {
-    const response = await apiClient.post<ApiResponse<Snippet>>('/snippets', {
+  async create(data: CreateCliInterfaceRequest): Promise<ApiResponse<CliInterface>> {
+    const response = await apiClient.post<ApiResponse<CliInterface>>('/snippets', {
       dependencies: [],
       tags: [],
       is_public: false,
-      ...toBackendSnippetRequest(data),
+      ...toBackendCliInterfaceRequest(data),
     });
     return response.data;
   },
 
   /**
-   * Update an existing snippet
+   * Update an existing CLI interface
    */
-  async update(id: string, data: UpdateSnippetRequest): Promise<ApiResponse<Snippet>> {
-    const response = await apiClient.put<ApiResponse<Snippet>>(
+  async update(id: string, data: UpdateCliInterfaceRequest): Promise<ApiResponse<CliInterface>> {
+    const response = await apiClient.put<ApiResponse<CliInterface>>(
       `/snippets/${id}`,
-      toBackendSnippetRequest(data)
+      toBackendCliInterfaceRequest(data)
     );
     return response.data;
   },
 
   /**
-   * Delete a snippet
+   * Delete a CLI interface
    */
   async delete(id: string): Promise<ApiResponse<null>> {
     const response = await apiClient.delete<ApiResponse<null>>(`/snippets/${id}`);
@@ -92,16 +92,16 @@ export const snippetsApi = {
   },
 
   /**
-   * Search snippets by code content
+   * Search CLI interfaces by code content
    */
-  async search(query: string, language?: string): Promise<ApiResponse<Snippet[]>> {
+  async search(query: string, language?: string): Promise<ApiResponse<CliInterface[]>> {
     const qs = buildQueryString({ q: query, language });
-    const response = await apiClient.get<ApiResponse<Snippet[]>>(`/snippets/search${qs}`);
+    const response = await apiClient.get<ApiResponse<CliInterface[]>>(`/snippets/search${qs}`);
     return response.data;
   },
 
   /**
-   * Get snippet categories
+   * Get CLI interface categories
    */
   async categories(): Promise<ApiResponse<string[]>> {
     return {
@@ -121,7 +121,7 @@ export const snippetsApi = {
   },
 
   /**
-   * Get snippet reference (for LLM consumption)
+   * Get CLI interface reference (for LLM consumption)
    */
   async getReference(id: string, format: 'direct' | 'inline' | 'with_deps' = 'direct'): Promise<ApiResponse<unknown>> {
     const response = await apiClient.get<ApiResponse<unknown>>(`/snippets/${id}/reference?format=${format}`);

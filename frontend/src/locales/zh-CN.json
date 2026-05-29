@@ -51,7 +51,7 @@
     "dashboard": "仪表盘",
     "tools": "工具",
     "skills": "技能",
-    "snippets": "代码片段",
+    "interfaces": "CLI 接口",
     "docs": "文档",
     "settings": "设置",
     "signIn": "登录",
@@ -62,7 +62,7 @@
   "landing": {
     "hero": {
       "title": "更快地构建 AI 智能体",
-      "subtitle": "Evolith 提供 MCP 工具、混合技能和代码片段，加速您的 AI 智能体开发。一个平台，无限可能。",
+      "subtitle": "Evolith 提供 MCP 工具、混合技能和 CLI 接口，加速您的 AI 智能体开发。一个平台，无限可能。",
       "getStarted": "免费开始",
       "learnMore": "了解更多"
     },
@@ -77,9 +77,9 @@
         "title": "混合技能",
         "description": "兼容 Claude Skills 格式，支持服务端执行。跨项目共享和复用技能。"
       },
-      "snippets": {
-        "title": "代码片段",
-        "description": "面向大模型的文档仓库。降低 token 消耗，提升开发效率。"
+      "interfaces": {
+        "title": "CLI 接口",
+        "description": "面向大模型和 CLI 调用的机器可读接口定义。稳定的命令、参数 schema 和使用示例。"
       }
     },
     "cta": {
@@ -205,8 +205,8 @@
       "mcpToolsAvailable": "可用 MCP 工具",
       "skills": "技能",
       "customSkills": "自定义技能",
-      "snippets": "代码片段",
-      "codeSnippets": "代码片段",
+      "interfaces": "CLI 接口",
+      "cliInterfaces": "CLI 接口定义",
       "apiCalls": "API 调用",
       "thisMonth": "本月"
     },
@@ -215,7 +215,7 @@
       "subtitle": "常用任务快速入口",
       "addTool": "添加工具",
       "createSkill": "创建技能",
-      "addSnippet": "添加片段",
+      "addInterface": "添加 CLI 接口",
       "teamMembers": "团队成员"
     },
     "organization": {
@@ -362,11 +362,11 @@
       "failedToCreate": "创建技能失败"
     }
   },
-  "snippets": {
-    "title": "代码片段",
-    "subtitle": "面向大模型的代码片段仓库，降低 token 消耗",
-    "createSnippet": "创建片段",
-    "noSnippets": "暂无代码片段，点击创建您的第一个代码片段。",
+  "interfaces": {
+    "title": "CLI 接口",
+    "subtitle": "面向大模型和 CLI 调用的机器可读接口定义",
+    "createInterface": "创建接口",
+    "noInterfaces": "暂无 CLI 接口，点击创建您的第一个接口。",
     "getReference": "获取引用",
     "copyCode": "复制代码",
     "copyJSON": "复制 JSON",
@@ -381,45 +381,66 @@
     "dependencies": "依赖",
     "code": "代码",
     "estimatedTokens": "预估 Token",
-    "searchPlaceholder": "搜索代码片段...",
-    "loadingSnippets": "加载代码片段中...",
-    "failedToLoad": "加载代码片段失败",
+    "searchPlaceholder": "搜索 CLI 接口...",
+    "loadingInterfaces": "加载 CLI 接口中...",
+    "failedToLoad": "加载 CLI 接口失败",
     "failedToConnect": "连接服务器失败",
-    "backToSnippets": "返回代码片段列表",
-    "snippetNotFound": "未找到代码片段",
-    "failedToLoadSnippet": "加载代码片段失败",
-    "deleteSnippet": "删除",
-    "confirmDelete": "确定要删除此代码片段吗？",
+    "backToInterfaces": "返回 CLI 接口列表",
+    "interfaceNotFound": "未找到 CLI 接口",
+    "failedToLoadInterface": "加载 CLI 接口失败",
+    "deleteInterface": "删除",
+    "confirmDelete": "确定要删除此 CLI 接口吗？",
     "failedToDelete": "删除失败",
-    "failedToDeleteSnippet": "删除代码片段失败",
+    "failedToDeleteInterface": "删除 CLI 接口失败",
     "languageLabel": "语言",
     "categoryLabel": "分类",
     "referenceTitle": "引用",
-    "referenceDesc": "获取面向大模型消费的格式化代码",
+    "referenceDesc": "获取面向大模型消费的格式化接口定义",
     "loadingReference": "加载引用中...",
     "noReferenceData": "暂无引用数据",
     "estimatedTokensLabel": "预估 Token：{{count}}",
     "importLabel": "导入：{{path}}",
     "usageExample": "使用示例",
     "codeTitle": "代码",
-    "newSnippet": {
-      "title": "创建新代码片段",
-      "subtitle": "添加可复用的代码片段供大模型使用",
+    "newInterface": {
+      "title": "创建新 CLI 接口",
+      "subtitle": "添加可复用的接口定义供大模型和 CLI 使用",
       "basicInfo": "基本信息",
-      "basicInfoDesc": "片段标题、描述和元数据",
+      "basicInfoDesc": "接口标题、描述和元数据",
       "titleLabel": "标题 *",
-      "titlePlaceholder": "snippet-title",
+      "titlePlaceholder": "interface-name",
       "descLabel": "描述 *",
-      "descPlaceholder": "这个代码片段做什么？",
+      "descPlaceholder": "这个接口做什么？",
       "languageLabel": "语言",
       "categoryLabel": "分类",
       "tagsLabel": "标签（逗号分隔）",
       "tagsPlaceholder": "标签1, 标签2, 标签3",
-      "publicSnippet": "公开片段",
+      "publicInterface": "公开接口",
       "codeTitle": "代码",
-      "codeDesc": "实际的代码片段",
-      "codePlaceholder": "// 在此输入代码...",
-      "failedToCreate": "创建代码片段失败"
+      "codeDesc": "实际的接口定义",
+      "codePlaceholder": "// 在此输入接口定义...",
+      "failedToCreate": "创建 CLI 接口失败"
+    },
+    "languages": {
+      "typescript": "TypeScript",
+      "javascript": "JavaScript",
+      "python": "Python",
+      "rust": "Rust",
+      "go": "Go",
+      "java": "Java",
+      "csharp": "C#",
+      "sql": "SQL",
+      "bash": "Bash",
+      "json": "JSON",
+      "yaml": "YAML",
+      "markdown": "Markdown"
+    },
+    "category": {
+      "custom": "自定义",
+      "utility": "工具",
+      "api": "API",
+      "data": "数据",
+      "ai": "AI"
     }
   },
   "tenant": {
@@ -646,10 +667,10 @@
         "title": "混合技能",
         "description": "创建和执行支持服务端代码的技能"
       },
-      "feature3": {
-        "title": "代码片段",
-        "description": "面向大模型的代码仓库，高效复用"
-      }
+        "feature3": {
+          "title": "CLI 接口",
+          "description": "面向大模型和 CLI 调用的机器可读接口定义"
+        }
     },
     "step2": {
       "title": "创建你的第一个工具",

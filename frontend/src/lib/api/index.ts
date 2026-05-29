@@ -29,9 +29,9 @@ export type {
   Skill,
   CreateSkillRequest,
   UpdateSkillRequest,
-  Snippet,
-  CreateSnippetRequest,
-  UpdateSnippetRequest,
+  CliInterface,
+  CreateCliInterfaceRequest,
+  UpdateCliInterfaceRequest,
   ListQueryParams,
   ListResponse,
   Plan,
@@ -54,7 +54,7 @@ export type {
 export { authApi } from './auth';
 export { toolsApi } from './tools';
 export { skillsApi } from './skills';
-export { snippetsApi } from './snippets';
+export { cliInterfacesApi } from './cli-interfaces';
 export { billingApi, paymentMethodApi } from './billing';
 export { apiKeysApi } from './api-keys';
 export { membersApi } from './members';

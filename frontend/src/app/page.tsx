@@ -84,11 +84,11 @@ export default function LandingPage() {
             <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.skills.title')}</h3>
             <p className="mt-2 text-purple-200/60">{t('landing.features.skills.description')}</p></Link>
 
-            <Link to="/snippets"className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10"><div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
-              <SnippetsIcon />
+            <Link to="/interfaces"className="group block rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-purple-500/50 hover:bg-white/10"><div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">
+              <InterfacesIcon />
             </div>
-            <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.snippets.title')}</h3>
-            <p className="mt-2 text-purple-200/60">{t('landing.features.snippets.description')}</p></Link>
+            <h3 className="mt-4 text-xl font-semibold text-white">{t('landing.features.interfaces.title')}</h3>
+            <p className="mt-2 text-purple-200/60">{t('landing.features.interfaces.description')}</p></Link>
           </div>
         </div>
       </section>
@@ -107,7 +107,7 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="text-4xl font-bold text-white">1000+</div>
-              <div className="mt-1 text-sm text-purple-200/60">Snippets</div>
+              <div className="mt-1 text-sm text-purple-200/60">CLI Interfaces</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-white">99.9%</div>
@@ -175,7 +175,7 @@ function SkillsIcon() {
   );
 }
 
-function SnippetsIcon() {
+function InterfacesIcon() {
   return (
     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />

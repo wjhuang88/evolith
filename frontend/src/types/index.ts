@@ -1,7 +1,7 @@
 export * from './auth';
 export * from './tool';
 export * from './skill';
-export * from './snippet';
+export * from './cli-interface';
 
 export interface ApiResponse<T> {
   success: boolean;

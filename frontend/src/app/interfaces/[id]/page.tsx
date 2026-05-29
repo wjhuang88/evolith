@@ -5,8 +5,8 @@ import { useParams, useRouter } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
-import { snippetsApi } from '@/lib/api/snippets';
-import type { Snippet } from '@/lib/api/types';
+import { cliInterfacesApi } from '@/lib/api/cli-interfaces';
+import type { CliInterface } from '@/lib/api/types';
 
 interface ReferenceResponse {
   name: string;
@@ -23,13 +23,13 @@ interface ReferenceResponse {
   estimated_tokens: number;
 }
 
-export default function SnippetDetailPage() {
+export default function InterfaceDetailPage() {
   const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
-  const snippetId = params.id as string;
-  
-  const [snippet, setSnippet] = useState<Snippet | null>(null);
+  const interfaceId = params.id as string;
+
+  const [iface, setIface] = useState<CliInterface | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -40,27 +40,27 @@ export default function SnippetDetailPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    async function fetchSnippet() {
+    async function fetchInterface() {
       try {
-        const response = await snippetsApi.get(snippetId);
+        const response = await cliInterfacesApi.get(interfaceId);
         if (response.success && response.data) {
-          setSnippet(response.data);
+          setIface(response.data);
         } else {
-          setError(response.error?.message || t('snippets.snippetNotFound'));
+          setError(response.error?.message || t('interfaces.interfaceNotFound'));
         }
       } catch (err) {
-        setError(t('snippets.failedToLoadSnippet'));
+        setError(t('interfaces.failedToLoadInterface'));
       } finally {
         setLoading(false);
       }
     }
-    fetchSnippet();
-  }, [snippetId]);
+    fetchInterface();
+  }, [interfaceId]);
 
   const loadReference = useCallback(async () => {
     setLoadingReference(true);
     try {
-      const response = await snippetsApi.getReference(snippetId, referenceFormat);
+      const response = await cliInterfacesApi.getReference(interfaceId, referenceFormat);
       if (response.success && response.data) {
         setReferenceData(response.data as ReferenceResponse);
       }
@@ -69,7 +69,7 @@ export default function SnippetDetailPage() {
     } finally {
       setLoadingReference(false);
     }
-  }, [snippetId, referenceFormat]);
+  }, [interfaceId, referenceFormat]);
 
   useEffect(() => {
     loadReference();
@@ -84,17 +84,17 @@ export default function SnippetDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(t('snippets.confirmDelete'))) return;
-    
+    if (!confirm(t('interfaces.confirmDelete'))) return;
+
     try {
-      const response = await snippetsApi.delete(snippetId);
+      const response = await cliInterfacesApi.delete(interfaceId);
       if (response.success) {
-        router.push('/snippets');
+        router.push('/interfaces');
       } else {
-        alert(response.error?.message || t('snippets.failedToDelete'));
+        alert(response.error?.message || t('interfaces.failedToDelete'));
       }
     } catch (err) {
-      alert(t('snippets.failedToDeleteSnippet'));
+      alert(t('interfaces.failedToDeleteInterface'));
     }
   };
 
@@ -106,45 +106,45 @@ export default function SnippetDetailPage() {
     );
   }
 
-  if (error || !snippet) {
+  if (error || !iface) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center text-destructive">{error || t('snippets.snippetNotFound')}</div>
-        <Button className="mt-4" onClick={() => router.push('/snippets')}>{t('snippets.backToSnippets')}</Button>
+        <div className="text-center text-destructive">{error || t('interfaces.interfaceNotFound')}</div>
+        <Button className="mt-4" onClick={() => router.push('/interfaces')}>{t('interfaces.backToInterfaces')}</Button>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
-      <Button variant="ghost" onClick={() => router.push('/snippets')} className="mb-4">
-        {t('snippets.backToSnippets')}
+      <Button variant="ghost" onClick={() => router.push('/interfaces')} className="mb-4">
+        {t('interfaces.backToInterfaces')}
       </Button>
 
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            {snippet.title}
-            {!snippet.is_public && (
+            {iface.title}
+            {!iface.is_public && (
               <span className="text-xs bg-muted px-2 py-0.5 rounded">Private</span>
             )}
           </h1>
-          <p className="text-muted-foreground mt-1">{snippet.description}</p>
+          <p className="text-muted-foreground mt-1">{iface.description}</p>
           <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-            <span>{t('snippets.languageLabel')}: {snippet.language}</span>
-            <span>{t('snippets.categoryLabel')}: {snippet.category}</span>
+            <span>{t('interfaces.languageLabel')}: {iface.language}</span>
+            <span>{t('interfaces.categoryLabel')}: {iface.category}</span>
           </div>
         </div>
-        <Button variant="destructive" onClick={handleDelete}>{t('snippets.deleteSnippet')}</Button>
+        <Button variant="destructive" onClick={handleDelete}>{t('interfaces.deleteInterface')}</Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>{t('snippets.codeTitle')}</CardTitle>
+          <CardTitle>{t('interfaces.codeTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <pre className="bg-muted p-4 rounded-md overflow-auto text-sm whitespace-pre-wrap max-h-64">
-            {snippet.code}
+            {iface.code}
           </pre>
         </CardContent>
       </Card>
@@ -152,8 +152,8 @@ export default function SnippetDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>{t('snippets.referenceTitle')}</CardTitle>
-            <CardDescription>{t('snippets.referenceDesc')}</CardDescription>
+            <CardTitle>{t('interfaces.referenceTitle')}</CardTitle>
+            <CardDescription>{t('interfaces.referenceDesc')}</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -161,33 +161,33 @@ export default function SnippetDetailPage() {
               size="sm"
               onClick={() => setReferenceFormat('direct')}
             >
-              {t('snippets.formats.direct')}
+              {t('interfaces.formats.direct')}
             </Button>
             <Button 
               variant={referenceFormat === 'inline' ? 'primary' : 'outline'} 
               size="sm"
               onClick={() => setReferenceFormat('inline')}
             >
-              {t('snippets.formats.inline')}
+              {t('interfaces.formats.inline')}
             </Button>
             <Button 
               variant={referenceFormat === 'with_deps' ? 'primary' : 'outline'} 
               size="sm"
               onClick={() => setReferenceFormat('with_deps')}
             >
-              {t('snippets.formats.withDeps')}
+              {t('interfaces.formats.withDeps')}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {loadingReference ? (
-            <div className="text-center py-4 text-muted-foreground">{t('snippets.loadingReference')}</div>
+            <div className="text-center py-4 text-muted-foreground">{t('interfaces.loadingReference')}</div>
           ) : referenceData ? (
             <>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{t('snippets.estimatedTokensLabel', { count: referenceData.estimated_tokens })}</span>
+                <span>{t('interfaces.estimatedTokensLabel', { count: referenceData.estimated_tokens })}</span>
                 {referenceData.import_path && (
-                  <span>{t('snippets.importLabel', { path: referenceData.import_path })}</span>
+                  <span>{t('interfaces.importLabel', { path: referenceData.import_path })}</span>
                 )}
               </div>
               <div className="relative">
@@ -199,7 +199,7 @@ export default function SnippetDetailPage() {
                   size="sm" 
                   onClick={handleCopy}
                 >
-                  {copied ? t('common.copied') : t('snippets.copyCode')}
+                  {copied ? t('common.copied') : t('interfaces.copyCode')}
                 </Button>
               </div>
               
@@ -219,7 +219,7 @@ export default function SnippetDetailPage() {
               
               {referenceData.usage_example && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">{t('snippets.usageExample')}</h4>
+                  <h4 className="text-sm font-medium mb-2">{t('interfaces.usageExample')}</h4>
                   <pre className="bg-muted p-4 rounded-md overflow-auto text-sm whitespace-pre-wrap">
                     {referenceData.usage_example}
                   </pre>
@@ -227,7 +227,7 @@ export default function SnippetDetailPage() {
               )}
             </>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">{t('snippets.noReferenceData')}</div>
+            <div className="text-center py-4 text-muted-foreground">{t('interfaces.noReferenceData')}</div>
           )}
         </CardContent>
       </Card>

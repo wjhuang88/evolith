@@ -11,7 +11,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: DashboardIcon },
   { name: 'Tools', href: '/tools', icon: ToolsIcon },
   { name: 'Skills', href: '/skills', icon: SkillsIcon },
-  { name: 'Snippets', href: '/snippets', icon: SnippetsIcon },
+  { name: 'Interfaces', href: '/interfaces', icon: InterfacesIcon },
 ]; // name is used as key, display localized in JSX
 
 export function Header() {
@@ -185,7 +185,7 @@ function SkillsIcon({ className }: { className?: string }) {
   );
 }
 
-function SnippetsIcon({ className }: { className?: string }) {
+function InterfacesIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
