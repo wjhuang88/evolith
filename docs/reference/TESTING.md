@@ -49,7 +49,7 @@ cargo test --package service-auth test_jwt
 
 #### 测试统计
 
-> **最新数据 (2026-05-27)**: `cargo test -p api` → **48 passed, 0 failed** (23 unit + 18 auth e2e + 7 MCP e2e)
+> **最新数据 (2026-06-01)**: `cargo test --workspace` → **274 passed, 0 failed, 2 ignored**
 
 | Crate | 测试数 | 说明 |
 |-------|--------|------|
@@ -59,6 +59,7 @@ cargo test --package service-auth test_jwt
 | infra | 124 | 8 个 Repository 集成测试 (user, tenant, invitation, audit, tool, skill, snippet, api_key) |
 | service-auth | 18 | JWT + Argon2id 密码 + 密码强度验证 |
 | service-payment | 14 | Stripe 集成 (Mock) |
+| service-tool / service-skill / service-snippet | 26 | 工具/技能/片段单元测试 |
 | doc-tests | 3 | 文档示例测试 |
 
 #### 测试模块位置
@@ -447,16 +448,47 @@ bun run dev
 
 ### 5.1 当前状态
 
-GitHub Actions workflow 在前端迁移期间暂不作为当前门禁；后续由 backlog `EVO-030` 基于最终构建、测试和部署命令重建。
+GitHub Actions workflow 由 Iteration 029（EVO-030）建立，文件在
+`.github/workflows/ci.yml`。
 
-重建时建议覆盖以下步骤：
+**Trigger 策略**：tag-only（`v*.*.*` semver 模式）。
+不打 tag 不跑 CI；切割 release：
 
-1. `cargo fmt --check` — 格式检查
-2. `cargo clippy --workspace -- -D warnings` — Lint 检查（warnings 视为错误）
-3. `cargo test --workspace` — 全量测试 (237 tests)
-4. `cargo audit` — 依赖安全审计
-5. `bun audit` — 前端依赖安全审计
-6. Docker build — 验证镜像构建
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+**为什么不每次 push 都跑**：项目无 PR review 流程（trunk-based）；
+tag-only 契合 release-driven 模型，节省 CI 配额。
+
+**工作流步骤**：
+
+| 阶段 | 命令 | 失败影响 |
+|------|------|---------|
+| Frontend install | `bun install --frozen-lockfile` | 锁文件变更检测 |
+| Frontend type-check | `bun run type-check` | TypeScript 错误 |
+| Frontend build | `bun run build` | 产出 `frontend/dist/`（被后端 embed） |
+| Frontend lint | `bun run lint` | ESLint 错误 |
+| Backend format | `cargo fmt --all -- --check` | 格式漂移 |
+| Backend check | `cargo check --workspace --all-targets` | 编译错误 |
+| Backend clippy | `cargo clippy --workspace --all-targets -- -D warnings` | Lint 严格门禁 |
+| Backend test (SQLite) | `cargo test --workspace` | 274 个集成测试 |
+| Backend test (PostgreSQL) | `cargo test --workspace` | 同上，PG env 准备给 EVO-053 |
+
+**PG service 容器**：`postgres:16-alpine`（端口 5432，healthcheck `pg_isready`）。
+当前 integration tests 硬编码 SQLite in-memory；PG env 变量已配置但 tests
+不读。当 EVO-053（PG 集成测试）落地时，PG service 即可立即被使用。
+
+**缓存**：
+
+- Rust: `Swatinem/rust-cache@v2`，`workspaces: backend -> target`，
+  `shared-key: evolith-rust`
+- Bun: `oven-sh/setup-bun@v1` 内置缓存
+
+**为什么不 deploy workflow / PR trigger**：deploy 形态仍可能演化
+（嵌入式 + 可选 Nginx）；项目无 PR 流程。Iteration 029 范围仅 CI，
+不涉及 deploy / PR-only check。
 
 ### 5.2 本地检查
 

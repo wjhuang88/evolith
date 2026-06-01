@@ -1,5 +1,9 @@
 //! Integration tests for SqliteSkillRepository
 
+// Workspace `[lints.clippy] unwrap_used = "deny"` overrides `clippy.toml`
+// `allow-unwrap-in-tests`; tests need unwrap for concise assertion failures.
+#![allow(clippy::unwrap_used)]
+
 mod test_helpers;
 
 use domain::repository::{SkillRepository, TenantRepository, UserRepository};

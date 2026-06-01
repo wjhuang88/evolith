@@ -1,0 +1,106 @@
+# Evolith CI workflow
+#
+# Trigger: tag-only on semver tags (vX.Y.Z). Avoids burning CI on every commit
+# and matches the release-driven publish model. To cut a release:
+#
+#   git tag v0.1.0
+#   git push origin v0.1.0
+#
+# Scope: backend fmt/check/clippy/test + frontend install/type-check/build/lint.
+# Frontend builds first (single job, shared filesystem) so backend tests can
+# link against the embedded frontend/dist/ via rust-embed-for-web.
+#
+# PostgreSQL service is started for EVO-053 (PostgreSQL integration tests).
+# Current integration tests use SQLite (in-memory); the PG service is here so
+# the future EVO-053 work does not have to revisit the workflow.
+name: ci
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
+
+jobs:
+  ci:
+    name: Backend + Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: evolith
+          POSTGRES_PASSWORD: evolith
+          POSTGRES_DB: evolith_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U evolith"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+          shared-key: evolith-rust
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Frontend install
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - name: Frontend type-check
+        working-directory: frontend
+        run: bun run type-check
+
+      - name: Frontend build
+        working-directory: frontend
+        run: bun run build
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: bun run lint
+
+      - name: Backend format check
+        working-directory: backend
+        run: cargo fmt --all -- --check
+
+      - name: Backend check
+        working-directory: backend
+        run: cargo check --workspace --all-targets
+
+      - name: Backend clippy
+        working-directory: backend
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Backend test (SQLite)
+        working-directory: backend
+        env:
+          DATABASE__DATABASE_TYPE: sqlite
+          DATABASE__URL: "sqlite::memory:"
+        run: cargo test --workspace
+
+      - name: Backend test (PostgreSQL)
+        working-directory: backend
+        env:
+          DATABASE__DATABASE_TYPE: postgres
+          DATABASE__URL: "postgres://evolith:evolith@localhost:5432/evolith_test"
+        run: cargo test --workspace

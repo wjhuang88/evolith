@@ -32,7 +32,7 @@
 - [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014）。
 - [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
 - [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；Closed：fmt baseline 完成，clippy 1 pre-existing error 归口 EVO-059）。
-- [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030）。
+- [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；Closed：EVO-030 + EVO-059 双 Done；`.github/workflows/ci.yml` tag-only `v*.*.*` semver 触发 / 9 门禁全绿 / 274 测试通过）。
 - [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（Superseded：改线到 Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B；Closed）。
 - [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043；Closed：审计 39 dep + 3 crate 私有 dep；16 个大版本升级归口 EVO-061~076）。
@@ -59,8 +59,6 @@
   Blocked for activation：需核对与 Iteration 019/020 的边界）。
 - [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；
   Ready for activation：一周工程质量切片）。
-- [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；
-  Blocked for activation：用户「CI 先不做」+ 依赖 Iteration 028 与 032；部署边界已由 Iteration 031 稳定）。
 - [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；
   Ready for activation：工程门禁和 CI 基线稳定后进入）。
 - [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A；
@@ -85,8 +83,7 @@
   `Planned / Blocked`：Phase F 与 Skill 发现质量候选需 refinement 或依赖确认。
 - [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033
   Rustfmt 基线和 CI 命令准备。
-- [Iteration 029](ITERATION-029.md) — `Planned / Blocked`：依赖 Iteration 028；
-  部署边界已由 Iteration 031 稳定，建议在 Iteration 032 后执行以减少返工。
+- [Iteration 029](ITERATION-029.md) — `Closed`：2026-06-01 EVO-030 + EVO-059 双 Done。`.github/workflows/ci.yml` 建立（tag-only `v*.*.*` semver trigger / 单 job 后端+前端串联 / Swatinem/rust-cache + oven-sh/setup-bun 缓存 / postgres:16-alpine service 容器）。9 门禁全绿：fmt / check / clippy / cargo test 274 passed。TECH-STACK §4.2 + TESTING §5 同步。deploy workflow + PR trigger 显式 Deferred。
 - [Iteration 030](ITERATION-030.md) — `Superseded`：ZIP 流式方案改线到
   rust-embed-for-web（Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — `Closed`：EVO-016-B 前端静态服务迁移到
@@ -110,10 +107,8 @@
 
 1. [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike。
 2. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
-3. [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（Iteration 032 已 Closed 释放 audit 基础；用户已延后）。
-5. **新进 Ready 待评估**：
+3. **新进 Ready 待评估**：
    - EVO-051 / 052 / 056 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
-   - EVO-059（Iteration 028 验证残余，clippy pre-existing error 修复）
    - EVO-060（嵌入式模式验证残余，dev.sh / proposal 死代码清理）
 
 ## 命名

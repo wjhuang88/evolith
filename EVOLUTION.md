@@ -25,6 +25,61 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-01 clippy `#[lints]` in Cargo.toml 优先级高于 `clippy.toml` 配置
+
+**现象**: Iteration 029 / EVO-059 修复 clippy 21 个 `-D warnings` 错误时，7 个 infra test
+文件因 `.unwrap()` 调用触发 `unwrap_used` 错误。`backend/clippy.toml` 已包含
+`allow-unwrap-in-tests = true`，但 clippy 仍然报错（错误信息明确写 "requested on the
+command line with `-D clippy::unwrap-used`"）。
+
+**根因**: clippy 配置优先级（高→低）：
+
+1. 命令行显式 `-D` / `-A`（最高）
+2. `[lints.clippy]` in `Cargo.toml`（`unwrap_used = "deny"` 是这一层）
+3. `clippy.toml` 设置（`allow-unwrap-in-tests` 在这一层）
+4. clippy 默认行为
+
+当 `cargo clippy --workspace --all-targets -- -D warnings` 运行时，第 1 层的 `-D warnings`
+触发了第 2 层的 `unwrap_used = "deny"`，二者都覆盖了第 3 层的 `allow-unwrap-in-tests`。
+`clippy.toml` 看似"配置了"但实际不生效。
+
+**方案**: 在需要 unwrap 的 test 文件顶部加文件级 `#![allow(clippy::unwrap_used)]` + 注释
+解释 workspace deny 覆盖 clippy.toml 行为。`Cargo.toml` 级别 deny 保留（生产代码仍受限），
+test 文件显式豁免。
+
+**教训**: 不要假设 `clippy.toml` 的 `allow-*-in-tests` 系列会自动生效——只要
+`[lints.clippy]` in Cargo.toml 设了 deny/specific 规则，clippy.toml 就会被 override。
+CI 启用 `-D warnings` 后这是高频陷阱。Test 文件级 allow 是当前项目唯一可靠解。
+
+**相关**: Iteration 029 / EVO-059
+
+### 2026-06-01 CI trigger 选型：tag-only 优于 push-on-main
+
+**现象**: Iteration 029 设计 CI workflow 时，用户明确说"CI 按照 tag 触发，不要每次
+提交都触发了吧"。这是关于"何时跑 CI"的策略选型。
+
+**权衡矩阵**:
+
+| Trigger | CI 配额 | 反馈延迟 | PR review 集成 | 适合场景 |
+|---------|---------|----------|----------------|----------|
+| `push: branches: [main]` | 高（每次 commit） | < 1 min | 需配合 PR 流程 | PR review 模型 + trunk 频繁合并 |
+| `push: tags: ['v*.*.*']` | 低（每次 release） | N/A | 不支持 PR | release-driven / trunk-based / 无 PR 流程 |
+| `pull_request` | 中（每个 PR） | 提交后 | 是 | 主仓 PR review 模型 |
+| `workflow_dispatch` | 手动 | 手动 | N/A | 一次性验证 / 维护性检查 |
+
+**本项目决策**: tag-only。理由：
+
+- trunk-based：项目无 PR 流程（main 是 trunk，feature 走本地 commit 或独立分支）
+- release-driven：发布由 tag 触发验证
+- 节省 CI 配额：每发一版跑一次 CI 而非每 commit
+- tag pattern 选 `v*.*.*`（严格 semver）比 `v*`（任意 v- 前缀）更精准
+
+**教训**: 在 trunk-based / 无 PR review 流程的项目里，tag-only 是 CI trigger 的
+默认最佳选择。`pull_request` 触发器只在有 PR 流程时才有意义。如果项目计划加入 PR 流程，
+再补 `pull_request` 触发器即可，不影响 tag-only 主线。
+
+**相关**: Iteration 029 / EVO-030
+
 ### 2026-06-01 rustfmt 历史 nightly-only 配置在 stable toolchain 会被静默忽略为 warning
 
 **现象**: `backend/rustfmt.toml` 含有 7 个 `Warning: can't set \`xxx\`, unstable features are only available in nightly channel.`

@@ -49,8 +49,10 @@ mod tests {
 
     #[test]
     fn test_is_live_mode() {
-        let mut config = PaymentConfig::default();
-        config.test_mode = true;
+        let mut config = PaymentConfig {
+            test_mode: true,
+            ..Default::default()
+        };
         config.stripe_secret_key = "sk_test_xxx".to_string();
         assert!(!config.is_live_mode());
 

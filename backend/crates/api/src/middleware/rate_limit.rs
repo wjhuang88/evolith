@@ -107,10 +107,9 @@ mod tests {
 
     #[test]
     fn test_rpm_conversion_math() {
-        // burst = rpm / 10, min 3
-        assert_eq!((60u32 / 10).max(3), 6);
-        assert_eq!((300u32 / 10).max(3), 30);
-        assert_eq!((1000u32 / 10).max(3), 100);
-        assert_eq!((30u32 / 10).max(3), 3);
+        assert_eq!(60u32 / 10, 6);
+        assert_eq!(300u32 / 10, 30);
+        assert_eq!(1000u32 / 10, 100);
+        assert_eq!(30u32 / 10, 3);
     }
 }

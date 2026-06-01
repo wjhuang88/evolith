@@ -220,13 +220,45 @@ pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
 
 ### 4.2 CI/CD
 
-GitHub Actions workflow 暂缓到 EVO-030 重建，避免在前端迁移期间维护过时的 Next.js 构建路径。下表是目标形态，不代表当前仓库已有 workflow 文件。
+GitHub Actions workflow 由 Iteration 029（EVO-030）建立，文件在
+`.github/workflows/ci.yml`。
 
-| 阶段 | 工具 | 任务 |
+#### 触发策略
+
+- **Tag-only**：`on: push: tags: ['v*.*.*']`（semver 模式）
+- 每次 push 不自动跑 CI；只在打 `vX.Y.Z` tag 时触发
+- 契合 release-driven 发布模型；节省 CI 配额
+- 切割 release：`git tag v0.1.0 && git push origin v0.1.0`
+
+#### 工作流内容
+
+| 阶段 | 命令 | 用途 |
 |------|------|------|
-| 构建 | GitHub Actions | 编译、测试、构建镜像 |
-| 测试 | GitHub Actions | 单元测试、集成测试 |
-| 部署 | GitHub Actions | 部署到生产环境 |
+| Frontend install | `bun install --frozen-lockfile` | 锁定依赖版本 |
+| Frontend type-check | `bun run type-check` | TypeScript 类型检查 |
+| Frontend build | `bun run build` | 产出 `frontend/dist/`（被后端 embed） |
+| Frontend lint | `bun run lint` | ESLint |
+| Backend format | `cargo fmt --all -- --check` | Rust 格式门禁 |
+| Backend check | `cargo check --workspace --all-targets` | 全量编译 |
+| Backend clippy | `cargo clippy --workspace --all-targets -- -D warnings` | Lint 严格门禁 |
+| Backend test (SQLite) | `cargo test --workspace` | 274 个集成测试（in-memory SQLite） |
+| Backend test (PostgreSQL) | `cargo test --workspace` | 同一组测试，PG service 准备给 EVO-053 用 |
+
+#### Service 容器
+
+- `postgres:16-alpine` — 启动 PG 16 服务，供未来 PG 集成测试使用（EVO-053）
+- 当前 integration tests 用 SQLite in-memory；PG env 变量已配置但 tests 不读
+
+#### 缓存
+
+- Rust: `Swatinem/rust-cache@v2`，`workspaces: backend -> target`，`shared-key: evolith-rust`
+- Bun: `oven-sh/setup-bun@v1` 内置缓存
+
+#### 不做（Deferred）
+
+- **deploy workflow**：部署形态仍可能演化（嵌入式 + 可选 Nginx），不在 Iteration 029 范围
+- **PR trigger**：trunk-based 模型，无 PR review 流程
+- **PR-only 检查**：tag-only 模型下不区分 PR
 
 ## 5. 监控与日志
 

@@ -46,13 +46,11 @@ struct ApiResponse<T> {
 #[derive(Debug, Deserialize)]
 struct ErrorInfo {
     code: String,
-    message: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct AuthResponseData {
     token: String,
-    expires_at: i64,
     user: UserInfo,
     tenant: TenantInfo,
 }
@@ -73,7 +71,6 @@ struct TenantInfo {
     id: String,
     name: String,
     slug: String,
-    plan: String,
 }
 
 #[derive(Debug, Deserialize)]
