@@ -261,6 +261,24 @@ story WIP 检查不能替代对在途、待收口和已排期 iteration 的库�
 **方案**: 把 `cliInterfacesApi.update` body 改为 `throw new Error("CLI interface update is not yet implemented. Backend returns 501 for PUT /snippets/{id}. Use cliInterfacesApi.delete() + cliInterfacesApi.create() as a workaround.")`。错误信息含 (1) 端点未实现事实 + (2) 后端 HTTP 状态码 + (3) 临时方案。这样 TypeScript 编译期能 catch 误用（类型仍然签名），运行期抛出的错误自带解决路径。
 **教训**: 对于"后端 stub 但前端已暴露"的方法，body 用 `throw new Error(...)` 替代 axios 调用，比"让 axios 自然抛"或"前端 try/catch 翻译"更直接。错误信息必须含三件事：事实（未实现）+ 证据（HTTP 码）+ 方案（workaround）。
 
+### 2026-06-01 cargo caret 约束的「floor 不动」模式（依赖审计）
+**现象**: Iteration 032 审计 39 个 workspace 依赖时，初看 Cargo.toml 写的 `tokio = "1.35"` `regex = "1.10"` `lazy_static = "1.4"` 等 floor 似乎"落后"，但实际 `cargo check` / `cargo test` 都过。`cargo report future-incompatibilities` 也只报 `sqlx-postgres 0.7.4` 一条警告。
+**根因**: Cargo.toml 写 `"1.35"` 等价于 `^1.35` = `>=1.35, <2.0`（caret 范围）。cargo 在解析时自动选 latest within range，所以 lock 已经是 1.49（tokio）、1.12（regex）、1.5（lazy_static）。floor 写低只是声明"最低支持版本"，**不是实际安装版本**。
+**方案**: 把审计拆成三段 —— ① cargo.toml floor + ② Cargo.lock 实际 + ③ crates.io latest stable；floor bump 是纯文档性变更（声明"已测试 X.Y+ 才能编译"），没有运行时差异。结论：不修改 Cargo.toml，让 floor 反映"已测试过的最低版本"而非"实际解析到的版本"。
+**教训**: 依赖审计看 Cargo.lock + crates.io，不要看 Cargo.toml 字符串。`^X.Y` 范围下 floor bump 99% 的情况是无意义 churn；如果真要 bump，附"X.Y+ 才修复的安全问题"或"X.Y+ 才支持的新 feature"等具体理由。审计前先 `awk` 出 lock 当前 + `curl crates.io/api/v1/crates/<name>` 拿 latest，二者比对才有意义。
+
+### 2026-06-01 依赖大版本迁移的成本估算方法
+**现象**: Iteration 032 审计发现 16 个大版本升级（sqlx 0.7→0.8、bollard 0.17→0.21、thiserror 1→2 等），每个迁移成本差异极大。如何在「不开工」的前提下判断每个迁移的 size？
+**根因**: 大版本迁移的代码改动面 ≠ 依赖数量，而是「使用该依赖的 call site 数 × 每个 call site 的 API 变化程度」。直接读 CHANGELOG 能拿到 API 变化，但 call site 数需要从代码库统计。
+**方案**: 用 `rg -c '<dependency>::<macro_or_trait>' backend/crates` 给出 call site 数（sqlx 0.7→0.8：19 文件 × 平均 6 call site = ~120 call sites，需要 1 个独立迁移迭代）；用 `cargo report future-incompatibilities` 给出具体升级理由（"never-type-fallback" 比"latest 0.9 性能更好"更有说服力）；用 crates.io API `https://crates.io/api/v1/crates/<name>` 拿 `max_stable_version` + `newest_version` 区分 stable 和 RC。把"call site 数 + API 变化程度 + 是否有 future-incompat"三要素作为每个暂缓项的 backlog 详情块内容。
+**教训**: 依赖大版本迁移的「成本预估」必须用 call site 数 × API 变化程度，而不是依赖列表长度。`rg -c` + `cargo report future-incompatibilities` + `crates.io API` 是零成本组合，足够在 backlog 入池阶段写出可激活的 DoR 描述。
+
+### 2026-06-01 clippy `--all-targets` 是默认行为（假绿陷阱）
+**现象**: Iteration 032 第一次跑 `cargo clippy --workspace -- -D warnings` 报 0 错误（exit 0），但 EVO-059 detail block 明确写「18 个 `-D warnings` 错误」。两者矛盾让人困惑 2 分钟。
+**根因**: `cargo clippy` 默认只检查 lib + bin；`--all-targets` 才覆盖 tests + examples + benches。本项目 18 个 clippy 错误全部在 `infra/tests/*_repo_tests.rs` + `api/tests/auth_e2e_tests.rs` + `service-payment/src/config.rs`（lib test 触发）+ `api/src/middleware/rate_limit.rs`（lib test 触发），默认 scope 完全看不到。
+**方案**: 把 `cargo clippy --workspace --all-targets -- -D warnings` 作为 iteration 收口的 hard required 门禁（替换原 `cargo clippy --workspace` 写法）。EVO-059 验收标准同步更新为 `--all-targets`。
+**教训**: `cargo clippy` 和 `cargo check` 都有「默认不查 tests」的隐藏 scope。写进 SOP/TASK-CLOSURE 的命令模板必须是 `--all-targets` 版本，否则会假绿。同样陷阱在 `cargo build` 上也存在（默认不构建 test 目标，但 dev 模式 cargo test 反而会构建，所以不易察觉）。
+
 ---
 
 ## Part 3: 维护规则

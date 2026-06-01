@@ -59,7 +59,7 @@
 | EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Done | 排期库存审计 2026-05-27 | Iteration 021；修复邮箱验证与 Skill 更新接口的收口漂移 |
 | EVO-041 | 敏捷实践与 BDD 验收格式适配规则 | tech-debt | P1 | Done | 用户方法论反馈 2026-05-28 | Iteration 022；明确 Evolith iteration 与传统 Sprint、Story 与 BDD 的适配口径 |
 | EVO-042 | 编号保留位（缺号处置） | governance | — | Dropped | Iteration 035 / 代码健康审查 2026-06-01 | 缺号处置：原编号未被任何 story 占用，确认为 2026-05-29 EVO-043~050 跨 Epic 集中入池时跳跃（041 → 043），并非遗漏；保留为占位以维持 EVO 编号连续性语义。如需新增可复用此编号并标注 `replaces <空>` |
-| EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Ready | 用户需求 / Iteration 030 | 审计 backend workspace 所有 crate 依赖，升级到最新稳定版并验证编译/测试通过 |
+| EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Done | Iteration 032 | 2026-06-01 完成：36 个 workspace 功能依赖 + 3 个 path dep + 3 个 crate 私有 dep 完整审计；cargo check 0 / cargo test 274 pass；22 个保留（caret 已覆盖 latest stable，无需修改 Cargo.toml）；14 个 workspace 大版本升级 + 2 个 crate 私有 deprecation → EVO-061~076（16 个新 backlog 项全部 P3 Proposed）；clippy 18 errors 归口 EVO-059 不并入 |
 | EVO-044 | 前端 CLI 命名简化 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | 导航、页面、i18n 中 "CLI Interfaces" / "CLI 接口" 统一简化为 "CLI" |
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
@@ -79,6 +79,22 @@
 | EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
 | EVO-059 | Backend clippy 历史 lint 升级修复 | tech-debt | P2 | Ready | Iteration 028 验证残余 | stable rustc 1.95 / clippy 升级后暴露 18 个 `-D warnings` 错误，跨 8 个文件：10× `unwrap_used`（infra/tests/*_repo_tests.rs，工作区 `deny` 覆盖了 `clippy.toml` `allow-unwrap-in-tests`）、3× `dead_code`（api/tests/auth_e2e_tests.rs）、4× `unnecessary_min_or_max`（api/src/middleware/rate_limit.rs:111-114）、1× `field_reassign_with_default`（service-payment/src/config.rs:53）。非业务问题；建议修复方向：调整 `[workspace.lints.clippy] unwrap_used` 为 `warn` 或修复 test 字段使用 `#[allow]` / `#[expect(dead_code)]` 等 |
 | EVO-060 | dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理 | tech-debt | P2 | Ready | 嵌入式模式验证 2026-06-01 | `scripts/dev.sh` 残留 4 处 `EMBEDDED_FRONTEND` / `build_frontend_zip` / `frontend.zip` / `--features embedded-frontend` 死代码（实际后端用 `#[folder]` 嵌入，无需 zip/feature flag）；`docs/proposals/EMBEDDED-FRONTEND.md` 状态 `远期目标` → `已晋升`（Iteration 031 已用 rust-embed-for-web 实现等价目标）；`--features embedded-frontend` 在 Cargo.toml 中未定义，调用会报 unknown feature |
+| EVO-061 | bollard 0.17→0.21 Docker Engine API 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | bollard 跨 4 个 minor 的 Docker Engine API 演进（0.18 起 `Docker::connect_with_*` API 调整）；当前 `bollard 0.17.1` + Phase 7 sandbox（service-skill）零运行时问题；迁移需重写 `service-skill/src/executor.rs` + 验证 sandbox 镜像兼容性 |
+| EVO-062 | sqlx 0.7→0.8/0.9 迁移（解决 future-incompat） | tech-debt | P1 | Proposed | Iteration 032 依赖审计暂缓项 | **19 个 repo 文件 / ~120 call sites** 依赖 `query!` / `query_as!` 宏与 `FromRow` derive；0.7→0.8 是 macro 与 `Database` trait 跨主版本破坏；已观测 `sqlx-postgres 0.7.4` never-type-fallback warning（Rust 2024 edition 强制前不阻断），是 Iteration 028 显式归口 |
+| EVO-063 | config 0.14→0.15 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.14→0.15 改 `ConfigBuilder` API（`with_source` → `add_source` 合并/语义变化）；影响 `infra/src/config.rs`；caret 范围不变 |
+| EVO-064 | validator 0.16→0.18+ 升级（trait 迁移） | tech-debt | P2 | Proposed | Iteration 032 依赖审计暂缓项 | 0.18 起 `validate` 方法改成 `#[derive(Validate)]` + `validator::Validate` trait；9 个 domain 模型 + DTO 需适配；breaking 跨多个 minor |
+| EVO-065 | jsonwebtoken 9→10 升级 | tech-debt | P2 | Proposed | Iteration 032 依赖审计暂缓项 | 9→10 改 `Header` / `EncodingKey` / `decode` 签名（with/without validation 合并）；影响 `service-auth/src/jwt.rs`；10.x 已稳定（10.4.0） |
+| EVO-066 | thiserror 1→2 升级（需 edition 2024） | tech-debt | P2 | Proposed | Iteration 032 依赖审计暂缓项 | 1→2 需 `edition = "2024"`；影响 `common/src/error.rs` + 8 个 service error 类型；与 EVO-043 「不升级 Rust edition」约束冲突，须先解除 edition 升级前置 |
+| EVO-067 | jsonschema 0.17→0.46 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 跨 28 个 minor 的 schema draft / API 演进；`service-tool` 内部使用 0.17 即可；升级涉及 `validator` / `draft-7` / `draft-2020` API 切换 |
+| EVO-068 | reqwest 0.11→0.12/0.13 升级 | tech-debt | P2 | Proposed | Iteration 032 依赖审计暂缓项 | 0.12 起移除 `blocking` 特性独立 crate；0.13 进一步改 `ClientBuilder` API；影响 `service-tool` HTTP executor + `service-payment` Stripe webhook |
+| EVO-069 | hmac 0.12→0.13 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.13 改 `Mac::new_from_slice` 签名 + 移除 `SimpleHMac`；影响 `service-payment` Stripe webhook 验签 |
+| EVO-070 | sha2 0.10→0.11 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.11 改 `Sha256::new()` 返回 `CtOutput`（const-time）；`service-payment` + `infra` 影响 |
+| EVO-071 | redis 0.27→1.x 命名空间重置 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.x→1.0 是显式 breaking（trait 完全重写）；`service-payment` 暂未真实使用（infra 缓存层预留） |
+| EVO-072 | actix-governor 0.6→0.7+ 升级 | tech-debt | P2 | Proposed | Iteration 032 依赖审计暂缓项 | 0.7 起 `Governor` 中间件构造改 actix-web 4.x 新 `KeyExtractor` trait；影响 `api/src/middleware/rate_limit.rs`；0.10 latest |
+| EVO-073 | actix-web-prom 0.8→0.9+ 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.9 起改 `PrometheusMetricsBuilder` API；metrics endpoint 路径需调整；0.10 latest |
+| EVO-074 | prometheus 0.13→0.14 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.14 改 `Encoder` trait 签名；与 actix-web-prom 强耦合（EVO-073 同源） |
+| EVO-075 | rand 0.8→0.9/0.10 升级（service-auth） | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | rand 0.9/0.10 是 `Rng` trait 重组（major breaking）；影响 `service-auth`（crate 私有 dep，非 workspace） |
+| EVO-076 | serde_yaml 0.9 → serde_yml / serde_norway 迁移 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 上游 serde_yaml 0.9 已 deprecate；建议迁移到 `serde_yml`（社区 fork）或 `serde_norway`（纯 Rust 替代）；影响 `service-skill` + `service-snippet` 的 YAML 解析路径 |
 
 
 ## 故事模板
@@ -1396,15 +1412,15 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 状态：Ready
 - 来源：Iteration 028 验证残余 / 2026-06-01
 - 用户/工程价值：消除 `cargo clippy --workspace -- -D warnings` 18 个错误，让 release 构建前可重启用 clippy 严格门禁。
-- 背景（Iteration 028 rustfmt 基线收口时发现）：
-  - stable rustc 1.95 + clippy 升级后，工作区 `deny(clippy::unwrap_used)` 覆盖了 `clippy.toml` 的 `allow-unwrap-in-tests`，导致 `infra/tests/*_repo_tests.rs` 中 10 个 `unwrap_used` 错误。
-  - `api/tests/auth_e2e_tests.rs` 3 个 `dead_code`（test helper 函数）。
-  - `api/src/middleware/rate_limit.rs:111-114` 4 个 `unnecessary_min_or_max`。
-  - `service-payment/src/config.rs:53` 1 个 `field_reassign_with_default`。
+- 背景（Iteration 028 rustfmt 基线收口时发现；Iteration 032 重新确认 18 个错误分布）：
+  - 10× `unwrap_used`（`crates/infra/tests/{api_key,user,audit,snippet,skill}_repo_tests.rs`），工作区 `[workspace.lints.clippy] unwrap_used = "deny"` 应用到所有 target 含 tests（**注**：项目无 `clippy.toml` allow-unwrap-in-tests 配置）。
+  - 3× `dead_code`（`crates/api/tests/auth_e2e_tests.rs:49/55/76`，三个 struct 字段 `message` / `expires_at` / `plan` 定义但未读）。
+  - 4× `unnecessary_min_or_max`（`crates/api/src/middleware/rate_limit.rs:111-114`）。
+  - 1× `field_reassign_with_default`（`crates/service-payment/src/config.rs:53`）。
   - 跨 8 个文件、18 个 `-D warnings` 错误，全部非业务问题。
 - 范围（本次做）：
   1. `infra/tests/*_repo_tests.rs`：评估将 `[workspace.lints.clippy] unwrap_used` 从 `deny` 降为 `warn`；或对必要 `unwrap` 加 `#[expect(clippy::unwrap_used)]` + 解释。
-  2. `api/tests/auth_e2e_tests.rs`：对未使用 helper 加 `#[allow(dead_code)]` 或 `#[expect(dead_code)]` + 注释。
+  2. `api/tests/auth_e2e_tests.rs`：对未读取字段加 `#[allow(dead_code)]` 或 `#[expect(dead_code)]` + 注释；或删除未使用字段。
   3. `api/src/middleware/rate_limit.rs:111-114`：用 `.min(...).max(...)` 替换 `min(...).min(...)` 模式或反向比较。
   4. `service-payment/src/config.rs:53`：使用结构体更新语法或显式字段赋值替换。
 - 不做：
@@ -1412,14 +1428,14 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
   - 不调整工作区 `deny(clippy::panic)` / `deny(clippy::expect_used)` / `deny(clippy::todo)` 等其他 `deny` 级别。
   - 不新增 suppress，不批量 `#[allow(...)]`。
 - 验收标准：
-  - [ ] `cargo clippy --workspace -- -D warnings` 0 错误。
+  - [ ] `cargo clippy --workspace --all-targets -- -D warnings` 0 错误。
   - [ ] `cargo test --workspace` 仍 0 失败（验证非行为变更）。
   - [ ] 无新增 `#[allow(...)]` / `#[expect(...)]` 除非带注释说明。
-  - [ ] `clippy.toml` / `[workspace.lints.clippy]` 配置变化有注释说明。
+  - [ ] `[workspace.lints.clippy]` 配置变化有注释说明。
 - 依赖或阻塞：无。
 - 解锁内容：Iteration 028 验证残余清零，release 流程可启用 clippy 严格门禁。
 - 影响范围：backend（含 tests）
-- 最小验证方式：`cargo clippy --workspace -- -D warnings`；`cargo test --workspace`。
+- 最小验证方式：`cargo clippy --workspace --all-targets -- -D warnings`；`cargo test --workspace`。
 
 ### EVO-060 dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理
 
@@ -1467,3 +1483,211 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 影响范围：scripts/dev.sh、docs/proposals/EMBEDDED-FRONTEND.md、docs/iterations/ITERATION-030.md、docs/reference/SCRIPTS-RELEASE-NOTES.md
 - 最小验证方式：`bash -n scripts/dev.sh`；`rg "EMBEDDED_FRONTEND|frontend\.zip|embedded-frontend" scripts/dev.sh docs/proposals/ backend/` 0 hits；`bash scripts/dev.sh lite` / `bash scripts/dev.sh status` 仍可执行。
 
+### EVO-061 bollard 0.17→0.21 Docker Engine API 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：bollard 0.18 起 `Docker::connect_with_*` API 调整、0.19+ 引入 `exec` 异步流式 API、0.20+ 改 `ContainerStats` 返回类型；当前 0.17.1 在 Phase 7 sandbox 验证通过但 4 个 minor 的 bugfix 缺失。
+- 范围：升级 `bollard = "0.17"` → `"0.21"`；重写 `service-skill/src/executor.rs` 的容器启动/停止/日志流；验证 `backend/sandbox/{python,node}/Dockerfile` 在新 bollard API 下行为不变。
+- 不做：升级 `service-skill` Phase 7 之外的 bollard 使用方（实际仅 executor.rs）。
+- 验收标准：`cargo check / clippy / test --workspace` 0 error；Phase 7 沙箱 Python/Node 示例技能可执行。
+- 影响范围：`service-skill` + sandbox 镜像。
+- 最小验证方式：起 Phase 7 测试环境跑 `python_skill:hello` + `node_skill:hello` 两类示例技能。
+
+### EVO-062 sqlx 0.7→0.8/0.9 迁移（解决 future-incompat）
+
+- 类型：tech-debt
+- 优先级：P1
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / Iteration 028 显式归口 / 2026-06-01
+- 用户/工程价值：解决 `sqlx-postgres 0.7.4` never-type-fallback future-incompat warning（Rust 2024 edition 强制前不阻断，但 1.95+ 已可见）；获取 0.8 引入的 `Database` trait 简化与新 `Executor` 抽象。
+- 范围：升级 `sqlx = "0.7"` → `"0.8"`（暂不升 0.9，0.9 仍是 alpha）；19 个 repo 文件的 `query!` / `query_as!` 宏按 0.8 语法适配；`FromRow` derive 重新生成；SQLite + PostgreSQL 双轨 integration tests 全绿。
+- 不做：不升级 sqlx 0.9（alpha）；不修改业务查询语义；不重新设计 repository trait。
+- 验收标准：`cargo check / clippy / test --workspace` 0 error；`future-incompat` 报告 0 sqlx-postgres 警告。
+- 影响范围：所有 8 个 `infra/src/db/{pg_,}*_repo.rs` + 2 个 integration test 文件。
+- 最小验证方式：跑 `cargo test --workspace`（含 PG integration tests）；`cargo report future-incompatibilities` 无 sqlx 项。
+
+### EVO-063 config 0.14→0.15 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.15 合并 `with_source` → `add_source` 并简化 `ConfigBuilder` API。
+- 范围：升级 `config = "0.14"` → `"0.15"`；重写 `infra/src/config.rs` 中 `Config::builder().with_source(...).build()` 调用链。
+- 不做：保留当前配置结构（`AppConfig` / 子 config 嵌套）。
+- 验收标准：`cargo check / test --workspace` 0 error；应用启动能加载默认 config。
+- 影响范围：`infra/src/config.rs`。
+- 最小验证方式：`cargo test -p infra`；本地起服能读到 `JWT__SECRET` 等环境变量。
+
+### EVO-064 validator 0.16→0.18+ 升级（trait 迁移）
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.18 起 `validate` 方法从 `#[validate(...)]` 改为 `#[derive(Validate)]` + `validator::Validate` trait 调用；与 serde 生态更协调，错误类型统一为 `ValidationErrors`。
+- 范围：升级 `validator = "0.16"` → `"0.18"`（或最新 0.20）；重写 9 个 domain / DTO 的 `validate` 调用路径；handler 错误映射同步更新。
+- 不做：不升 0.19+（API 仍在微调）；不改校验规则（regex 长度等）。
+- 验收标准：`cargo check / test --workspace` 0 error；register / login / forgot_password 等 handler 校验路径在 DTO 失败时仍返 400。
+- 影响范围：domain 模型 + 8 个 DTO + auth handler 错误映射。
+- 最小验证方式：`cargo test --workspace`；手测注册接口 `POST /api/v1/auth/register` 传 `password=short` 返 400。
+
+### EVO-065 jsonwebtoken 9→10 升级
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：9→10 合并 `decode` with/without validation、`Header` 改 `JoseHeader`、`EncodingKey::from_secret` 不变；与 openssl 0.10+ / RustCrypto 升级链对齐。
+- 范围：升级 `jsonwebtoken = "9.2"` → `"10"`；重写 `service-auth/src/jwt.rs` 的 `encode` / `decode` 调用与 `Header` 构造。
+- 不做：JWT payload 结构不变（`sub` / `exp` / `tenant_id` / `role`）；不改 token 有效期策略。
+- 验收标准：`cargo check / test --workspace` 0 error；登录/登出/CsrfMiddleware token 解析路径不退化。
+- 影响范围：`service-auth` + `api/src/middleware/csrf.rs` + `api/src/middleware/auth.rs`。
+- 最小验证方式：`cargo test --workspace`；本地起服登录拿 token 访问 `/api/v1/auth/profile`。
+
+### EVO-066 thiserror 1→2 升级（需 edition 2024）
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：thiserror 2.0 需 `edition = "2024"`；与 Rust 1.85+ 强制规则同步；`#[from]` 自动 trait 路径推断。
+- 范围：升级 `thiserror = "1.0"` → `"2"`；同步把 `[workspace.package] edition = "2021"` 升到 `"2024"`；`common/src/error.rs` + 8 个 service error 类型迁移。
+- 不做：不引入 thiserror 2 的新 feature；保持现有 `AppError` enum 形状。
+- 前置依赖：Rust edition 升级（Iteration 032 plan §3 明确「不升级 Rust edition」，本项激活时需先解除该约束）。
+- 验收标准：`cargo check / test --workspace` 0 error；所有 `AppError` 变体仍能正确显示。
+- 影响范围：所有 backend crate 的 `thiserror::Error` derive + Rust edition。
+- 最小验证方式：`cargo test --workspace`；`grep -r "edition = " backend/Cargo.toml backend/crates/*/Cargo.toml` 全部 2024。
+
+### EVO-067 jsonschema 0.17→0.46 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：跨 28 个 minor 的 schema draft 支持演进（draft-07 → draft 2019-09 / 2020-12）；新 `Retrieval` / `Validator` trait 抽象。
+- 范围：升级 `jsonschema = "0.17"` → `"0.46"`；重写 `service-tool` 的 schema 校验入口（如果有 trait 改动）。
+- 不做：暂不升级 draft 语义（仍用 draft-07 校验 MCP tool 的 input_schema）。
+- 验收标准：`cargo check / test --workspace` 0 error；MCP `tools/call` 校验路径不退化。
+- 影响范围：`service-tool`。
+- 最小验证方式：`cargo test -p service-tool`；MCP tools/call 测试用例 `mcp_tool_execution_tests` 仍 4 通过。
+
+### EVO-068 reqwest 0.11→0.12/0.13 升级
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.12 移除 `blocking` 特性独立 crate + Rustls 默认；0.13 改 `ClientBuilder` 默认值（redirect 策略、超时）。
+- 范围：升级 `reqwest = "0.11"` → `"0.13"`；`service-tool` HTTP executor 与 `service-payment` Stripe webhook 同步适配。
+- 不做：不升 `reqwest` 的 `native-tls` 路径（项目统一 rustls）；不改 HTTP 行为语义。
+- 验收标准：`cargo check / test --workspace` 0 error；MCP HTTP tool 执行成功；Stripe webhook 验签路径不退化。
+- 影响范围：`service-tool` + `service-payment`。
+- 最小验证方式：`cargo test --workspace`；手测 MCP tools/call 一个 HTTP 类型工具。
+
+### EVO-069 hmac 0.12→0.13 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.13 改 `Mac::new_from_slice` 签名（返回 `CtOutput`）+ 移除 `SimpleHMac`；与 `sha2 0.11`（EVO-070）强耦合。
+- 范围：升级 `hmac = "0.12"` → `"0.13"`；`service-payment` Stripe webhook 验签迁移。
+- 不做：不改 webhook 验签算法（仍 HMAC-SHA256 + Stripe-Signature 头）。
+- 验收标准：`cargo check / test --workspace` 0 error；Stripe webhook mock 测试通过。
+- 影响范围：`service-payment`。
+- 最小验证方式：`cargo test -p service-payment`。
+
+### EVO-070 sha2 0.10→0.11 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.11 改 `Sha256::new()` 返回 `CtOutput`（const-time 防御时序攻击）；与 hmac 0.13 强耦合（EVO-069）。
+- 范围：升级 `sha2 = "0.10"` → `"0.11"`；`service-payment` + `infra`（缓存 key 哈希）影响。
+- 不做：不引入 `sha1` / `sha3` 等其他变体（项目只用 sha256）。
+- 验收标准：`cargo check / test --workspace` 0 error。
+- 影响范围：`service-payment` + `infra`。
+- 最小验证方式：`cargo test --workspace`。
+
+### EVO-071 redis 0.27→1.x 命名空间重置
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：redis crate 0.x→1.0 是显式 breaking（trait 完全重写、`AsyncCommands` 重命名、新 `Connection` 抽象）。
+- 范围：升级 `redis = "0.27"` → `"1.2"`；重写 `infra/src/cache.rs` 的 `RedisCache` 实现（`service-payment` 暂未真实使用）。
+- 不做：保留 `InMemoryCache` 作为 fallback；不引入 redis cluster / sentinel。
+- 验收标准：`cargo check / test --workspace` 0 error；`RedisCache` 单元测试通过（如有）。
+- 影响范围：`infra`。
+- 最小验证方式：`cargo test -p infra`（mock 模式）；本地启动 docker compose redis 7-alpine 后集成测试。
+
+### EVO-072 actix-governor 0.6→0.7+ 升级
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.7 起 `Governor` 中间件构造改 actix-web 4.x 新 `KeyExtractor` trait；0.10 latest 加入 `cfg` 模块化配置。
+- 范围：升级 `actix-governor = "0.6"` → `"0.10"`；`api/src/middleware/rate_limit.rs` 迁移 KeyExtractor 构造。
+- 不做：不调整 rate limit 阈值（保留当前 unauthenticated/authenticated/api_key 区分）。
+- 验收标准：`cargo check / test --workspace` 0 error；rate limit middleware 单元测试通过。
+- 影响范围：`api/src/middleware/rate_limit.rs`。
+- 最小验证方式：`cargo test -p api`；`/api/v1/auth/login` 错误密码 30+ 次触发 429。
+
+### EVO-073 actix-web-prom 0.8→0.9+ 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.9 起改 `PrometheusMetricsBuilder` API（命名空间、registry 配置变化）；0.10 latest。
+- 范围：升级 `actix-web-prom = "0.8"` → `"0.10"`；`api/src/lib.rs` 构造 + metrics endpoint 路径同步。
+- 不做：不引入 OpenMetrics exporter；不改 metric 标签体系。
+- 验收标准：`cargo check / test --workspace` 0 error；`/metrics` endpoint 仍返回 Prometheus 格式。
+- 影响范围：`api`。
+- 最小验证方式：`cargo test -p api`；`curl /metrics` 返回非空 Prometheus 文本。
+
+### EVO-074 prometheus 0.13→0.14 升级
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：0.14 改 `Encoder` trait 签名；与 `actix-web-prom`（EVO-073）同源。
+- 范围：升级 `prometheus = "0.13"` → `"0.14"`；`api` metrics 注册路径同步。
+- 不做：不改 metric 名称/标签。
+- 验收标准：`cargo check / test --workspace` 0 error。
+- 影响范围：`api`。
+- 最小验证方式：`cargo test -p api`。
+
+### EVO-075 rand 0.8→0.9/0.10 升级（service-auth）
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：rand 0.9/0.10 重整 `Rng` trait 层级（`RngCore` / `Rng` 分离）；与 chrono / argon2 生态对齐。
+- 范围：升级 `service-auth/Cargo.toml` 的 `rand = "0.8"` → `"0.10"`；token 生成 / salt 随机化迁移。
+- 不做：不引入 `rand_distr` / `rand_chacha` 等额外 crate。
+- 验收标准：`cargo check / test --workspace` 0 error。
+- 影响范围：`service-auth`。
+- 最小验证方式：`cargo test -p service-auth`。
+
+### EVO-076 serde_yaml 0.9 → serde_yml / serde_norway 迁移
+
+- 类型：tech-debt
+- 优先级：P3
+- 状态：Proposed
+- 来源：Iteration 032 依赖审计暂缓项 / 2026-06-01
+- 用户/工程价值：serde_yaml 0.9 已 deprecate；社区 fork `serde_yml` 与纯 Rust 替代 `serde_norway` 提供活跃维护路径。
+- 范围：`service-skill` + `service-snippet` 内的 `serde_yaml::from_str` / `to_string` 调用迁移到 `serde_yml`（推荐，社区活跃）或 `serde_norway`（纯 Rust 替代）。
+- 不做：保留 YAML 格式本身（不切 JSON）；不改 SKILL.md / CLI 格式定义。
+- 验收标准：`cargo check / test --workspace` 0 error；现有 SKILL.md parser 测试不退化。
+- 影响范围：`service-skill` + `service-snippet`。
+- 最小验证方式：`cargo test -p service-skill -p service-snippet`。
