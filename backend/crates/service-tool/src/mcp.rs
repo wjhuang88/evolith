@@ -211,7 +211,7 @@ pub fn build_initialize_result() -> InitializeResult {
 }
 
 /// Validate arguments against a JSON Schema
-/// 
+///
 /// Returns Ok(()) if validation passes, or an error message if validation fails.
 pub fn validate_arguments(schema: &Value, arguments: &Value) -> Result<(), String> {
     // If schema is empty or not an object, skip validation
@@ -220,12 +220,12 @@ pub fn validate_arguments(schema: &Value, arguments: &Value) -> Result<(), Strin
     }
 
     // Create a JSON Schema validator
-    let compiled = jsonschema::JSONSchema::compile(schema)
-        .map_err(|e| format!("Invalid schema: {}", e))?;
+    let compiled =
+        jsonschema::JSONSchema::compile(schema).map_err(|e| format!("Invalid schema: {}", e))?;
 
     // Validate the arguments
     let result = compiled.validate(arguments);
-    
+
     if let Err(errors) = result {
         let error_messages: Vec<String> = errors
             .map(|e| {

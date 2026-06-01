@@ -3,11 +3,11 @@
 //! Uses Argon2id algorithm for secure password hashing.
 
 use argon2::{
-    Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier,
-    Version, password_hash::SaltString,
+    password_hash::SaltString, Algorithm, Argon2, Params, PasswordHash, PasswordHasher,
+    PasswordVerifier, Version,
 };
-use rand::rngs::OsRng;
 use common::error::Result;
+use rand::rngs::OsRng;
 use thiserror::Error;
 
 /// Password-related errors
@@ -57,18 +57,14 @@ impl Argon2Hasher {
     /// - Output length: 32 bytes
     pub fn new() -> Self {
         let params = Params::new(
-            65536,  // m_cost: 64MB memory
-            3,      // t_cost: 3 iterations
-            4,      // p_cost: 4 threads parallelism
+            65536,    // m_cost: 64MB memory
+            3,        // t_cost: 3 iterations
+            4,        // p_cost: 4 threads parallelism
             Some(32), // output length
         )
         .expect("Failed to create Argon2 params");
 
-        let hasher = Argon2::new(
-            Algorithm::Argon2id,
-            Version::V0x13,
-            params,
-        );
+        let hasher = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
         Self { hasher }
     }
@@ -80,19 +76,10 @@ impl Argon2Hasher {
     /// * `time_cost` - Number of iterations (default: 3)
     /// * `parallelism` - Degree of parallelism (default: 4)
     pub fn with_params(memory_cost: u32, time_cost: u32, parallelism: u32) -> Result<Self> {
-        let params = Params::new(
-            memory_cost,
-            time_cost,
-            parallelism,
-            Some(32),
-        )
-        .map_err(|e| PasswordError::HashFailed(e.to_string()))?;
+        let params = Params::new(memory_cost, time_cost, parallelism, Some(32))
+            .map_err(|e| PasswordError::HashFailed(e.to_string()))?;
 
-        let hasher = Argon2::new(
-            Algorithm::Argon2id,
-            Version::V0x13,
-            params,
-        );
+        let hasher = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
         Ok(Self { hasher })
     }
@@ -144,8 +131,7 @@ impl Argon2Hasher {
     /// assert!(!hasher.verify_password("wrong_password", &hash)?);
     /// ```
     pub fn verify_password(&self, password: &str, hash: &str) -> Result<bool> {
-        let parsed_hash = PasswordHash::new(hash)
-            .map_err(|_| PasswordError::InvalidHashFormat)?;
+        let parsed_hash = PasswordHash::new(hash).map_err(|_| PasswordError::InvalidHashFormat)?;
 
         match Argon2::default().verify_password(password.as_bytes(), &parsed_hash) {
             Ok(()) => Ok(true),
@@ -203,8 +189,12 @@ mod tests {
         let hash = hasher.hash_password(password).expect("Hashing failed");
         assert!(hash.starts_with("$argon2id$"));
 
-        assert!(hasher.verify_password(password, &hash).expect("Verification failed"));
-        assert!(!hasher.verify_password("WrongPassword", &hash).expect("Verification failed"));
+        assert!(hasher
+            .verify_password(password, &hash)
+            .expect("Verification failed"));
+        assert!(!hasher
+            .verify_password("WrongPassword", &hash)
+            .expect("Verification failed"));
     }
 
     #[test]
@@ -238,20 +228,20 @@ mod tests {
     #[test]
     fn test_password_length_boundaries() {
         let hasher = Argon2Hasher::new();
-        
+
         // Min length is 8
         assert!(hasher.validate_strength("Abcdefg1!").is_ok()); // Exactly 8
         assert!(hasher.validate_strength("Abcdef12!").is_ok()); // 9 chars
-        
+
         // Invalid: too long (> 128 chars)
-        let too_long = "Aa1!".repeat(33);  // 4 * 33 = 132 chars
+        let too_long = "Aa1!".repeat(33); // 4 * 33 = 132 chars
         assert!(hasher.validate_strength(&too_long).is_err());
     }
 
     #[test]
     fn test_password_special_characters() {
         let hasher = Argon2Hasher::new();
-        
+
         // Valid special characters
         assert!(hasher.validate_strength("PassWord1!").is_ok());
         assert!(hasher.validate_strength("PassWord1@").is_ok());
@@ -266,7 +256,7 @@ mod tests {
     #[test]
     fn test_verify_invalid_hash_format() {
         let hasher = Argon2Hasher::new();
-        
+
         // Invalid hash formats
         assert!(hasher.verify_password("test", "invalid-hash").is_err());
         assert!(hasher.verify_password("test", "").is_err());
@@ -275,7 +265,7 @@ mod tests {
     #[test]
     fn test_empty_password() {
         let hasher = Argon2Hasher::new();
-        
+
         // Empty password should fail validation
         let result = hasher.validate_strength("");
         assert!(result.is_err());
@@ -284,7 +274,7 @@ mod tests {
     #[test]
     fn test_whitespace_password() {
         let hasher = Argon2Hasher::new();
-        
+
         // Password with only whitespace should fail
         let result = hasher.validate_strength("    ");
         assert!(result.is_err());
@@ -293,7 +283,7 @@ mod tests {
     #[test]
     fn test_unicode_password() {
         let hasher = Argon2Hasher::new();
-        
+
         // Unicode characters are allowed in passwords
         let result = hasher.hash_password("密码123ABC!");
         assert!(result.is_ok());
@@ -302,7 +292,7 @@ mod tests {
     #[test]
     fn test_password_with_spaces() {
         let hasher = Argon2Hasher::new();
-        
+
         // Password with spaces should work (special char check allows non-alphanumeric)
         let result = hasher.validate_strength("Pass Word1!");
         assert!(result.is_ok());

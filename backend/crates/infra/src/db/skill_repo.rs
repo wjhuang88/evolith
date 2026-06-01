@@ -214,9 +214,8 @@ impl SkillRepository for SqliteSkillRepository {
 
     async fn update(&self, id: Uuid, skill: UpdateSkill) -> Result<Skill> {
         let existing = self.find_by_id(id).await?;
-        let existing = existing.ok_or_else(|| {
-            AppError::NotFoundError(format!("Skill with id {} not found", id))
-        })?;
+        let existing = existing
+            .ok_or_else(|| AppError::NotFoundError(format!("Skill with id {} not found", id)))?;
 
         let now = Utc::now();
 
@@ -237,10 +236,9 @@ impl SkillRepository for SqliteSkillRepository {
             Visibility::Public => "public",
             Visibility::Private => "private",
         };
-        let dependencies_str =
-            serde_json::to_string(&dependencies).map_err(|e| {
-                AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
-            })?;
+        let dependencies_str = serde_json::to_string(&dependencies).map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
+        })?;
 
         sqlx::query(
             r#"

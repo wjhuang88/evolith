@@ -20,7 +20,9 @@ pub use repository::{
 };
 
 // Re-export commonly used types
-pub use skill::{Dependency as SkillDependency, NewSkill, Runtime, Skill, SkillFilter, UpdateSkill};
+pub use skill::{
+    Dependency as SkillDependency, NewSkill, Runtime, Skill, SkillFilter, UpdateSkill,
+};
 pub use snippet::{Dependency as SnippetDependency, NewSnippet, Snippet, SnippetFilter};
 pub use tenant::{
     CreateTenantRequest, InviteUserRequest, PlanStatus, Tenant, TenantContext, TenantInvitation,

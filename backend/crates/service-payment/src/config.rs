@@ -41,7 +41,10 @@ mod tests {
     fn test_payment_config_defaults() {
         let config = PaymentConfig::default();
         assert!(config.test_mode);
-        assert!(config.stripe_secret_key.contains("test") || config.stripe_secret_key.contains("placeholder"));
+        assert!(
+            config.stripe_secret_key.contains("test")
+                || config.stripe_secret_key.contains("placeholder")
+        );
     }
 
     #[test]

@@ -232,9 +232,10 @@ pub async fn update_skill(
     };
 
     // Convert dependencies if provided
-    let dependencies = body.dependencies.as_ref().map(|deps| {
-        deps.iter().map(|d| d.to_domain()).collect()
-    });
+    let dependencies = body
+        .dependencies
+        .as_ref()
+        .map(|deps| deps.iter().map(|d| d.to_domain()).collect());
 
     // Determine visibility if provided
     let visibility = body.is_public.map(|pub_flag| {
@@ -278,8 +279,7 @@ pub async fn update_skill(
                     other.to_string(),
                 ),
             };
-            HttpResponse::build(status)
-                .json(ApiResponse::<()>::error(code, &msg))
+            HttpResponse::build(status).json(ApiResponse::<()>::error(code, &msg))
         }
     }
 }

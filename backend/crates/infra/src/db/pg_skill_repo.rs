@@ -234,9 +234,8 @@ impl SkillRepository for PgSkillRepository {
 
     async fn update(&self, id: Uuid, skill: UpdateSkill) -> Result<Skill> {
         let existing = self.find_by_id(id).await?;
-        let existing = existing.ok_or_else(|| {
-            AppError::NotFoundError(format!("Skill with id {} not found", id))
-        })?;
+        let existing = existing
+            .ok_or_else(|| AppError::NotFoundError(format!("Skill with id {} not found", id)))?;
 
         let now = Utc::now();
 

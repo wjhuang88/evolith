@@ -76,10 +76,8 @@ impl SkillParser {
 
     pub fn parse(&self, content: &str) -> Result<SkillDocument> {
         let (frontmatter, body) = split_frontmatter(content)?;
-        let metadata: SkillMetadata =
-            serde_yaml::from_str(frontmatter).map_err(|err| {
-                AppError::ValidationError(format!("Invalid skill YAML: {err}"))
-            })?;
+        let metadata: SkillMetadata = serde_yaml::from_str(frontmatter)
+            .map_err(|err| AppError::ValidationError(format!("Invalid skill YAML: {err}")))?;
 
         validate_metadata(&metadata)?;
 
@@ -222,15 +220,25 @@ A powerful skill for analyzing data files.
         assert_eq!(doc.metadata.entrypoint, Some("src/main.py".to_string()));
         assert_eq!(doc.metadata.timeout, 60);
         assert_eq!(doc.metadata.memory, 512);
-        assert_eq!(doc.metadata.dependencies, vec!["pandas>=2.0.0", "numpy>=1.24.0"]);
+        assert_eq!(
+            doc.metadata.dependencies,
+            vec!["pandas>=2.0.0", "numpy>=1.24.0"]
+        );
 
-        let perms = doc.metadata.permissions.as_ref().expect("permissions should exist");
+        let perms = doc
+            .metadata
+            .permissions
+            .as_ref()
+            .expect("permissions should exist");
         assert_eq!(perms.filesystem, Some("read".to_string()));
         assert_eq!(perms.network, Some("none".to_string()));
         assert!(perms.environment.is_empty());
 
         // Check flattened extra fields
-        assert!(doc.metadata.metadata_extra.contains_key("disable-model-invocation"));
+        assert!(doc
+            .metadata
+            .metadata_extra
+            .contains_key("disable-model-invocation"));
         assert!(doc.metadata.metadata_extra.contains_key("user-invocable"));
 
         assert!(doc.body.contains("# Data Analyzer Skill"));
@@ -250,7 +258,10 @@ Body content here.
         let doc = parser.parse(input).expect("document should parse");
 
         assert_eq!(doc.metadata.name, "simple-skill");
-        assert_eq!(doc.metadata.description, "A minimal skill with only required fields.");
+        assert_eq!(
+            doc.metadata.description,
+            "A minimal skill with only required fields."
+        );
         assert_eq!(doc.metadata.skill_type, "instruction");
         assert_eq!(doc.metadata.execution, "client");
         assert_eq!(doc.metadata.timeout, 30);
