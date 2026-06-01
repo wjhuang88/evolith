@@ -114,6 +114,7 @@
 5. **新进 Ready 待评估**：
    - EVO-051 / 052 / 056 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
    - EVO-059（Iteration 028 验证残余，clippy pre-existing error 修复）
+   - EVO-060（嵌入式模式验证残余，dev.sh / proposal 死代码清理）
 
 ## 命名
 

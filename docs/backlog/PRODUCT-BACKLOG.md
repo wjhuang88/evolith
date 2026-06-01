@@ -78,6 +78,7 @@
 | EVO-057 | 生产 CORS Origin 可配置化 | tech-debt | P2 | Ready | 跨层一致性审查 2026-06-01 | docker-compose.prod.yml 的 `CORS__ALLOWED_ORIGINS` 被忽略，main.rs 硬编码 origin；新增 CorsConfig 使其可配置 |
 | EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
 | EVO-059 | Backend clippy 历史 lint 升级修复 | tech-debt | P2 | Ready | Iteration 028 验证残余 | stable rustc 1.95 / clippy 升级后暴露 18 个 `-D warnings` 错误，跨 8 个文件：10× `unwrap_used`（infra/tests/*_repo_tests.rs，工作区 `deny` 覆盖了 `clippy.toml` `allow-unwrap-in-tests`）、3× `dead_code`（api/tests/auth_e2e_tests.rs）、4× `unnecessary_min_or_max`（api/src/middleware/rate_limit.rs:111-114）、1× `field_reassign_with_default`（service-payment/src/config.rs:53）。非业务问题；建议修复方向：调整 `[workspace.lints.clippy] unwrap_used` 为 `warn` 或修复 test 字段使用 `#[allow]` / `#[expect(dead_code)]` 等 |
+| EVO-060 | dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理 | tech-debt | P2 | Ready | 嵌入式模式验证 2026-06-01 | `scripts/dev.sh` 残留 4 处 `EMBEDDED_FRONTEND` / `build_frontend_zip` / `frontend.zip` / `--features embedded-frontend` 死代码（实际后端用 `#[folder]` 嵌入，无需 zip/feature flag）；`docs/proposals/EMBEDDED-FRONTEND.md` 状态 `远期目标` → `已晋升`（Iteration 031 已用 rust-embed-for-web 实现等价目标）；`--features embedded-frontend` 在 Cargo.toml 中未定义，调用会报 unknown feature |
 
 
 ## 故事模板
@@ -1387,3 +1388,82 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 解锁内容：前端类型反映真实契约，降低维护误导。
 - 影响范围：frontend
 - 最小验证方式：`bun run build`；`rg` 检查死代码残留；类型检查 0 错误。
+
+### EVO-059 Backend clippy 历史 lint 升级修复
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 来源：Iteration 028 验证残余 / 2026-06-01
+- 用户/工程价值：消除 `cargo clippy --workspace -- -D warnings` 18 个错误，让 release 构建前可重启用 clippy 严格门禁。
+- 背景（Iteration 028 rustfmt 基线收口时发现）：
+  - stable rustc 1.95 + clippy 升级后，工作区 `deny(clippy::unwrap_used)` 覆盖了 `clippy.toml` 的 `allow-unwrap-in-tests`，导致 `infra/tests/*_repo_tests.rs` 中 10 个 `unwrap_used` 错误。
+  - `api/tests/auth_e2e_tests.rs` 3 个 `dead_code`（test helper 函数）。
+  - `api/src/middleware/rate_limit.rs:111-114` 4 个 `unnecessary_min_or_max`。
+  - `service-payment/src/config.rs:53` 1 个 `field_reassign_with_default`。
+  - 跨 8 个文件、18 个 `-D warnings` 错误，全部非业务问题。
+- 范围（本次做）：
+  1. `infra/tests/*_repo_tests.rs`：评估将 `[workspace.lints.clippy] unwrap_used` 从 `deny` 降为 `warn`；或对必要 `unwrap` 加 `#[expect(clippy::unwrap_used)]` + 解释。
+  2. `api/tests/auth_e2e_tests.rs`：对未使用 helper 加 `#[allow(dead_code)]` 或 `#[expect(dead_code)]` + 注释。
+  3. `api/src/middleware/rate_limit.rs:111-114`：用 `.min(...).max(...)` 替换 `min(...).min(...)` 模式或反向比较。
+  4. `service-payment/src/config.rs:53`：使用结构体更新语法或显式字段赋值替换。
+- 不做：
+  - 不改业务逻辑。
+  - 不调整工作区 `deny(clippy::panic)` / `deny(clippy::expect_used)` / `deny(clippy::todo)` 等其他 `deny` 级别。
+  - 不新增 suppress，不批量 `#[allow(...)]`。
+- 验收标准：
+  - [ ] `cargo clippy --workspace -- -D warnings` 0 错误。
+  - [ ] `cargo test --workspace` 仍 0 失败（验证非行为变更）。
+  - [ ] 无新增 `#[allow(...)]` / `#[expect(...)]` 除非带注释说明。
+  - [ ] `clippy.toml` / `[workspace.lints.clippy]` 配置变化有注释说明。
+- 依赖或阻塞：无。
+- 解锁内容：Iteration 028 验证残余清零，release 流程可启用 clippy 严格门禁。
+- 影响范围：backend（含 tests）
+- 最小验证方式：`cargo clippy --workspace -- -D warnings`；`cargo test --workspace`。
+
+### EVO-060 dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 来源：嵌入式模式验证 2026-06-01 / Iteration 035 后续
+- 用户/工程价值：消除 dev.sh 与 proposal 中指向已废 ZIP 嵌入方案的孤儿代码，避免新成员按过时模式复用。
+- 背景（嵌入式模式本地验证时发现）：
+  - Iteration 031 改用 `rust-embed-for-web` 的 `#[folder = "../frontend/dist/"]` 直接嵌入目录（`backend/src/frontend.rs:7`），取代了原 ZIP 方案。
+  - 但 `scripts/dev.sh` 仍保留 ZIP 方案的全部脚手架：`EMBEDDED_FRONTEND` 环境变量、`build_frontend_zip()` 函数、`embedded` 子命令入口。
+  - `docs/proposals/EMBEDDED-FRONTEND.md` 状态仍为 `远期目标`，未反映 Iteration 031 已用替代方案实现。
+  - `Cargo.toml` 中**未定义** `embedded-frontend` feature；调用 `cargo build --features embedded-frontend` 会报 unknown feature。
+  - 历史记录保留：`docs/iterations/ITERATION-030.md`（Superseded → Iteration 031）、`EVOLUTION.md` ADR-0003 引用。
+- 范围（本次做）：
+  1. **`scripts/dev.sh` 清理**：
+     - 删除 line 10 `EMBEDDED_FRONTEND="${EMBEDDED_FRONTEND:-false}"`。
+     - 删除 line 126-140 `build_frontend_zip()` 函数。
+     - 删除 line 152-168 `if [ "$EMBEDDED_FRONTEND" = "true" ]; then ...` 分支。
+     - 删除 line 365-368 `embedded` 子命令入口。
+     - 同步更新 `--help` / usage 列表。
+  2. **`docs/proposals/EMBEDDED-FRONTEND.md` 状态更新**：
+     - `远期目标` → `已晋升（Iteration 031 改用 rust-embed-for-web 替代 ZIP 方案）`。
+     - 移除或注释 `--features embedded-frontend` 引用（line 75、149）。
+     - 顶部加改线说明 + 链接到 Iteration 031 / ADR-0003。
+  3. **`docs/iterations/ITERATION-030.md` 注释补全**（按 AGENTS.md「已发布 iteration 计划基线保护」原则，保留原计划不动）：
+     - 在「已改线」段落中补充：`--features embedded-frontend` 在 Cargo.toml 中未定义，Iteration 031 实际改用 `#[folder]` 无 feature flag；如需重新启用 feature flag 形式参见 ADR-0003。
+- 不做：
+  - 不改 backend `frontend.rs` 的 `#[folder]` 嵌入实现（工作正常）。
+  - 不改 `docs/decisions/ADR-0003-embedded-frontend-rust-embed-for-web.md`（决策已生效）。
+  - 不重写 `docs/iterations/ITERATION-030.md` 的计划基线（按 AGENTS.md 规则仅追加说明）。
+  - 不删 `EVOLUTION.md` 历史记录。
+- 验收标准：
+  - [ ] `rg "EMBEDDED_FRONTEND|frontend\.zip" scripts/dev.sh` 0 hits。
+  - [ ] `rg "embedded-frontend" scripts/dev.sh docs/proposals/ backend/Cargo.toml backend/crates/*/Cargo.toml` 0 hits（确认 feature flag 未复活）。
+  - [ ] `rg "embedded-frontend" docs/iterations/ITERATION-030.md` 仍保留（历史基线），但段落有改线说明。
+  - [ ] `docs/proposals/EMBEDDED-FRONTEND.md` 顶部状态含「已晋升」+ Iteration 031 链接。
+  - [ ] `bash -n scripts/dev.sh` 语法检查通过。
+  - [ ] `scripts/dev.sh --help` / `bash scripts/dev.sh` 启动正常，无 `embedded` 子命令。
+  - [ ] `scripts/dev.sh` 总行数减少约 50 行。
+  - [ ] `scripts/dev.sh lite|start|stop|status|logs|clean|infra|backend|frontend` 子命令未受影响。
+  - [ ] `docs/reference/SCRIPTS-RELEASE-NOTES.md` 同步记录 dev.sh 行为变更（删除 `embedded` 子命令 + `EMBEDDED_FRONTEND` 环境变量 + `build_frontend_zip` 函数）。
+- 依赖或阻塞：无。
+- 解锁内容：dev.sh 与 proposal 反映 Iteration 031 终局形态；新成员复用 dev.sh 时不会看到死代码。
+- 影响范围：scripts/dev.sh、docs/proposals/EMBEDDED-FRONTEND.md、docs/iterations/ITERATION-030.md、docs/reference/SCRIPTS-RELEASE-NOTES.md
+- 最小验证方式：`bash -n scripts/dev.sh`；`rg "EMBEDDED_FRONTEND|frontend\.zip|embedded-frontend" scripts/dev.sh docs/proposals/ backend/` 0 hits；`bash scripts/dev.sh lite` / `bash scripts/dev.sh status` 仍可执行。
+
