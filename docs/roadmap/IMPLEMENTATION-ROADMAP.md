@@ -1,7 +1,7 @@
 # Evolith 实施路线图
 
 > 制定日期：2026-05-15
-> 最近更新：2026-05-28
+> 最近更新：2026-06-01
 > 目标：维护阶段优先级、实施顺序和 Backlog / Proposals 归口关系。
 
 本文档不是任务池。Agent 不应直接从本文档开工：
@@ -20,7 +20,9 @@ Evolith 的后端主体架构已经成型：数据库 repository、双数据库 
 下一阶段不应继续扩展大而散的新功能，而应先处理三类问题：
 
 1. **需求闭环缺口**：需求和 API 合约中仍存在 501、stub、前端 mock 和服务 crate placeholder。
-2. **前端工程简化**：前端已迁移为 `React + Vite + Bun` 静态 SPA。当前 Nginx 托管静态资源是 EVO-016 前的过渡部署形态，终局仍计划推进前端嵌入后端发布物。
+2. **前端工程简化**：前端已迁移为 `React + Vite + Bun` 静态 SPA，并已通过
+   `rust-embed-for-web` 嵌入后端发布物。Nginx 现在应定位为可选网关/SSL/反代组件，
+   不再是前端静态资源托管的必需组件。
 3. **产品概念迁移**：旧 snippet 主线停止扩展，后续替换为面向大模型和 CLI 调用的 CLI 友好接口，见 [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md)。
 
 具体需求池维护在 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)。本文档只保留阶段方向和优先级判断。
@@ -57,15 +59,15 @@ React + Vite + TypeScript + Tailwind + React Router + Zustand + TanStack Query +
 
 ### 2.2 部署路线
 
-当前过渡阶段前端构建为纯静态文件，由 Nginx 托管：
+当前前端构建为纯静态文件，并在后端发布物中通过 `rust-embed-for-web` 提供：
 
 ```text
 bun install
 bun run build
-nginx serve dist/
+cargo build --release
 ```
 
-终局目标见 EVO-016 / `EMBEDDED-FRONTEND`：前端静态产物嵌入后端发布物后，Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的必需组件。
+Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的必需组件。
 
 生产建议支持运行时配置：
 
@@ -195,7 +197,7 @@ nginx serve dist/
 | 目标 | 文档 | 进入条件 |
 |------|------|----------|
 | Rust CLI | [Evolith Rust CLI](../proposals/RUST-CLI.md) | API 合约稳定，Skill/CLI interface parser 完成 |
-| 前端嵌入后端发布物 | [前端静态产物嵌入后端](../proposals/EMBEDDED-FRONTEND.md) | 完成 React + Vite + Bun 静态 SPA 迁移 |
+| 前端嵌入后端发布物 | [前端静态产物嵌入后端](../proposals/EMBEDDED-FRONTEND.md) | Done：Iteration 031 完成 rust-embed-for-web 迁移 |
 
 ## 8. 计划维护规则
 
@@ -235,5 +237,5 @@ nginx serve dist/
 | Phase F tenant members/api keys/settings/audit/billing | EVO-010 至 EVO-014 | Proposed |
 | Phase G GitHub CI/CD 重建 | EVO-030 | Proposed；项目后段统一做 |
 | Rust CLI | Proposal: [RUST-CLI](../proposals/RUST-CLI.md) | Deferred |
-| 前端嵌入后端发布物 | Proposal: [EMBEDDED-FRONTEND](../proposals/EMBEDDED-FRONTEND.md) | Deferred |
+| 前端嵌入后端发布物 | Proposal: [EMBEDDED-FRONTEND](../proposals/EMBEDDED-FRONTEND.md) | Done：Iteration 031 完成 rust-embed-for-web 迁移 |
 | AI Gateway / Agent Runtime | Proposals | 远期想法，不进当前实施路线 |

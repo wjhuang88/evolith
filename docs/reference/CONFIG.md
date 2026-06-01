@@ -60,6 +60,7 @@ LOG__LEVEL=info
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `APP__PUBLIC_URL` | 对外访问前端 URL，用于邮件链接和用户可点击链接 | `http://localhost:3001` |
+| `APP__API_BASE_URL` | `/config.js` 注入给嵌入式前端的 API base URL | `/api/v1` |
 | `SERVER__HOST` | 服务监听地址 | `0.0.0.0` |
 | `SERVER__PORT` | 服务端口 | `8080` |
 | `DATABASE__DATABASE_TYPE` | `sqlite` / `postgres` / `mysql` | `sqlite` |
@@ -108,11 +109,14 @@ VITE_API_URL
 VITE_API_URL=http://localhost:8080/api/v1
 ```
 
-生产建议支持运行时配置：
+嵌入式前端运行时配置：
 
 ```text
 /config.js -> window.__EVOLITH_CONFIG__.apiBaseUrl
 ```
+
+未设置 `APP__API_BASE_URL` 时，`/config.js` 默认注入同源 `/api/v1`。独立前端开发或
+旧部署仍可通过 `VITE_API_URL` / `NEXT_PUBLIC_API_URL` 在构建时指定 API 地址。
 
 ## 配置陷阱
 

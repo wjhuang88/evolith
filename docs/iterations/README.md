@@ -38,10 +38,9 @@
 
 ## 未来计划
 
-以下文档仅为排期草案，未启动实施，也不代表候选事项已进入 `In Progress`：
+以下文档仅为仍可能激活的排期草案，未启动实施，也不代表候选事项已进入 `In Progress`。
+已关闭或已被取代的计划仅保留在文件清单和库存记录中，不再列入未来候选：
 
-- [Iteration 012](ITERATION-012.md) — Embedded Frontend 文件服务与单容器交付
-  （Blocked for activation：需重新排期 EVO-016 refinement）。
 - [Iteration 017](ITERATION-017.md) — 前端 CLI Interface 概念收口（EVO-026；
   Ready for activation：Iteration 009 / 010 已收口，激活前重核 EVO-026 DoR 与旧路由策略）。
 - [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
@@ -50,8 +49,6 @@
   Blocked for activation：依赖 Iteration 018 前置结论与交付）。
 - [Iteration 020](ITERATION-020.md) — Skill 版本与正确性验证（EVO-028；
   Blocked for activation：依赖 Iteration 019 导入模型）。
-- [Iteration 024](ITERATION-024.md) — Embedded Frontend 交付形态 refinement（EVO-016-A；
-  Ready for activation：一周方案切片，解除 Iteration 012 前置）。
 - [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013；
   Blocked for activation：候选需 Story/BDD refinement）。
 - [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014；
@@ -62,8 +59,6 @@
   Ready for activation：一周工程质量切片）。
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；
   Blocked for activation：依赖 Iteration 028 与部署边界确认）。
-- [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（EVO-016-B；
-  Active：纯流式 body + 静态索引 + HTTP 缓存策略）。
 
 ## 非终态库存
 
@@ -78,8 +73,8 @@
 - [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
   `Planned / Blocked`：按 Phase E 依赖链保留排期，待前置计划和各 story DoR 满足后
   逐轮激活。
-- [Iteration 024](ITERATION-024.md) — `Planned / Ready for activation`：EVO-016-A
-  refinement，解除 Iteration 012 前置。
+- [Iteration 024](ITERATION-024.md) — `Superseded by Iteration 031`：EVO-016-A
+  refinement 已被 rust-embed-for-web 实施覆盖。
 - [Iteration 025](ITERATION-025.md) 至 [Iteration 027](ITERATION-027.md) —
   `Planned / Blocked`：Phase F 与 Skill 发现质量候选需 refinement 或依赖确认。
 - [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033

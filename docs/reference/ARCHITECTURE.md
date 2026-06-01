@@ -2,7 +2,7 @@
 
 ## 1. 系统概述
 
-Evolith 采用前后端分离的微服务架构，后端使用 Rust 构建高性能 API 服务，前端当前使用 React + Vite + Bun 构建静态 SPA。EVO-016 之前，前端静态产物可由 Nginx 托管；终局状态会把前端产物嵌入后端发布物，Nginx 只作为可选网关、SSL 终止和反向代理层。
+Evolith 采用前后端分离的微服务架构，后端使用 Rust 构建高性能 API 服务，前端当前使用 React + Vite + Bun 构建静态 SPA，并通过 `rust-embed-for-web` 嵌入后端发布物。Nginx 只作为可选网关、SSL 终止和反向代理层。
 
 ## 2. 整体架构
 
@@ -23,7 +23,7 @@ Evolith 采用前后端分离的微服务架构，后端使用 Rust 构建高性
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │            Optional Gateway (Nginx / Platform LB)           │ │
 │  │  - SSL Termination                                         │ │
-│  │  - Reverse Proxy / Static SPA hosting before EVO-016       │ │
+│  │  - Reverse Proxy / SSL termination                         │ │
 │  │  - Load Balancing                                          │ │
 │  └────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
@@ -604,8 +604,8 @@ CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                    Frontend Assets                        │  │
-│  │  - Static SPA assets served by Nginx/CDN before EVO-016   │  │
-│  │  - Embedded into backend release artifact at final state  │  │
+│  │  - Static SPA assets embedded into backend release         │  │
+│  │  - Served by rust-embed-for-web with SPA fallback          │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘

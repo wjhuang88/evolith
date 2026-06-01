@@ -46,14 +46,12 @@ pub async fn spa_fallback(req: HttpRequest) -> HttpResponse {
 pub async fn config_js(_req: HttpRequest) -> HttpResponse {
     let public_url =
         std::env::var("APP__PUBLIC_URL").unwrap_or_else(|_| "http://localhost:3001".to_string());
-    let cors_origin = std::env::var("CORS__ALLOWED_ORIGIN")
-        .unwrap_or_else(|_| "http://localhost:3001".to_string());
+    let api_base_url = std::env::var("APP__API_BASE_URL").unwrap_or_else(|_| "/api/v1".to_string());
 
     let body = format!(
         r#"window.__EVOLITH_CONFIG__ = {{
-  apiBaseUrl: "{cors_origin}/api/v1",
+  apiBaseUrl: "{api_base_url}",
   publicUrl: "{public_url}",
-  wsUrl: "{cors_origin}",
 }};"#
     );
 

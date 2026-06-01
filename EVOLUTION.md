@@ -24,6 +24,21 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-01 嵌入式前端完成后要同步运行时配置和计划状态
+
+**现象**: Iteration 031 完成 `rust-embed-for-web` 迁移后，`/config.js` 只在后端提供，
+但前端未加载也未读取 `window.__EVOLITH_CONFIG__`；默认 API base URL 还错误地从
+`CORS__ALLOWED_ORIGIN` 拼接。同时迭代目录仍把被覆盖的 Iteration 030 写成 Active，
+EVO-016-A / Iteration 024 仍显示可激活，和已完成的 EVO-016-B 状态冲突。
+**根因**: 实现收口关注了静态服务和缓存验证，但没有把运行时配置注入路径、构建时
+fallback、future iteration 库存和 roadmap/reference 的终局状态一起同步。
+**方案**: 前端入口加载 `/config.js`，`config.ts` 优先读取运行时配置；后端默认注入
+同源 `/api/v1`，并补充 `APP__API_BASE_URL` 参考。删除被替代的 `frontend.zip`，
+将 EVO-016-A / Iteration 024 标为被 Iteration 031 覆盖，并同步 roadmap、architecture、
+release 和 iteration inventory。
+**教训**: 交付形态从过渡策略切到终局后，要同时检查代码路径、运行时配置、旧制品、
+计划库存和稳定事实；只验证 HTTP 响应头不能证明部署形态已经完全收口。
+
 ### 2026-05-28 方案选型应先广后深，避免对单一方案过度优化
 
 **现象**: EVO-016 前端嵌入方案从一开始就聚焦在 ZIP 上，经历了基础嵌入（EVO-016-A）、

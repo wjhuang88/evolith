@@ -1,9 +1,11 @@
 # Iteration 024: Embedded Frontend 交付形态 Refinement
 
-> 文档状态：Planned / Ready for activation
+> 文档状态：Superseded by Iteration 031
 > 计划发布日期：2026-05-28
 > 计划目标：用一周完成 EVO-016-A refinement，明确前端嵌入后端发布物的交付边界，
 > 为 Iteration 012 / EVO-016-B 解除前置设计阻塞。
+> Superseded 原因：Iteration 031 已直接完成 EVO-016-B 的 rust-embed-for-web 方案，
+> refinement 不再作为独立激活前置。
 >
 > 基线保护：本文件一旦提交，以下“发布计划基线”内容不可因实施或改线而覆写；
 > 同目标执行只向执行区追加事实，换目标必须保留本页并新建 iteration 编号。
@@ -77,6 +79,7 @@ git diff --check
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-05-28 | planning | 发布一周计划基线；未启动实现。 |
+| 2026-06-01 | disposition | EVO-016-B 已由 Iteration 031 完成；本 refinement 计划被覆盖，标记为 `Superseded by Iteration 031`。 |
 
 ## 9. 变更请求
 
@@ -88,8 +91,8 @@ git diff --check
 - 完成：
 - 未完成：
 - 验证结果：
-- 闭环状态：`Blocked`（仅计划发布，尚未激活）
-- 残余归口：激活后按第 7 节闭环。
+- 闭环状态：`Superseded`
+- 残余归口：Docker 单容器细化如需继续，另建新的独立 story；CI/CD 仍归 EVO-030。
 
 ## 11. Retrospective
 

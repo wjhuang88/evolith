@@ -30,8 +30,8 @@
 | EVO-013 | Audit log detail 接口 | feature | P2 | Proposed | API 501 | `GET /audit-logs/{log_id}` |
 | EVO-014 | Stripe webhook 恢复 | feature | P2 | Proposed | routes TODO | 计费闭环 |
 | EVO-015 | Rust CLI 子项目 | feature | P3 | Deferred | [提案](../proposals/RUST-CLI.md) | API 稳定后启动 |
-| EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Deferred | [提案](../proposals/EMBEDDED-FRONTEND.md) | Vite SPA 完成后启动 |
-| EVO-016-A | Embedded Frontend 交付形态 refinement | tech-debt | P2 | Ready | EVO-016 split / Iteration 024 | 先确认后端静态服务、单容器边界和 Nginx 终局角色，解除 Iteration 012 前置 |
+| EVO-016 | 前端嵌入后端发布物 | tech-debt | P3 | Done | [提案](../proposals/EMBEDDED-FRONTEND.md) | EVO-016-B 已由 Iteration 031 完成；Docker 单容器细化如需继续另拆 |
+| EVO-016-A | Embedded Frontend 交付形态 refinement | tech-debt | P2 | Deferred | EVO-016 split / Iteration 024 | 已被 Iteration 031 的 rust-embed-for-web 实施覆盖，不再单独激活 |
 | EVO-016-B | 前端静态服务迁移到 rust-embed-for-web | tech-debt | P0 | Done | EVO-016 split / 用户需求 / Iteration 031 | 替代 ZIP 方案：用 rust-embed-for-web 实现零拷贝 + 预压缩 + 自动缓存协商；14 项验收标准全部通过 |
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | product-change | P0 | Done | [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md) | Iteration 002；replaces EVO-007/EVO-008；已建立 CLI interface 格式、API 兼容契约、parser 基线和迁移盘点 |
 | EVO-018 | 邮箱验证发送与确认闭环 | feature | P1 | Done | Iteration 009 | Handler 与测试存在，Iteration 021 完成 contract/testing/roadmap 收口 |
@@ -145,7 +145,7 @@
 
 - 类型：tech-debt
 - 优先级：P2
-- 状态：Ready
+- 状态：Deferred
 - 父 Epic：EVO-016
 - Story 形态：Technical
 - 用户故事或技术目标：
@@ -168,7 +168,7 @@
   - [ ] 写清 Docker/build 输入输出和本地/容器验证矩阵。
   - [ ] 更新 Iteration 012 的激活条件或确认仍阻塞。
   - [ ] 将实施切片 `EVO-016-B` 的范围、依赖和验证方式补齐。
-- 依赖或阻塞：Vite SPA 与 Bun 构建已完成；需要基于当前部署文档和代码确认最终策略。
+- 依赖或阻塞：已被 EVO-016-B / Iteration 031 的 rust-embed-for-web 实施覆盖；不再单独激活。
 - 影响范围：docs / deploy / backend / frontend
 - 最小验证方式：Markdown 链接检查；`git diff --check`；必要时只读检查当前 Docker/Nginx/backend route 配置。
 
@@ -414,12 +414,12 @@
   - 将可迁移的“iteration inventory before backlog selection”规则同步到治理 skill。
 - 不做：
   - 不在本故事核验或补做 Iteration 010 尚未证明完成的格式依赖文档内容。
-  - 不解除 Iteration 012 的 EVO-016 前置阻塞，也不实施 embedded frontend。
+  - 当时不解除 Iteration 012 的 EVO-016 前置阻塞，也不实施 embedded frontend。
   - 不将外部 skill 仓库的独立修改纳入 Evolith 仓库提交。
 - 验收标准：
   - [x] `START-ITERATION.md` 明确迭代库存盘点先于 backlog story 选择。
   - [x] `AGENTS.md`、迭代工作流、目录说明与文档检查均能防止绕过现有未完成计划。
-  - [x] Iteration 010 的故事完成事实与迭代收口缺口均可追溯，Iteration 012 的阻塞保留。
+  - [x] Iteration 010 的故事完成事实与迭代收口缺口均可追溯，Iteration 012 的当时阻塞保留。
   - [x] `agent-project-governance` skill 包含同类生成/审计与评估规则。
   - [x] 项目文档检查、`git diff --check` 与 skill 结构校验通过。
 - 依赖或阻塞：本故事为治理缺陷修复，可在产品迭代重新选取前实施；Iteration 010
@@ -610,7 +610,7 @@
 - 类型：tech-debt
 - 优先级：P0
 - 状态：Done
-- 用户价值或技术目标：让当前生产部署形态匹配 Vite 静态 SPA，避免继续依赖 Next standalone runtime。该 Nginx 托管静态资源方案是 EVO-016 前的过渡策略，终局仍计划把前端静态产物嵌入后端发布物。
+- 用户价值或技术目标：让当时生产部署形态匹配 Vite 静态 SPA，避免继续依赖 Next standalone runtime。该 Nginx 托管静态资源方案是 EVO-016 前的过渡策略；当前已由 EVO-016-B / Iteration 031 的 `rust-embed-for-web` 嵌入方案替代。
 - 范围：
   - 更新前端 Dockerfile 或生产镜像构建流程，使用 Vite `dist/` 静态产物。
   - 更新 Nginx 配置，支持 SPA history fallback、静态资源缓存和 `/api/v1` 反向代理。

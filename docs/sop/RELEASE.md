@@ -47,7 +47,8 @@ curl -f http://localhost/health/live
 | 公开链接 | 邮件中的重置密码、邀请接受、邮箱验证链接指向前端公开 URL |
 | sandbox | `SANDBOX__ENABLED=true` 时 Docker executor 正常初始化 |
 
-> 当前 Nginx 托管静态 SPA 是 EVO-016 前的过渡部署形态。终局若采用“前端嵌入后端发布物”，仍需保留 API 网关/SSL/反代检查，但不再把 Nginx 作为前端静态资源的唯一托管前提。
+> 前端静态资源已通过 `rust-embed-for-web` 嵌入后端发布物。Nginx 仍可作为 API 网关、
+> SSL 终止和反代层，但不再是前端静态资源的唯一托管前提。
 
 ## 回滚
 

@@ -122,7 +122,7 @@
 4. Docker sandbox 初始化失败会降级到 `DefaultSkillExecutor`，不要只看接口返回成功就假定沙箱已启用。
 5. SQLite 和 PostgreSQL SQL 类型、时间、JSON、UUID 行为不同，migration 不能简单复制后不验证。
 6. 邮件链接必须使用 `APP__PUBLIC_URL` 指向前端公开地址；不要用后端监听地址拼 reset/invite 链接。
-7. 当前 Nginx 托管 Vite 静态资源是 EVO-016 前的过渡策略；修改反代时必须验证 `/assets/` 不被 rewrite 成 `index.html`。
+7. 前端静态资源已通过 `rust-embed-for-web` 嵌入后端发布物；Nginx 仅作为可选网关/SSL/反代。修改反代或 fallback 时必须验证 `/assets/`、`/api/v1`、`/health`、`/mcp` 和 SPA 深层路由不互相截获。
 8. MCP `tools/call` 会触发真实出站请求，必须要求有效 API Key；HTTP executor 不得隐式探测系统代理，相关测试必须使用本地可控服务。
 9. 已发布的 future iteration 可能承载后续依赖；不得用更高优先级工作就地改写其目标，否则会丢失原计划和依赖链。改线时创建新 iteration，并显式标注原计划保留或阻塞。
 10. 文件已生成或代码已修改不等于任务完成；若验证、backlog/iteration 同步或已知残余归口缺失，必须按 `Partial` 报告并继续收口。

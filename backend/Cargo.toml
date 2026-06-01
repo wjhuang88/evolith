@@ -29,8 +29,8 @@ service-audit.workspace = true
 service-skill.workspace = true
 service-tool.workspace = true
 uuid.workspace = true
-rust-embed-for-web = "11.3"
-actix-web-rust-embed-responder = "2.3"
+rust-embed-for-web.workspace = true
+actix-web-rust-embed-responder.workspace = true
 
 [workspace]
 resolver = "2"
