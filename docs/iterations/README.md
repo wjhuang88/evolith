@@ -31,13 +31,14 @@
 - [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013）。
 - [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014）。
 - [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
-- [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033）。
+- [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；Closed：fmt baseline 完成，clippy 1 pre-existing error 归口 EVO-059）。
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030）。
 - [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（Superseded：改线到 Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B；Closed）。
 - [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043）。
 - [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048）。
 - [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A）。
+- [Iteration 035](ITERATION-035.md) — P1 治理先行：backlog 状态漂移与前后端 API 契约漂移修复（EVO-054 / EVO-055；Closed）。
 
 ## 未来计划
 
@@ -92,23 +93,27 @@
   rust-embed-for-web（Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — `Closed`：EVO-016-B 前端静态服务迁移到
   rust-embed-for-web。全部 14 项验收标准通过。Iteration 012 激活条件已解除。
+- [Iteration 028](ITERATION-028.md) — `Closed`：EVO-033 Rustfmt 基线；fmt/check/test 通过，clippy 1 pre-existing error 归口 EVO-059。
 - [Iteration 032](ITERATION-032.md) — `Planned / Ready for activation`：EVO-043
   后端依赖审计与迁移；建议在 CI 重建前执行。
 - [Iteration 033](ITERATION-033.md) — `Planned / Ready for activation`：EVO-048
   Serverless 架构 Spike；不实现 runtime。
 - [Iteration 034](ITERATION-034.md) — `Planned / Ready for activation`：EVO-049-A
   Skill/CLI 规范兼容数据模型基线；EVO-049 父 Epic 不直接选入。
+- [Iteration 035](ITERATION-035.md) — `Closed`：EVO-054 / EVO-055 完成。EVO-054 修复 3 处详情块漂移 + 1 处 Dropped 占位（EVO-042）+ 1 处额外漂移（EVO-026）；EVO-055 修复死分支 / billing 闸门 / 501 显式 throw / API-CONTRACT 同步。
 
 ## 下一周建议顺序
 
 该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
 并记录库存 disposition：
 
-1. [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备。
-2. [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移。
-3. [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建。
-4. [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike。
-5. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
+1. [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（Iteration 028 已 Closed 释放 fmt baseline）。
+2. [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建。
+3. [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike。
+4. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
+5. **新进 Ready 待评估**：
+   - EVO-051 / 052 / 056 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
+   - EVO-059（Iteration 028 验证残余，clippy pre-existing error 修复）
 
 ## 命名
 

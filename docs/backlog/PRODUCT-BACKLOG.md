@@ -49,7 +49,7 @@
 | EVO-030 | GitHub CI/CD 重建 | tech-debt | P2 | Proposed | EVO-002 split / 工程收尾 | 放到项目后段统一做；基于最终构建、测试、部署命令重建 workflow |
 | EVO-031 | Iteration 004/005 质量修复与流程防呆 | bug | P0 | Done | 质量审查 2026-05-17 | 修复静态资源反代、邀请接受闭环、公开接口放行、邮件公开 URL、sourcemap 默认关闭和流程规约 |
 | EVO-032 | Iteration 006 MCP 执行质量修复与流程防呆 | bug | P0 | Done | 质量审查 2026-05-25 | Iteration 007；修复执行器初始化崩溃、工具调用鉴权、错误映射和验收证据失真 |
-| EVO-033 | Rustfmt 全量格式基线与 stable 配置清理 | tech-debt | P2 | Proposed | Iteration 007 验证残余 | 独立处理历史格式差异和 nightly-only 配置告警，避免混入功能修复 |
+| EVO-033 | Rustfmt 全量格式基线与 stable 配置清理 | tech-debt | P2 | Done | Iteration 007 验证残余 / Iteration 028 | 2026-06-01 完成；移除 7 个 nightly-only 配置，应用 stable rustfmt 重写 13 个文件；fmt/check/test 通过；clippy 1 个 pre-existing error 归口 EVO-059 |
 | EVO-034 | Epic 与子需求拆分治理规则 | tech-debt | P1 | Done | 流程缺口 2026-05-26 | Iteration 008；已补齐父子编号、依赖、分层 DoR 与跨 Epic 选取约束 |
 | EVO-035 | 治理 skill manifest 接入与一致性审计 | tech-debt | P2 | Done | Iteration 008 验证残余 | Iteration 023；已建立 manifest 并通过 bundled validator |
 | EVO-036 | 已发布迭代计划基线保护与改线防呆 | tech-debt | P1 | Done | 计划覆写复盘 2026-05-27 | Iteration 013；修复 EVO-016 计划追踪并同步治理 skill |
@@ -58,6 +58,7 @@
 | EVO-039 | 迭代启动前库存盘点与既有计划优先规则 | bug | P1 | Done | 流程缺口 2026-05-27 | Iteration 016；先处理在途/已规划迭代再选择新 story |
 | EVO-040 | 已实现接口完成声明与参考文档状态修复 | bug | P1 | Done | 排期库存审计 2026-05-27 | Iteration 021；修复邮箱验证与 Skill 更新接口的收口漂移 |
 | EVO-041 | 敏捷实践与 BDD 验收格式适配规则 | tech-debt | P1 | Done | 用户方法论反馈 2026-05-28 | Iteration 022；明确 Evolith iteration 与传统 Sprint、Story 与 BDD 的适配口径 |
+| EVO-042 | 编号保留位（缺号处置） | governance | — | Dropped | Iteration 035 / 代码健康审查 2026-06-01 | 缺号处置：原编号未被任何 story 占用，确认为 2026-05-29 EVO-043~050 跨 Epic 集中入池时跳跃（041 → 043），并非遗漏；保留为占位以维持 EVO 编号连续性语义。如需新增可复用此编号并标注 `replaces <空>` |
 | EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Ready | 用户需求 / Iteration 030 | 审计 backend workspace 所有 crate 依赖，升级到最新稳定版并验证编译/测试通过 |
 | EVO-044 | 前端 CLI 命名简化 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | 导航、页面、i18n 中 "CLI Interfaces" / "CLI 接口" 统一简化为 "CLI" |
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
@@ -71,11 +72,12 @@
 | EVO-051 | 误导性注释、命名与后端死代码清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释，并删除未接线的 guards.rs/registry/reference/search/error.rs 后端死代码；纯清晰度，无行为变更 |
 | EVO-052 | MySQL 半接线收敛与快速失败 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | config/pool 接受 `mysql` 但 main.rs 连接池后才拒绝；改为配置解析期快速失败或移除半接线，消除"看似可用"陷阱 |
 | EVO-053 | 测试盲区补齐 | tech-debt | P2 | Proposed | 代码健康审查 2026-06-01 | service-audit 零测试、8 个 repo 集成测试仅覆盖 SQLite，PostgreSQL repository 无集成测试；PG 测试基础设施待与 EVO-030 CI 协调 |
-| EVO-054 | backlog 状态漂移与编号一致性修复 | bug | P1 | Ready | 代码健康审查 2026-06-01 | EVO-016-B 详情块 `In Progress` 与总表 `Done` 漂移、EVO-042 缺号；对齐状态并登记编号处置 |
-| EVO-055 | 前后端 API 契约漂移修复 | bug | P1 | Ready | 跨层一致性审查 2026-06-01 | 前端调用后端不存在路径：`/auth/accept-invite`、8 个 billing/payment-method 端点、`PUT /snippets/{id}`(501)；对齐 client 路径与合约，消除功能性 404 |
+| EVO-054 | backlog 状态漂移与编号一致性修复 | bug | P1 | Done | 代码健康审查 2026-06-01 / Iteration 035 | 2026-06-01 完成：EVO-016-B 详情块 In Progress → Done、EVO-026 详情块 Ready → Done（额外漂移）、EVO-042 缺号登记 Dropped 行；详情块 100% 与总表一致 |
+| EVO-055 | 前后端 API 契约漂移修复 | bug | P1 | Done | 跨层一致性审查 2026-06-01 / Iteration 035 | 2026-06-01 完成：删除 `membersApi.acceptInvitation` 死分支 / `billing/page.tsx` 加 `BILLING_ENABLED` 闸门 + 「待计费」静态页 / `cliInterfacesApi.update` 改 `throw new Error` 指向 create+delete / `API-CONTRACT.md` Billing 段补「待计费」标注 |
 | EVO-056 | 沙箱降级静默成功修复 | bug | P2 | Ready | 跨层一致性审查 2026-06-01 | Docker executor 初始化失败降级 DefaultSkillExecutor 返回 exit_code:0+空输出，与成功 no-op 无法区分；改为明确错误态或启动期 fail-fast |
 | EVO-057 | 生产 CORS Origin 可配置化 | tech-debt | P2 | Ready | 跨层一致性审查 2026-06-01 | docker-compose.prod.yml 的 `CORS__ALLOWED_ORIGINS` 被忽略，main.rs 硬编码 origin；新增 CorsConfig 使其可配置 |
 | EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
+| EVO-059 | Backend clippy 历史 lint 升级修复 | tech-debt | P2 | Ready | Iteration 028 验证残余 | stable rustc 1.95 / clippy 升级后暴露 18 个 `-D warnings` 错误，跨 8 个文件：10× `unwrap_used`（infra/tests/*_repo_tests.rs，工作区 `deny` 覆盖了 `clippy.toml` `allow-unwrap-in-tests`）、3× `dead_code`（api/tests/auth_e2e_tests.rs）、4× `unnecessary_min_or_max`（api/src/middleware/rate_limit.rs:111-114）、1× `field_reassign_with_default`（service-payment/src/config.rs:53）。非业务问题；建议修复方向：调整 `[workspace.lints.clippy] unwrap_used` 为 `warn` 或修复 test 字段使用 `#[allow]` / `#[expect(dead_code)]` 等 |
 
 
 ## 故事模板
@@ -186,7 +188,7 @@
 
 - 类型：tech-debt
 - 优先级：P0
-- 状态：In Progress
+- 状态：Done
 - 父 Epic：EVO-016
 - Story 形态：Technical
 - 用户故事或技术目标：
@@ -757,7 +759,7 @@
 
 - 类型：product-change
 - 优先级：P1
-- 状态：Ready
+- 状态：Done
 - 用户价值或技术目标：消除前端旧 Snippet 产品概念残留，让页面语言与 CLI 友好接口方向一致。
 - 验收标准：
   - [ ] 导航、页面标题、空状态、按钮、详情页和新建页不再以 Snippet 作为用户可见主概念。
@@ -1242,7 +1244,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：bug
 - 优先级：P1
-- 状态：Ready
+- 状态：Done
 - 父 Epic：无
 - Story 形态：Governance / Docs
 - 用户价值或技术目标：
@@ -1269,7 +1271,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：bug
 - 优先级：P1
-- 状态：Ready
+- 状态：Done
 - 父 Epic：无
 - Story 形态：API
 - 用户故事：作为使用 SPA 的租户成员，我希望邀请接受、CLI 接口更新和计费相关操作不会因前端调用了后端不存在的路径而静默失败（404/501），以便这些功能真实可用。

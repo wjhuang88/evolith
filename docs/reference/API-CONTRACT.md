@@ -1447,7 +1447,10 @@ ApiResponse<MessageResponse>
 
 ## Billing
 
-> All billing endpoints currently return stub/mock data. Full Stripe integration is planned for Phase 2.
+> All billing endpoints currently return stub/mock data. Full Stripe integration is not yet
+> implemented. The frontend billing page is gated behind a `BILLING_ENABLED` flag and renders a
+> "待计费" placeholder until the backend service-payment routes are wired up
+> (see EVO-055 / Iteration 035). Until then, do not consume billing endpoints from production paths.
 
 ### `GET /api/v1/tenant/{tenant_id}/billing/plans`
 

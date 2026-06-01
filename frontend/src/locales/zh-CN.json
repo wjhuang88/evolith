@@ -553,9 +553,11 @@
       },
       "revoke": "撤销"
     },
-    "billing": {
-      "title": "账单与套餐",
-      "subtitle": "管理您的订阅和账单信息",
+  "billing": {
+    "title": "账单与套餐",
+    "subtitle": "管理您的订阅和账单信息",
+    "comingSoon": "计费功能即将在后续迭代开放",
+    "comingSoonDesc": "订阅、支付方式和发票功能尚未启用，当前页面仅作预览。后续迭代将提供完整支持。",
       "currentPlan": "当前套餐",
       "currentPlanDesc": "您的活跃订阅",
       "freeForever": "永久免费",

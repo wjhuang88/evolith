@@ -553,9 +553,11 @@
       },
       "revoke": "Revoke"
     },
-    "billing": {
-      "title": "Billing & Plans",
-      "subtitle": "Manage your subscription and billing information",
+  "billing": {
+    "title": "Billing & Plans",
+    "subtitle": "Manage your subscription and billing information",
+    "comingSoon": "Billing features will be available in a future release",
+    "comingSoonDesc": "Subscription, payment method, and invoice management are not yet enabled. This page is currently a preview. Full support will be delivered in a future iteration.",
       "currentPlan": "Current Plan",
       "currentPlanDesc": "Your active subscription",
       "freeForever": "Free forever",

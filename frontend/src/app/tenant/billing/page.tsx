@@ -9,6 +9,11 @@ import { Modal } from '@/components/ui/Modal';
 import { PaymentMethods, UsageDisplay } from '@/components/billing';
 import { billingApi, type Plan, type Subscription } from '@/lib/api';
 
+// EVO-055 (Iteration 035): billing/payment-method endpoints have no backend implementation.
+// UI gate to disable the entry point and label the page as "待计费". Flip to true
+// when service-payment routes are wired up (tracked separately).
+const BILLING_ENABLED = false;
+
 export default function BillingPage() {
   const { t } = useTranslation();
   const { user, tenant } = useAuthStore();
@@ -21,6 +26,33 @@ export default function BillingPage() {
   const [processing, setProcessing] = useState(false);
 
   const tenantId = tenant?.id || '';
+
+  if (!BILLING_ENABLED) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">{t('tenant.billing.title')}</h1>
+          <p className="text-muted-foreground mt-1">
+            {t('tenant.billing.subtitle')}
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('tenant.billing.comingSoon')}</CardTitle>
+            <CardDescription>{t('tenant.billing.comingSoonDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <strong>待计费</strong>
+              <span className="ml-2 text-amber-800/80">
+                Subscription, payment methods, and invoice management are pending implementation.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadData();

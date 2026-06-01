@@ -76,11 +76,11 @@ export const cliInterfacesApi = {
    * Update an existing CLI interface
    */
   async update(id: string, data: UpdateCliInterfaceRequest): Promise<ApiResponse<CliInterface>> {
-    const response = await apiClient.put<ApiResponse<CliInterface>>(
-      `/snippets/${id}`,
-      toBackendCliInterfaceRequest(data)
+    throw new Error(
+      'CLI interface update is not yet implemented. ' +
+        `Backend returns 501 for PUT /snippets/${id}. ` +
+        'Use cliInterfacesApi.delete() + cliInterfacesApi.create() as a workaround.',
     );
-    return response.data;
   },
 
   /**

@@ -37,12 +37,4 @@ export const membersApi = {
     );
     return response.data;
   },
-
-  async acceptInvitation(data: { token: string; password: string; username: string }): Promise<ApiResponse<unknown>> {
-    const response = await apiClient.post<ApiResponse<unknown>>(
-      '/auth/accept-invite',
-      data
-    );
-    return response.data;
-  },
 };

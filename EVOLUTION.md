@@ -17,12 +17,38 @@
 | 6 | Skill 执行未进入 Docker 沙箱 | Docker 初始化失败后降级到 default executor | 查看后端启动日志中的 sandbox warn |
 | 7 | lite 模式种子账号不能登录 | migrations 中的测试/admin 密码哈希是占位值，且 SQLite 内存库重启即清空 | 启动后通过注册接口创建临时账号 |
 | 8 | 前端改了但 release 二进制没更新 | `rust-embed-for-web` proc macro 不跟踪 dist 目录变更 | 确认 `build.rs` 中有 `cargo:rerun-if-changed` 指向前端 dist |
+| 9 | `cargo fmt --check` 退出码 1 但 0 个文件 diff | `rustfmt.toml` 含 nightly-only 选项被 stable 静默忽略 | 先跑 `cargo fmt --check 2>&1 \| grep nightly`；有 warning 就删除 nightly-only 选项或切 nightly toolchain |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-06-01 rustfmt 历史 nightly-only 配置在 stable toolchain 会被静默忽略为 warning
+
+**现象**: `backend/rustfmt.toml` 含有 7 个 `Warning: can't set \`xxx\`, unstable features are only available in nightly channel.`
+的配置项（`wrap_comments` / `comment_width` / `normalize_comments` / `fn_single_line` / `where_single_line` /
+`imports_granularity` / `group_imports`），但 `cargo fmt --check` 没有直接报错，34 个文件
+仍然显示格式 diff。stable rustfmt 1.9.0 在每次 rustfmt 进程都打印这些 warning，但最终
+退出码 1 是因为文件内容未通过 stable 默认行为校验。
+
+**根因**: 这些选项曾经或仍是 nightly-only，但项目里没有切到 nightly toolchain；rustfmt
+在 stable 模式静默忽略它们，配置文件实际上"形同虚设"。如果代码是用 nightly 工具链或旧
+stable 版本（含 stable 版）格式化的，移除选项后会有大量 stable-vs-historical diff。
+
+**规则**: 执行任何 rustfmt baseline 任务时，第一步必须先跑 `cargo fmt --check`，看输出
+里是否含 `unstable features are only available in nightly channel` 警告。**有警告**意味着
+`rustfmt.toml` 部分选项未生效，需要先决策：
+1. **优先 stable**：直接删除 nightly-only 选项，然后 `cargo fmt --all` 应用 stable 默认
+   行为；diff 数量取决于历史格式与 stable 差异。适合 CI 重建、团队开发。
+2. **保留 nightly 行为**：在 `rust-toolchain.toml` 切到 `channel = "nightly"`，并在 CI 中
+   准备好 nightly 工具链。适合对代码风格有强约束的项目。
+
+本项目选 (1) stable-only，理由：CI 重建（Iteration 029）依赖 stable 命令、nightly 工具链
+安装成本高、stable 默认行为对功能正确性无影响。
+
+**相关**: Iteration 028 / EVO-033
 
 ### 2026-06-01 嵌入式前端完成后要同步运行时配置和计划状态
 
@@ -216,6 +242,24 @@ story WIP 检查不能替代对在途、待收口和已排期 iteration 的库�
 **根因**: ADR-0002 已确立 CLI Interface 方向，但后端 API 路由重命名被明确推迟到后续 story。前端迁移范围取决于后端兼容边界。
 **方案**: 前端代码符号全部重命名（Snippet→CliInterface），但 API client URL 路径保持 `/snippets`；旧前端路由 `/snippets*` 添加重定向到 `/interfaces*`。
 **教训**: 概念迁移实施前必须确认后端 API 兼容边界——前端符号可以改名，但 API 路径变更影响契约和客户端，需单独故事处理。
+
+### 2026-06-01 API 客户端死代码处置：删除 > 修复 > mock
+**现象**: EVO-055 item 1 — `frontend/src/lib/api/members.ts` 包含 `acceptInvitation(data)` 方法，调用 `POST /auth/accept-invite`（后端真实路由为 `POST /api/v1/invitations/accept`），实际唯一调用方 `app/join/page.tsx:43` 走的是 `authApi.acceptInvitation`（已正确路由）。
+**根因**: 早期 API 客户端构建时按"功能完整"思路创建了成员和认证两个平行入口，但实际前端只需要认证侧入口。
+**方案**: 三个候选 —— (A) 修改 URL 改对路径；(B) 保留并加 mock；(C) 删除整个 `acceptInvitation` 方法。最终选 C：死代码 = 不应存在的代码，删除比"修复死 URL"更彻底消除静默失败风险（TypeScript 编译时即可见）。
+**教训**: 当 API 客户端方法无 UI 调用方时，优先删除该方法（连同 JSDoc），而非"修对 URL"或"加 mock 假装工作"。下次再有人需要 PUT /api/v1/snippets/{id} 时，他们会发现这个方法不存在，从而主动与后端团队确认是否实现，而非假设它"工作"。
+
+### 2026-06-01 后端未实现端点的"前端禁用 + 标注"模式
+**现象**: EVO-055 item 2 — 8 个 billing/payment-method 端点后端未实现（service-payment 尚未接入），但前端 billing 页面、PaymentMethods 组件仍调用这些端点，console 持续 404 噪音。
+**根因**: 计费模块按 Phase 7 计划本应完成，但 Phase 8 之后该模块未真正实现，而前端 UI 已按计划暴露入口。
+**方案**: 三个候选 —— (A) mock 数据返回假装成功；(B) 后端加 stub 路由返回 501；(C) 前端模块级 `const BILLING_ENABLED = false` 闸门 + 静态「待计费」占位页（保留 i18n key 和 `BILLING_ENABLED` 常量作为后续 flip 入口）。最终选 C：UI 闸门 + 静态占位页是诚实的实现，避免后端返 200 mock 数据误导用户，也避免 404 噪音。
+**教训**: 对于"暂未实现但已暴露在 UI"的端点，"模块级 const ENABLED = false + 静态占位页"是最轻的"前端禁用 + 标注"模式。后续接入真实实现时仅需 flip 常量 + 删除占位页，无需重构调用方。
+
+### 2026-06-01 静默 501 API 客户端的"显式 throw"模式
+**现象**: EVO-055 item 3 — `cliInterfacesApi.update()` 调用 `PUT /snippets/{id}`，后端 handler 返回 `HttpResponse::NotImplemented()` (501)。前端 axios 抛出后仅显示通用 error 文本，调用方难以发现"是端点未实现"还是"参数错误"。
+**根因**: 后端 handler 是 stub 状态但仍返回 200-shape JSON，前端无法区分"业务错误"和"端点未实现"。
+**方案**: 把 `cliInterfacesApi.update` body 改为 `throw new Error("CLI interface update is not yet implemented. Backend returns 501 for PUT /snippets/{id}. Use cliInterfacesApi.delete() + cliInterfacesApi.create() as a workaround.")`。错误信息含 (1) 端点未实现事实 + (2) 后端 HTTP 状态码 + (3) 临时方案。这样 TypeScript 编译期能 catch 误用（类型仍然签名），运行期抛出的错误自带解决路径。
+**教训**: 对于"后端 stub 但前端已暴露"的方法，body 用 `throw new Error(...)` 替代 axios 调用，比"让 axios 自然抛"或"前端 try/catch 翻译"更直接。错误信息必须含三件事：事实（未实现）+ 证据（HTTP 码）+ 方案（workaround）。
 
 ---
 
