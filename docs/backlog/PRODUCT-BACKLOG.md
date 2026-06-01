@@ -68,6 +68,10 @@
 | EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Ready | EVO-049 split / Iteration 034 | SQLite/PostgreSQL、domain、DTO、repository 对齐 Agent Skills 与 CLI 结构化字段 |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
 | EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
+| EVO-051 | 误导性代码注释与命名清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释；纯清晰度，无行为变更 |
+| EVO-052 | MySQL 半接线收敛与快速失败 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | config/pool 接受 `mysql` 但 main.rs 连接池后才拒绝；改为配置解析期快速失败或移除半接线，消除"看似可用"陷阱 |
+| EVO-053 | 测试盲区补齐 | tech-debt | P2 | Proposed | 代码健康审查 2026-06-01 | service-audit 零测试、8 个 repo 集成测试仅覆盖 SQLite，PostgreSQL repository 无集成测试；PG 测试基础设施待与 EVO-030 CI 协调 |
+| EVO-054 | backlog 状态漂移与编号一致性修复 | bug | P1 | Ready | 代码健康审查 2026-06-01 | EVO-016-B 详情块 `In Progress` 与总表 `Done` 漂移、EVO-042 缺号；对齐状态并登记编号处置 |
 
 
 ## 故事模板
@@ -1142,3 +1146,113 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 影响范围：backend（新增 Rating/ComponentStats 模型、repository、handler）/ frontend（评分 UI、列表排序）/ db migration
 - 最小验证方式：评分 API 创建和查询；质量评估对 OpenAI skill-creator 产出合理分数（预期 ≥ 80）
 - 不做：不实现安全扫描（远期）；不实现付费推荐/置位（远期市场功能）
+
+### EVO-051 误导性代码注释与命名清理
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：降低后续 Agent / 维护者误读代码语义的风险。
+  - 维护者需要：清除当前会主动误导读者的注释和字段命名，使代码表面与真实行为一致。
+  - 以便：阅读 repository 层时不会误判密码是否已哈希、不会误以为 SQLite/PostgreSQL repository 尚未实现。
+- 范围（本次做）：
+  1. 删除 `backend/crates/infra/src/db/user_repo.rs` 中 `// TODO: Hash password` 注释——密码已在 `api/src/handlers/auth/register.rs:67` 用 Argon2 哈希后传入。
+  2. 将 `domain` 中 `NewUser.password` 重命名为 `password_hash`，同步所有引用（register/invite 等构造点与两套 repository 绑定）。
+  3. 修正 `backend/crates/infra/src/db/sqlite.rs`、`db/postgres.rs` 中 "TODO: Implement ... repositories" 失效注释——repository 已作为独立文件实现。
+- 不做：
+  - 不删除/填充 `ToolRegistry` / `SkillRegistry` / `SnippetRepositoryImpl` 的 `todo!()`（归 EVO-019/后续）。
+  - 不动 `db/mysql.rs` 注释（MySQL 确实未实现，注释属实）。
+  - 不改任何运行时行为。
+- 验收标准：
+  - [ ] `rg "TODO: Hash password" backend/` 无结果。
+  - [ ] `NewUser.password` 全仓无引用，`password_hash` 字段贯通构造点与 repository 绑定。
+  - [ ] `db/sqlite.rs` / `db/postgres.rs` 不再出现 "not implemented / TODO: Implement repositories" 失效描述。
+  - [ ] `cargo test --workspace` 与 `cargo clippy --workspace -- -D warnings` 通过（证明纯命名/注释变更未破坏行为）。
+- 依赖或阻塞：无。
+- 解锁内容：减少 EVO-049-A 数据模型改造时对密码字段语义的误读。
+- 影响范围：backend
+- 最小验证方式：`cargo test --workspace`、`cargo clippy --workspace -- -D warnings`、`rg` 检查残留。
+
+### EVO-052 MySQL 半接线收敛与快速失败
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：消除"配置接受、连接池建立成功、运行时才拒绝"的误导性接线陷阱。
+  - 维护者/运维者需要：当 `DATABASE__DATABASE_TYPE=mysql` 时尽早得到清晰、确定的拒绝，而不是先连上池再 panic 式拒绝。
+  - 以便：不会误以为 MySQL 已可用（`infra/src/config.rs`、`db/pool.rs` 均接受 mysql，但 `backend/src/main.rs:156` 才拒绝，无 repository 实现）。
+- 范围（本次做）：
+  1. 在配置解析或应用启动早期对 `mysql` 做 fail-fast，给出明确"MySQL 未实现，请使用 SQLite/PostgreSQL"的错误。
+  2. 收敛 `db/pool.rs` 的 MySQL 分支与 `config.rs` 的接受逻辑二选一：要么移除半接线，要么集中到单一拒绝点。
+  3. 同步 `EVOLUTION.md` 问题速查表（记录此陷阱）与 `docs/reference/CONFIG.md` MySQL 现状说明。
+- 不做：
+  - 不实现任何 MySQL repository。
+  - 不改 SQLite / PostgreSQL 行为。
+- 验收标准：
+  - [ ] 设置 `DATABASE__DATABASE_TYPE=mysql` 启动时，在建立连接池之前即返回明确错误并退出。
+  - [ ] 代码中不再存在"接受 mysql 但延后到 main.rs 才拒绝"的分裂路径。
+  - [ ] `EVOLUTION.md` 速查表与 `CONFIG.md` 记录 MySQL 现状与处置。
+  - [ ] `cargo test --workspace` 通过。
+- 依赖或阻塞：无。
+- 解锁内容：减少部署期对数据库支持范围的误判。
+- 影响范围：backend / docs
+- 最小验证方式：`DATABASE__DATABASE_TYPE=mysql ./target/.../evolith` 观察早期拒绝；`cargo test --workspace`。
+
+### EVO-053 测试盲区补齐
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Proposed
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：降低无测试覆盖模块的回归风险，并让生产数据库（PostgreSQL）的 repository 行为获得集成验证。
+  - 维护者需要：为 `service-audit`（当前零测试）补单元测试，并为 8 个 repository 增加 PostgreSQL 集成测试覆盖（当前 `infra/tests/` 全部走内存 SQLite）。
+  - 以便：双数据库一致性不再仅靠 SQLite 侧验证。
+- 范围（待 refinement 收敛）：
+  1. `service-audit` 关键路径单元测试。
+  2. PostgreSQL repository 集成测试基础设施（容器化 PG 或 CI service）与首批 repo 用例。
+- 不做：
+  - 不追求覆盖率数字指标，只补关键路径与双库差异点。
+- 待澄清（阻止当前直接 Ready）：
+  - PostgreSQL 集成测试运行形态（本地 testcontainers vs CI service）需与 EVO-030 CI 重建协调，避免重复搭建。
+- 验收标准（草案，refinement 后定稿）：
+  - [ ] `service-audit` 具备可执行单元测试且 `cargo test -p service-audit` 通过。
+  - [ ] 至少核心 repository（user/tool/skill）具备针对 PostgreSQL 的集成测试。
+- 依赖或阻塞：PostgreSQL 测试基础设施与 EVO-030（CI/CD 重建）协调。
+- 解锁内容：提升双库改动（如 EVO-049-A）的回归信心。
+- 影响范围：backend / db / deploy(CI)
+- 最小验证方式：`cargo test -p service-audit`；PG 集成测试套件（基础设施确定后补全验证命令）。
+
+### EVO-054 backlog 状态漂移与编号一致性修复
+
+- 类型：bug
+- 优先级：P1
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Governance / Docs
+- 用户价值或技术目标：
+  - 为了：防止 backlog 总表与详情块状态不一致、编号断档导致 Agent 误判工作状态（本项目已有 EVO-040 同类漂移修复先例）。
+  - 维护者需要：对齐 EVO-016-B 状态，并对 EVO-042 缺号给出明确处置记录。
+  - 以便：backlog 作为可执行指令源保持自洽，符合 REQUIREMENT-INTAKE「总表 + 详情块一致」防呆规则。
+- 范围（本次做）：
+  1. 将 EVO-016-B 详情块（PRODUCT-BACKLOG.md 第 181 行）状态由 `In Progress` 改为 `Done`，与总表及 Iteration 031 收口结论一致。
+  2. 登记 EVO-042 缺号处置：确认为有意跳过则在 backlog 加一行说明（status `Dropped`/说明），否则按需补占位。
+  3. 按 DOC-CHECK 核对是否存在其他总表/详情块状态漂移。
+- 不做：
+  - 不改任何代码或运行时行为。
+  - 不回填 EVO-042 为真实需求（仅做编号一致性处置）。
+- 验收标准：
+  - [ ] EVO-016-B 总表与详情块状态一致（均为 `Done`）。
+  - [ ] EVO-042 在 backlog 有明确处置记录（跳过说明或占位）。
+  - [ ] `rg "状态：In Progress" docs/backlog/PRODUCT-BACKLOG.md` 不再误标已完成项。
+- 依赖或阻塞：无。
+- 解锁内容：恢复 backlog 状态自洽，避免后续库存盘点误判。
+- 影响范围：docs
+- 最小验证方式：DOC-CHECK 一致性核对；总表与详情块逐项比对；`git diff --check`。
