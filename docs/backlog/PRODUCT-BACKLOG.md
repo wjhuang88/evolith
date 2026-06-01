@@ -68,10 +68,14 @@
 | EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Ready | EVO-049 split / Iteration 034 | SQLite/PostgreSQL、domain、DTO、repository 对齐 Agent Skills 与 CLI 结构化字段 |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
 | EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
-| EVO-051 | 误导性代码注释与命名清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释；纯清晰度，无行为变更 |
+| EVO-051 | 误导性注释、命名与后端死代码清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释，并删除未接线的 guards.rs/registry/reference/search/error.rs 后端死代码；纯清晰度，无行为变更 |
 | EVO-052 | MySQL 半接线收敛与快速失败 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | config/pool 接受 `mysql` 但 main.rs 连接池后才拒绝；改为配置解析期快速失败或移除半接线，消除"看似可用"陷阱 |
 | EVO-053 | 测试盲区补齐 | tech-debt | P2 | Proposed | 代码健康审查 2026-06-01 | service-audit 零测试、8 个 repo 集成测试仅覆盖 SQLite，PostgreSQL repository 无集成测试；PG 测试基础设施待与 EVO-030 CI 协调 |
 | EVO-054 | backlog 状态漂移与编号一致性修复 | bug | P1 | Ready | 代码健康审查 2026-06-01 | EVO-016-B 详情块 `In Progress` 与总表 `Done` 漂移、EVO-042 缺号；对齐状态并登记编号处置 |
+| EVO-055 | 前后端 API 契约漂移修复 | bug | P1 | Ready | 跨层一致性审查 2026-06-01 | 前端调用后端不存在路径：`/auth/accept-invite`、8 个 billing/payment-method 端点、`PUT /snippets/{id}`(501)；对齐 client 路径与合约，消除功能性 404 |
+| EVO-056 | 沙箱降级静默成功修复 | bug | P2 | Ready | 跨层一致性审查 2026-06-01 | Docker executor 初始化失败降级 DefaultSkillExecutor 返回 exit_code:0+空输出，与成功 no-op 无法区分；改为明确错误态或启动期 fail-fast |
+| EVO-057 | 生产 CORS Origin 可配置化 | tech-debt | P2 | Ready | 跨层一致性审查 2026-06-01 | docker-compose.prod.yml 的 `CORS__ALLOWED_ORIGINS` 被忽略，main.rs 硬编码 origin；新增 CorsConfig 使其可配置 |
+| EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
 
 
 ## 故事模板
@@ -1147,7 +1151,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 最小验证方式：评分 API 创建和查询；质量评估对 OpenAI skill-creator 产出合理分数（预期 ≥ 80）
 - 不做：不实现安全扫描（远期）；不实现付费推荐/置位（远期市场功能）
 
-### EVO-051 误导性代码注释与命名清理
+### EVO-051 误导性注释、命名与后端死代码清理
 
 - 类型：tech-debt
 - 优先级：P2
@@ -1155,24 +1159,28 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 父 Epic：无
 - Story 形态：Technical
 - 用户价值或技术目标：
-  - 为了：降低后续 Agent / 维护者误读代码语义的风险。
-  - 维护者需要：清除当前会主动误导读者的注释和字段命名，使代码表面与真实行为一致。
-  - 以便：阅读 repository 层时不会误判密码是否已哈希、不会误以为 SQLite/PostgreSQL repository 尚未实现。
+  - 为了：降低后续 Agent / 维护者误读代码语义的风险，并消除编译进产物但永不触达的死代码。
+  - 维护者需要：清除会主动误导读者的注释和字段命名，并删除未接线的占位/桩模块，使代码表面与真实行为一致。
+  - 以便：阅读 repository / 鉴权层时不会误判密码是否已哈希、不会误以为 SQLite/PostgreSQL repository 尚未实现、不会被永不调用的 registry/guards 桩误导。
 - 范围（本次做）：
   1. 删除 `backend/crates/infra/src/db/user_repo.rs` 中 `// TODO: Hash password` 注释——密码已在 `api/src/handlers/auth/register.rs:67` 用 Argon2 哈希后传入。
   2. 将 `domain` 中 `NewUser.password` 重命名为 `password_hash`，同步所有引用（register/invite 等构造点与两套 repository 绑定）。
   3. 修正 `backend/crates/infra/src/db/sqlite.rs`、`db/postgres.rs` 中 "TODO: Implement ... repositories" 失效注释——repository 已作为独立文件实现。
+  4. 删除未接线的后端死代码（grep 证实 api crate 零引用）：`api/src/guards.rs` 整模块（含硬编码 `dev_secret_key_for_testing_only` 回退，真实鉴权走 `middleware/rbac.rs`）、`service-skill/src/registry.rs`、`service-tool/src/registry.rs`、`service-snippet/src/repository.rs`、`service-snippet/src/reference.rs`、`service-snippet/src/search.rs`、`api/src/middleware/error.rs`；同步删除各 `lib.rs`/`mod.rs` 的对应 `pub mod` 声明。
 - 不做：
-  - 不删除/填充 `ToolRegistry` / `SkillRegistry` / `SnippetRepositoryImpl` 的 `todo!()`（归 EVO-019/后续）。
-  - 不动 `db/mysql.rs` 注释（MySQL 确实未实现，注释属实）。
+  - 不动 `db/mysql.rs` 注释（MySQL 确实未实现，注释属实；接线收敛归 EVO-052）。
+  - 不删除 `infra/src/storage.rs`、`service-auth/src/{rbac,session}.rs`、`service-tool/src/discovery.rs` 等"未来功能占位"（注释属实，非误导，保留）。
+  - 不清理前端死代码（归 EVO-058）。
   - 不改任何运行时行为。
 - 验收标准：
   - [ ] `rg "TODO: Hash password" backend/` 无结果。
   - [ ] `NewUser.password` 全仓无引用，`password_hash` 字段贯通构造点与 repository 绑定。
   - [ ] `db/sqlite.rs` / `db/postgres.rs` 不再出现 "not implemented / TODO: Implement repositories" 失效描述。
-  - [ ] `cargo test --workspace` 与 `cargo clippy --workspace -- -D warnings` 通过（证明纯命名/注释变更未破坏行为）。
+  - [ ] `guards.rs` / 三个 registry/repository 桩 / reference.rs / search.rs / error.rs 已删除，且对应 `mod` 声明清理干净。
+  - [ ] `rg "dev_secret_key_for_testing_only" backend/` 无结果。
+  - [ ] `cargo test --workspace` 与 `cargo clippy --workspace -- -D warnings` 通过（证明纯命名/注释/死代码删除未破坏行为）。
 - 依赖或阻塞：无。
-- 解锁内容：减少 EVO-049-A 数据模型改造时对密码字段语义的误读。
+- 解锁内容：减少 EVO-049-A 数据模型改造时对密码字段语义的误读；缩小鉴权相关攻击面（删除硬编码 secret 死路径）。
 - 影响范围：backend
 - 最小验证方式：`cargo test --workspace`、`cargo clippy --workspace -- -D warnings`、`rg` 检查残留。
 
@@ -1256,3 +1264,124 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 解锁内容：恢复 backlog 状态自洽，避免后续库存盘点误判。
 - 影响范围：docs
 - 最小验证方式：DOC-CHECK 一致性核对；总表与详情块逐项比对；`git diff --check`。
+
+### EVO-055 前后端 API 契约漂移修复
+
+- 类型：bug
+- 优先级：P1
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：API
+- 用户故事：作为使用 SPA 的租户成员，我希望邀请接受、CLI 接口更新和计费相关操作不会因前端调用了后端不存在的路径而静默失败（404/501），以便这些功能真实可用。
+- 背景（跨层一致性审查 2026-06-01 确认）：
+  - `frontend/src/lib/api/members.ts:42` 调用 `POST /auth/accept-invite`，后端真实路由为 `POST /api/v1/invitations/accept`（`auth.ts:87` 已有正确实现，`membersApi.acceptInvitation` 为死分支）。
+  - `frontend/src/lib/api/billing.ts` 与 `components/billing/PaymentMethods.tsx` 调用 8 个 billing/payment-method 端点（create/update/cancel subscription、invoices、payment-methods 全套），后端无对应路由。
+  - `frontend/src/lib/api/cli-interfaces.ts:78` 调用 `PUT /snippets/{id}`，后端返回 501（`SnippetRepository` trait 无 `update`）。
+- 范围（本次做）：
+  1. 删除/修正 `membersApi.acceptInvitation` 死分支，统一走 `/invitations/accept`。
+  2. 对无后端实现的 billing/payment-method 端点：在前端禁用入口并标注「待计费迭代」，或补后端 stub 路由返回结构化「未实现」——二选一，refinement 时定。
+  3. CLI 接口更新：前端在 `PUT /snippets/{id}` 返回 501 时给出明确不可用提示；真实 update 能力归 EVO-049/后续。
+  4. 同步 `docs/reference/API-CONTRACT.md`，纠正 skills list 等响应 shape 描述与真实路由。
+- 不做：
+  - 不实现真实计费业务逻辑（billing 仍为已知 stub，归计费迭代）。
+  - 不实现 `SnippetRepository::update`（归 EVO-049/后续）。
+- 验收标准：
+  - [ ] 前端不存在调用 `/auth/accept-invite` 的代码路径；邀请接受走 `/invitations/accept` 并成功。
+  - [ ] 前端不再向无后端实现的 billing/payment-method 端点发起请求（禁用或补 stub），无新增 404。
+  - [ ] CLI 接口更新在不支持时给出明确提示，不再静默 501。
+  - [ ] `docs/reference/API-CONTRACT.md` 与真实路由/响应 shape 一致。
+- 依赖或阻塞：billing 端点处置方向需与计费迭代规划协调。
+- 解锁内容：消除 SPA 关键流程的功能性 404，恢复邀请/接口可用性。
+- 影响范围：frontend / backend(api) / docs
+- 最小验证方式：手动走通邀请接受流程；`rg "/auth/accept-invite" frontend/` 无结果；前端构建通过；契约文档比对。
+
+### EVO-056 沙箱降级静默成功修复
+
+- 类型：bug
+- 优先级：P2
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：消除「Docker 沙箱初始化失败后静默降级，却返回成功态」的误导（AGENTS.md 陷阱 #4）。
+  - 调用者需要：当 `SANDBOX__ENABLED=true` 但 Docker executor 不可用时，skill 执行返回明确的「沙箱不可用」错误，而非 `exit_code:0` + 空输出。
+  - 以便：不会把基础设施失败误判为执行成功的 no-op。
+- 背景：`backend/src/main.rs:67` 初始化失败仅 `warn!` 降级到 `DefaultSkillExecutor`；后者 `executor.rs:48` 返回 `exit_code:0`、空 stdout/stderr、`{"message":"...not implemented"}`，HTTP 200。
+- 范围（本次做）：
+  1. 二选一（refinement 定）：(a) `SANDBOX__ENABLED=true` 且 Docker 不可用时启动期 fail-fast；或 (b) 保留降级但让执行响应返回明确非成功状态（非 0 退出码 / 结构化错误 / 可观测告警）。
+  2. 确保降级路径在日志与响应层都可区分于真实成功执行。
+- 不做：
+  - 不实现新的非 Docker 执行后端。
+  - 不改 `SANDBOX__ENABLED=false` 的显式禁用语义。
+- 验收标准：
+  - [ ] Docker 不可用且沙箱启用时，skill 执行请求返回可被调用方识别的失败/不可用态（非伪成功 exit_code:0）。
+  - [ ] 降级发生时有明确日志且响应可区分。
+  - [ ] `cargo test --workspace` 通过；新增针对降级路径的测试。
+- 依赖或阻塞：无。
+- 解锁内容：提升 skill 执行结果可信度，避免沙箱故障被掩盖。
+- 影响范围：backend(service-skill / main)
+- 最小验证方式：模拟 Docker 不可用启动并触发 skill 执行，断言非伪成功响应；`cargo test -p service-skill`。
+
+### EVO-057 生产 CORS Origin 可配置化
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：让生产 CORS 允许来源可通过环境变量配置，而非硬编码。
+  - 运维者需要：`docker-compose.prod.yml:69` 设置的 `CORS__ALLOWED_ORIGINS` 真正生效。
+  - 以便：部署到非 `evolith.io`/`app.evolith.io` 域名时无需改代码。
+- 背景：`config.rs` 无 `CorsConfig` 结构；`main.rs:222` 生产 origin 硬编码为两个域名，环境变量被静默忽略。
+- 范围（本次做）：
+  1. 新增 `CorsConfig`（嵌套双下划线键 `CORS__ALLOWED_ORIGINS`，逗号分隔多 origin），并入 `AppConfig`。
+  2. `main.rs` 生产分支按配置构建 CORS allowed origins；保留开发宽松策略。
+  3. 同步 `docs/reference/CONFIG.md` 与 AGENTS.md 配置键说明（注意 AGENTS 现写的是单数 `CORS__ALLOWED_ORIGIN`，需统一）。
+- 不做：
+  - 不改 CSRF / 安全头中间件。
+  - 不放宽开发模式策略。
+- 验收标准：
+  - [ ] 设置 `CORS__ALLOWED_ORIGINS` 后生产构建按其值放行，未设置时回退到安全默认。
+  - [ ] `config.rs` 存在 `CorsConfig`，键格式为双下划线。
+  - [ ] `CONFIG.md` 与 AGENTS.md 配置键描述一致（单复数统一）。
+  - [ ] `cargo test --workspace` 通过。
+- 依赖或阻塞：无。
+- 解锁内容：生产多域名部署无需改代码。
+- 影响范围：backend(infra/api) / docs
+- 最小验证方式：设置不同 `CORS__ALLOWED_ORIGINS` 启动验证响应头；`cargo test --workspace`。
+
+### EVO-058 前端死代码与类型卫生清理
+
+- 类型：tech-debt
+- 优先级：P2
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：消除前端未使用、与真实 API 类型冲突的死代码，并修复不安全的类型断言。
+  - 维护者需要：删除从不被引用且与 `lib/api/types.ts` 定义冲突的类型，修正会在运行时抛错或静默产生非法值的断言。
+  - 以便：类型系统反映真实 API 契约，减少误导与潜在运行时异常。
+- 背景（前端代码审查 2026-06-01 确认）：
+  - 死代码：`src/types/`（auth.ts/tool.ts/skill.ts/cli-interface.ts/index.ts，整目录未被引用且类型定义与真实 API 冲突）、`src/stores/uiStore.ts`（导出但无引用）、`src/app/accept-invitation/page.tsx`（冗余 re-export，路由已映射 JoinPage）。
+  - 类型 holes：`lib/theme.tsx:18` 与 `hooks/usePermission.ts:20` 不安全 `as` cast、`main-spa.tsx:43` `getElementById('root')!` 非空断言、`lib/api/types.ts` 重复 `User` 接口。
+  - 假实现：`lib/api/skills.ts:84` `versions()` 把单个结果包成数组冒充版本列表。
+- 范围（本次做）：
+  1. 删除 `src/types/` 死类型目录与 `uiStore.ts`、`accept-invitation/page.tsx` 冗余文件；清理引用与 barrel 导出。
+  2. 修正不安全断言：theme/role 用类型守卫校验；root 元素加缺失守卫。
+  3. 合并 `lib/api/types.ts` 重复 `User` 定义为单一真源。
+  4. `skillsApi.versions` 改为明确「未实现」或对接真实端点（归 EVO 后续），不再伪造数组。
+- 不做：
+  - 不清理后端死代码（归 EVO-051）。
+  - 不改 billing/i18n 缺口（随对应 feature 迭代处理）。
+  - 不重写 API client 拦截器逻辑。
+- 验收标准：
+  - [ ] `src/types/`、`uiStore.ts`、`accept-invitation/page.tsx` 删除且无残留 import。
+  - [ ] `rg "as Theme|as TokenRole|getElementById\('root'\)!" frontend/src` 无不安全用法（或已加守卫）。
+  - [ ] `lib/api/types.ts` 仅有单一 `User` 定义。
+  - [ ] `skillsApi.versions` 不再返回伪造数组。
+  - [ ] 前端类型检查与构建通过（`bun run build` / `tsc` 0 错误）。
+- 依赖或阻塞：无。
+- 解锁内容：前端类型反映真实契约，降低维护误导。
+- 影响范围：frontend
+- 最小验证方式：`bun run build`；`rg` 检查死代码残留；类型检查 0 错误。
