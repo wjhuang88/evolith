@@ -27,7 +27,7 @@
   Closed：Iteration 009 / 010 收口完成）。
 - [Iteration 022](ITERATION-022.md) — 敏捷实践与 BDD 验收格式适配规则（EVO-041）。
 - [Iteration 023](ITERATION-023.md) — 治理 skill manifest 接入与一致性审计（EVO-035）。
-- [Iteration 024](ITERATION-024.md) — Embedded Frontend 交付形态 refinement（EVO-016-A）。
+- [Iteration 024](ITERATION-024.md) — Embedded Frontend 交付形态 refinement（EVO-016-A；Superseded）。
 - [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013）。
 - [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014）。
 - [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
@@ -35,14 +35,15 @@
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030）。
 - [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（Superseded：改线到 Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B；Closed）。
+- [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043）。
+- [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048）。
+- [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A）。
 
 ## 未来计划
 
 以下文档仅为仍可能激活的排期草案，未启动实施，也不代表候选事项已进入 `In Progress`。
 已关闭或已被取代的计划仅保留在文件清单和库存记录中，不再列入未来候选：
 
-- [Iteration 017](ITERATION-017.md) — 前端 CLI Interface 概念收口（EVO-026；
-  Ready for activation：Iteration 009 / 010 已收口，激活前重核 EVO-026 DoR 与旧路由策略）。
 - [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
   Blocked for activation：候选仍需 DoR/refinement）。
 - [Iteration 019](ITERATION-019.md) — Skill 多来源导入闭环（EVO-027；
@@ -58,7 +59,13 @@
 - [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；
   Ready for activation：一周工程质量切片）。
 - [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；
-  Blocked for activation：依赖 Iteration 028 与部署边界确认）。
+  Blocked for activation：依赖 Iteration 028；部署边界已由 Iteration 031 稳定）。
+- [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043；
+  Ready for activation：建议在 Iteration 029 前执行，降低 CI 返工风险）。
+- [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；
+  Ready for activation：工程门禁和 CI 基线稳定后进入）。
+- [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A；
+  Ready for activation：父 Epic EVO-049 的首个可执行子 Story）。
 
 ## 非终态库存
 
@@ -79,11 +86,29 @@
   `Planned / Blocked`：Phase F 与 Skill 发现质量候选需 refinement 或依赖确认。
 - [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033
   Rustfmt 基线和 CI 命令准备。
-- [Iteration 029](ITERATION-029.md) — `Planned / Blocked`：依赖 Iteration 028 和部署边界。
+- [Iteration 029](ITERATION-029.md) — `Planned / Blocked`：依赖 Iteration 028；
+  部署边界已由 Iteration 031 稳定，建议在 Iteration 032 后执行以减少返工。
 - [Iteration 030](ITERATION-030.md) — `Superseded`：ZIP 流式方案改线到
   rust-embed-for-web（Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — `Closed`：EVO-016-B 前端静态服务迁移到
   rust-embed-for-web。全部 14 项验收标准通过。Iteration 012 激活条件已解除。
+- [Iteration 032](ITERATION-032.md) — `Planned / Ready for activation`：EVO-043
+  后端依赖审计与迁移；建议在 CI 重建前执行。
+- [Iteration 033](ITERATION-033.md) — `Planned / Ready for activation`：EVO-048
+  Serverless 架构 Spike；不实现 runtime。
+- [Iteration 034](ITERATION-034.md) — `Planned / Ready for activation`：EVO-049-A
+  Skill/CLI 规范兼容数据模型基线；EVO-049 父 Epic 不直接选入。
+
+## 下一周建议顺序
+
+该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
+并记录库存 disposition：
+
+1. [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备。
+2. [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移。
+3. [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建。
+4. [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike。
+5. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
 
 ## 命名
 

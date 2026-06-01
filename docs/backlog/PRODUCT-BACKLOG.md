@@ -63,8 +63,10 @@
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
-| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Proposed | EVO-045/047 前置 | 设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路 |
-| EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | feature | P0 | Proposed | 用户反馈 2026-05-29 | Skill 和 CLI 完全兼容 Agent Skills 规范（agentskills.io），支持目录结构、frontmatter 校验、制品打包，成为大生态的一部分 |
+| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Ready | EVO-045/047 前置 / Iteration 033 | 设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路 |
+| EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | feature | P0 | Proposed | 用户反馈 2026-05-29 | Epic；不直接进迭代，先执行 EVO-049-A/B 子 Story |
+| EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Ready | EVO-049 split / Iteration 034 | SQLite/PostgreSQL、domain、DTO、repository 对齐 Agent Skills 与 CLI 结构化字段 |
+| EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
 | EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
 
 
@@ -526,11 +528,13 @@
 
 优先选择：
 
-1. `EVO-018` 邮箱验证发送与确认闭环。
-2. `EVO-006` Skill 更新接口。
-3. `EVO-027` Skill 多来源创建。
+1. `EVO-033` Rustfmt 全量格式基线与 stable 配置清理（Iteration 028）。
+2. `EVO-043` 后端依赖全量版本审计与迁移（Iteration 032）。
+3. `EVO-030` GitHub CI/CD 重建（Iteration 029，依赖 028；建议在 043 后执行以减少 CI 返工）。
+4. `EVO-048` Serverless 执行架构设计 Spike（Iteration 033）。
+5. `EVO-049-A` Skill/CLI 规范兼容数据模型基线（Iteration 034）。
 
-理由：EVO-005 MCP 工具真实执行已完成，EVO-009 parser 即将完成；下一步应补齐认证闭环（邮箱验证），再推进 Skill 生命周期。
+理由：先稳定工程门禁和依赖基线，再重建 CI；随后进入 Serverless 与 Skill/CLI 生态主线，避免在执行引擎和制品化前过早固定数据模型。
 
 ## 已细化故事
 
@@ -889,7 +893,7 @@
 
 - 类型：spike
 - 优先级：P0
-- 状态：Proposed
+- 状态：Ready
 - 用户价值或技术目标：为 CLI（EVO-045）和 MCP（EVO-047）设计统一的 serverless 执行架构，确定本地版实现方案和远期 Vercel 模式的演进路径。
 - 调研范围：
   1. **Phase 7 sandbox 复用评估**：当前 Docker sandbox（bollard + Python/Node runtime）能否作为 serverless 基础？冷启动延迟、资源开销、并发能力
@@ -916,7 +920,17 @@
 - 类型：feature / Epic
 - 优先级：P0
 - 状态：Proposed
+- 父 Epic：无
+- Story 形态：Epic
 - 用户价值或技术目标：让 Evolith 平台的 Skill 和 CLI 完全兼容 Agent Skills 行业规范（agentskills.io），使任何支持该规范的 Agent 工具（Claude Codex、OpenAI Codex 等）都能使用 Evolith 上的 Skill 和 CLI，成为大生态的一部分。
+
+#### 子 Story
+
+| 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
+|----------|----------|------|------|----------|
+| EVO-049-A | Skill/CLI 规范兼容数据模型基线 | Ready | 无 | Iteration 034 |
+| EVO-049-B | Skill/CLI parser 接线与校验报告 | Blocked | EVO-049-A | - |
+| 后续切片 | 制品打包、导入、前端编辑体验 | Proposed | EVO-049-B / EVO-020 | - |
 
 #### 行业标准兼容性现状
 
@@ -1035,6 +1049,69 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
                         EVO-046（Skill 制品化）           │
                         EVO-050（评分体系）────── 依赖 Phase 2 完成
 ```
+
+### EVO-049-A Skill/CLI 规范兼容数据模型基线
+
+- 类型：tech-debt
+- 优先级：P0
+- 状态：Ready
+- 父 Epic：EVO-049
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：让 Skill 与 CLI interface 能承载 Agent Skills 规范和结构化 CLI 命令字段。
+  - 我希望/需要：完成双数据库 migration、domain model、DTO 和 repository 映射的最小兼容基线。
+  - 以便：后续 parser 接线、制品打包、导入和执行引擎不再建立在单文本字段或 legacy snippet 字段上。
+- 范围：
+  - SQLite 与 PostgreSQL 双轨 migration：为 skills 增加 Agent Skills 兼容字段，为 snippets/CLI interface 增加 command、inputs、output、examples、error_model 等结构化字段。
+  - 更新 domain model、Create/Update 请求 DTO、Response DTO 和 SQLite/PostgreSQL repository 映射。
+  - 保留 legacy `skill_md`、`language`、`framework`、`code` 等兼容字段，不在本轮删除旧 API。
+  - 更新相关 reference 或 API contract 中的数据字段说明。
+- 不做：
+  - 不接线 parser 到 create/update handler；归 EVO-049-B。
+  - 不实现 ZIP/Git 导入、制品下载或对象存储。
+  - 不实现 CLI 执行引擎、MCP serverless 或评分体系。
+  - 不改前端复杂编辑器，仅保证 API response 字段可承载后续 UI。
+- 验收标准：
+  - [ ] SQLite 与 PostgreSQL migration 字段语义一致，默认值和 nullable 策略明确。
+  - [ ] `Skill` / `NewSkill` / `UpdateSkill` 与 CLI interface 域模型包含规范兼容字段。
+  - [ ] API DTO 和 repository 映射能读写新增字段，旧字段兼容不破坏。
+  - [ ] 双数据库 repository 测试覆盖新增字段的 create/update/read。
+  - [ ] API contract 或 format reference 记录本轮新增字段和后续 parser 接线边界。
+- 依赖或阻塞：无硬依赖；激活前需确认不与 EVO-027/EVO-028 已发布计划基线冲突。
+- 解锁内容：EVO-049-B parser 接线与校验报告；EVO-045 CLI 执行引擎的数据路由前置。
+- 影响范围：backend / db / docs
+- 最小验证方式：`cargo test -p infra`；`cargo test -p domain`（如适用）；`cargo test -p api`；`cargo check --workspace`；`git diff --check`。
+
+### EVO-049-B Skill/CLI parser 接线与校验报告
+
+- 类型：feature
+- 优先级：P0
+- 状态：Blocked
+- 父 Epic：EVO-049
+- Story 形态：API / Technical
+- 用户价值或技术目标：
+  - 作为/为了：平台维护者和企业用户创建 Skill/CLI 组件时，需要及时得到结构兼容性反馈。
+  - 我希望/需要：create/update/import 路径调用现有 parser，写入结构化字段，并返回 blocking error / warning 校验报告。
+  - 以便：不合规组件不会静默进入可用状态，后续制品化和评分体系可复用同一报告。
+- 范围：
+  - `create_skill` / `update_skill` 接线 `SkillParser`，把 frontmatter 映射到 EVO-049-A 的结构化字段。
+  - `create_snippet` / CLI interface update 路径接线 `CliInterfaceParser`。
+  - 建立校验报告结构，区分 blocking error 与 warning。
+  - 更新 API contract 和最小前端展示边界。
+- 不做：
+  - 不实现制品打包下载、ZIP/Git 导入或对象存储。
+  - 不实现质量评分排序；归 EVO-050。
+  - 不实现执行引擎；归 EVO-045。
+- 验收标准：
+  - [ ] 创建和更新 Skill 时 parser 被调用，结构化字段来自 frontmatter 而不是硬编码默认。
+  - [ ] CLI interface 创建/更新能解析 command、inputs、output、examples、error_model。
+  - [ ] 校验报告能返回 blocking error 和 warning，并在 API contract 中定义。
+  - [ ] 不合规 name/description 返回明确错误；低质量描述只给 warning。
+  - [ ] parser、handler 和 API 测试覆盖合法、非法、warning 样例。
+- 依赖或阻塞：EVO-049-A 完成并验证。
+- 解锁内容：EVO-049 后续制品打包/导入；EVO-050 质量评分；EVO-045 执行引擎。
+- 影响范围：backend / frontend / docs
+- 最小验证方式：`cargo test -p service-skill`；`cargo test -p service-snippet`；`cargo test -p api`；`cargo test --workspace`；`bun run type-check`（如前端有最小展示）。
 
 ### EVO-050 Skill/CLI 评分与质量体系
 

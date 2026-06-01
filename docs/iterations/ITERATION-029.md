@@ -4,6 +4,8 @@
 > 计划发布日期：2026-05-28
 > 计划目标：用一周完成 `EVO-030` GitHub CI/CD 重建，基于最终 Bun/Vite、Rust 和
 > 部署命令建立可维护 workflow。
+> 当前阻塞：仍依赖 [Iteration 028](ITERATION-028.md) 命令基线；部署边界已由
+> [Iteration 031](ITERATION-031.md) 的 rust-embed-for-web 交付稳定。
 >
 > 基线保护：本文件一旦提交，以下“发布计划基线”内容不可因实施或改线而覆写；
 > 同目标执行只向执行区追加事实，换目标必须保留本页并新建 iteration 编号。
@@ -72,6 +74,7 @@ bun run build
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-05-28 | planning | 发布一周计划基线；依赖 Iteration 028 和部署边界确认。 |
+| 2026-06-01 | planning-disposition | 部署边界已由 Iteration 031 稳定为后端嵌入式前端 + 可选 Nginx；本迭代继续阻塞于 Iteration 028，建议在 Iteration 032 依赖审计后执行以减少 CI 返工。 |
 
 ## 9. 变更请求
 
@@ -83,7 +86,7 @@ bun run build
 - 完成：
 - 未完成：
 - 验证结果：
-- 闭环状态：`Blocked`（仅计划发布，前置命令基线/部署边界未完成）
+- 闭环状态：`Blocked`（仅计划发布，前置命令基线未完成）
 - 残余归口：激活门禁见第 2 节与第 4 节。
 
 ## 11. Retrospective
