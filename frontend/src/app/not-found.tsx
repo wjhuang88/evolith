@@ -10,7 +10,7 @@ export default function NotFound() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="text-center">
         {/* 404 Heading */}
-        <h1 className="text-9xl font-bold text-primary-600 dark:text-primary-400">{t('errors.notFound.title')}</h1>
+        <h1 className="text-9xl font-bold text-[var(--foreground)]">{t('errors.notFound.title')}</h1>
         
         {/* Subtitle */}
         <h2 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
@@ -37,7 +37,7 @@ export default function NotFound() {
         {/* Decorative Element */}
         <div className="mt-16 relative">
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-32 h-32 rounded-full bg-primary-100 dark:bg-primary-900/20 blur-3xl" />
+            <div className="w-32 h-32 rounded-full bg-[var(--muted)] blur-3xl" />
           </div>
           <div className="relative text-6xl opacity-20">🔍</div>
         </div>

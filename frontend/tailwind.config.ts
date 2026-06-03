@@ -11,20 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
-        },
-        // Semantic colors
+        // Figma design system — all values defined in globals.css CSS variables
         background: 'var(--background)',
         foreground: 'var(--foreground)',
         muted: {
@@ -61,14 +48,28 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {
-        sm: 'calc(var(--radius) - 4px)',
-        md: 'var(--radius)',
-        lg: 'calc(var(--radius) + 2px)',
-        xl: 'calc(var(--radius) + 4px)',
+        xs: '2px',
+        sm: '6px',
+        md: '8px',
+        lg: '24px',
+        xl: '32px',
+        pill: '50px',
+        full: '9999px',
+      },
+      spacing: {
+        hair: '1px',
+        xxs: '4px',
+        xs: '8px',
+        sm: '12px',
+        md: '16px',
+        lg: '24px',
+        xl: '32px',
+        xxl: '48px',
+        section: '96px',
       },
       boxShadow: {
         sm: 'var(--shadow-sm)',
@@ -82,4 +83,3 @@ const config: Config = {
 };
 
 export default config;
-

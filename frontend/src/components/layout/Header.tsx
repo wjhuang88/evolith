@@ -17,10 +17,10 @@ const navigation = [
 export function Header() {
   const { t } = useTranslation();
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-background px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-border bg-background px-4 md:px-6">
       <div className="flex items-center gap-4">
         <MobileNav />
-        <Link to="/"className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+        <Link to="/"className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary)]">
           <span className="text-white font-bold text-sm">E</span>
         </div>
         <span className="text-xl font-semibold text-foreground">Evolith</span></Link>
@@ -53,7 +53,7 @@ function UserMenu() {
 
   if (!isAuthenticated) {
     return (
-      <Link to="/login"className="rounded-full border border-border bg-muted px-4 py-2 text-sm font-medium hover:bg-muted/80">{t('nav.signIn')}</Link>
+      <Link to="/login"className="rounded-[50px] border border-border bg-[var(--secondary)] px-4 py-2 text-sm font-medium text-[var(--secondary-foreground)] hover:opacity-90">{t('nav.signIn')}</Link>
     );
   }
 
@@ -61,10 +61,10 @@ function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-2 text-sm hover:bg-muted/80"
+        className="flex items-center gap-2 rounded-[50px] border border-border bg-muted px-3 py-2 text-sm hover:bg-muted/80"
       >
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
-          <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--muted)]">
+          <span className="text-xs font-medium text-[var(--foreground)]">
             {getInitials(user?.username)}
           </span>
         </div>
@@ -72,7 +72,7 @@ function UserMenu() {
       </button>
       
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md border border-border bg-card py-1 shadow-lg">
+        <div className="absolute right-0 mt-2 w-48 rounded-[8px] border border-border bg-card py-1 shadow-lg">
           <Link to="/profile"className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
           onClick={() => setIsOpen(false)}>{t('nav.profile')}</Link>
           <Link to="/settings"className="block px-4 py-2 text-sm text-foreground hover:bg-muted"
@@ -105,7 +105,7 @@ export function Sidebar() {
       to={item.href}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
         isActive
-          ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400'
+          ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
           : 'text-foreground hover:bg-muted/80'
       }`}
     >
@@ -145,7 +145,7 @@ export function MobileNav() {
       onClick={() => setIsOpen(false)}
       className={`block rounded-lg px-3 py-2 text-base font-medium ${
         isActive
-          ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400'
+          ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
           : 'text-foreground hover:bg-muted'
       }`}
     >

@@ -93,7 +93,7 @@ export default function RegisterPage() {
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+            <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary)]">
               <span className="text-white font-bold">E</span>
             </div></Link>
             <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.registerPage.checkEmail')}</h1>
@@ -151,7 +151,7 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-purple-600">
+          <Link to="/"className="inline-flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary)]">
             <span className="text-white font-bold">E</span>
           </div></Link>
           <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.registerPage.title')}</h1>

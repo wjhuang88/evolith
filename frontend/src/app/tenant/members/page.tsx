@@ -309,8 +309,8 @@ export default function MembersPage() {
                       <tr key={member.id} className="hover:bg-muted/50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
-                              <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muted)]">
+                              <span className="text-sm font-medium text-[var(--foreground)]">
                                 {member.username.charAt(0).toUpperCase()}
                               </span>
                             </div>

@@ -85,7 +85,7 @@ export default function OnboardingPage() {
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                 s <= step
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
@@ -94,7 +94,7 @@ export default function OnboardingPage() {
             {s < 3 && (
               <div
                 className={`w-12 h-0.5 mx-2 transition-colors ${
-                  s < step ? 'bg-primary-600' : 'bg-muted'
+                  s < step ? 'bg-[var(--primary)]' : 'bg-muted'
                 }`}
               />
             )}
@@ -241,15 +241,15 @@ export default function OnboardingPage() {
             <h3 className="font-semibold mb-2">{t('onboarding.step3.nextSteps.title')}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
-                <span className="text-primary-600">→</span>
+                <span className="text-[var(--primary)]">→</span>
                 {t('onboarding.step3.nextSteps.exploreTools')}
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-primary-600">→</span>
+                <span className="text-[var(--primary)]">→</span>
                 {t('onboarding.step3.nextSteps.readDocs')}
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-primary-600">→</span>
+                <span className="text-[var(--primary)]">→</span>
                 {t('onboarding.step3.nextSteps.inviteTeam')}
               </li>
             </ul>

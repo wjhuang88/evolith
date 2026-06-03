@@ -4,46 +4,36 @@
 
 @layer base {
   :root {
-    /* Base colors */
+    /* Figma design system — Light theme */
     --radius: 0.5rem;
-    
-    /* Light theme */
+
     --background: #ffffff;
-    --foreground: #0a0a0a;
-    
-    /* Muted colors */
-    --muted: #f5f5f5;
-    --muted-foreground: #737373;
-    
-    /* Border */
-    --border: #e5e5e5;
-    
-    /* Card */
+    --foreground: #000000;
+
+    --muted: #f7f7f5;
+    --muted-foreground: #000000;
+
+    --border: #e6e6e6;
+
     --card: #ffffff;
-    --card-foreground: #0a0a0a;
-    
-    /* Popover */
+    --card-foreground: #000000;
+
     --popover: #ffffff;
-    --popover-foreground: #0a0a0a;
-    
-    /* Input */
-    --input: #e5e5e5;
-    --ring: #0ea5e9;
-    
-    /* Primary */
-    --primary: #0ea5e9;
+    --popover-foreground: #000000;
+
+    --input: #e6e6e6;
+    --ring: #000000;
+
+    --primary: #000000;
     --primary-foreground: #ffffff;
-    
-    /* Secondary */
-    --secondary: #f5f5f5;
-    --secondary-foreground: #0a0a0a;
-    
-    /* Accent */
-    --accent: #f5f5f5;
-    --accent-foreground: #0a0a0a;
-    
-    /* Status colors */
-    --success: #22c55e;
+
+    --secondary: #ffffff;
+    --secondary-foreground: #000000;
+
+    --accent: #f7f7f5;
+    --accent-foreground: #000000;
+
+    --success: #1ea64a;
     --success-foreground: #ffffff;
     --warning: #f59e0b;
     --warning-foreground: #ffffff;
@@ -51,50 +41,49 @@
     --error-foreground: #ffffff;
     --info: #3b82f6;
     --info-foreground: #ffffff;
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.04), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.04), 0 4px 6px -4px rgb(0 0 0 / 0.04);
   }
 
   .dark {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    
-    --border: #262626;
-    
-    --card: #171717;
-    --card-foreground: #fafafa;
-    
-    --popover: #171717;
-    --popover-foreground: #fafafa;
-    
-    --input: #262626;
-    --ring: #38bdf8;
-    
-    --primary: #38bdf8;
-    --primary-foreground: #0a0a0a;
-    
-    --secondary: #262626;
-    --secondary-foreground: #fafafa;
-    
-    --accent: #262626;
-    --accent-foreground: #fafafa;
-    
-    --success: #4ade80;
-    --success-foreground: #0a0a0a;
-    --warning: #fbbf24;
-    --warning-foreground: #0a0a0a;
-    --error: #f87171;
-    --error-foreground: #0a0a0a;
-    --info: #60a5fa;
-    --info-foreground: #0a0a0a;
-    
+    --background: #000000;
+    --foreground: #ffffff;
+
+    --muted: #1a1a1a;
+    --muted-foreground: #ffffff;
+
+    --border: #2a2a2a;
+
+    --card: #0a0a0a;
+    --card-foreground: #ffffff;
+
+    --popover: #0a0a0a;
+    --popover-foreground: #ffffff;
+
+    --input: #2a2a2a;
+    --ring: #ffffff;
+
+    --primary: #ffffff;
+    --primary-foreground: #000000;
+
+    --secondary: #1a1a1a;
+    --secondary-foreground: #ffffff;
+
+    --accent: #1a1a1a;
+    --accent-foreground: #ffffff;
+
+    --success: #1ea64a;
+    --success-foreground: #ffffff;
+    --warning: #f59e0b;
+    --warning-foreground: #000000;
+    --error: #ef4444;
+    --error-foreground: #ffffff;
+    --info: #3b82f6;
+    --info-foreground: #ffffff;
+
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
@@ -109,7 +98,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "kern" 1;
   }
 }
 

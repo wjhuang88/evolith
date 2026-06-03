@@ -99,7 +99,7 @@ export function Pagination({
             onClick={() => onPageChange(pageNum as number)}
             className={cn(
               'min-w-[2.5rem]',
-              pageNum === page && 'bg-primary-600 text-white hover:bg-primary-700'
+              pageNum === page && 'bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90'
             )}
           >
             {pageNum}
