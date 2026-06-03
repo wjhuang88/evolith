@@ -5,6 +5,8 @@
 > 计划目标：~~将 ZIP 嵌入前端服务从 Vec<u8> 全量读取改造为纯流式响应 + 静态索引~~
 > 已改线：经调研确认 ZIP 流式方案为过度工程，改用 rust-embed-for-web 零拷贝 + 预压缩方案。
 > 新迭代：Iteration 031。
+>
+> **feature flag 补注**（2026-06-03 / EVO-060）：下文计划基线中的 `--features embedded-frontend` 在 `Cargo.toml` 中从未定义；Iteration 031 实际改用 `rust-embed-for-web` 的 `#[folder]` 属性，无需 feature flag。详见 [ADR-0003](../decisions/ADR-0003-embedded-frontend-rust-embed-for-web.md)。
 > 闭环步骤：实施和收尾时按 [任务收口与完成声明](../sop/TASK-CLOSURE.md) 执行。
 
 ## 1. 发布计划基线：目标

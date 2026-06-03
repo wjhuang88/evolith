@@ -2,6 +2,8 @@
 
 > 状态：已晋升（Iteration 031 已用 `rust-embed-for-web` 实现等价目标）
 > 前置：完成 `React + Vite + Bun` 静态 SPA 迁移后再实施。
+>
+> **改线说明**（2026-06-03 / EVO-060）：本提案中的 `--features embedded-frontend` feature flag 方案和 ZIP 打包方案均已被 Iteration 031 的 `rust-embed-for-web` `#[folder]` 方案取代。`Cargo.toml` 中未定义 `embedded-frontend` feature，`dev.sh` 中的 ZIP 构建和 feature flag 死代码已清理。下文保留为历史参考。详见 [ADR-0003](../decisions/ADR-0003-embedded-frontend-rust-embed-for-web.md) / [Iteration 031](../iterations/ITERATION-031.md)。
 
 ## 1. 目标
 

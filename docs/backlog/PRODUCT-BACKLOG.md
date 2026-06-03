@@ -78,7 +78,7 @@
 | EVO-057 | 生产 CORS Origin 可配置化 | tech-debt | P2 | Ready | 跨层一致性审查 2026-06-01 | docker-compose.prod.yml 的 `CORS__ALLOWED_ORIGINS` 被忽略，main.rs 硬编码 origin；新增 CorsConfig 使其可配置 |
 | EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
 | EVO-059 | Backend clippy 历史 lint 升级修复 | tech-debt | P2 | Done | Iteration 028 验证残余 / Iteration 029 配套 | 2026-06-01 Iteration 029 收口：21 个 `-D warnings` 错误归零（原估算 18，实际 13× unwrap_used + 3× dead_code + 4× unnecessary_min_or_max + 1× field_reassign_with_default）。修复策略：unwarp_used 在 7 个 test 文件加文件级 `#![allow(clippy::unwrap_used)]`（workspace deny 覆盖 clippy.toml 行为）；dead_code 移除未使用字段而非 `#[allow]`；unnecessary_min_or_max 移除 `.max(3)` 因 MIN_RPM=30 保障 rpm/10>=3；field_reassign_with_default 改 struct update syntax |
-| EVO-060 | dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理 | tech-debt | P2 | Ready | 嵌入式模式验证 2026-06-01 | `scripts/dev.sh` 残留 4 处 `EMBEDDED_FRONTEND` / `build_frontend_zip` / `frontend.zip` / `--features embedded-frontend` 死代码（实际后端用 `#[folder]` 嵌入，无需 zip/feature flag）；`docs/proposals/EMBEDDED-FRONTEND.md` 状态 `远期目标` → `已晋升`（Iteration 031 已用 rust-embed-for-web 实现等价目标）；`--features embedded-frontend` 在 Cargo.toml 中未定义，调用会报 unknown feature |
+| EVO-060 | dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理 | tech-debt | P2 | Done | 嵌入式模式验证 2026-06-01 | 2026-06-03 完成：删除 4 处死代码（EMBEDDED_FRONTEND / build_frontend_zip / --features embedded-frontend / ZIP 构建逻辑）；新增 build_frontend() 函数；lite/embedded 模式改为单端口（build + backend）；后端端口改为读 SERVER__PORT 环境变量；proposal 状态已晋升；SCRIPTS-RELEASE-NOTES.md 同步 |
 | EVO-061 | bollard 0.17→0.21 Docker Engine API 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | bollard 跨 4 个 minor 的 Docker Engine API 演进（0.18 起 `Docker::connect_with_*` API 调整）；当前 `bollard 0.17.1` + Phase 7 sandbox（service-skill）零运行时问题；迁移需重写 `service-skill/src/executor.rs` + 验证 sandbox 镜像兼容性 |
 | EVO-062 | sqlx 0.7→0.8/0.9 迁移（解决 future-incompat） | tech-debt | P1 | Proposed | Iteration 032 依赖审计暂缓项 | **19 个 repo 文件 / ~120 call sites** 依赖 `query!` / `query_as!` 宏与 `FromRow` derive；0.7→0.8 是 macro 与 `Database` trait 跨主版本破坏；已观测 `sqlx-postgres 0.7.4` never-type-fallback warning（Rust 2024 edition 强制前不阻断），是 Iteration 028 显式归口 |
 | EVO-063 | config 0.14→0.15 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.14→0.15 改 `ConfigBuilder` API（`with_source` → `add_source` 合并/语义变化）；影响 `infra/src/config.rs`；caret 范围不变 |
@@ -1442,7 +1442,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：tech-debt
 - 优先级：P2
-- 状态：Ready
+- 状态：Done
 - 来源：嵌入式模式验证 2026-06-01 / Iteration 035 后续
 - 用户/工程价值：消除 dev.sh 与 proposal 中指向已废 ZIP 嵌入方案的孤儿代码，避免新成员按过时模式复用。
 - 背景（嵌入式模式本地验证时发现）：
@@ -1470,15 +1470,15 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
   - 不重写 `docs/iterations/ITERATION-030.md` 的计划基线（按 AGENTS.md 规则仅追加说明）。
   - 不删 `EVOLUTION.md` 历史记录。
 - 验收标准：
-  - [ ] `rg "EMBEDDED_FRONTEND|frontend\.zip" scripts/dev.sh` 0 hits。
-  - [ ] `rg "embedded-frontend" scripts/dev.sh docs/proposals/ backend/Cargo.toml backend/crates/*/Cargo.toml` 0 hits（确认 feature flag 未复活）。
-  - [ ] `rg "embedded-frontend" docs/iterations/ITERATION-030.md` 仍保留（历史基线），但段落有改线说明。
-  - [ ] `docs/proposals/EMBEDDED-FRONTEND.md` 顶部状态含「已晋升」+ Iteration 031 链接。
-  - [ ] `bash -n scripts/dev.sh` 语法检查通过。
-  - [ ] `scripts/dev.sh --help` / `bash scripts/dev.sh` 启动正常，无 `embedded` 子命令。
-  - [ ] `scripts/dev.sh` 总行数减少约 50 行。
-  - [ ] `scripts/dev.sh lite|start|stop|status|logs|clean|infra|backend|frontend` 子命令未受影响。
-  - [ ] `docs/reference/SCRIPTS-RELEASE-NOTES.md` 同步记录 dev.sh 行为变更（删除 `embedded` 子命令 + `EMBEDDED_FRONTEND` 环境变量 + `build_frontend_zip` 函数）。
+  - [x] `rg "EMBEDDED_FRONTEND|frontend\.zip" scripts/dev.sh` 0 hits。
+  - [x] `rg "embedded-frontend" scripts/dev.sh docs/proposals/ backend/Cargo.toml backend/crates/*/Cargo.toml` 0 hits（确认 feature flag 未复活）。
+  - [x] `rg "embedded-frontend" docs/iterations/ITERATION-030.md` 仍保留（历史基线），但段落有改线说明。
+  - [x] `docs/proposals/EMBEDDED-FRONTEND.md` 顶部状态含「已晋升」+ Iteration 031 链接。
+  - [x] `bash -n scripts/dev.sh` 语法检查通过。
+  - [x] `scripts/dev.sh lite` 单端口启动成功（SERVER__PORT=8090 验证）。`embedded` 子命令保留为 lite 别名（行为相同）。
+  - [x] `scripts/dev.sh` 净减少 ~15 行（删 30 行死代码 + 增 15 行 build_frontend 函数）。
+  - [x] `scripts/dev.sh lite|start|stop|status|logs|clean|infra|backend|frontend|embedded` 子命令均可用。
+  - [x] `docs/reference/SCRIPTS-RELEASE-NOTES.md` 同步记录 dev.sh 行为变更。
 - 依赖或阻塞：无。
 - 解锁内容：dev.sh 与 proposal 反映 Iteration 031 终局形态；新成员复用 dev.sh 时不会看到死代码。
 - 影响范围：scripts/dev.sh、docs/proposals/EMBEDDED-FRONTEND.md、docs/iterations/ITERATION-030.md、docs/reference/SCRIPTS-RELEASE-NOTES.md

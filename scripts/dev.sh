@@ -7,7 +7,7 @@ PID_DIR="$PROJECT_ROOT/.dev-pids"
 LOG_DIR="$PROJECT_ROOT/.dev-logs"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 FRONTEND_PORT="${FRONTEND_PORT:-3001}"
-EMBEDDED_FRONTEND="${EMBEDDED_FRONTEND:-false}"
+BACKEND_PORT="${SERVER__PORT:-8080}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -123,24 +123,26 @@ stop_infra() {
     log_ok "Infrastructure stopped"
 }
 
-build_frontend_zip() {
+build_frontend() {
     local dist_dir="$PROJECT_ROOT/frontend/dist"
-    local zip_file="$PROJECT_ROOT/backend/frontend.zip"
 
-    if [ ! -d "$dist_dir" ]; then
-        log_warn "Frontend dist directory not found at $dist_dir — skipping ZIP build"
+    log_info "Building frontend (bun run build)..."
+    cd "$PROJECT_ROOT/frontend"
+    if [ ! -d "node_modules" ]; then
+        log_info "Installing frontend dependencies..."
+        bun install > "$LOG_DIR/frontend-install.log" 2>&1
+    fi
+    if ! bun run build > "$LOG_DIR/frontend-build.log" 2>&1; then
+        log_error "Frontend build failed! Check $LOG_DIR/frontend-build.log"
+        cd "$PROJECT_ROOT"
         return 1
     fi
-
-    log_info "Building frontend.zip from $dist_dir..."
-    cd "$dist_dir"
-    zip -qr "$zip_file" .
     cd "$PROJECT_ROOT"
-    log_ok "frontend.zip built ($(du -h "$zip_file" | cut -f1))"
+    log_ok "Frontend built → $dist_dir"
 }
 
 start_backend() {
-    if ! check_port 8080 "backend"; then
+    if ! check_port "$BACKEND_PORT" "backend"; then
         return 1
     fi
 
@@ -149,30 +151,15 @@ start_backend() {
         return 0
     fi
 
-    if [ "$EMBEDDED_FRONTEND" = "true" ]; then
-        local dist_dir="$PROJECT_ROOT/frontend/dist"
-        local zip_file="$PROJECT_ROOT/backend/frontend.zip"
-        if [ -d "$dist_dir" ]; then
-            if [ ! -f "$zip_file" ] || [ "$dist_dir" -nt "$zip_file" ]; then
-                build_frontend_zip || true
-            fi
-        fi
-    fi
-
     log_info "Building and starting Rust backend..."
     cd "$PROJECT_ROOT/backend"
 
-    local cargo_args=()
-    if [ "$EMBEDDED_FRONTEND" = "true" ]; then
-        cargo_args=(--features embedded-frontend)
-    fi
-
-    if ! cargo build "${cargo_args[@]}" 2>"$LOG_DIR/backend-build.log"; then
+    if ! cargo build 2>"$LOG_DIR/backend-build.log"; then
         log_error "Backend build failed! Check $LOG_DIR/backend-build.log"
         return 1
     fi
 
-    cargo run "${cargo_args[@]}" > "$LOG_DIR/backend.log" 2>&1 &
+    cargo run > "$LOG_DIR/backend.log" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_DIR/backend.pid"
     cd "$PROJECT_ROOT"
@@ -181,8 +168,8 @@ start_backend() {
     local max_wait=30
     local waited=0
     while [ $waited -lt $max_wait ]; do
-        if curl -sf http://localhost:8080/health/live >/dev/null 2>&1; then
-            log_ok "Backend is running at http://localhost:8080"
+        if curl -sf "http://localhost:$BACKEND_PORT/health/live" >/dev/null 2>&1; then
+            log_ok "Backend is running at http://localhost:$BACKEND_PORT"
             return 0
         fi
         if ! kill -0 "$pid" 2>/dev/null; then
@@ -291,7 +278,7 @@ show_status() {
     echo "Application:"
 
     if is_running "backend"; then
-        echo -e "  ${GREEN}●${NC} Backend:  Running (PID $(cat "$PID_DIR/backend.pid")) — http://localhost:8080"
+        echo -e "  ${GREEN}●${NC} Backend:  Running (PID $(cat "$PID_DIR/backend.pid")) — http://localhost:$BACKEND_PORT"
     else
         echo -e "  ${RED}●${NC} Backend:  Not running"
     fi
@@ -317,8 +304,8 @@ print_ready_banner() {
     echo "========================================="
     echo ""
     echo "  Frontend: http://localhost:$FRONTEND_PORT"
-    echo "  Backend:  http://localhost:8080"
-    echo "  Health:   http://localhost:8080/health"
+    echo "  Backend:  http://localhost:$BACKEND_PORT"
+    echo "  Health:   http://localhost:$BACKEND_PORT/health"
     echo ""
     echo "  Stop with:  ./scripts/dev.sh stop"
     echo "  Logs with:  ./scripts/dev.sh logs"
@@ -330,13 +317,13 @@ usage() {
     echo "Usage: $0 {start|lite|embedded|stop|infra|backend|frontend|status|logs|clean}"
     echo ""
     echo "Commands:"
-    echo "  start     Start infrastructure + backend + frontend (full stack)"
-    echo "  lite      Start backend + frontend only (SQLite in-memory, no Docker)"
-    echo "  embedded  Start backend with embedded frontend ZIP (no separate frontend)"
+    echo "  start     Full stack: infra + backend + Vite dev server (HMR, two ports)"
+    echo "  lite      Lightweight: build frontend + backend only (single port 8080)"
+    echo "  embedded  Same as lite (backend serves frontend via rust-embed-for-web)"
     echo "  stop      Stop all services (backend, frontend, infrastructure)"
     echo "  infra     Start only infrastructure (PostgreSQL, Redis, MinIO)"
     echo "  backend   Start only backend (assumes infra or SQLite)"
-    echo "  frontend  Start only frontend (assumes backend is running)"
+    echo "  frontend  Start only Vite dev server (assumes backend is running)"
     echo "  status    Show status of all services"
     echo "  logs      Tail backend and frontend logs"
     echo "  clean     Stop everything and remove Docker volumes + logs"
@@ -347,6 +334,7 @@ case "${1:-}" in
         ensure_dirs
         load_env
         start_infra
+        build_frontend
         start_backend
         start_frontend
         print_ready_banner
@@ -355,25 +343,34 @@ case "${1:-}" in
         ensure_dirs
         load_env
         log_info "Lite mode — SQLite in-memory, no Docker infrastructure"
+        build_frontend
         start_backend
-        start_frontend
-        print_ready_banner
+        echo ""
+        echo "========================================="
+        echo "  Evolith Lite Mode Ready"
+        echo "========================================="
+        echo ""
+        echo "  App (API + Frontend): http://localhost:$BACKEND_PORT"
+        echo "  Health:               http://localhost:$BACKEND_PORT/health"
+        echo ""
+        echo "  Stop with:  ./scripts/dev.sh stop"
+        echo "  Logs with:  ./scripts/dev.sh logs"
+        echo "  Status:     ./scripts/dev.sh status"
+        echo ""
         ;;
     embedded)
         ensure_dirs
         load_env
-        EMBEDDED_FRONTEND=true
-        export EMBEDDED_FRONTEND
-        log_info "Embedded mode — backend serves frontend from embedded ZIP"
-        build_frontend_zip || true
+        log_info "Embedded mode — backend serves frontend via rust-embed-for-web"
+        build_frontend
         start_backend
         echo ""
         echo "========================================="
         echo "  Evolith Embedded Mode Ready"
         echo "========================================="
         echo ""
-        echo "  Backend + Frontend: http://localhost:8080"
-        echo "  Health:             http://localhost:8080/health"
+        echo "  Backend + Frontend: http://localhost:$BACKEND_PORT"
+        echo "  Health:             http://localhost:$BACKEND_PORT/health"
         echo ""
         echo "  Stop with:  ./scripts/dev.sh stop"
         echo "  Logs with:  ./scripts/dev.sh logs"
