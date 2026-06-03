@@ -64,7 +64,7 @@
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
-| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | In Progress | EVO-045/047 前置 / Iteration 033 | Iteration 033 激活（2026-06-01）：设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路；本机无 Docker，冷启动实测 conditional，方法学必出、实测值标注为待 Docker 环境执行 |
+| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Done | EVO-045/047 前置 / Iteration 033 | Iteration 033 收口（2026-06-03）：输出 `docs/proposals/SERVERLESS-RUNTIME.md`（11 节）；Phase 7 sandbox 复用结论=部分复用；统一 ExecutionProvider 接口设计；冷启动方法学（已缓存 ~350ms-1800ms / 池模式 ~50-200ms，实测待 Docker）；Vercel 演进路径 + 组件替换清单；EVO-045/047 依赖图 + 推荐实施顺序；本机无 Docker，冷启动实测 conditional |
 | EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | feature | P0 | Proposed | 用户反馈 2026-05-29 | Epic；不直接进迭代，先执行 EVO-049-A/B 子 Story |
 | EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Ready | EVO-049 split / Iteration 034 | SQLite/PostgreSQL、domain、DTO、repository 对齐 Agent Skills 与 CLI 结构化字段 |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
@@ -921,7 +921,7 @@
 
 - 类型：spike
 - 优先级：P0
-- 状态：Ready
+- 状态：Done
 - 用户价值或技术目标：为 CLI（EVO-045）和 MCP（EVO-047）设计统一的 serverless 执行架构，确定本地版实现方案和远期 Vercel 模式的演进路径。
 - 调研范围：
   1. **Phase 7 sandbox 复用评估**：当前 Docker sandbox（bollard + Python/Node runtime）能否作为 serverless 基础？冷启动延迟、资源开销、并发能力

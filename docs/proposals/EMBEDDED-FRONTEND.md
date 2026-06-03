@@ -1,6 +1,6 @@
 # 规划: 前端静态产物嵌入后端
 
-> 状态：远期目标
+> 状态：已晋升（Iteration 031 已用 `rust-embed-for-web` 实现等价目标）
 > 前置：完成 `React + Vite + Bun` 静态 SPA 迁移后再实施。
 
 ## 1. 目标

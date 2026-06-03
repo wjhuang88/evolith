@@ -36,7 +36,7 @@
 - [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（Superseded：改线到 Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B；Closed）。
 - [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043；Closed：审计 39 dep + 3 crate 私有 dep；16 个大版本升级归口 EVO-061~076）。
-- [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；Active / In Progress：2026-06-01 激活；本机无 Docker，冷启动实测 conditional，方法学必出）。
+- [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；Closed：输出 `docs/proposals/SERVERLESS-RUNTIME.md`；Phase 7 部分复用；统一 ExecutionProvider；冷启动方法学；Vercel 演进路径）。
 - [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A）。
 - [Iteration 035](ITERATION-035.md) — P1 治理先行：backlog 状态漂移与前后端 API 契约漂移修复（EVO-054 / EVO-055；Closed）。
 - [Iteration 036](ITERATION-036.md) — Governance board operating view（EVO-077；Closed：派生 Board 建立并验证通过）。
@@ -95,9 +95,10 @@
   EVO-061~076（全部 P3 Proposed）；clippy 18 pre-existing errors 维持 EVO-059
   P2 Ready；cargo check 0 / cargo test 274 passed / clippy `--all-targets`
   18 已知错误（仅 059）。
-- [Iteration 033](ITERATION-033.md) — `Active / In Progress`：EVO-048 Serverless 架构
-  Spike；不实现 runtime；本机无 Docker，冷启动实测 conditional（方法学必出，实测值
-  待 Docker 环境执行）。
+- [Iteration 033](ITERATION-033.md) — `Closed`：EVO-048 Serverless 架构 Spike。
+  输出 `docs/proposals/SERVERLESS-RUNTIME.md`（Phase 7 部分复用 / 统一
+  ExecutionProvider / 容器池架构 / 冷启动方法学 / Vercel 演进 / EVO-045/047 依赖图）。
+  冷启动实测待 Docker 环境。
 - [Iteration 034](ITERATION-034.md) — `Planned / Ready for activation`：EVO-049-A
   Skill/CLI 规范兼容数据模型基线；EVO-049 父 Epic 不直接选入。
 - [Iteration 035](ITERATION-035.md) — `Closed`：EVO-054 / EVO-055 完成。EVO-054 修复 3 处详情块漂移 + 1 处 Dropped 占位（EVO-042）+ 1 处额外漂移（EVO-026）；EVO-055 修复死分支 / billing 闸门 / 501 显式 throw / API-CONTRACT 同步。
@@ -109,8 +110,8 @@
 该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
 并记录库存 disposition：
 
-1. [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（`Active / In Progress`：2026-06-01 激活）。
-2. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
+1. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
+2. **EVO-045-A**（新 iteration）— ExecutionProvider 统一 trait + Docker 容器池化（EVO-048 Spike 输出的关键路径首步；依赖 EVO-048 Done）。
 3. **新进 Ready 待评估**：
    - EVO-051 / 052 / 056 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
    - EVO-060（嵌入式模式验证残余，dev.sh / proposal 死代码清理）

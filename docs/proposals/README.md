@@ -45,7 +45,8 @@ Evolith 的执行者是 AI Agent。Agent 从 Backlog 选取任务时会直接开
 | Database migration SOP | 已晋升 | 已落地为 [数据库迁移 SOP](../sop/DATABASE-MIGRATION.md) |
 | Security model reference | 待整理 | 集中说明 JWT cookie、CSRF、RBAC、CORS 和安全头 |
 | [Evolith Rust CLI](RUST-CLI.md) | 远期目标 | API 合约稳定后启动 CLI 子项目 |
-| [前端嵌入后端](EMBEDDED-FRONTEND.md) | 远期目标 | 完成 React + Vite + Bun 迁移后实施 |
+| [前端嵌入后端](EMBEDDED-FRONTEND.md) | 已晋升 | Iteration 031 已用 `rust-embed-for-web` 实现 |
 | [Artifact Repository](ARTIFACT-REPOSITORY.md) | 远期目标 | Skill / CLI interface 稳定后再定义制品元数据和存储模型 |
 | [AI Gateway](AI-GATEWAY.md) | 远期想法 | 核心平台稳定后展开技术方案评审 |
 | [Agent Runtime](AGENT-RUNTIME.md) | 远期想法 | 核心功能稳定后定义工作空间模型和执行方案 |
+| [Serverless Runtime](SERVERLESS-RUNTIME.md) | 设计稿 | EVO-048 Spike 输出（Iteration 033）；为 EVO-045/047 提供统一执行架构设计 |

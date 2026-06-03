@@ -1,6 +1,6 @@
 # Iteration 033: Serverless 执行架构设计 Spike
 
-> 文档状态：Active / In Progress（自 2026-06-01 起）
+> 文档状态：Closed（2026-06-03）
 > 计划发布日期：2026-06-01
 > 计划目标：用一个 Spike 明确 `EVO-048` 的本地 serverless runtime、外部执行代理和远期 Vercel 模式演进路径，解锁 CLI/MCP 执行引擎设计。
 >
@@ -73,6 +73,9 @@ git diff --check
 |------|------|------|
 | 2026-06-01 | planning | 发布计划基线；未启动实现。该 Spike 应在工程门禁与 CI 基线稳定后进入。 |
 | 2026-06-01 | activation | 状态 `Planned / Ready` → `Active / In Progress`。前置：Iteration 028/029/031/032/035 均 Closed，CI 基线（`.github/workflows/ci.yml` tag-only trigger）就绪，工程门禁稳定，满足 plan baseline §"建议在 CI 基线后执行"。本机无 Docker（`command not found: docker`）→ 冷启动实测 conditional，方法学必出、实测值标注为待 Docker 环境执行。激活后第一动作：盘点 Phase 7 sandbox 与 service-tool HTTP executor 现有实现 → 写 `docs/proposals/SERVERLESS-RUNTIME.md`。 |
+| 2026-06-03 | execution | Phase 7 sandbox 分析完成：docker_executor.rs 322 行，per-request 容器生命周期（create → exec → remove），SandboxConfig 复用、容器池管理需重写。service-tool HTTP executor 分析完成：reqwest 转发，无容器。两个 trait 形状不兼容（ExecuteRequest/ExecuteResponse 字段不同）。 |
+| 2026-06-03 | design | 输出 `docs/proposals/SERVERLESS-RUNTIME.md`（11 节）：Phase 7 复用结论（部分复用）+ 统一 ExecutionProvider 接口 + 容器池架构 + 冷启动方法学（已缓存 ~350ms-1800ms，池模式 ~50-200ms）+ Vercel 演进路径 + 组件替换清单 + EVO-045/047 依赖图。 |
+| 2026-06-03 | closure | Spike 完成，状态 → Closed。闭环结论：Complete（冷启动实测待 Docker 环境）。残余：bollard 升级 EVO-061 建议在 EVO-045-A 前提升优先级。 |
 
 ## 9. 变更请求
 
@@ -82,13 +85,44 @@ git diff --check
 ## 10. Review
 
 - 完成：
+  - 输出 `docs/proposals/SERVERLESS-RUNTIME.md`（§1-11，含架构、接口、冷启动方法学、依赖图）
+  - Phase 7 sandbox 复用结论：**部分复用**（SandboxConfig/容器创建/exec/镜像/bollard 连接复用；容器池管理需重写）
+  - 统一执行接口设计：`ExecutionProvider` trait + `ExecutionPayload` 枚举（Code/Command/HttpProxy）+ 路由规则
+  - 冷启动方法学定义（§5.3）+ 理论分析（已缓存镜像 ~350ms-1800ms，池模式 ~50-200ms）
+  - 远期 Vercel 模式组件替换清单（§6.2）
+  - 后续 Story 依赖图 + 推荐实施顺序（§8）
 - 未完成：
+  - 冷启动实测数据（本机无 Docker，方法学已定义，实测待 Docker 环境执行）
 - 验证结果：
-- 闭环状态：`Blocked`（仅计划发布，尚未激活）
-- 残余归口：激活后按第 7 节闭环。
+  - 文档内部一致性：与 ARCHITECTURE.md §Execution Layer / Phase 7 sandbox 实现对齐
+  - 接口设计与现有 `SkillExecutor` / `ToolExecutor` 兼容（Phase 1 facade 策略）
+  - 依赖图与 PRODUCT-BACKLOG EVO-045/047/049-A 关系一致
+- 闭环状态：`Complete`
+- 残余归口：
+  - 冷启动实测 → 待 Docker 环境就绪后执行，可补入 EVO-045-A 验收或创建独立 benchmark story
+  - bollard 0.17→0.18+ 升级 → EVO-061（P3 Proposed，建议在 EVO-045-A 前提升优先级）
+  - EVO-045/047 拆分 → 按 §8 推荐顺序，EVO-045-A 是下一个关键路径
 
 ## 11. Retrospective
 
 - 做得好的：
+  - Spike 严格遵循时间盒和不做约束，未滑入实现
+  - 对 Phase 7 sandbox 做了逐行分析（322 行 docker_executor.rs），复用结论有代码级证据
+  - 冷启动分析区分了"已缓存 vs 未缓存"和"per-request vs pool"两个维度
+  - 统一接口设计考虑了迁移策略（facade → 直接调用），避免 big-bang 重写
 - 需要调整的：
-- 写入 EVOLUTION：
+  - 本机无 Docker 导致实测缺失 — 下次 Spike 应提前确认环境能力
+  - EVO-048 详情块中的冷启动基准测试写法（`目标 < 2s`）暗示需要实测数据，但 Spike plan baseline 已写明"如实际执行"，优先级判断正确
+- 写入 EVOLUTION：无新陷阱。本 Spike 为纯设计输出，未触发代码变更或流程问题。
+
+## 11. Retrospective
+
+- 做得好的：
+  - Spike 严格遵循时间盒和不做约束，未滑入实现
+  - 对 Phase 7 sandbox 做了逐行分析（322 行 docker_executor.rs），复用结论有代码级证据
+  - 冷启动分析区分了"已缓存 vs 未缓存"和"per-request vs pool"两个维度
+  - 统一接口设计考虑了迁移策略（facade → 直接调用），避免 big-bang 重写
+- 需要调整的：
+  - 本机无 Docker 导致实测缺失 — 下次 Spike 应提前确认环境能力
+  - EVO-048 详情块中的冷启动基准测试写法（`目标 < 2s`）暗示需要实测数据，但 Spike plan baseline 已写明"如实际执行"，优先级判断正确
+- 写入 EVOLUTION：无新陷阱。本 Spike 为纯设计输出，未触发代码变更或流程问题。
