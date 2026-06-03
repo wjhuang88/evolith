@@ -6,6 +6,7 @@
 
 | 目录 | 用途 | 更新时机 |
 |------|------|----------|
+| `docs/BOARD.md` | 派生运营看板，汇总 Now / Review / Blocked / Next / Later | owner docs 状态变化后同步；不得替代 backlog 或 iteration |
 | `docs/reference/` | 稳定事实、架构索引、配置说明、项目地图 | 代码结构或配置边界变化时 |
 | `docs/sop/` | 标准操作程序，面向可执行步骤 | 流程、命令或验证方式变化时 |
 | `docs/backlog/` | 需求池、故事拆分、优先级和状态 | 新需求进入、状态变化或迭代规划时 |
@@ -51,6 +52,7 @@
 
 ### Backlog / Iterations / Decisions
 
+- [Operating Board](BOARD.md) — 派生运营看板；只汇总 owner doc 状态和 gate，不作为状态源。
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 统一需求池和优先级。
 - [迭代目录](iterations/README.md) — 迭代记录和模板。
 - [决策记录](decisions/README.md) — ADR 目录。

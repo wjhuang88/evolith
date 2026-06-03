@@ -139,6 +139,7 @@
 - [ ] 是否留下未说明的代码或文档变更？
 - [ ] 新功能/缺陷/技术债是否已进入 backlog，或说明了为什么不需要？
 - [ ] 如果推进了迭代故事，是否更新了 backlog/iteration 状态？
+- [ ] 如果 `docs/BOARD.md` 存在且 owner docs 的 Active / Review / Blocked / Next 状态变化，是否先更新 owner docs 再同步派生看板？
 - [ ] 如果开始了新迭代，是否先盘点并处置 `Active / In Progress / Review / Planned / Blocked` 的既有 iteration？
 - [ ] 新增或选入 Story 时，格式是否匹配 Product / API / Technical / Governance / Spike，行为类是否已有 BDD 场景？
 - [ ] 如果启动或改线了已发布的 planned iteration，是否保留原计划基线并避免就地替换目标？

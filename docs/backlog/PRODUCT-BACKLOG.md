@@ -64,7 +64,7 @@
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
-| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Ready | EVO-045/047 前置 / Iteration 033 | 设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路 |
+| EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | In Progress | EVO-045/047 前置 / Iteration 033 | Iteration 033 激活（2026-06-01）：设计本地版 serverless runtime 架构，复用 Phase 7 sandbox 基础设施，为远期 Vercel 完整模式铺路；本机无 Docker，冷启动实测 conditional，方法学必出、实测值标注为待 Docker 环境执行 |
 | EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | feature | P0 | Proposed | 用户反馈 2026-05-29 | Epic；不直接进迭代，先执行 EVO-049-A/B 子 Story |
 | EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Ready | EVO-049 split / Iteration 034 | SQLite/PostgreSQL、domain、DTO、repository 对齐 Agent Skills 与 CLI 结构化字段 |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
@@ -95,6 +95,7 @@
 | EVO-074 | prometheus 0.13→0.14 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 0.14 改 `Encoder` trait 签名；与 actix-web-prom 强耦合（EVO-073 同源） |
 | EVO-075 | rand 0.8→0.9/0.10 升级（service-auth） | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | rand 0.9/0.10 是 `Rng` trait 重组（major breaking）；影响 `service-auth`（crate 私有 dep，非 workspace） |
 | EVO-076 | serde_yaml 0.9 → serde_yml / serde_norway 迁移 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 上游 serde_yaml 0.9 已 deprecate；建议迁移到 `serde_yml`（社区 fork）或 `serde_norway`（纯 Rust 替代）；影响 `service-skill` + `service-snippet` 的 YAML 解析路径 |
+| EVO-077 | Governance board 派生运营视图 | governance | P1 | Done | 用户反馈 2026-06-03 / Iteration 036 | 按 agent-project-governance skill 标准新增 `docs/BOARD.md`，只汇总 owner docs 与 gate，不作为新状态源；验证通过并收口 |
 
 
 ## 故事模板
@@ -1691,3 +1692,43 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 验收标准：`cargo check / test --workspace` 0 error；现有 SKILL.md parser 测试不退化。
 - 影响范围：`service-skill` + `service-snippet`。
 - 最小验证方式：`cargo test -p service-skill -p service-snippet`。
+
+### EVO-077 Governance board 派生运营视图
+
+- 类型：governance
+- 优先级：P1
+- 状态：Done
+- 父 Epic：无
+- Story 形态：Governance
+- 用户故事或技术目标：
+  - 作为/为了：维护者和 Agent 需要一个快速判断当前工作流向的派生运营视图。
+  - 我希望/需要：新增符合 agent-project-governance skill 的 `docs/BOARD.md`。
+  - 以便：在不复制 backlog / iteration 状态源的前提下，快速回答 Now / Review / Blocked / Next / Later 和每项 gate。
+- 范围：
+  - 新增 `docs/BOARD.md`，标明派生视图规则。
+  - 看板行仅包含 `Item / State / Owner Doc / Gate`。
+  - 每行链接 owner doc，并写明 exit / resume / activation / deferral gate。
+  - 同步 `docs/README.md` 文档地图和 `AGENTS.md` Session End Checklist。
+  - 建立 `Iteration 036` 记录本次治理修复与迭代合理性评估。
+- 不做：
+  - 不创建前端看板页面或运行时代码。
+  - 不把看板放进 `docs/backlog/`，不让看板成为第二个 backlog。
+  - 不在看板里维护 story 详情、验收清单或执行日志。
+  - 不关闭 `Iteration 033` 或改写 `Iteration 034` 的计划基线。
+- 验收标准：
+  - 非行为类：
+    - [x] `docs/BOARD.md` 存在，并明确是 derived operating view。
+    - [x] `docs/BOARD.md` 只使用 `Item / State / Owner Doc / Gate` 四列。
+    - [x] 看板每条实际工作行都有 owner doc 链接和明确 gate。
+    - [x] `docs/README.md` 链接 `docs/BOARD.md`。
+    - [x] `AGENTS.md` Session End Checklist 包含 owner docs 先于 board 同步的检查项。
+    - [x] `docs/BOARD.md` 不与 backlog / iteration README / active iteration 状态冲突。
+    - [x] `Iteration 036` 记录本次插队治理修复和 Iteration 033/034 合理性评估。
+    - [x] 文档链接检查、governance validator 和 `git diff --check` 通过。
+- 技术备注：
+  - Skill 标准结构将 board 定义为可选的 `docs/BOARD.md`，不是 backlog 子文档。
+  - Board 只解决运营扫描问题；状态权威仍在 owner docs。
+- 依赖或阻塞：无。
+- 解锁内容：开始新迭代前可先扫 board，但仍必须按 START-ITERATION 扫描 owner docs。
+- 影响范围：docs / AGENTS.md / .gitignore
+- 最小验证方式：文档链接检查；`sh /Users/GHuang/WorkSpace/AiProjects/skill-sources/agent-project-governance/skills/agent-project-governance/scripts/validate_project_governance.sh /Users/GHuang/WorkSpace/AiProjects/evolith`；`git diff --check`。

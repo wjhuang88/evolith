@@ -25,6 +25,23 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-03 Governance board 必须按 skill 标准放在 docs/BOARD.md
+
+**现象**: 用户要求“本项目没有做看板”，最初误判为前端看板页；随后又把治理看板放到
+`docs/backlog/KANBAN.md`。用户指出“不太对，要读一下 skill 的内容”。
+
+**根因**: 只读了 agent-project-governance skill 的入口和本项目现有 SOP，没有继续读取
+`references/standard-structure.md` 中对 Board 的 artifact responsibility：Board 是可选的
+`docs/BOARD.md` 派生运营视图，不能成为 backlog 子文档或新的状态源。
+
+**方案**: 删除误放的 `docs/backlog/KANBAN.md`，新增 `docs/BOARD.md`；Board 只使用
+`Item / State / Owner Doc / Gate` 四列，并同步 `docs/README.md` 与 `AGENTS.md` 检查项。
+通过 markdown 链接检查、governance validator 和 `git diff --check` 后关闭 EVO-077 /
+Iteration 036。
+
+**教训**: 使用治理 skill 时，不能只读 SKILL.md 开头和本地 SOP 就落文件；涉及新治理
+artifact 时必须读 `standard-structure.md`，确认 owner、职责边界和“不应成为”的反例后再改。
+
 ### 2026-06-01 clippy `#[lints]` in Cargo.toml 优先级高于 `clippy.toml` 配置
 
 **现象**: Iteration 029 / EVO-059 修复 clippy 21 个 `-D warnings` 错误时，7 个 infra test

@@ -1,10 +1,10 @@
 # Iteration 033: Serverless 执行架构设计 Spike
 
-> 文档状态：Planned / Ready for activation
+> 文档状态：Active / In Progress（自 2026-06-01 起）
 > 计划发布日期：2026-06-01
 > 计划目标：用一个 Spike 明确 `EVO-048` 的本地 serverless runtime、外部执行代理和远期 Vercel 模式演进路径，解锁 CLI/MCP 执行引擎设计。
 >
-> 基线保护：本文件一旦提交，以下“发布计划基线”内容不可因实施或改线而覆写；
+> 基线保护：本文件一旦提交，以下"发布计划基线"内容不可因实施或改线而覆写；
 > 同目标执行只向执行区追加事实，换目标必须保留本页并新建 iteration 编号。
 > 闭环步骤：实施和收尾时按 [任务收口与完成声明](../sop/TASK-CLOSURE.md) 执行。
 
@@ -60,18 +60,19 @@ git diff --check
 
 | 项目 | 本轮记录 |
 |------|----------|
-| 请求结果 | 计划：Serverless 执行架构 Spike，不启动实现 |
-| 产物 | ADR/proposal、复用结论、接口草图、后续 Story 依赖图 |
-| 状态同步归口 | EVO-048、EVO-045、EVO-047、Iteration 033、decisions/proposals |
-| Story/BDD 归口 | Spike；设计输出与基准证据 |
-| 验证证据 | 文档治理校验、基准命令输出（如执行） |
-| 残余工作归口 | CLI 执行引擎、MCP serverless、外部执行代理拆入后续 backlog |
+| 请求结果 | 输出 `docs/proposals/SERVERLESS-RUNTIME.md`：Phase 7 sandbox 复用结论、统一执行接口、本地版架构、远期 Vercel 演进路径、冷启动基准方法学、EVO-045/047 后续 Story 依赖图 |
+| 产物 | `docs/proposals/SERVERLESS-RUNTIME.md`；`docs/proposals/AGENT-RUNTIME.md` / `AI-GATEWAY.md` 关联归口同步 |
+| 状态同步归口 | EVO-048 → In Progress（执行中）/ Done（收口时）、EVO-045 / EVO-047 依赖图写回 PRODUCT-BACKLOG.md、Iteration 033 → Closed |
+| Story/BDD 归口 | Spike；BDD 不适用；设计输出 + 复用决策 + 接口草图 + 后续 Story 依赖图 + 基准方法学 + 已知环境约束 |
+| 验证证据 | 文档链接检查（DOC-CHECK） / `git diff --check`；设计文档内部 cross-check（与 ARCHITECTURE.md §Execution Layer / Phase 7 sandbox 一致性） |
+| 残余工作归口 | 冷启动**实测**（需 Docker，本机无 → 基准方法学 + 已知约束归口 EVO-048 详情块"不做"或补 E2E Story）；CLI 执行引擎 → EVO-045；MCP serverless tool → EVO-047；外部执行代理 → EVO-048 派生 |
 
 ## 8. 实际激活与执行记录
 
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-06-01 | planning | 发布计划基线；未启动实现。该 Spike 应在工程门禁与 CI 基线稳定后进入。 |
+| 2026-06-01 | activation | 状态 `Planned / Ready` → `Active / In Progress`。前置：Iteration 028/029/031/032/035 均 Closed，CI 基线（`.github/workflows/ci.yml` tag-only trigger）就绪，工程门禁稳定，满足 plan baseline §"建议在 CI 基线后执行"。本机无 Docker（`command not found: docker`）→ 冷启动实测 conditional，方法学必出、实测值标注为待 Docker 环境执行。激活后第一动作：盘点 Phase 7 sandbox 与 service-tool HTTP executor 现有实现 → 写 `docs/proposals/SERVERLESS-RUNTIME.md`。 |
 
 ## 9. 变更请求
 
