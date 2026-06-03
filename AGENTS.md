@@ -86,7 +86,8 @@
 ### Git Rules
 
 - 提交信息使用语义前缀：`feat:`、`fix:`、`docs:`、`refactor:`、`test:`、`chore:`、`perf:`、`security:`。
-- Agent 参与生成的提交，提交信息末尾必须注明模型：`[model: <name>]`。
+- 完整格式：`type(scope): description (#story-id) [model: <model-name>]`，其中 `(#story-id)` 可选。
+- Agent-authored or Agent-assisted commits: the `[model: <model-name>]` tag is **required** at the end of the commit message（Agent 参与生成的提交必须注明模型）。
 - 提交前必须检查 staged diff：`git diff --cached`。
 - 不要用 `git add .` 盲加；除非已经确认所有变更都属于本次任务。
 - 一次提交只表达一个主题；脚本行为变更与 `docs/reference/SCRIPTS-RELEASE-NOTES.md` 同步提交。
@@ -149,7 +150,7 @@
 - [ ] 是否触发了 `EVOLUTION.md` 写回条件？
 - [ ] 是否做了重大技术取舍但忘记写 ADR？
 - [ ] 是否修改了脚本行为但忘记更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`？
-- [ ] 如用户要求提交，commit message 是否包含语义前缀和 `[model: <name>]`？
+- [ ] 如用户要求提交，commit message 是否包含语义前缀和 `[model: <model-name>]`？
 
 ## Project Overview
 
