@@ -1,6 +1,6 @@
 # Iteration 029: GitHub CI/CD 重建
 
-> 文档状态：Active / In Progress
+> 文档状态：Closed（2026-06-01）
 > 计划发布日期：2026-05-28
 > 计划目标：用一周完成 `EVO-030` GitHub CI/CD 重建，基于最终 Bun/Vite、Rust 和
 > 部署命令建立可维护 workflow。

@@ -103,17 +103,6 @@ git diff --check
   - bollard 0.17→0.18+ 升级 → EVO-061（P3 Proposed，建议在 EVO-045-A 前提升优先级）
   - EVO-045/047 拆分 → 按 §8 推荐顺序，EVO-045-A 是下一个关键路径
 
-## 11. Retrospective
-
-- 做得好的：
-  - Spike 严格遵循时间盒和不做约束，未滑入实现
-  - 对 Phase 7 sandbox 做了逐行分析（322 行 docker_executor.rs），复用结论有代码级证据
-  - 冷启动分析区分了"已缓存 vs 未缓存"和"per-request vs pool"两个维度
-  - 统一接口设计考虑了迁移策略（facade → 直接调用），避免 big-bang 重写
-- 需要调整的：
-  - 本机无 Docker 导致实测缺失 — 下次 Spike 应提前确认环境能力
-  - EVO-048 详情块中的冷启动基准测试写法（`目标 < 2s`）暗示需要实测数据，但 Spike plan baseline 已写明"如实际执行"，优先级判断正确
-- 写入 EVOLUTION：无新陷阱。本 Spike 为纯设计输出，未触发代码变更或流程问题。
 
 ## 11. Retrospective
 

@@ -40,6 +40,7 @@
 - [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A）。
 - [Iteration 035](ITERATION-035.md) — P1 治理先行：backlog 状态漂移与前后端 API 契约漂移修复（EVO-054 / EVO-055；Closed）。
 - [Iteration 036](ITERATION-036.md) — Governance board operating view（EVO-077；Closed：派生 Board 建立并验证通过）。
+- [Iteration 037](ITERATION-037.md) — 最近开发任务治理漂移修复（EVO-078；Closed：Board / iteration 目录 / DESIGN 归类 / EVO-045-A 补齐）。
 
 ## 未来计划
 
@@ -60,8 +61,6 @@
   Blocked for activation：需核对与 Iteration 019/020 的边界）。
 - [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；
   Ready for activation：一周工程质量切片）。
-- [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；
-  Ready for activation：工程门禁和 CI 基线稳定后进入）。
 - [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A；
   Ready for activation：父 Epic EVO-049 的首个可执行子 Story）。
 
@@ -103,7 +102,10 @@
   Skill/CLI 规范兼容数据模型基线；EVO-049 父 Epic 不直接选入。
 - [Iteration 035](ITERATION-035.md) — `Closed`：EVO-054 / EVO-055 完成。EVO-054 修复 3 处详情块漂移 + 1 处 Dropped 占位（EVO-042）+ 1 处额外漂移（EVO-026）；EVO-055 修复死分支 / billing 闸门 / 501 显式 throw / API-CONTRACT 同步。
 - [Iteration 036](ITERATION-036.md) — `Closed`：EVO-077 治理看板文档；
-  插队治理修复完成，不改变 Iteration 033 的 Active / In Progress 状态。
+  插队治理修复完成；当时未改变 Iteration 033，后续已由 Iteration 033 收口和
+  Iteration 037 同步 Board 状态。
+- [Iteration 037](ITERATION-037.md) — `Closed`：EVO-078 最近开发任务治理漂移修复；
+  Board / iteration README / DESIGN 归类 / EVO-045-A 缺失记录已同步。
 
 ## 下一周建议顺序
 
@@ -114,7 +116,6 @@
 2. **EVO-045-A**（新 iteration）— ExecutionProvider 统一 trait + Docker 容器池化（EVO-048 Spike 输出的关键路径首步；依赖 EVO-048 Done）。
 3. **新进 Ready 待评估**：
    - EVO-051 / 052 / 056 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
-   - EVO-060（嵌入式模式验证残余，dev.sh / proposal 死代码清理）
 
 ## 命名
 

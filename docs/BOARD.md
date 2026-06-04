@@ -8,7 +8,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-048 Serverless 执行架构设计 Spike | Active / In Progress | [Iteration 033](iterations/ITERATION-033.md) | Close when serverless runtime proposal/ADR, reuse conclusion, interface boundary and follow-up dependency map are recorded and validated. |
+| None | - | - | - |
 
 ## Review
 
@@ -31,27 +31,28 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-049-A Skill/CLI 规范兼容数据模型基线 | Planned / Ready for activation | [Iteration 034](iterations/ITERATION-034.md) | Activate after Iteration 033 is closed or explicitly paused; preserve the published baseline. |
+| EVO-049-A Skill/CLI 规范兼容数据模型基线 | Planned / Ready for activation | [Iteration 034](iterations/ITERATION-034.md) | Activate via START-ITERATION inventory; preserve the published baseline. |
+| EVO-045-A ExecutionProvider 统一 trait + Docker 容器池化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a new iteration only after choosing to prioritize execution-layer infrastructure over the published Iteration 034 data-model baseline. |
 | EVO-056 沙箱降级静默成功修复 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate micro-iteration if execution-layer risk should be reduced before EVO-049-A. |
-| EVO-060 dev.sh EMBEDDED_FRONTEND/ZIP 死代码清理 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate script-change micro-iteration and include script release notes. |
 
 ## Later
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-045 CLI 命令执行引擎（Serverless） | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine only after EVO-048 records the runtime architecture and dependency map. |
-| EVO-047 MCP 工具 Serverless 执行 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine only after EVO-048 records the shared execution boundary. |
+| EVO-045 CLI 命令执行引擎（Serverless） | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine through child stories after EVO-045-A establishes the shared execution provider. |
+| EVO-047 MCP 工具 Serverless 执行 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine after EVO-045-A establishes the shared execution boundary. |
 | EVO-027 / EVO-028 / EVO-046 / EVO-050 Skill 生态能力 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine after EVO-049-A/B establish model and parser baselines. |
 | EVO-061 至 EVO-076 依赖升级 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Pull forward only when a specific compatibility risk exceeds the current P0 product mainline. |
 
 ## Operating Review
 
-Current iteration ordering is reasonable:
+Current iteration ordering is reasonable after the 2026-06-04 repair:
 
-- Keep `EVO-048 / Iteration 033` as the active Spike because CLI/MCP serverless execution depends
-  on its architecture answer.
+- `EVO-048 / Iteration 033` is Closed and should not appear in Now.
 - Keep `EVO-049-A / Iteration 034` as the next planned product-mainline slice because it selects
   a Ready child Story rather than the parent Epic.
+- `EVO-045-A` is now recorded as a Ready child Story and may be started as a new iteration if the
+  execution-layer path should interrupt the planned data-model baseline.
 - Keep Iterations 018-020 and 025-027 blocked until their refinement/dependency gates are met.
 - Use P2 Ready items only as explicit micro-iteration interruptions; do not silently bypass the
-  active Spike.
+  selected product-mainline order.

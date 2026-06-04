@@ -30,6 +30,7 @@
 - [多租户设计](reference/MULTI-TENANT.md) — 租户模型、成员和隔离边界。
 - [计费](reference/BILLING.md) — Stripe、订阅和用量设计。
 - [国际化](reference/I18N.md) — 语言资源和 i18n 约定。
+- [前端设计系统](reference/DESIGN.md) — Figma 导入后的视觉 token、组件和页面设计参考。
 - [测试](reference/TESTING.md) — 测试策略、测试位置和用例状态。
 - [脚本发布说明](reference/SCRIPTS-RELEASE-NOTES.md) — 脚本行为变更记录。
 

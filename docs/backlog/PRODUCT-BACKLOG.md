@@ -62,6 +62,7 @@
 | EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Done | Iteration 032 | 2026-06-01 完成：36 个 workspace 功能依赖 + 3 个 path dep + 3 个 crate 私有 dep 完整审计；cargo check 0 / cargo test 274 pass；22 个保留（caret 已覆盖 latest stable，无需修改 Cargo.toml）；14 个 workspace 大版本升级 + 2 个 crate 私有 deprecation → EVO-061~076（16 个新 backlog 项全部 P3 Proposed）；clippy 18 errors 归口 EVO-059 不并入 |
 | EVO-044 | 前端 CLI 命名简化 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | 导航、页面、i18n 中 "CLI Interfaces" / "CLI 接口" 统一简化为 "CLI" |
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
+| EVO-045-A | ExecutionProvider 统一 trait + Docker 容器池化 | tech-debt | P0 | Ready | EVO-045 split / EVO-048 输出 | EVO-045 关键路径首步：基于 Spike 输出建立统一执行接口与本地容器池基础，不直接实现 CLI endpoint |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
 | EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Done | EVO-045/047 前置 / Iteration 033 | Iteration 033 收口（2026-06-03）：输出 `docs/proposals/SERVERLESS-RUNTIME.md`（11 节）；Phase 7 sandbox 复用结论=部分复用；统一 ExecutionProvider 接口设计；冷启动方法学（已缓存 ~350ms-1800ms / 池模式 ~50-200ms，实测待 Docker）；Vercel 演进路径 + 组件替换清单；EVO-045/047 依赖图 + 推荐实施顺序；本机无 Docker，冷启动实测 conditional |
@@ -96,6 +97,7 @@
 | EVO-075 | rand 0.8→0.9/0.10 升级（service-auth） | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | rand 0.9/0.10 是 `Rng` trait 重组（major breaking）；影响 `service-auth`（crate 私有 dep，非 workspace） |
 | EVO-076 | serde_yaml 0.9 → serde_yml / serde_norway 迁移 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 上游 serde_yaml 0.9 已 deprecate；建议迁移到 `serde_yml`（社区 fork）或 `serde_norway`（纯 Rust 替代）；影响 `service-skill` + `service-snippet` 的 YAML 解析路径 |
 | EVO-077 | Governance board 派生运营视图 | governance | P1 | Done | 用户反馈 2026-06-03 / Iteration 036 | 按 agent-project-governance skill 标准新增 `docs/BOARD.md`，只汇总 owner docs 与 gate，不作为新状态源；验证通过并收口 |
+| EVO-078 | 最近开发任务治理漂移修复 | governance | P1 | Done | 用户反馈 2026-06-04 / Iteration 037 | 修复 Board / iterations README / Iteration 029 / Iteration 033 / 设计文档归类 / 文档断链漂移；补齐 EVO-045-A 子任务；记录近期 Figma 与脚本任务治理归口 |
 
 
 ## 故事模板
@@ -874,6 +876,39 @@
 - 影响范围：backend（domain、service、API）/ frontend / db migration / docs
 - 最小验证方式：后端集成测试覆盖命令注册+执行+调用全链路；前端创建页手工验证
 - 不做：不实现本地 CLI 客户端（Rust CLI 另建 story）；不实现命令版本管理（EVO-028 范围）
+
+### EVO-045-A ExecutionProvider 统一 trait + Docker 容器池化
+
+- 类型：tech-debt
+- 优先级：P0
+- 状态：Ready
+- 父 Epic：EVO-045
+- Story 形态：Technical
+- 用户价值或技术目标：把 EVO-048 Spike 输出的统一执行边界落成可测试的后端基础设施，先解锁 CLI/MCP 共用执行层，再进入具体 CLI endpoint。
+- 范围：
+  - 定义统一 `ExecutionProvider` trait 与请求/响应结构，覆盖 Code / Command / HttpProxy 三类执行载荷。
+  - 将 Phase 7 Docker sandbox 可复用配置接入新执行接口。
+  - 建立本地 Docker 容器池生命周期：预热、借用、归还、超时回收和错误状态。
+  - 保留现有 `SkillExecutor` / `ToolExecutor` 行为，通过 facade 或适配层迁移。
+- 不做：
+  - 不实现 CLI 执行 endpoint。
+  - 不实现 MCP serverless tool。
+  - 不实现 Vercel 或远程函数部署。
+  - 不改数据库 schema，除非后续 CLI endpoint story 明确需要。
+- 验收标准：
+  - 非行为类：
+    - [ ] 后端存在统一执行接口，现有 skill/tool executor 可通过适配层编译接入或明确保持兼容边界。
+    - [ ] 容器池实现有资源限制、超时和失败清理路径。
+    - [ ] 单元测试覆盖成功执行、超时、容器借还、池耗尽和 Docker 不可用错误态。
+    - [ ] `cargo test --workspace` 或风险匹配的 crate 级测试通过。
+    - [ ] 如本机无 Docker，必须记录未跑实测的原因，并保留 mock / unit 证据。
+- 技术备注：
+  - 直接承接 `docs/proposals/SERVERLESS-RUNTIME.md` §4 / §5 / §8。
+  - EVO-061（bollard 升级）如在实施中阻塞，需要先提升优先级或在本 story 中显式处理。
+- 依赖或阻塞：EVO-048 Done；建议先评估 EVO-061 是否必须前置。
+- 解锁内容：EVO-045 后续 CLI endpoint、EVO-047 MCP serverless 执行。
+- 影响范围：backend service-skill / service-tool / domain 或 common execution 边界 / tests / docs。
+- 最小验证方式：执行接口与容器池单元测试；必要时 Docker 集成测试；`cargo test` 相关 crate。
 
 ### EVO-046 Skill 可下载制品与 Agent 一键安装
 
@@ -1731,4 +1766,46 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 依赖或阻塞：无。
 - 解锁内容：开始新迭代前可先扫 board，但仍必须按 START-ITERATION 扫描 owner docs。
 - 影响范围：docs / AGENTS.md / .gitignore
+- 最小验证方式：文档链接检查；`sh /Users/GHuang/WorkSpace/AiProjects/skill-sources/agent-project-governance/skills/agent-project-governance/scripts/validate_project_governance.sh /Users/GHuang/WorkSpace/AiProjects/evolith`；`git diff --check`。
+
+### EVO-078 最近开发任务治理漂移修复
+
+- 类型：governance
+- 优先级：P1
+- 状态：Done
+- 父 Epic：无
+- Story 形态：Governance
+- 用户故事或技术目标：
+  - 作为/为了：维护者和 Agent 需要近期开发任务的治理状态可审计。
+  - 我希望/需要：修复 `docs/BOARD.md`、iteration 目录、设计文档归类和缺失子任务记录之间的漂移。
+  - 以便：后续启动迭代时不会被过期 Now/Next、缺失 story 或根目录文档误导。
+- 范围：
+  - 将已关闭的 EVO-048 / Iteration 033 和已完成的 EVO-060 从派生看板活跃候选中移除。
+  - 修复 `docs/iterations/README.md` 中 Iteration 033 / EVO-060 的过期候选描述。
+  - 修复 `docs/iterations/ITERATION-029.md` 顶部状态仍为 Active / In Progress 的 owner-doc 漂移。
+  - 删除 `docs/iterations/ITERATION-033.md` 重复 Retrospective 段落。
+  - 将根目录 `DESIGN.md` 归入 `docs/reference/DESIGN.md`，并更新文档地图。
+  - 修复 `docs/reference/MULTI-TENANT.md` 中指向 migrations 的错误相对链接。
+  - 补齐 `EVO-045-A` 作为 EVO-048 输出后的 Ready 子任务。
+  - 建立 `Iteration 037` 记录本次修复、验证证据和残余归口。
+- 不做：
+  - 不修改 Figma 导入产生的前端代码。
+  - 不回滚近期提交。
+  - 不启动 Iteration 034，也不覆写其计划基线。
+  - 不把 Board 变成状态源。
+- 验收标准：
+  - 非行为类：
+    - [x] `docs/BOARD.md` 不再把 EVO-048 标为 Active / In Progress，不再把 EVO-060 标为 Ready。
+    - [x] `docs/iterations/README.md` 不再把已关闭 Iteration 033 列为未来候选，不再建议已完成 EVO-060。
+    - [x] `docs/iterations/ITERATION-029.md` 顶部状态为 Closed。
+    - [x] `EVO-045-A` 在 backlog 中存在并保持 Ready。
+    - [x] `DESIGN.md` 不在仓库根目录，设计系统文档位于 `docs/reference/DESIGN.md`。
+    - [x] `docs/reference/MULTI-TENANT.md` migrations 链接可解析。
+    - [x] 文档链接检查、governance validator、`git diff --check` 通过。
+- 技术备注：
+  - Figma 设计系统代码变更已作为近期偏离记录纳入本 story 的归口修复；若后续需要调整视觉实现，应新建独立产品/设计 story。
+  - EVO-060 已有 backlog Done 与脚本 release notes，本次仅修派生视图和 iteration README 口径。
+- 依赖或阻塞：无。
+- 解锁内容：后续可按 START-ITERATION 在 Iteration 034、EVO-045-A 或 P2 Ready 微迭代之间做显式选择。
+- 影响范围：docs。
 - 最小验证方式：文档链接检查；`sh /Users/GHuang/WorkSpace/AiProjects/skill-sources/agent-project-governance/skills/agent-project-governance/scripts/validate_project_governance.sh /Users/GHuang/WorkSpace/AiProjects/evolith`；`git diff --check`。

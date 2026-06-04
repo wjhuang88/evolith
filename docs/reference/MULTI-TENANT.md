@@ -592,4 +592,4 @@ CREATE INDEX idx_tools_tenant ON tools(tenant_id);
 
 - [架构设计](./ARCHITECTURE.md) - 整体架构
 - [API 合约](./API-CONTRACT.md) - API 接口
-- [数据库迁移](../backend/migrations/) - SQL 迁移文件
+- [数据库迁移](../../backend/migrations/) - SQL 迁移文件
