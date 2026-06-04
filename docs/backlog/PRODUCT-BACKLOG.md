@@ -77,7 +77,7 @@
 | EVO-055 | 前后端 API 契约漂移修复 | bug | P1 | Done | 跨层一致性审查 2026-06-01 / Iteration 035 | 2026-06-01 完成：删除 `membersApi.acceptInvitation` 死分支 / `billing/page.tsx` 加 `BILLING_ENABLED` 闸门 + 「待计费」静态页 / `cliInterfacesApi.update` 改 `throw new Error` 指向 create+delete / `API-CONTRACT.md` Billing 段补「待计费」标注 |
 | EVO-056 | 沙箱降级静默成功修复 | bug | P2 | Done | 跨层一致性审查 2026-06-01 / Iteration 038 | 2026-06-04 完成：沙箱启用时 Docker executor 初始化失败直接启动失败；DefaultSkillExecutor 返回 ConfigError，不再 exit_code:0 伪成功 |
 | EVO-057 | 生产 CORS Origin 可配置化 | tech-debt | P2 | Ready | 跨层一致性审查 2026-06-01 | docker-compose.prod.yml 的 `CORS__ALLOWED_ORIGINS` 被忽略，main.rs 硬编码 origin；新增 CorsConfig 使其可配置 |
-| EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
+| EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Done | 前端代码审查 2026-06-01 | Iteration 040 收口（2026-06-04）：删除 7 个死代码文件（-139 行）+ uiStore re-export 移除 + skillsApi.versions 假实现移除 + 重复 User 接口合并；bun run build + tsc 0 errors |
 | EVO-059 | Backend clippy 历史 lint 升级修复 | tech-debt | P2 | Done | Iteration 028 验证残余 / Iteration 029 配套 | 2026-06-01 Iteration 029 收口：21 个 `-D warnings` 错误归零（原估算 18，实际 13× unwrap_used + 3× dead_code + 4× unnecessary_min_or_max + 1× field_reassign_with_default）。修复策略：unwarp_used 在 7 个 test 文件加文件级 `#![allow(clippy::unwrap_used)]`（workspace deny 覆盖 clippy.toml 行为）；dead_code 移除未使用字段而非 `#[allow]`；unnecessary_min_or_max 移除 `.max(3)` 因 MIN_RPM=30 保障 rpm/10>=3；field_reassign_with_default 改 struct update syntax |
 | EVO-060 | dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理 | tech-debt | P2 | Done | 嵌入式模式验证 2026-06-01 | 2026-06-03 完成：删除 4 处死代码（EMBEDDED_FRONTEND / build_frontend_zip / --features embedded-frontend / ZIP 构建逻辑）；新增 build_frontend() 函数；lite/embedded 模式改为单端口（build + backend）；后端端口改为读 SERVER__PORT 环境变量；proposal 状态已晋升；SCRIPTS-RELEASE-NOTES.md 同步 |
 | EVO-061 | bollard 0.17→0.21 Docker Engine API 升级 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | bollard 跨 4 个 minor 的 Docker Engine API 演进（0.18 起 `Docker::connect_with_*` API 调整）；当前 `bollard 0.17.1` + Phase 7 sandbox（service-skill）零运行时问题；迁移需重写 `service-skill/src/executor.rs` + 验证 sandbox 镜像兼容性 |
@@ -1410,7 +1410,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：tech-debt
 - 优先级：P2
-- 状态：Ready
+- 状态：In Progress
 - 父 Epic：无
 - Story 形态：Technical
 - 用户价值或技术目标：

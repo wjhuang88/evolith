@@ -43,6 +43,7 @@
 - [Iteration 037](ITERATION-037.md) — 最近开发任务治理漂移修复（EVO-078；Closed：Board / iteration 目录 / DESIGN 归类 / EVO-045-A 补齐）。
 - [Iteration 038](ITERATION-038.md) — 假可用快速失败修复（EVO-052 / EVO-056；Closed：MySQL 快速失败 + sandbox fail-fast）。
 - [Iteration 039](ITERATION-039.md) — 后端死代码与误导性注释清理（EVO-051；Closed：删除 10 个死代码文件 + NewUser.password → password_hash 重命名 + 282 tests passed）。
+- [Iteration 040](ITERATION-040.md) — 前端死代码与类型卫生清理（EVO-058；Closed：删除 7 个死代码文件 + skillsApi.versions 假实现移除 + 重复 User 接口合并 + build/tsc 0 errors）。
 
 ## 未来计划
 
@@ -115,6 +116,10 @@
 - [Iteration 039](ITERATION-039.md) — `Closed`：EVO-051 后端死代码与误导性注释清理。
   删除 10 个死代码文件 + 6 个 mod 声明清理 + TODO 注释移除 +
   NewUser.password → password_hash 全量重命名（21 处）；282 tests passed。
+- [Iteration 040](ITERATION-040.md) — `Closed`：EVO-058 前端死代码与类型卫生清理。
+  删除 7 个死代码文件（-139 行）+ uiStore re-export 移除 +
+  skillsApi.versions 假实现移除 + 重复 User 接口合并；
+  bun run build + tsc 0 errors。
 
 ## 下一周建议顺序
 

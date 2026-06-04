@@ -77,15 +77,4 @@ export const skillsApi = {
       data: ['custom', 'utility', 'api', 'data', 'ai'],
     };
   },
-
-  /**
-   * Get skill versions
-   */
-  async versions(id: string): Promise<ApiResponse<Skill[]>> {
-    const response = await apiClient.get<ApiResponse<Skill>>(`/skills/${id}`);
-    return {
-      ...response.data,
-      data: response.data.data ? [response.data.data] : undefined,
-    };
-  },
 };

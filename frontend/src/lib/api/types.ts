@@ -27,14 +27,6 @@ export interface PaginationMeta {
 // Auth Types
 // ============================================
 
-export interface User {
-  id: string;
-  email: string;
-  username: string;
-  role: string;
-  created_at?: string;
-}
-
 export interface AuthToken {
   token: string;
   expires_at: number;
@@ -42,7 +34,6 @@ export interface AuthToken {
   tenant?: TenantInfo;
 }
 
-// Updated User interface with tenant fields
 export interface User {
   id: string;
   email: string;
