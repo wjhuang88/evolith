@@ -44,6 +44,7 @@
 - [Iteration 038](ITERATION-038.md) — 假可用快速失败修复（EVO-052 / EVO-056；Closed：MySQL 快速失败 + sandbox fail-fast）。
 - [Iteration 039](ITERATION-039.md) — 后端死代码与误导性注释清理（EVO-051；Closed：删除 10 个死代码文件 + NewUser.password → password_hash 重命名 + 282 tests passed）。
 - [Iteration 040](ITERATION-040.md) — 前端死代码与类型卫生清理（EVO-058；Closed：删除 7 个死代码文件 + skillsApi.versions 假实现移除 + 重复 User 接口合并 + build/tsc 0 errors）。
+- [Iteration 041](ITERATION-041.md) — ExecutionProvider 统一 trait + Docker 容器池化（EVO-045-A；Closed：创建统一执行抽象 + 容器池化 + HTTP 转发 + 适配器 facade + 309 tests passed）。
 
 ## 未来计划
 
@@ -120,6 +121,8 @@
   删除 7 个死代码文件（-139 行）+ uiStore re-export 移除 +
   skillsApi.versions 假实现移除 + 重复 User 接口合并；
   bun run build + tsc 0 errors。
+- [Iteration 041](ITERATION-041.md) — `Active / In Progress`：EVO-045-A
+  ExecutionProvider 统一 trait + Docker 容器池化；2026-06-04 激活。
 
 ## 下一周建议顺序
 

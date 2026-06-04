@@ -62,7 +62,7 @@
 | EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Done | Iteration 032 | 2026-06-01 完成：36 个 workspace 功能依赖 + 3 个 path dep + 3 个 crate 私有 dep 完整审计；cargo check 0 / cargo test 274 pass；22 个保留（caret 已覆盖 latest stable，无需修改 Cargo.toml）；14 个 workspace 大版本升级 + 2 个 crate 私有 deprecation → EVO-061~076（16 个新 backlog 项全部 P3 Proposed）；clippy 18 errors 归口 EVO-059 不并入 |
 | EVO-044 | 前端 CLI 命名简化 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | 导航、页面、i18n 中 "CLI Interfaces" / "CLI 接口" 统一简化为 "CLI" |
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
-| EVO-045-A | ExecutionProvider 统一 trait + Docker 容器池化 | tech-debt | P0 | Ready | EVO-045 split / EVO-048 输出 | EVO-045 关键路径首步：基于 Spike 输出建立统一执行接口与本地容器池基础，不直接实现 CLI endpoint |
+| EVO-045-A | ExecutionProvider 统一 trait + Docker 容器池化 | tech-debt | P0 | In Progress | EVO-045 split / EVO-048 输出 | Iteration 041 激活（2026-06-04）；EVO-045 关键路径首步：基于 Spike 输出建立统一执行接口与本地容器池基础，不直接实现 CLI endpoint |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
 | EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Done | EVO-045/047 前置 / Iteration 033 | Iteration 033 收口（2026-06-03）：输出 `docs/proposals/SERVERLESS-RUNTIME.md`（11 节）；Phase 7 sandbox 复用结论=部分复用；统一 ExecutionProvider 接口设计；冷启动方法学（已缓存 ~350ms-1800ms / 池模式 ~50-200ms，实测待 Docker）；Vercel 演进路径 + 组件替换清单；EVO-045/047 依赖图 + 推荐实施顺序；本机无 Docker，冷启动实测 conditional |
@@ -881,7 +881,7 @@
 
 - 类型：tech-debt
 - 优先级：P0
-- 状态：Ready
+- 状态：Done
 - 父 Epic：EVO-045
 - Story 形态：Technical
 - 用户价值或技术目标：把 EVO-048 Spike 输出的统一执行边界落成可测试的后端基础设施，先解锁 CLI/MCP 共用执行层，再进入具体 CLI endpoint。

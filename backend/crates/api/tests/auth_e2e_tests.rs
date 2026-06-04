@@ -26,9 +26,11 @@ use infra::db::{
     SqliteSkillRepository, SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository,
     SqliteUserRepository,
 };
+use common::execution::{CompositeProvider, ExecutionProvider};
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
-use service_tool::executor::{HttpToolExecutor, ToolExecutor};
+use service_tool::executor::ToolExecutorAdapter;
+use service_tool::HttpProxyProvider;
 use uuid::Uuid;
 
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
@@ -206,6 +208,9 @@ fn create_test_config() -> AppConfig {
 
 fn build_app_state(pool: SqlitePool) -> AppState {
     let config = create_test_config();
+    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::new());
+    let execution_provider: Arc<dyn ExecutionProvider> =
+        Arc::new(CompositeProvider::new(None, Some(http_proxy.clone())));
     AppState {
         config: config.clone(),
         jwt: JwtHandler::new(&config.jwt),
@@ -223,8 +228,9 @@ fn build_app_state(pool: SqlitePool) -> AppState {
         api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool)) as Arc<dyn ApiKeyRepository>,
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
+        execution_provider: execution_provider.clone(),
         skill_executor: Arc::new(DefaultSkillExecutor::new()) as Arc<dyn SkillExecutor>,
-        tool_executor: Arc::new(HttpToolExecutor::new()) as Arc<dyn ToolExecutor>,
+        tool_executor: Arc::new(ToolExecutorAdapter::new(execution_provider)),
     }
 }
 

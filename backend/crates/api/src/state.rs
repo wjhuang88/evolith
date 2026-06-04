@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use common::execution::ExecutionProvider;
 use domain::repository::{
     ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
     TenantRepository, ToolRepository, UserRepository,
@@ -41,8 +42,10 @@ pub struct AppState {
     pub cache: Arc<dyn Cache>,
     /// Mailer for sending transactional emails
     pub mailer: Arc<dyn Mailer>,
-    /// Skill executor for running code in sandboxed environment
+    /// Unified execution provider (routes by payload type)
+    pub execution_provider: Arc<dyn ExecutionProvider>,
+    /// Skill executor for running code in sandboxed environment (legacy facade)
     pub skill_executor: Arc<dyn SkillExecutor>,
-    /// Tool executor for executing HTTP-based MCP tools
+    /// Tool executor for executing HTTP-based MCP tools (legacy facade)
     pub tool_executor: Arc<dyn ToolExecutor>,
 }

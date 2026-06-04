@@ -19,6 +19,7 @@ use api::middleware::request_id::RequestIdMiddleware;
 use api::middleware::security_headers::SecurityHeadersMiddleware;
 use api::state::AppState;
 use common::error::Result;
+use common::execution::{CompositeProvider, ExecutionProvider};
 use infra::cache::create_cache;
 use infra::config::AppConfig;
 use infra::db::pool::{create_pool, DatabasePool};
@@ -31,9 +32,10 @@ use infra::db::{
 };
 use infra::mailer::create_mailer;
 use service_auth::{Argon2Hasher, JwtHandler};
-use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
-use service_skill::{DockerExecutor, SandboxConfig};
-use service_tool::executor::{HttpToolExecutor, ToolExecutor};
+use service_skill::executor::{DefaultSkillExecutor, SkillExecutor, SkillExecutorAdapter};
+use service_skill::{DockerSandboxProvider, PoolConfig, SandboxConfig};
+use service_tool::executor::{ToolExecutor, ToolExecutorAdapter};
+use service_tool::HttpProxyProvider;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -63,14 +65,22 @@ async fn main() -> Result<()> {
     // Initialize mailer (SMTP if enabled, falls back to console)
     let mailer: Arc<dyn infra::mailer::Mailer> = Arc::from(create_mailer(&config.smtp));
 
-    // Initialize skill executor. When sandbox is explicitly enabled, executor startup must fail
-    // fast so infrastructure failure is not reported as a successful no-op execution.
-    let skill_executor: Arc<dyn SkillExecutor> = if config.sandbox.enabled {
+    let docker_sandbox: Option<Arc<dyn ExecutionProvider>> = if config.sandbox.enabled {
         let sandbox_config = SandboxConfig::from_infra(&config.sandbox);
-        match DockerExecutor::new(sandbox_config) {
-            Ok(executor) => {
-                info!("Sandbox enabled, using Docker executor");
-                Arc::new(executor)
+        let pool_config = PoolConfig::from_env();
+        match DockerSandboxProvider::new(sandbox_config, pool_config) {
+            Ok(provider) => {
+                info!("Sandbox enabled, initializing Docker sandbox pool");
+                let arc = Arc::new(provider);
+                if let Err(e) = arc.prewarm().await {
+                    error!("Failed to prewarm Docker sandbox pool: {}", e);
+                    return Err(common::error::AppError::ConfigError(format!(
+                        "Sandbox is enabled but Docker pool could not be prewarmed: {}. \
+Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
+                        e
+                    )));
+                }
+                Some(arc)
             }
             Err(e) => {
                 error!(
@@ -85,13 +95,26 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
             }
         }
     } else {
-        info!("Sandbox disabled, using default executor");
+        info!("Sandbox disabled, Docker sandbox provider unavailable");
+        None
+    };
+
+    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::new());
+    info!("HTTP proxy provider initialized");
+
+    let execution_provider: Arc<dyn ExecutionProvider> =
+        Arc::new(CompositeProvider::new(docker_sandbox.clone(), Some(http_proxy.clone())));
+
+    let skill_executor: Arc<dyn SkillExecutor> = if docker_sandbox.is_some() {
+        Arc::new(SkillExecutorAdapter::new(execution_provider.clone()))
+    } else {
+        info!("Sandbox disabled, using default skill executor");
         Arc::new(DefaultSkillExecutor::new())
     };
 
-    // Initialize HTTP tool executor for MCP tool execution
-    let tool_executor: Arc<dyn ToolExecutor> = Arc::new(HttpToolExecutor::new());
-    info!("HTTP tool executor initialized");
+    let tool_executor: Arc<dyn ToolExecutor> =
+        Arc::new(ToolExecutorAdapter::new(execution_provider.clone()));
+    info!("Tool executor adapter initialized");
 
     let app_state = match db_pool {
         DatabasePool::Sqlite(pool) => {
@@ -121,6 +144,7 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool)),
                 cache: cache.clone(),
                 mailer: mailer.clone(),
+                execution_provider: execution_provider.clone(),
                 skill_executor: skill_executor.clone(),
                 tool_executor: tool_executor.clone(),
             }
@@ -152,6 +176,7 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 api_key_repo: Arc::new(PgApiKeyRepository::new(pool)),
                 cache: cache.clone(),
                 mailer: mailer.clone(),
+                execution_provider: execution_provider.clone(),
                 skill_executor: skill_executor.clone(),
                 tool_executor: tool_executor.clone(),
             }
