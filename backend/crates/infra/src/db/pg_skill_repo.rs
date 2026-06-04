@@ -38,8 +38,12 @@ impl SkillRepository for PgSkillRepository {
             r#"
             INSERT INTO skills (
                 id, name, version, description, skill_md, code_package_path,
-                runtime, dependencies, visibility, owner_id, tenant_id, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                runtime, dependencies, visibility, owner_id, tenant_id,
+                author, tags, skill_type, execution, entrypoint, timeout, memory_mb,
+                permissions, license, compatibility, disable_model_invocation,
+                user_invocable, argument_hint,
+                created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
             "#,
         )
         .bind(id)
@@ -55,6 +59,23 @@ impl SkillRepository for PgSkillRepository {
         .bind(visibility_str)
         .bind(owner_id)
         .bind(tenant_id)
+        .bind(&skill.author)
+        .bind(serde_json::to_value(&skill.tags).map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
+        })?)
+        .bind(&skill.skill_type)
+        .bind(&skill.execution)
+        .bind(&skill.entrypoint)
+        .bind(skill.timeout)
+        .bind(skill.memory_mb)
+        .bind(skill.permissions.as_ref().map(serde_json::to_value).transpose().map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize permissions: {}", e))
+        })?)
+        .bind(&skill.license)
+        .bind(&skill.compatibility)
+        .bind(skill.disable_model_invocation)
+        .bind(skill.user_invocable)
+        .bind(&skill.argument_hint)
         .bind(now)
         .bind(now)
         .execute(&self.pool)
@@ -73,6 +94,19 @@ impl SkillRepository for PgSkillRepository {
             owner_id,
             tenant_id,
             visibility,
+            author: skill.author,
+            tags: skill.tags,
+            skill_type: skill.skill_type,
+            execution: skill.execution,
+            entrypoint: skill.entrypoint,
+            timeout: skill.timeout,
+            memory_mb: skill.memory_mb,
+            permissions: skill.permissions,
+            license: skill.license,
+            compatibility: skill.compatibility,
+            disable_model_invocation: skill.disable_model_invocation,
+            user_invocable: skill.user_invocable,
+            argument_hint: skill.argument_hint,
             created_at: now,
             updated_at: now,
         })
@@ -246,6 +280,20 @@ impl SkillRepository for PgSkillRepository {
         let runtime = skill.runtime.unwrap_or(existing.runtime);
         let dependencies = skill.dependencies.unwrap_or(existing.dependencies);
         let visibility = skill.visibility.unwrap_or(existing.visibility);
+        let author = skill.author.or(existing.author);
+        let tags = skill.tags.unwrap_or(existing.tags);
+        let skill_type = skill.skill_type.unwrap_or(existing.skill_type);
+        let execution = skill.execution.unwrap_or(existing.execution);
+        let entrypoint = skill.entrypoint.or(existing.entrypoint);
+        let timeout = skill.timeout.unwrap_or(existing.timeout);
+        let memory_mb = skill.memory_mb.unwrap_or(existing.memory_mb);
+        let permissions = skill.permissions.or(existing.permissions);
+        let license = skill.license.or(existing.license);
+        let compatibility = skill.compatibility.or(existing.compatibility);
+        let disable_model_invocation =
+            skill.disable_model_invocation.unwrap_or(existing.disable_model_invocation);
+        let user_invocable = skill.user_invocable.unwrap_or(existing.user_invocable);
+        let argument_hint = skill.argument_hint.or(existing.argument_hint);
 
         let runtime_str = match runtime {
             Runtime::Python311 => "python311",
@@ -261,8 +309,12 @@ impl SkillRepository for PgSkillRepository {
             r#"
             UPDATE skills SET
                 name = $1, version = $2, description = $3, skill_md = $4,
-                runtime = $5, dependencies = $6, visibility = $7, updated_at = $8
-            WHERE id = $9
+                runtime = $5, dependencies = $6, visibility = $7,
+                author = $8, tags = $9, skill_type = $10, execution = $11, entrypoint = $12,
+                timeout = $13, memory_mb = $14, permissions = $15, license = $16,
+                compatibility = $17, disable_model_invocation = $18, user_invocable = $19,
+                argument_hint = $20, updated_at = $21
+            WHERE id = $22
             "#,
         )
         .bind(&name)
@@ -274,6 +326,23 @@ impl SkillRepository for PgSkillRepository {
             AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
         })?)
         .bind(visibility_str)
+        .bind(&author)
+        .bind(serde_json::to_value(&tags).map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
+        })?)
+        .bind(&skill_type)
+        .bind(&execution)
+        .bind(&entrypoint)
+        .bind(timeout)
+        .bind(memory_mb)
+        .bind(permissions.as_ref().map(serde_json::to_value).transpose().map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize permissions: {}", e))
+        })?)
+        .bind(&license)
+        .bind(&compatibility)
+        .bind(disable_model_invocation)
+        .bind(user_invocable)
+        .bind(&argument_hint)
         .bind(now)
         .bind(id)
         .execute(&self.pool)
@@ -292,6 +361,19 @@ impl SkillRepository for PgSkillRepository {
             owner_id: existing.owner_id,
             tenant_id: existing.tenant_id,
             visibility,
+            author,
+            tags,
+            skill_type,
+            execution,
+            entrypoint,
+            timeout,
+            memory_mb,
+            permissions,
+            license,
+            compatibility,
+            disable_model_invocation,
+            user_invocable,
+            argument_hint,
             created_at: existing.created_at,
             updated_at: now,
         })
@@ -320,6 +402,19 @@ struct PgSkillRow {
     visibility: String,
     owner_id: Uuid,
     tenant_id: Uuid,
+    author: Option<String>,
+    tags: Option<serde_json::Value>,
+    skill_type: Option<String>,
+    execution: Option<String>,
+    entrypoint: Option<String>,
+    timeout: Option<i32>,
+    memory_mb: Option<i32>,
+    permissions: Option<serde_json::Value>,
+    license: Option<String>,
+    compatibility: Option<String>,
+    disable_model_invocation: Option<bool>,
+    user_invocable: Option<bool>,
+    argument_hint: Option<String>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -348,6 +443,22 @@ impl From<PgSkillRow> for Skill {
                 "public" => Visibility::Public,
                 _ => Visibility::Private,
             },
+            author: row.author,
+            tags: row
+                .tags
+                .map(|v| serde_json::from_value(v).unwrap_or_default())
+                .unwrap_or_default(),
+            skill_type: row.skill_type.unwrap_or_else(|| "instruction".to_string()),
+            execution: row.execution.unwrap_or_else(|| "client".to_string()),
+            entrypoint: row.entrypoint,
+            timeout: row.timeout.unwrap_or(30),
+            memory_mb: row.memory_mb.unwrap_or(256),
+            permissions: row.permissions,
+            license: row.license,
+            compatibility: row.compatibility,
+            disable_model_invocation: row.disable_model_invocation.unwrap_or(false),
+            user_invocable: row.user_invocable.unwrap_or(true),
+            argument_hint: row.argument_hint,
             created_at: row.created_at,
             updated_at: row.updated_at,
         }

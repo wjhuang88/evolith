@@ -9,7 +9,7 @@ use crate::user::{TenantRole, UpdateUser};
 use crate::Invitation;
 use crate::{
     NewSkill, NewSnippet, NewTool, NewUser, Skill, SkillFilter, Snippet, SnippetFilter, Tool,
-    ToolFilter, UpdateSkill, UpdateTool, User,
+    ToolFilter, UpdateSkill, UpdateSnippet, UpdateTool, User,
 };
 use common::error::Result;
 
@@ -67,6 +67,7 @@ pub trait SnippetRepository: Send + Sync {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Snippet>>;
     async fn find_all(&self, filter: SnippetFilter) -> Result<Vec<Snippet>>;
     async fn count(&self, filter: &SnippetFilter) -> Result<u32>;
+    async fn update(&self, id: Uuid, snippet: UpdateSnippet) -> Result<Snippet>;
     async fn delete(&self, id: Uuid) -> Result<()>;
 }
 

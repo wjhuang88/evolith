@@ -34,13 +34,30 @@ impl SkillRepository for SqliteSkillRepository {
         let dependencies_str = serde_json::to_string(&skill.dependencies).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
         })?;
+        let tags_str = serde_json::to_string(&skill.tags).map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
+        })?;
+        let permissions_str = skill
+            .permissions
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|e| {
+                AppError::ValidationError(format!("Failed to serialize permissions: {}", e))
+            })?;
+        let disable_model_invocation = if skill.disable_model_invocation { 1 } else { 0 };
+        let user_invocable = if skill.user_invocable { 1 } else { 0 };
 
         sqlx::query(
             r#"
             INSERT INTO skills (
                 id, name, version, description, skill_md, code_package_path,
-                runtime, dependencies, visibility, owner_id, tenant_id, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                runtime, dependencies, visibility, owner_id, tenant_id,
+                author, tags, skill_type, execution, entrypoint, timeout, memory_mb,
+                permissions, license, compatibility, disable_model_invocation,
+                user_invocable, argument_hint,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(id.to_string())
@@ -54,6 +71,19 @@ impl SkillRepository for SqliteSkillRepository {
         .bind(visibility_str)
         .bind(owner_id.to_string())
         .bind(tenant_id.to_string())
+        .bind(&skill.author)
+        .bind(&tags_str)
+        .bind(&skill.skill_type)
+        .bind(&skill.execution)
+        .bind(&skill.entrypoint)
+        .bind(skill.timeout)
+        .bind(skill.memory_mb)
+        .bind(&permissions_str)
+        .bind(&skill.license)
+        .bind(&skill.compatibility)
+        .bind(disable_model_invocation)
+        .bind(user_invocable)
+        .bind(&skill.argument_hint)
         .bind(now.to_rfc3339())
         .bind(now.to_rfc3339())
         .execute(&self.pool)
@@ -72,6 +102,19 @@ impl SkillRepository for SqliteSkillRepository {
             owner_id,
             tenant_id,
             visibility,
+            author: skill.author,
+            tags: skill.tags,
+            skill_type: skill.skill_type,
+            execution: skill.execution,
+            entrypoint: skill.entrypoint,
+            timeout: skill.timeout,
+            memory_mb: skill.memory_mb,
+            permissions: skill.permissions,
+            license: skill.license,
+            compatibility: skill.compatibility,
+            disable_model_invocation: skill.disable_model_invocation,
+            user_invocable: skill.user_invocable,
+            argument_hint: skill.argument_hint,
             created_at: now,
             updated_at: now,
         })
@@ -226,6 +269,20 @@ impl SkillRepository for SqliteSkillRepository {
         let runtime = skill.runtime.unwrap_or(existing.runtime);
         let dependencies = skill.dependencies.unwrap_or(existing.dependencies);
         let visibility = skill.visibility.unwrap_or(existing.visibility);
+        let author = skill.author.or(existing.author);
+        let tags = skill.tags.unwrap_or(existing.tags);
+        let skill_type = skill.skill_type.unwrap_or(existing.skill_type);
+        let execution = skill.execution.unwrap_or(existing.execution);
+        let entrypoint = skill.entrypoint.or(existing.entrypoint);
+        let timeout = skill.timeout.unwrap_or(existing.timeout);
+        let memory_mb = skill.memory_mb.unwrap_or(existing.memory_mb);
+        let permissions = skill.permissions.or(existing.permissions);
+        let license = skill.license.or(existing.license);
+        let compatibility = skill.compatibility.or(existing.compatibility);
+        let disable_model_invocation =
+            skill.disable_model_invocation.unwrap_or(existing.disable_model_invocation);
+        let user_invocable = skill.user_invocable.unwrap_or(existing.user_invocable);
+        let argument_hint = skill.argument_hint.or(existing.argument_hint);
 
         let runtime_str = match runtime {
             Runtime::Python311 => "python311",
@@ -239,12 +296,28 @@ impl SkillRepository for SqliteSkillRepository {
         let dependencies_str = serde_json::to_string(&dependencies).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
         })?;
+        let tags_str = serde_json::to_string(&tags).map_err(|e| {
+            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
+        })?;
+        let permissions_str = permissions
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|e| {
+                AppError::ValidationError(format!("Failed to serialize permissions: {}", e))
+            })?;
+        let disable_model_invocation_int = if disable_model_invocation { 1 } else { 0 };
+        let user_invocable_int = if user_invocable { 1 } else { 0 };
 
         sqlx::query(
             r#"
             UPDATE skills SET
                 name = ?, version = ?, description = ?, skill_md = ?,
-                runtime = ?, dependencies = ?, visibility = ?, updated_at = ?
+                runtime = ?, dependencies = ?, visibility = ?,
+                author = ?, tags = ?, skill_type = ?, execution = ?, entrypoint = ?,
+                timeout = ?, memory_mb = ?, permissions = ?, license = ?,
+                compatibility = ?, disable_model_invocation = ?, user_invocable = ?,
+                argument_hint = ?, updated_at = ?
             WHERE id = ?
             "#,
         )
@@ -255,6 +328,19 @@ impl SkillRepository for SqliteSkillRepository {
         .bind(runtime_str)
         .bind(&dependencies_str)
         .bind(visibility_str)
+        .bind(&author)
+        .bind(&tags_str)
+        .bind(&skill_type)
+        .bind(&execution)
+        .bind(&entrypoint)
+        .bind(timeout)
+        .bind(memory_mb)
+        .bind(&permissions_str)
+        .bind(&license)
+        .bind(&compatibility)
+        .bind(disable_model_invocation_int)
+        .bind(user_invocable_int)
+        .bind(&argument_hint)
         .bind(now.to_rfc3339())
         .bind(id.to_string())
         .execute(&self.pool)
@@ -273,6 +359,19 @@ impl SkillRepository for SqliteSkillRepository {
             owner_id: existing.owner_id,
             tenant_id: existing.tenant_id,
             visibility,
+            author,
+            tags,
+            skill_type,
+            execution,
+            entrypoint,
+            timeout,
+            memory_mb,
+            permissions,
+            license,
+            compatibility,
+            disable_model_invocation,
+            user_invocable,
+            argument_hint,
             created_at: existing.created_at,
             updated_at: now,
         })
@@ -301,6 +400,19 @@ struct SkillRow {
     visibility: String,
     owner_id: String,
     tenant_id: Option<String>,
+    author: Option<String>,
+    tags: Option<String>,
+    skill_type: Option<String>,
+    execution: Option<String>,
+    entrypoint: Option<String>,
+    timeout: Option<i32>,
+    memory_mb: Option<i32>,
+    permissions: Option<String>,
+    license: Option<String>,
+    compatibility: Option<String>,
+    disable_model_invocation: Option<i32>,
+    user_invocable: Option<i32>,
+    argument_hint: Option<String>,
     created_at: String,
     updated_at: String,
 }
@@ -333,6 +445,24 @@ impl From<SkillRow> for Skill {
                 "public" => Visibility::Public,
                 _ => Visibility::Private,
             },
+            author: row.author,
+            tags: row
+                .tags
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default(),
+            skill_type: row.skill_type.unwrap_or_else(|| "instruction".to_string()),
+            execution: row.execution.unwrap_or_else(|| "client".to_string()),
+            entrypoint: row.entrypoint,
+            timeout: row.timeout.unwrap_or(30),
+            memory_mb: row.memory_mb.unwrap_or(256),
+            permissions: row
+                .permissions
+                .and_then(|s| serde_json::from_str(&s).ok()),
+            license: row.license,
+            compatibility: row.compatibility,
+            disable_model_invocation: row.disable_model_invocation.unwrap_or(0) != 0,
+            user_invocable: row.user_invocable.unwrap_or(1) != 0,
+            argument_hint: row.argument_hint,
             created_at: DateTime::parse_from_rfc3339(&row.created_at)
                 .unwrap_or_else(|_| Utc::now().into())
                 .with_timezone(&Utc),

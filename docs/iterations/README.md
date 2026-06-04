@@ -37,7 +37,7 @@
 - [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B；Closed）。
 - [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043；Closed：审计 39 dep + 3 crate 私有 dep；16 个大版本升级归口 EVO-061~076）。
 - [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；Closed：输出 `docs/proposals/SERVERLESS-RUNTIME.md`；Phase 7 部分复用；统一 ExecutionProvider；冷启动方法学；Vercel 演进路径）。
-- [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A）。
+- [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A；Closed：migration 006 + domain/DTO/repository 全量更新 + 282 tests passed）。
 - [Iteration 035](ITERATION-035.md) — P1 治理先行：backlog 状态漂移与前后端 API 契约漂移修复（EVO-054 / EVO-055；Closed）。
 - [Iteration 036](ITERATION-036.md) — Governance board operating view（EVO-077；Closed：派生 Board 建立并验证通过）。
 - [Iteration 037](ITERATION-037.md) — 最近开发任务治理漂移修复（EVO-078；Closed：Board / iteration 目录 / DESIGN 归类 / EVO-045-A 补齐）。
@@ -99,8 +99,9 @@
   输出 `docs/proposals/SERVERLESS-RUNTIME.md`（Phase 7 部分复用 / 统一
   ExecutionProvider / 容器池架构 / 冷启动方法学 / Vercel 演进 / EVO-045/047 依赖图）。
   冷启动实测待 Docker 环境。
-- [Iteration 034](ITERATION-034.md) — `Planned / Ready for activation`：EVO-049-A
-  Skill/CLI 规范兼容数据模型基线；EVO-049 父 Epic 不直接选入。
+- [Iteration 034](ITERATION-034.md) — `Closed`：EVO-049-A Skill/CLI 规范兼容数据模型基线。
+  Migration 006（skills +13 列 / snippets +8 列）；domain/DTO/repository 全量更新；
+  SnippetRepository 新增 update 方法；282 tests passed（+8 新增）。
 - [Iteration 035](ITERATION-035.md) — `Closed`：EVO-054 / EVO-055 完成。EVO-054 修复 3 处详情块漂移 + 1 处 Dropped 占位（EVO-042）+ 1 处额外漂移（EVO-026）；EVO-055 修复死分支 / billing 闸门 / 501 显式 throw / API-CONTRACT 同步。
 - [Iteration 036](ITERATION-036.md) — `Closed`：EVO-077 治理看板文档；
   插队治理修复完成；当时未改变 Iteration 033，后续已由 Iteration 033 收口和
@@ -116,9 +117,8 @@
 该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
 并记录库存 disposition：
 
-1. [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线。
-2. **EVO-045-A**（新 iteration）— ExecutionProvider 统一 trait + Docker 容器池化（EVO-048 Spike 输出的关键路径首步；依赖 EVO-048 Done）。
-3. **新进 Ready 待评估**：
+1. **EVO-045-A**（新 iteration）— ExecutionProvider 统一 trait + Docker 容器池化（EVO-048 Spike 输出的关键路径首步；依赖 EVO-048 Done）。
+2. **新进 Ready 待评估**：
    - EVO-051 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
 
 ## 命名

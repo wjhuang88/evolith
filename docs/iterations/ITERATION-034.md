@@ -1,6 +1,6 @@
 # Iteration 034: Skill/CLI 规范兼容数据模型基线
 
-> 文档状态：Planned / Ready for activation
+> 文档状态：Closed（2026-06-04）
 > 计划发布日期：2026-06-01
 > 计划目标：用一个可审计切片完成 `EVO-049-A`，让 Skill 与 CLI interface 的数据库、domain、DTO 和 repository 能承载 Agent Skills 规范字段与结构化 CLI 命令字段。
 >
@@ -33,11 +33,11 @@
 
 - Story 格式与 BDD 适用性：
   - [x] Technical Story；BDD 不适用，使用双数据库、repository 和 contract 验收。
-- [ ] SQLite 与 PostgreSQL migration 对 skills / CLI interface 新字段保持语义一致。
-- [ ] domain model、Create/Update DTO、Response DTO 和 repository 映射覆盖新增字段。
-- [ ] 旧字段兼容路径仍可工作，未删除 legacy snippet API。
-- [ ] repository 测试覆盖新增字段 create/update/read。
-- [ ] API contract 或 format reference 说明本轮字段基线和 parser 接线后续边界。
+- [x] SQLite 与 PostgreSQL migration 对 skills / CLI interface 新字段保持语义一致。
+- [x] domain model、Create/Update DTO、Response DTO 和 repository 映射覆盖新增字段。
+- [x] 旧字段兼容路径仍可工作，未删除 legacy snippet API。
+- [x] repository 测试覆盖新增字段 create/update/read。
+- [x] API contract 或 format reference 说明本轮字段基线和 parser 接线后续边界。
 
 ## 5. 发布计划基线：计划验证
 
@@ -74,6 +74,9 @@ git diff --check
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-06-01 | planning | 发布计划基线；未启动实现。 |
+| 2026-06-04 | activation | 状态 → Active / In Progress。前置：Iteration 038 Closed，无 Active/Review 迭代。EVO-049-A Ready → In Progress。委托 deep agent 实施双数据库 migration + domain/DTO/repository 映射 + 测试。 |
+| 2026-06-04 | execution | Deep agent 完成实施：migration 006（SQLite + PostgreSQL）+ domain/DTO/repository 全量更新 + 4 个新测试 + 所有现有测试适配新字段。 |
+| 2026-06-04 | closure | 独立验证通过：cargo check 0 errors / clippy 0 errors / cargo test 282 passed（+8 新增）。状态 → Closed。 |
 
 ## 9. 变更请求
 
@@ -83,13 +86,28 @@ git diff --check
 ## 10. Review
 
 - 完成：
-- 未完成：
+  - Migration 006（SQLite + PostgreSQL）：skills 表 +13 列（author, tags, skill_type, execution, entrypoint, timeout, memory_mb, permissions, license, compatibility, disable_model_invocation, user_invocable, argument_hint）；snippets 表 +8 列（version, summary, command, subcommands, inputs, output, examples, error_model）
+  - Domain model 更新：Skill/NewSkill/UpdateSkill +13 字段；Snippet/NewSnippet +8 字段；新增 UpdateSnippet 结构体；SnippetRepository trait 新增 update 方法
+  - 4 个 repository 实现全量重写（SQLite/PostgreSQL × skill/snippet）+ service-snippet placeholder update
+  - API DTO 更新：CreateSkillRequest/UpdateSkillRequest/SkillResponse +13 字段；CreateSnippetRequest/UpdateSnippetRequest/SnippetResponse +8 字段
+  - Handler 更新：skill_handlers 映射新字段；snippet_handlers 实现真实 update（原 501 → 实际实现）
+  - 4 个新 repository 测试：skill agent_skills 字段 round-trip + update；snippet CLI 字段 round-trip + update
+  - 所有 3 个 test setup 文件添加 migration 006
+- 未完成：无
 - 验证结果：
-- 闭环状态：`Blocked`（仅计划发布，尚未激活）
-- 残余归口：激活后按第 7 节闭环。
+  - `cargo check --workspace` → 0 errors ✅
+  - `cargo clippy --workspace --all-targets -- -D warnings` → 0 errors ✅
+  - `cargo test --workspace` → 282 passed, 0 failed, 2 ignored ✅（基线 274 → +8 新增）
+- 闭环状态：`Complete`
+- 残余归口：parser 接线归 EVO-049-B；制品化归后续 EVO-049 子 Story / EVO-046
 
 ## 11. Retrospective
 
 - 做得好的：
+  - Deep agent 一次性完成全部实施，无需 session continuation
+  - 双数据库 migration 语义一致（SQLite TEXT/INTEGER vs PostgreSQL JSONB/BOOLEAN）
+  - 所有现有测试适配新字段，无回归
+  - SnippetRepository 新增 update 方法，补齐了 CRUD 能力
 - 需要调整的：
-- 写入 EVOLUTION：
+  - 新字段添加到 domain struct 时未使用 Default trait，导致所有现有测试初始化需要手动补字段（可考虑 `#[derive(Default)]` 或 builder pattern）
+- 写入 EVOLUTION：无新陷阱。本次为纯数据模型扩展，未触发代码变更或流程问题。

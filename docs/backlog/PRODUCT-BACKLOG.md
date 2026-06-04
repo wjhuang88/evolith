@@ -67,7 +67,7 @@
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
 | EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Done | EVO-045/047 前置 / Iteration 033 | Iteration 033 收口（2026-06-03）：输出 `docs/proposals/SERVERLESS-RUNTIME.md`（11 节）；Phase 7 sandbox 复用结论=部分复用；统一 ExecutionProvider 接口设计；冷启动方法学（已缓存 ~350ms-1800ms / 池模式 ~50-200ms，实测待 Docker）；Vercel 演进路径 + 组件替换清单；EVO-045/047 依赖图 + 推荐实施顺序；本机无 Docker，冷启动实测 conditional |
 | EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | feature | P0 | Proposed | 用户反馈 2026-05-29 | Epic；不直接进迭代，先执行 EVO-049-A/B 子 Story |
-| EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Ready | EVO-049 split / Iteration 034 | SQLite/PostgreSQL、domain、DTO、repository 对齐 Agent Skills 与 CLI 结构化字段 |
+| EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Done | EVO-049 split / Iteration 034 | 2026-06-04 完成：migration 006（skills +13 列 / snippets +8 列）；domain/DTO/repository 全量更新；SnippetRepository 新增 update 方法；282 tests passed（+8 新增） |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
 | EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
 | EVO-051 | 误导性注释、命名与后端死代码清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释，并删除未接线的 guards.rs/registry/reference/search/error.rs 后端死代码；纯清晰度，无行为变更 |
@@ -991,7 +991,7 @@
 
 | 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
 |----------|----------|------|------|----------|
-| EVO-049-A | Skill/CLI 规范兼容数据模型基线 | Ready | 无 | Iteration 034 |
+| EVO-049-A | Skill/CLI 规范兼容数据模型基线 | Done | 无 | Iteration 034 |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | Blocked | EVO-049-A | - |
 | 后续切片 | 制品打包、导入、前端编辑体验 | Proposed | EVO-049-B / EVO-020 | - |
 
@@ -1117,7 +1117,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：tech-debt
 - 优先级：P0
-- 状态：Ready
+- 状态：Done
 - 父 Epic：EVO-049
 - Story 形态：Technical
 - 用户价值或技术目标：
@@ -1135,11 +1135,11 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
   - 不实现 CLI 执行引擎、MCP serverless 或评分体系。
   - 不改前端复杂编辑器，仅保证 API response 字段可承载后续 UI。
 - 验收标准：
-  - [ ] SQLite 与 PostgreSQL migration 字段语义一致，默认值和 nullable 策略明确。
-  - [ ] `Skill` / `NewSkill` / `UpdateSkill` 与 CLI interface 域模型包含规范兼容字段。
-  - [ ] API DTO 和 repository 映射能读写新增字段，旧字段兼容不破坏。
-  - [ ] 双数据库 repository 测试覆盖新增字段的 create/update/read。
-  - [ ] API contract 或 format reference 记录本轮新增字段和后续 parser 接线边界。
+  - [x] SQLite 与 PostgreSQL migration 字段语义一致，默认值和 nullable 策略明确。
+  - [x] `Skill` / `NewSkill` / `UpdateSkill` 与 CLI interface 域模型包含规范兼容字段。
+  - [x] API DTO 和 repository 映射能读写新增字段，旧字段兼容不破坏。
+  - [x] 双数据库 repository 测试覆盖新增字段的 create/update/read。
+  - [x] API contract 或 format reference 记录本轮新增字段和后续 parser 接线边界。
 - 依赖或阻塞：无硬依赖；激活前需确认不与 EVO-027/EVO-028 已发布计划基线冲突。
 - 解锁内容：EVO-049-B parser 接线与校验报告；EVO-045 CLI 执行引擎的数据路由前置。
 - 影响范围：backend / db / docs

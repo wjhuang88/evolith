@@ -34,6 +34,78 @@ pub struct CreateSkillRequest {
     /// Public visibility (default: false = private)
     #[serde(default)]
     pub is_public: bool,
+
+    /// Author name
+    #[serde(default)]
+    pub author: Option<String>,
+
+    /// Tags
+    #[serde(default)]
+    pub tags: Vec<String>,
+
+    /// Skill type: instruction, agent
+    #[serde(default = "default_skill_type")]
+    pub skill_type: String,
+
+    /// Execution mode: client, server
+    #[serde(default = "default_execution")]
+    pub execution: String,
+
+    /// Entrypoint file
+    #[serde(default)]
+    pub entrypoint: Option<String>,
+
+    /// Timeout in seconds
+    #[serde(default = "default_timeout")]
+    pub timeout: i32,
+
+    /// Memory limit in MB
+    #[serde(default = "default_memory_mb")]
+    pub memory_mb: i32,
+
+    /// Permissions JSON
+    #[serde(default)]
+    pub permissions: Option<serde_json::Value>,
+
+    /// License
+    #[serde(default)]
+    pub license: Option<String>,
+
+    /// Compatibility string
+    #[serde(default)]
+    pub compatibility: Option<String>,
+
+    /// Disable model invocation
+    #[serde(default)]
+    pub disable_model_invocation: bool,
+
+    /// User invocable
+    #[serde(default = "default_true")]
+    pub user_invocable: bool,
+
+    /// Argument hint
+    #[serde(default)]
+    pub argument_hint: Option<String>,
+}
+
+fn default_skill_type() -> String {
+    "instruction".to_string()
+}
+
+fn default_execution() -> String {
+    "client".to_string()
+}
+
+fn default_timeout() -> i32 {
+    30
+}
+
+fn default_memory_mb() -> i32 {
+    256
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Dependency input for skill creation
@@ -65,6 +137,19 @@ pub struct UpdateSkillRequest {
     pub runtime: Option<String>,
     pub dependencies: Option<Vec<DependencyInput>>,
     pub is_public: Option<bool>,
+    pub author: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub skill_type: Option<String>,
+    pub execution: Option<String>,
+    pub entrypoint: Option<String>,
+    pub timeout: Option<i32>,
+    pub memory_mb: Option<i32>,
+    pub permissions: Option<serde_json::Value>,
+    pub license: Option<String>,
+    pub compatibility: Option<String>,
+    pub disable_model_invocation: Option<bool>,
+    pub user_invocable: Option<bool>,
+    pub argument_hint: Option<String>,
 }
 
 /// Skill response DTO
@@ -82,14 +167,36 @@ pub struct SkillResponse {
     pub dependencies: Vec<DependencyResponse>,
     /// Public visibility
     pub is_public: bool,
-    /// Not in domain, defaulting to empty
-    #[serde(default)]
+    /// Skill category (mapped from skill_type)
     pub category: String,
-    /// Not in domain, defaulting to empty
-    #[serde(default)]
+    /// Tags from domain
     pub tags: Vec<String>,
     pub owner_id: String,
     pub tenant_id: String,
+    /// Author name
+    pub author: Option<String>,
+    /// Skill type
+    pub skill_type: String,
+    /// Execution mode
+    pub execution: String,
+    /// Entrypoint file
+    pub entrypoint: Option<String>,
+    /// Timeout in seconds
+    pub timeout: i32,
+    /// Memory limit in MB
+    pub memory_mb: i32,
+    /// Permissions JSON
+    pub permissions: Option<serde_json::Value>,
+    /// License
+    pub license: Option<String>,
+    /// Compatibility string
+    pub compatibility: Option<String>,
+    /// Disable model invocation
+    pub disable_model_invocation: bool,
+    /// User invocable
+    pub user_invocable: bool,
+    /// Argument hint
+    pub argument_hint: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -125,10 +232,22 @@ impl From<Skill> for SkillResponse {
                 .map(DependencyResponse::from)
                 .collect(),
             is_public: matches!(skill.visibility, Visibility::Public),
-            category: String::new(),
-            tags: Vec::new(),
+            category: skill.skill_type.clone(),
+            tags: skill.tags.clone(),
             owner_id: skill.owner_id.to_string(),
             tenant_id: skill.tenant_id.to_string(),
+            author: skill.author,
+            skill_type: skill.skill_type,
+            execution: skill.execution,
+            entrypoint: skill.entrypoint,
+            timeout: skill.timeout,
+            memory_mb: skill.memory_mb,
+            permissions: skill.permissions,
+            license: skill.license,
+            compatibility: skill.compatibility,
+            disable_model_invocation: skill.disable_model_invocation,
+            user_invocable: skill.user_invocable,
+            argument_hint: skill.argument_hint,
             created_at: skill.created_at.to_rfc3339(),
             updated_at: skill.updated_at.to_rfc3339(),
         }

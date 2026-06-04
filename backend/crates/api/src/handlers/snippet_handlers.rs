@@ -115,6 +115,14 @@ pub async fn create_snippet(
         } else {
             Some(Visibility::Private)
         },
+        version: body.version.clone(),
+        summary: body.summary.clone(),
+        command: body.command.clone(),
+        subcommands: body.subcommands.clone(),
+        inputs: body.inputs.clone(),
+        output: body.output.clone(),
+        examples: body.examples.clone(),
+        error_model: body.error_model.clone(),
     };
 
     match state
@@ -132,17 +140,107 @@ pub async fn create_snippet(
     }
 }
 
-/// Update snippet handler - Returns 501 Not Implemented
+/// Update snippet handler
 pub async fn update_snippet(
-    _id: web::Path<String>,
-    _body: web::Json<UpdateSnippetRequest>,
-    _state: web::Data<AppState>,
-    _user: AuthenticatedUser,
+    id: web::Path<String>,
+    body: web::Json<UpdateSnippetRequest>,
+    state: web::Data<AppState>,
+    user: AuthenticatedUser,
 ) -> impl Responder {
-    HttpResponse::NotImplemented().json(ApiResponse::<()>::error(
-        "NOT_IMPLEMENTED",
-        "Snippet update is not yet implemented",
-    ))
+    let snippet_id = match Uuid::parse_str(&id) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "INVALID_ID",
+                "Invalid snippet ID format",
+            ));
+        }
+    };
+
+    let existing = match state.snippet_repo.find_by_id(snippet_id).await {
+        Ok(Some(snippet)) => snippet,
+        Ok(None) => {
+            return HttpResponse::NotFound()
+                .json(ApiResponse::<()>::error("NOT_FOUND", "Snippet not found"));
+        }
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                &format!("Failed to find snippet: {}", e),
+            ));
+        }
+    };
+
+    if existing.tenant_id != user.tenant_id {
+        return HttpResponse::NotFound()
+            .json(ApiResponse::<()>::error("NOT_FOUND", "Snippet not found"));
+    }
+
+    if existing.owner_id != user.user_id && !user.is_admin() {
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "You can only update your own snippets",
+        ));
+    }
+
+    let visibility = body.is_public.map(|pub_flag| {
+        if pub_flag {
+            Visibility::Public
+        } else {
+            Visibility::Private
+        }
+    });
+
+    let update = domain::snippet::UpdateSnippet {
+        name: body.name.clone(),
+        language: body.language.clone(),
+        framework: body.framework.clone(),
+        tags: body.tags.clone(),
+        content: body.content.clone(),
+        code: body.code.clone(),
+        dependencies: body.dependencies.as_ref().map(|deps| {
+            deps.iter().map(|d| d.to_domain()).collect()
+        }),
+        estimated_tokens: body.estimated_tokens,
+        visibility,
+        version: body.version.clone(),
+        summary: body.summary.clone(),
+        command: body.command.clone(),
+        subcommands: body.subcommands.clone(),
+        inputs: body.inputs.clone(),
+        output: body.output.clone(),
+        examples: body.examples.clone(),
+        error_model: body.error_model.clone(),
+    };
+
+    match state.snippet_repo.update(snippet_id, update).await {
+        Ok(snippet) => HttpResponse::Ok().json(ApiResponse::<SnippetResponse>::success(
+            SnippetResponse::from(snippet),
+        )),
+        Err(e) => {
+            let (status, code, msg) = match e {
+                common::error::AppError::NotFoundError(msg) => {
+                    (actix_web::http::StatusCode::NOT_FOUND, "NOT_FOUND", msg)
+                }
+                common::error::AppError::ValidationError(msg) => (
+                    actix_web::http::StatusCode::BAD_REQUEST,
+                    "VALIDATION_ERROR",
+                    msg,
+                ),
+                common::error::AppError::DatabaseError(msg) => (
+                    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "DATABASE_ERROR",
+                    msg,
+                ),
+                other => (
+                    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    other.to_string(),
+                ),
+            };
+            HttpResponse::build(status).json(ApiResponse::<()>::error(code, &msg))
+        }
+    }
 }
 
 /// Delete snippet handler

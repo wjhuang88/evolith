@@ -7,7 +7,7 @@
 mod test_helpers;
 
 use domain::repository::{SnippetRepository, TenantRepository, UserRepository};
-use domain::snippet::{Dependency, NewSnippet, SnippetFilter, Visibility};
+use domain::snippet::{Dependency, NewSnippet, SnippetFilter, UpdateSnippet, Visibility};
 use domain::tenant::CreateTenantRequest;
 use domain::user::{NewUser, TenantRole};
 use infra::db::{SqliteSnippetRepository, SqliteTenantRepository, SqliteUserRepository};
@@ -58,6 +58,14 @@ fn create_test_snippet(name: &str, language: &str, visibility: Option<Visibility
         code: format!("fn {}() {{ }}", name.replace('-', "_")),
         dependencies: vec![],
         visibility,
+        version: "1.0.0".to_string(),
+        summary: None,
+        command: None,
+        subcommands: vec![],
+        inputs: vec![],
+        output: None,
+        examples: vec![],
+        error_model: None,
     }
 }
 
@@ -82,6 +90,14 @@ async fn test_create_snippet() {
             required: true,
         }],
         visibility: Some(Visibility::Public),
+        version: "1.0.0".to_string(),
+        summary: None,
+        command: None,
+        subcommands: vec![],
+        inputs: vec![],
+        output: None,
+        examples: vec![],
+        error_model: None,
     };
 
     let snippet = repo.create(new_snippet, user_id, tenant_id).await.unwrap();
@@ -248,6 +264,14 @@ async fn test_find_all_with_search_filter() {
         code: "fn auth_middleware() {}".to_string(),
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        version: "1.0.0".to_string(),
+        summary: None,
+        command: None,
+        subcommands: vec![],
+        inputs: vec![],
+        output: None,
+        examples: vec![],
+        error_model: None,
     };
     repo.create(s1, user_id, tenant_id).await.unwrap();
 
@@ -380,6 +404,14 @@ async fn test_estimated_tokens_calculation() {
         code: "b".repeat(300),
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        version: "1.0.0".to_string(),
+        summary: None,
+        command: None,
+        subcommands: vec![],
+        inputs: vec![],
+        output: None,
+        examples: vec![],
+        error_model: None,
     };
 
     let created = repo.create(s, user_id, tenant_id).await.unwrap();
@@ -417,6 +449,14 @@ async fn test_snippet_with_dependencies() {
         code: "use tokio;".to_string(),
         dependencies: deps,
         visibility: Some(Visibility::Public),
+        version: "1.0.0".to_string(),
+        summary: None,
+        command: None,
+        subcommands: vec![],
+        inputs: vec![],
+        output: None,
+        examples: vec![],
+        error_model: None,
     };
 
     let created = repo.create(s, user_id, tenant_id).await.unwrap();
@@ -450,9 +490,111 @@ async fn test_snippet_tags_round_trip() {
         code: "export default function Page() {}".to_string(),
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        version: "1.0.0".to_string(),
+        summary: None,
+        command: None,
+        subcommands: vec![],
+        inputs: vec![],
+        output: None,
+        examples: vec![],
+        error_model: None,
     };
 
     let created = repo.create(s, user_id, tenant_id).await.unwrap();
     let found = repo.find_by_id(created.id).await.unwrap().unwrap();
     assert_eq!(found.tags, vec!["react", "ssr", "frontend"]);
+}
+
+#[tokio::test]
+async fn test_create_snippet_with_cli_fields() {
+    let pool = setup_test_db().await;
+    let (tenant_id, user_id) = create_test_tenant_and_user(&pool).await;
+    let repo = SqliteSnippetRepository::new(pool.clone());
+
+    let new_snippet = NewSnippet {
+        name: "cli-snippet".to_string(),
+        language: "rust".to_string(),
+        framework: None,
+        tags: vec!["cli".to_string()],
+        content: "CLI tool documentation".to_string(),
+        code: "fn main() {}".to_string(),
+        dependencies: vec![],
+        visibility: Some(Visibility::Public),
+        version: "2.0.0".to_string(),
+        summary: Some("A CLI tool snippet".to_string()),
+        command: Some("mytool".to_string()),
+        subcommands: vec![
+            serde_json::json!({"name": "init", "description": "Initialize project"}),
+            serde_json::json!({"name": "build", "description": "Build project"}),
+        ],
+        inputs: vec![serde_json::json!({"name": "project_name", "type": "string"})],
+        output: Some(serde_json::json!({"type": "object", "properties": {"status": "string"}})),
+        examples: vec![serde_json::json!({"command": "mytool init", "output": "Project initialized"})],
+        error_model: Some(serde_json::json!({"codes": [1, 2, 3]})),
+    };
+
+    let snippet = repo.create(new_snippet, user_id, tenant_id).await.unwrap();
+
+    assert_eq!(snippet.version, "2.0.0");
+    assert_eq!(snippet.summary, Some("A CLI tool snippet".to_string()));
+    assert_eq!(snippet.command, Some("mytool".to_string()));
+    assert_eq!(snippet.subcommands.len(), 2);
+    assert_eq!(snippet.inputs.len(), 1);
+    assert!(snippet.output.is_some());
+    assert_eq!(snippet.examples.len(), 1);
+    assert!(snippet.error_model.is_some());
+
+    let found = repo.find_by_id(snippet.id).await.unwrap().unwrap();
+    assert_eq!(found.version, "2.0.0");
+    assert_eq!(found.summary, Some("A CLI tool snippet".to_string()));
+    assert_eq!(found.command, Some("mytool".to_string()));
+    assert_eq!(found.subcommands.len(), 2);
+    assert_eq!(found.inputs.len(), 1);
+    assert!(found.output.is_some());
+    assert_eq!(found.examples.len(), 1);
+    assert!(found.error_model.is_some());
+}
+
+#[tokio::test]
+async fn test_update_snippet() {
+    let pool = setup_test_db().await;
+    let (tenant_id, user_id) = create_test_tenant_and_user(&pool).await;
+    let repo = SqliteSnippetRepository::new(pool.clone());
+
+    let new_snippet = create_test_snippet("update-test", "rust", Some(Visibility::Private));
+    let created = repo.create(new_snippet, user_id, tenant_id).await.unwrap();
+
+    let update = UpdateSnippet {
+        name: None,
+        language: None,
+        framework: Some("tokio".to_string()),
+        tags: None,
+        content: None,
+        code: None,
+        dependencies: None,
+        estimated_tokens: None,
+        visibility: None,
+        version: Some("3.0.0".to_string()),
+        summary: Some("Updated summary".to_string()),
+        command: Some("updated-cmd".to_string()),
+        subcommands: Some(vec![serde_json::json!({"name": "run"})]),
+        inputs: Some(vec![]),
+        output: None,
+        examples: Some(vec![serde_json::json!({"cmd": "updated-cmd run"})]),
+        error_model: None,
+    };
+
+    let updated = repo.update(created.id, update).await.unwrap();
+
+    assert_eq!(updated.version, "3.0.0");
+    assert_eq!(updated.summary, Some("Updated summary".to_string()));
+    assert_eq!(updated.command, Some("updated-cmd".to_string()));
+    assert_eq!(updated.subcommands.len(), 1);
+    assert_eq!(updated.framework, Some("tokio".to_string()));
+    assert_eq!(updated.examples.len(), 1);
+
+    let found = repo.find_by_id(created.id).await.unwrap().unwrap();
+    assert_eq!(found.version, "3.0.0");
+    assert_eq!(found.summary, Some("Updated summary".to_string()));
+    assert_eq!(found.command, Some("updated-cmd".to_string()));
 }

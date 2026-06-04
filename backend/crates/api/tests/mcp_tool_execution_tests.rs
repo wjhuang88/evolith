@@ -33,6 +33,7 @@ const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial
 const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_tenant.sql");
 const MIGRATION_004: &str = include_str!("../../../migrations/sqlite/004_user_permissions.sql");
 const MIGRATION_005: &str = include_str!("../../../migrations/sqlite/005_payment_integration.sql");
+const MIGRATION_006: &str = include_str!("../../../migrations/sqlite/006_skill_cli_data_model.sql");
 
 fn strip_leading_comments(sql: &str) -> &str {
     let mut result = sql;
@@ -58,10 +59,11 @@ async fn setup_test_db() -> SqlitePool {
         .await
         .expect("Failed to create in-memory SQLite pool");
 
-    run_migration_sql(&pool, MIGRATION_001).await;
-    run_migration_sql(&pool, MIGRATION_003).await;
-    run_migration_sql(&pool, MIGRATION_004).await;
-    run_migration_sql(&pool, MIGRATION_005).await;
+run_migration_sql(&pool, MIGRATION_001).await;
+run_migration_sql(&pool, MIGRATION_003).await;
+run_migration_sql(&pool, MIGRATION_004).await;
+run_migration_sql(&pool, MIGRATION_005).await;
+run_migration_sql(&pool, MIGRATION_006).await;
 
     pool
 }

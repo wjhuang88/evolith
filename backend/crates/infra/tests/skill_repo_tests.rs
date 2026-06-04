@@ -7,7 +7,7 @@
 mod test_helpers;
 
 use domain::repository::{SkillRepository, TenantRepository, UserRepository};
-use domain::skill::{Dependency, NewSkill, Runtime, SkillFilter, Visibility};
+use domain::skill::{Dependency, NewSkill, Runtime, SkillFilter, UpdateSkill, Visibility};
 use domain::tenant::CreateTenantRequest;
 use domain::user::{NewUser, TenantRole};
 use infra::db::{SqliteSkillRepository, SqliteTenantRepository, SqliteUserRepository};
@@ -89,6 +89,19 @@ async fn test_create_skill() {
         runtime: Runtime::Python311,
         dependencies: create_test_dependencies(),
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let skill = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -119,6 +132,19 @@ async fn test_create_skill_with_node_runtime() {
         runtime: Runtime::Node20,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let skill = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -140,6 +166,19 @@ async fn test_create_skill_with_wasm_runtime() {
         runtime: Runtime::Wasm,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let skill = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -161,6 +200,19 @@ async fn test_create_skill_default_visibility() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: None,
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let skill = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -182,6 +234,19 @@ async fn test_find_by_id() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let created = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -217,6 +282,19 @@ async fn test_find_by_name_and_version() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let created = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -247,6 +325,19 @@ async fn test_find_by_name_and_version_different_version() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -274,6 +365,19 @@ async fn test_find_all_no_filter() {
             runtime: Runtime::Python311,
             dependencies: vec![],
             visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
         };
         repo.create(new_skill, owner_id, tenant_id).await.unwrap();
     }
@@ -300,6 +404,19 @@ async fn test_find_all_with_tenant_filter() {
             runtime: Runtime::Python311,
             dependencies: vec![],
             visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
         };
         repo.create(new_skill, owner_id, tenant_id).await.unwrap();
     }
@@ -329,6 +446,19 @@ async fn test_find_all_with_visibility_filter() {
             runtime: Runtime::Python311,
             dependencies: vec![],
             visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
         };
         repo.create(new_skill, owner_id, tenant_id).await.unwrap();
     }
@@ -342,6 +472,19 @@ async fn test_find_all_with_visibility_filter() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Private),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(private_skill, owner_id, tenant_id)
         .await
@@ -374,6 +517,19 @@ async fn test_find_all_with_runtime_filter() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(python_skill, owner_id, tenant_id)
         .await
@@ -388,6 +544,19 @@ async fn test_find_all_with_runtime_filter() {
         runtime: Runtime::Node20,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(node_skill, owner_id, tenant_id).await.unwrap();
 
@@ -416,6 +585,19 @@ async fn test_find_all_with_search_filter() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(skill1, owner_id, tenant_id).await.unwrap();
 
@@ -428,6 +610,19 @@ async fn test_find_all_with_search_filter() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(skill2, owner_id, tenant_id).await.unwrap();
 
@@ -457,6 +652,19 @@ async fn test_find_all_pagination() {
             runtime: Runtime::Python311,
             dependencies: vec![],
             visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
         };
         repo.create(new_skill, owner_id, tenant_id).await.unwrap();
     }
@@ -502,6 +710,19 @@ async fn test_count() {
             runtime: Runtime::Python311,
             dependencies: vec![],
             visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
         };
         repo.create(new_skill, owner_id, tenant_id).await.unwrap();
     }
@@ -527,6 +748,19 @@ async fn test_count_with_filter() {
             runtime: Runtime::Python311,
             dependencies: vec![],
             visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
         };
         repo.create(new_skill, owner_id, tenant_id).await.unwrap();
     }
@@ -540,6 +774,19 @@ async fn test_count_with_filter() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Private),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(private_skill, owner_id, tenant_id)
         .await
@@ -568,6 +815,19 @@ async fn test_count_with_runtime_filter() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(python_skill, owner_id, tenant_id)
         .await
@@ -582,6 +842,19 @@ async fn test_count_with_runtime_filter() {
         runtime: Runtime::Node20,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
     repo.create(node_skill, owner_id, tenant_id).await.unwrap();
 
@@ -608,6 +881,19 @@ async fn test_delete_skill() {
         runtime: Runtime::Python311,
         dependencies: vec![],
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let created = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -656,6 +942,19 @@ async fn test_skill_with_dependencies() {
         runtime: Runtime::Python311,
         dependencies: dependencies.clone(),
         visibility: Some(Visibility::Public),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
     };
 
     let created = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
@@ -663,4 +962,130 @@ async fn test_skill_with_dependencies() {
     assert_eq!(created.dependencies[0].name, "requests");
     assert_eq!(created.dependencies[1].name, "beautifulsoup4");
     assert_eq!(created.dependencies[2].name, "lxml");
+}
+
+#[tokio::test]
+async fn test_create_skill_with_agent_skills_fields() {
+    let pool = setup_test_db().await;
+    let (tenant_id, owner_id) = create_test_tenant_and_user(&pool).await;
+    let repo = SqliteSkillRepository::new(pool.clone());
+
+    let new_skill = NewSkill {
+        name: "agent-skill".to_string(),
+        version: "1.0.0".to_string(),
+        description: "A skill with agent fields".to_string(),
+        skill_md: create_test_skill_md(),
+        code_package_path: None,
+        runtime: Runtime::Python311,
+        dependencies: vec![],
+        visibility: Some(Visibility::Public),
+        author: Some("test-author".to_string()),
+        tags: vec!["ai".to_string(), "agent".to_string()],
+        skill_type: "agent".to_string(),
+        execution: "server".to_string(),
+        entrypoint: Some("main.py".to_string()),
+        timeout: 60,
+        memory_mb: 512,
+        permissions: Some(serde_json::json!({"read": true, "write": false})),
+        license: Some("MIT".to_string()),
+        compatibility: "python>=3.9".to_string().into(),
+        disable_model_invocation: true,
+        user_invocable: false,
+        argument_hint: Some("--config path/to/config".to_string()),
+    };
+
+    let skill = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
+
+    assert_eq!(skill.author, Some("test-author".to_string()));
+    assert_eq!(skill.tags, vec!["ai", "agent"]);
+    assert_eq!(skill.skill_type, "agent");
+    assert_eq!(skill.execution, "server");
+    assert_eq!(skill.entrypoint, Some("main.py".to_string()));
+    assert_eq!(skill.timeout, 60);
+    assert_eq!(skill.memory_mb, 512);
+    assert_eq!(skill.license, Some("MIT".to_string()));
+    assert_eq!(skill.compatibility, Some("python>=3.9".to_string()));
+    assert!(skill.disable_model_invocation);
+    assert!(!skill.user_invocable);
+    assert_eq!(skill.argument_hint, Some("--config path/to/config".to_string()));
+
+    let found = repo.find_by_id(skill.id).await.unwrap().unwrap();
+    assert_eq!(found.author, Some("test-author".to_string()));
+    assert_eq!(found.tags, vec!["ai", "agent"]);
+    assert_eq!(found.skill_type, "agent");
+    assert_eq!(found.execution, "server");
+    assert_eq!(found.timeout, 60);
+    assert_eq!(found.memory_mb, 512);
+    assert!(found.disable_model_invocation);
+    assert!(!found.user_invocable);
+}
+
+#[tokio::test]
+async fn test_update_skill_agent_skills_fields() {
+    let pool = setup_test_db().await;
+    let (tenant_id, owner_id) = create_test_tenant_and_user(&pool).await;
+    let repo = SqliteSkillRepository::new(pool.clone());
+
+    let new_skill = NewSkill {
+        name: "update-test-skill".to_string(),
+        version: "1.0.0".to_string(),
+        description: "Skill to update".to_string(),
+        skill_md: create_test_skill_md(),
+        code_package_path: None,
+        runtime: Runtime::Python311,
+        dependencies: vec![],
+        visibility: Some(Visibility::Private),
+        author: None,
+        tags: vec![],
+        skill_type: "instruction".to_string(),
+        execution: "client".to_string(),
+        entrypoint: None,
+        timeout: 30,
+        memory_mb: 256,
+        permissions: None,
+        license: None,
+        compatibility: None,
+        disable_model_invocation: false,
+        user_invocable: true,
+        argument_hint: None,
+    };
+
+    let created = repo.create(new_skill, owner_id, tenant_id).await.unwrap();
+
+    let update = UpdateSkill {
+        name: None,
+        version: None,
+        description: None,
+        skill_md: None,
+        runtime: None,
+        dependencies: None,
+        visibility: None,
+        author: Some("updated-author".to_string()),
+        tags: Some(vec!["updated".to_string()]),
+        skill_type: Some("agent".to_string()),
+        execution: Some("server".to_string()),
+        entrypoint: Some("run.py".to_string()),
+        timeout: Some(120),
+        memory_mb: Some(1024),
+        permissions: Some(serde_json::json!({"admin": true})),
+        license: Some("Apache-2.0".to_string()),
+        compatibility: Some("python>=3.10".to_string()),
+        disable_model_invocation: Some(true),
+        user_invocable: Some(false),
+        argument_hint: Some("--verbose".to_string()),
+    };
+
+    let updated = repo.update(created.id, update).await.unwrap();
+
+    assert_eq!(updated.author, Some("updated-author".to_string()));
+    assert_eq!(updated.tags, vec!["updated"]);
+    assert_eq!(updated.skill_type, "agent");
+    assert_eq!(updated.execution, "server");
+    assert_eq!(updated.entrypoint, Some("run.py".to_string()));
+    assert_eq!(updated.timeout, 120);
+    assert_eq!(updated.memory_mb, 1024);
+    assert_eq!(updated.license, Some("Apache-2.0".to_string()));
+    assert!(updated.disable_model_invocation);
+    assert!(!updated.user_invocable);
+    assert_eq!(updated.argument_hint, Some("--verbose".to_string()));
 }

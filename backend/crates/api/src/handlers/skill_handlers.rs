@@ -148,6 +148,19 @@ pub async fn create_skill(
         runtime,
         dependencies,
         visibility: Some(visibility),
+        author: body.author.clone(),
+        tags: body.tags.clone(),
+        skill_type: body.skill_type.clone(),
+        execution: body.execution.clone(),
+        entrypoint: body.entrypoint.clone(),
+        timeout: body.timeout,
+        memory_mb: body.memory_mb,
+        permissions: body.permissions.clone(),
+        license: body.license.clone(),
+        compatibility: body.compatibility.clone(),
+        disable_model_invocation: body.disable_model_invocation,
+        user_invocable: body.user_invocable,
+        argument_hint: body.argument_hint.clone(),
     };
 
     match state
@@ -254,6 +267,19 @@ pub async fn update_skill(
         runtime,
         dependencies,
         visibility,
+        author: body.author.clone(),
+        tags: body.tags.clone(),
+        skill_type: body.skill_type.clone(),
+        execution: body.execution.clone(),
+        entrypoint: body.entrypoint.clone(),
+        timeout: body.timeout,
+        memory_mb: body.memory_mb,
+        permissions: body.permissions.clone(),
+        license: body.license.clone(),
+        compatibility: body.compatibility.clone(),
+        disable_model_invocation: body.disable_model_invocation,
+        user_invocable: body.user_invocable,
+        argument_hint: body.argument_hint.clone(),
     };
 
     match state.skill_repo.update(id, update).await {

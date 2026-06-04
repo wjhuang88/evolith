@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use common::error::Result;
 use domain::repository::SnippetRepository;
-use domain::{NewSnippet, Snippet, SnippetFilter};
+use domain::{NewSnippet, Snippet, SnippetFilter, UpdateSnippet};
 use uuid::Uuid;
 
 pub struct SnippetRepositoryImpl;
@@ -32,6 +32,10 @@ impl SnippetRepository for SnippetRepositoryImpl {
     }
 
     async fn delete(&self, _id: Uuid) -> Result<()> {
+        todo!("Snippet repository not implemented")
+    }
+
+    async fn update(&self, _id: Uuid, _snippet: UpdateSnippet) -> Result<Snippet> {
         todo!("Snippet repository not implemented")
     }
 }
