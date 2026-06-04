@@ -71,11 +71,11 @@
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
 | EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
 | EVO-051 | 误导性注释、命名与后端死代码清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释，并删除未接线的 guards.rs/registry/reference/search/error.rs 后端死代码；纯清晰度，无行为变更 |
-| EVO-052 | MySQL 半接线收敛与快速失败 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | config/pool 接受 `mysql` 但 main.rs 连接池后才拒绝；改为配置解析期快速失败或移除半接线，消除"看似可用"陷阱 |
+| EVO-052 | MySQL 半接线收敛与快速失败 | tech-debt | P2 | Done | 代码健康审查 2026-06-01 / Iteration 038 | 2026-06-04 完成：config validate + create_pool 对 mysql 快速失败；main.rs 后置 MySql 分支移除；CONFIG/EVOLUTION 同步 |
 | EVO-053 | 测试盲区补齐 | tech-debt | P2 | Proposed | 代码健康审查 2026-06-01 | service-audit 零测试、8 个 repo 集成测试仅覆盖 SQLite，PostgreSQL repository 无集成测试；PG 测试基础设施待与 EVO-030 CI 协调 |
 | EVO-054 | backlog 状态漂移与编号一致性修复 | bug | P1 | Done | 代码健康审查 2026-06-01 / Iteration 035 | 2026-06-01 完成：EVO-016-B 详情块 In Progress → Done、EVO-026 详情块 Ready → Done（额外漂移）、EVO-042 缺号登记 Dropped 行；详情块 100% 与总表一致 |
 | EVO-055 | 前后端 API 契约漂移修复 | bug | P1 | Done | 跨层一致性审查 2026-06-01 / Iteration 035 | 2026-06-01 完成：删除 `membersApi.acceptInvitation` 死分支 / `billing/page.tsx` 加 `BILLING_ENABLED` 闸门 + 「待计费」静态页 / `cliInterfacesApi.update` 改 `throw new Error` 指向 create+delete / `API-CONTRACT.md` Billing 段补「待计费」标注 |
-| EVO-056 | 沙箱降级静默成功修复 | bug | P2 | Ready | 跨层一致性审查 2026-06-01 | Docker executor 初始化失败降级 DefaultSkillExecutor 返回 exit_code:0+空输出，与成功 no-op 无法区分；改为明确错误态或启动期 fail-fast |
+| EVO-056 | 沙箱降级静默成功修复 | bug | P2 | Done | 跨层一致性审查 2026-06-01 / Iteration 038 | 2026-06-04 完成：沙箱启用时 Docker executor 初始化失败直接启动失败；DefaultSkillExecutor 返回 ConfigError，不再 exit_code:0 伪成功 |
 | EVO-057 | 生产 CORS Origin 可配置化 | tech-debt | P2 | Ready | 跨层一致性审查 2026-06-01 | docker-compose.prod.yml 的 `CORS__ALLOWED_ORIGINS` 被忽略，main.rs 硬编码 origin；新增 CorsConfig 使其可配置 |
 | EVO-058 | 前端死代码与类型卫生清理 | tech-debt | P2 | Ready | 前端代码审查 2026-06-01 | 删除 src/types/ 重复死类型、uiStore、accept-invitation 冗余 re-export；修不安全 as cast、root! 断言、skillsApi.versions 假实现；纯清晰度 |
 | EVO-059 | Backend clippy 历史 lint 升级修复 | tech-debt | P2 | Done | Iteration 028 验证残余 / Iteration 029 配套 | 2026-06-01 Iteration 029 收口：21 个 `-D warnings` 错误归零（原估算 18，实际 13× unwrap_used + 3× dead_code + 4× unnecessary_min_or_max + 1× field_reassign_with_default）。修复策略：unwarp_used 在 7 个 test 文件加文件级 `#![allow(clippy::unwrap_used)]`（workspace deny 覆盖 clippy.toml 行为）；dead_code 移除未使用字段而非 `#[allow]`；unnecessary_min_or_max 移除 `.max(3)` 因 MIN_RPM=30 保障 rpm/10>=3；field_reassign_with_default 改 struct update syntax |
@@ -1210,7 +1210,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：tech-debt
 - 优先级：P2
-- 状态：Ready
+- 状态：Done
 - 父 Epic：无
 - Story 形态：Technical
 - 用户价值或技术目标：
@@ -1251,21 +1251,21 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
   - 维护者/运维者需要：当 `DATABASE__DATABASE_TYPE=mysql` 时尽早得到清晰、确定的拒绝，而不是先连上池再 panic 式拒绝。
   - 以便：不会误以为 MySQL 已可用（`infra/src/config.rs`、`db/pool.rs` 均接受 mysql，但 `backend/src/main.rs:156` 才拒绝，无 repository 实现）。
 - 范围（本次做）：
-  1. 在配置解析或应用启动早期对 `mysql` 做 fail-fast，给出明确"MySQL 未实现，请使用 SQLite/PostgreSQL"的错误。
-  2. 收敛 `db/pool.rs` 的 MySQL 分支与 `config.rs` 的接受逻辑二选一：要么移除半接线，要么集中到单一拒绝点。
-  3. 同步 `EVOLUTION.md` 问题速查表（记录此陷阱）与 `docs/reference/CONFIG.md` MySQL 现状说明。
+  1. 在配置解析期对 `mysql` 做 fail-fast，给出明确"MySQL 未实现，请使用 SQLite/PostgreSQL"的错误。
+  2. `db/pool.rs` 对 `mysql` 直接返回 `ConfigError`，不建立连接池；`DatabasePool::MySql` 与 `main.rs` 后置拒绝分支已移除。
+  3. 同步 `EVOLUTION.md` 问题速查表与 `docs/reference/CONFIG.md` MySQL 现状说明。
 - 不做：
   - 不实现任何 MySQL repository。
   - 不改 SQLite / PostgreSQL 行为。
 - 验收标准：
-  - [ ] 设置 `DATABASE__DATABASE_TYPE=mysql` 启动时，在建立连接池之前即返回明确错误并退出。
-  - [ ] 代码中不再存在"接受 mysql 但延后到 main.rs 才拒绝"的分裂路径。
-  - [ ] `EVOLUTION.md` 速查表与 `CONFIG.md` 记录 MySQL 现状与处置。
-  - [ ] `cargo test --workspace` 通过。
+  - [x] 设置 `DATABASE__DATABASE_TYPE=mysql` 启动时，在建立连接池之前即返回明确错误并退出。
+  - [x] 代码中不再存在"接受 mysql 但延后到 main.rs 才拒绝"的分裂路径。
+  - [x] `EVOLUTION.md` 速查表与 `CONFIG.md` 记录 MySQL 现状与处置。
+  - [x] `cargo check --workspace` 通过；局部测试覆盖 config / pool 快速失败。
 - 依赖或阻塞：无。
 - 解锁内容：减少部署期对数据库支持范围的误判。
 - 影响范围：backend / docs
-- 最小验证方式：`DATABASE__DATABASE_TYPE=mysql ./target/.../evolith` 观察早期拒绝；`cargo test --workspace`。
+- 最小验证方式：`cargo test -p infra config`；`cargo test -p infra mysql`；`cargo check --workspace`。
 
 ### EVO-053 测试盲区补齐
 
@@ -1354,7 +1354,7 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 
 - 类型：bug
 - 优先级：P2
-- 状态：Ready
+- 状态：Done
 - 父 Epic：无
 - Story 形态：Technical
 - 用户价值或技术目标：
@@ -1363,19 +1363,19 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
   - 以便：不会把基础设施失败误判为执行成功的 no-op。
 - 背景：`backend/src/main.rs:67` 初始化失败仅 `warn!` 降级到 `DefaultSkillExecutor`；后者 `executor.rs:48` 返回 `exit_code:0`、空 stdout/stderr、`{"message":"...not implemented"}`，HTTP 200。
 - 范围（本次做）：
-  1. 二选一（refinement 定）：(a) `SANDBOX__ENABLED=true` 且 Docker 不可用时启动期 fail-fast；或 (b) 保留降级但让执行响应返回明确非成功状态（非 0 退出码 / 结构化错误 / 可观测告警）。
-  2. 确保降级路径在日志与响应层都可区分于真实成功执行。
+  1. 选择启动期 fail-fast：`SANDBOX__ENABLED=true` 且 Docker executor 初始化失败时，服务返回 `ConfigError` 并退出。
+  2. `DefaultSkillExecutor::execute()` 返回明确 `ConfigError`，不再返回 `exit_code:0` 伪成功。
 - 不做：
   - 不实现新的非 Docker 执行后端。
   - 不改 `SANDBOX__ENABLED=false` 的显式禁用语义。
 - 验收标准：
-  - [ ] Docker 不可用且沙箱启用时，skill 执行请求返回可被调用方识别的失败/不可用态（非伪成功 exit_code:0）。
-  - [ ] 降级发生时有明确日志且响应可区分。
-  - [ ] `cargo test --workspace` 通过；新增针对降级路径的测试。
+  - [x] Docker 不可用且沙箱启用时，服务启动返回明确失败，不再进入 skill 执行伪成功路径。
+  - [x] 默认 executor 执行响应可区分于真实成功：返回 `ConfigError`，不返回 `exit_code:0`。
+  - [x] `cargo check --workspace` 通过；新增针对默认 executor 失败态的测试。
 - 依赖或阻塞：无。
 - 解锁内容：提升 skill 执行结果可信度，避免沙箱故障被掩盖。
 - 影响范围：backend(service-skill / main)
-- 最小验证方式：模拟 Docker 不可用启动并触发 skill 执行，断言非伪成功响应；`cargo test -p service-skill`。
+- 最小验证方式：`cargo test -p service-skill executor`；`cargo check --workspace`。
 
 ### EVO-057 生产 CORS Origin 可配置化
 

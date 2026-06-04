@@ -63,7 +63,7 @@ LOG__LEVEL=info
 | `APP__API_BASE_URL` | `/config.js` 注入给嵌入式前端的 API base URL | `/api/v1` |
 | `SERVER__HOST` | 服务监听地址 | `0.0.0.0` |
 | `SERVER__PORT` | 服务端口 | `8080` |
-| `DATABASE__DATABASE_TYPE` | `sqlite` / `postgres` / `mysql` | `sqlite` |
+| `DATABASE__DATABASE_TYPE` | `sqlite` / `postgres` | `sqlite` |
 | `DATABASE__URL` | 数据库连接串 | `:memory:` |
 | `DATABASE__MAX_CONNECTIONS` | 数据库连接池大小 | `10` |
 | `DATABASE__SEED_DATABASE` | 是否写入开发种子数据 | `false` |
@@ -75,7 +75,7 @@ LOG__LEVEL=info
 | `STORAGE__SECRET_KEY` | 对象存储 secret key | `minioadmin` |
 | `STORAGE__USE_SSL` | 对象存储是否使用 SSL | `false` |
 | `STORAGE__BUCKET` | 默认 bucket | `evolith` |
-| `SANDBOX__ENABLED` | 是否启用 sandbox executor | `true` |
+| `SANDBOX__ENABLED` | 是否启用 Docker sandbox executor；启用时 Docker executor 初始化失败会导致服务启动失败 | `true` |
 | `SANDBOX__TIMEOUT_SECONDS` | 执行超时 | `30` |
 | `SANDBOX__MEMORY_MB` | 内存限制 | `256` |
 | `SANDBOX__CPU_SHARES` | Docker CPU shares | `512` |
@@ -93,7 +93,9 @@ LOG__LEVEL=info
 | `RATE_LIMIT__AUTHENTICATED_RPM` | 已认证请求限流 | `300` |
 | `RATE_LIMIT__API_KEY_RPM` | API key 请求限流 | `1000` |
 
-`mysql` 当前只在配置和 pool 层保留入口，主服务启动会提示 MySQL repositories 尚未实现；生产主路径是 PostgreSQL。
+`mysql` 当前不受主服务支持。配置校验和连接池创建都会快速返回
+`MySQL repositories are not implemented`，不会先建立 MySQL 连接池再在 `main.rs` 中拒绝。
+生产主路径是 PostgreSQL。
 
 ## 前端配置
 

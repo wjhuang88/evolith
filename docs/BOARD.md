@@ -33,7 +33,8 @@
 |------|-------|-----------|------|
 | EVO-049-A Skill/CLI 规范兼容数据模型基线 | Planned / Ready for activation | [Iteration 034](iterations/ITERATION-034.md) | Activate via START-ITERATION inventory; preserve the published baseline. |
 | EVO-045-A ExecutionProvider 统一 trait + Docker 容器池化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a new iteration only after choosing to prioritize execution-layer infrastructure over the published Iteration 034 data-model baseline. |
-| EVO-056 沙箱降级静默成功修复 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate micro-iteration if execution-layer risk should be reduced before EVO-049-A. |
+| EVO-057 生产 CORS Origin 可配置化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate deploy/config micro-iteration if production custom-domain support should be hardened before product-mainline work. |
+| EVO-058 前端死代码与类型卫生清理 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate frontend hygiene micro-iteration if type-contract drift should be reduced before larger frontend changes. |
 
 ## Later
 
@@ -53,6 +54,8 @@ Current iteration ordering is reasonable after the 2026-06-04 repair:
   a Ready child Story rather than the parent Epic.
 - `EVO-045-A` is now recorded as a Ready child Story and may be started as a new iteration if the
   execution-layer path should interrupt the planned data-model baseline.
+- `EVO-052 / EVO-056` were completed in Iteration 038; the remaining "do not delegate casually"
+  candidates are `EVO-057` and `EVO-058`.
 - Keep Iterations 018-020 and 025-027 blocked until their refinement/dependency gates are met.
 - Use P2 Ready items only as explicit micro-iteration interruptions; do not silently bypass the
   selected product-mainline order.

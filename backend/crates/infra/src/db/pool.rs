@@ -1,9 +1,8 @@
 //! Database pool management
 
-use sqlx::mysql::MySqlPoolOptions;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::{MySql, Postgres, SqlitePool};
+use sqlx::{Postgres, SqlitePool};
 
 use crate::config::DatabaseConfig;
 use common::error::{AppError, Result};
@@ -11,7 +10,6 @@ use common::error::{AppError, Result};
 pub enum DatabasePool {
     Sqlite(SqlitePool),
     Postgres(sqlx::Pool<Postgres>),
-    MySql(sqlx::Pool<MySql>),
 }
 
 pub async fn create_pool(config: &DatabaseConfig) -> Result<DatabasePool> {
@@ -37,18 +35,39 @@ pub async fn create_pool(config: &DatabaseConfig) -> Result<DatabasePool> {
             Ok(DatabasePool::Postgres(pool))
         }
         "mysql" => {
-            let pool = MySqlPoolOptions::new()
-                .max_connections(config.max_connections)
-                .connect(&config.url)
-                .await
-                .map_err(|e| {
-                    AppError::DatabaseError(format!("Failed to connect to MySQL: {}", e))
-                })?;
-            Ok(DatabasePool::MySql(pool))
+            Err(AppError::ConfigError(
+                "MySQL repositories are not implemented; use sqlite for development or postgres for production"
+                    .to_string(),
+            ))
         }
         _ => Err(AppError::ConfigError(format!(
             "Unsupported database type: {}",
             config.database_type
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn mysql_fails_before_opening_pool() {
+        let config = DatabaseConfig {
+            database_type: "mysql".to_string(),
+            url: "mysql://127.0.0.1:1/evolith".to_string(),
+            max_connections: 1,
+            seed_database: false,
+        };
+
+        let err = match create_pool(&config).await {
+            Ok(_) => panic!("mysql should fail fast"),
+            Err(err) => err,
+        };
+
+        assert!(matches!(err, AppError::ConfigError(_)));
+        assert!(err
+            .to_string()
+            .contains("MySQL repositories are not implemented"));
     }
 }

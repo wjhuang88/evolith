@@ -1,7 +1,7 @@
 //! Skill executor
 
 use async_trait::async_trait;
-use common::error::Result;
+use common::error::{AppError, Result};
 use serde::{Deserialize, Serialize};
 
 /// Skill execution request
@@ -48,13 +48,33 @@ impl DefaultSkillExecutor {
 #[async_trait]
 impl SkillExecutor for DefaultSkillExecutor {
     async fn execute(&self, _request: ExecuteRequest) -> Result<ExecuteResponse> {
-        Ok(ExecuteResponse {
-            result: serde_json::json!({ "message": "Skill execution not implemented" }),
-            stdout: String::new(),
-            stderr: String::new(),
-            exit_code: 0,
-            execution_time_ms: 0,
-            timed_out: false,
-        })
+        Err(AppError::ConfigError(
+            "Skill execution is unavailable because the sandbox executor is disabled or not initialized"
+                .to_string(),
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn default_executor_returns_explicit_error() {
+        let executor = DefaultSkillExecutor::new();
+        let request = ExecuteRequest {
+            skill_id: "skill-1".to_string(),
+            code: "print('hello')".to_string(),
+            language: "python311".to_string(),
+            parameters: serde_json::json!({}),
+        };
+
+        let err = executor
+            .execute(request)
+            .await
+            .expect_err("default executor must not return a success response");
+
+        assert!(matches!(err, AppError::ConfigError(_)));
+        assert!(err.to_string().contains("Skill execution is unavailable"));
     }
 }

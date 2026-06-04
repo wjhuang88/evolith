@@ -14,10 +14,11 @@
 | 3 | 修改 ConfigMap/Nginx/Compose 后线上不生效 | Git 提交不等于部署刷新 | 按发布 SOP 执行重建、重启或重新 apply |
 | 4 | SQLite 与 PostgreSQL 行为不一致 | 只改了一侧 migration/repository | 同步修改 `migrations/sqlite`、`migrations/postgres` 和两套 repository |
 | 5 | CSRF 403 | 状态变更请求缺少 `csrf_token` cookie 或 `X-CSRF-Token` header | 先完成登录/刷新，再由 API client 自动带 header |
-| 6 | Skill 执行未进入 Docker 沙箱 | Docker 初始化失败后降级到 default executor | 查看后端启动日志中的 sandbox warn |
+| 6 | `SANDBOX__ENABLED=true` 时服务启动失败 | Docker executor 初始化失败；现在不再降级成伪成功 default executor | 本地不执行 skill 时设 `SANDBOX__ENABLED=false`；需要执行时先启动 Docker 并构建 sandbox 镜像 |
 | 7 | lite 模式种子账号不能登录 | migrations 中的测试/admin 密码哈希是占位值，且 SQLite 内存库重启即清空 | 启动后通过注册接口创建临时账号 |
 | 8 | 前端改了但 release 二进制没更新 | `rust-embed-for-web` proc macro 不跟踪 dist 目录变更 | 确认 `build.rs` 中有 `cargo:rerun-if-changed` 指向前端 dist |
 | 9 | `cargo fmt --check` 退出码 1 但 0 个文件 diff | `rustfmt.toml` 含 nightly-only 选项被 stable 静默忽略 | 先跑 `cargo fmt --check 2>&1 \| grep nightly`；有 warning 就删除 nightly-only 选项或切 nightly toolchain |
+| 10 | `DATABASE__DATABASE_TYPE=mysql` 启动失败 | MySQL repositories 未实现；配置/连接池会快速拒绝 | 使用 SQLite 开发或 PostgreSQL 生产；不要把 MySQL 当成可用后端 |
 
 ---
 

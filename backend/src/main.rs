@@ -5,7 +5,7 @@ use std::sync::Arc;
 use actix_cors::Cors;
 use actix_governor::Governor;
 use actix_web::{middleware, web, App, HttpServer};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use api::configure_routes;
@@ -63,7 +63,8 @@ async fn main() -> Result<()> {
     // Initialize mailer (SMTP if enabled, falls back to console)
     let mailer: Arc<dyn infra::mailer::Mailer> = Arc::from(create_mailer(&config.smtp));
 
-    // Initialize skill executor (sandbox or default fallback)
+    // Initialize skill executor. When sandbox is explicitly enabled, executor startup must fail
+    // fast so infrastructure failure is not reported as a successful no-op execution.
     let skill_executor: Arc<dyn SkillExecutor> = if config.sandbox.enabled {
         let sandbox_config = SandboxConfig::from_infra(&config.sandbox);
         match DockerExecutor::new(sandbox_config) {
@@ -72,11 +73,15 @@ async fn main() -> Result<()> {
                 Arc::new(executor)
             }
             Err(e) => {
-                warn!(
-                    "Failed to initialize Docker executor: {}. Falling back to default executor.",
+                error!(
+                    "Failed to initialize Docker executor while sandbox is enabled: {}",
                     e
                 );
-                Arc::new(DefaultSkillExecutor::new())
+                return Err(common::error::AppError::ConfigError(format!(
+                    "Sandbox is enabled but Docker executor could not be initialized: {}. \
+Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
+                    e
+                )));
             }
         }
     } else {
@@ -150,11 +155,6 @@ async fn main() -> Result<()> {
                 skill_executor: skill_executor.clone(),
                 tool_executor: tool_executor.clone(),
             }
-        }
-        DatabasePool::MySql(_pool) => {
-            return Err(common::error::AppError::ConfigError(
-                "MySQL repositories not yet implemented. Use SQLite for development.".to_string(),
-            ));
         }
     };
 

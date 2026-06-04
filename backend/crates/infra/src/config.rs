@@ -32,7 +32,7 @@ pub struct ServerConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
-    /// Database type: sqlite, postgres, mysql
+    /// Database type: sqlite or postgres
     pub database_type: String,
     /// Database URL
     pub url: String,
@@ -166,14 +166,20 @@ impl AppConfig {
         }
 
         // Validate database config
-        if !matches!(
-            self.database.database_type.to_lowercase().as_str(),
-            "sqlite" | "postgres" | "postgresql" | "mysql"
-        ) {
-            return Err(ConfigError::Message(format!(
-                "Unsupported database type: {}",
-                self.database.database_type
-            )));
+        match self.database.database_type.to_lowercase().as_str() {
+            "sqlite" | "postgres" | "postgresql" => {}
+            "mysql" => {
+                return Err(ConfigError::Message(
+                    "MySQL repositories are not implemented; use sqlite for development or postgres for production"
+                        .to_string(),
+                ));
+            }
+            _ => {
+                return Err(ConfigError::Message(format!(
+                    "Unsupported database type: {}",
+                    self.database.database_type
+                )));
+            }
         }
 
         // Validate JWT secret in production
@@ -244,5 +250,96 @@ impl AppConfig {
     /// Check if running in production mode
     pub fn is_production(&self) -> bool {
         !self.is_development()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn valid_config() -> AppConfig {
+        AppConfig {
+            app: AppMetaConfig {
+                public_url: "http://localhost:3001".to_string(),
+            },
+            server: ServerConfig {
+                host: "127.0.0.1".to_string(),
+                port: 8080,
+            },
+            database: DatabaseConfig {
+                database_type: "sqlite".to_string(),
+                url: ":memory:".to_string(),
+                max_connections: 5,
+                seed_database: false,
+            },
+            redis: RedisConfig {
+                url: "redis://localhost:6379".to_string(),
+            },
+            jwt: JwtConfig {
+                secret: "test_secret_key_for_config_tests_32chars".to_string(),
+                expiration: "1h".to_string(),
+            },
+            storage: StorageConfig {
+                endpoint: "localhost:9000".to_string(),
+                access_key: "test".to_string(),
+                secret_key: "test".to_string(),
+                use_ssl: false,
+                bucket: "test".to_string(),
+            },
+            sandbox: SandboxConfig {
+                enabled: true,
+                timeout_seconds: 30,
+                memory_mb: 256,
+                cpu_shares: 512,
+                pids_limit: 256,
+                network_enabled: false,
+                max_output_bytes: 10485760,
+            },
+            log: LogConfig {
+                level: "info".to_string(),
+            },
+            stripe: StripeConfig {
+                secret_key: "sk_test_placeholder".to_string(),
+                webhook_secret: "whsec_placeholder".to_string(),
+                api_version: None,
+                test_mode: true,
+            },
+            smtp: SmtpConfig {
+                host: "localhost".to_string(),
+                port: 1025,
+                username: String::new(),
+                password: String::new(),
+                from_address: "noreply@evolith.io".to_string(),
+                from_name: "Evolith".to_string(),
+                enabled: false,
+            },
+            rate_limit: RateLimitConfig {
+                unauthenticated_rpm: 30,
+                authenticated_rpm: 300,
+                api_key_rpm: 1000,
+            },
+        }
+    }
+
+    #[test]
+    fn rejects_mysql_database_type() {
+        let mut config = valid_config();
+        config.database.database_type = "mysql".to_string();
+        config.database.url = "mysql://localhost/evolith".to_string();
+
+        let err = config.validate().expect_err("mysql must fail fast");
+
+        assert!(err
+            .to_string()
+            .contains("MySQL repositories are not implemented"));
+    }
+
+    #[test]
+    fn accepts_postgresql_alias() {
+        let mut config = valid_config();
+        config.database.database_type = "postgresql".to_string();
+        config.database.url = "postgres://localhost/evolith".to_string();
+
+        config.validate().expect("postgresql alias should be valid");
     }
 }
