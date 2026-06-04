@@ -50,7 +50,7 @@ impl UserRepository for SqliteUserRepository {
         .bind(tenant_id.to_string())
         .bind(&user.username)
         .bind(&user.email)
-        .bind(&user.password) // TODO: Hash password
+        .bind(&user.password_hash)
         .bind(role_str)
         .bind(tenant_role_str)
         .bind(false)
@@ -64,7 +64,7 @@ impl UserRepository for SqliteUserRepository {
             id,
             username: user.username,
             email: user.email,
-            password_hash: user.password,
+            password_hash: user.password_hash,
             role: UserRole::default(),
             tenant_id,
             tenant_role,

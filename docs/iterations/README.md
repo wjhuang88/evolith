@@ -42,6 +42,7 @@
 - [Iteration 036](ITERATION-036.md) — Governance board operating view（EVO-077；Closed：派生 Board 建立并验证通过）。
 - [Iteration 037](ITERATION-037.md) — 最近开发任务治理漂移修复（EVO-078；Closed：Board / iteration 目录 / DESIGN 归类 / EVO-045-A 补齐）。
 - [Iteration 038](ITERATION-038.md) — 假可用快速失败修复（EVO-052 / EVO-056；Closed：MySQL 快速失败 + sandbox fail-fast）。
+- [Iteration 039](ITERATION-039.md) — 后端死代码与误导性注释清理（EVO-051；Closed：删除 10 个死代码文件 + NewUser.password → password_hash 重命名 + 282 tests passed）。
 
 ## 未来计划
 
@@ -111,6 +112,9 @@
 - [Iteration 038](ITERATION-038.md) — `Closed`：EVO-052 / EVO-056 完成。
   MySQL 不再被配置/连接池当成可用后端；sandbox 启用时 Docker executor 初始化失败
   不再降级为 `DefaultSkillExecutor` 伪成功。
+- [Iteration 039](ITERATION-039.md) — `Closed`：EVO-051 后端死代码与误导性注释清理。
+  删除 10 个死代码文件 + 6 个 mod 声明清理 + TODO 注释移除 +
+  NewUser.password → password_hash 全量重命名（21 处）；282 tests passed。
 
 ## 下一周建议顺序
 
@@ -119,7 +123,7 @@
 
 1. **EVO-045-A**（新 iteration）— ExecutionProvider 统一 trait + Docker 容器池化（EVO-048 Spike 输出的关键路径首步；依赖 EVO-048 Done）。
 2. **新进 Ready 待评估**：
-   - EVO-051 / 057 / 058（健康审查 P2 Ready，可独立启动微迭代）
+   - EVO-057 / 058（健康审查 P2 Ready，可独立启动微迭代）
 
 ## 命名
 

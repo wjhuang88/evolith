@@ -70,7 +70,7 @@
 | EVO-049-A | Skill/CLI 规范兼容数据模型基线 | tech-debt | P0 | Done | EVO-049 split / Iteration 034 | 2026-06-04 完成：migration 006（skills +13 列 / snippets +8 列）；domain/DTO/repository 全量更新；SnippetRepository 新增 update 方法；282 tests passed（+8 新增） |
 | EVO-049-B | Skill/CLI parser 接线与校验报告 | feature | P0 | Blocked | EVO-049 split | 依赖 EVO-049-A；将 parser 接入创建/更新并输出 blocking error / warning |
 | EVO-050 | Skill/CLI 评分与质量体系 | feature | P1 | Proposed | 用户反馈 2026-05-29 | 平台提供 Skill/CLI 组件的评分能力：用户评分、使用统计、质量评估，支撑生态发现和信任 |
-| EVO-051 | 误导性注释、命名与后端死代码清理 | tech-debt | P2 | Ready | 代码健康审查 2026-06-01 | 删除 `// TODO: Hash password` 误导注释、`NewUser.password`→`password_hash`、修正 db/sqlite.rs 与 db/postgres.rs 失效占位注释，并删除未接线的 guards.rs/registry/reference/search/error.rs 后端死代码；纯清晰度，无行为变更 |
+| EVO-051 | 误导性注释、命名与后端死代码清理 | tech-debt | P2 | Done | 代码健康审查 2026-06-01 | Iteration 039 收口（2026-06-04）：删除 10 个死代码文件 + 6 个 mod 声明清理 + TODO 注释移除 + NewUser.password → password_hash 全量重命名（21 处）；282 tests passed |
 | EVO-052 | MySQL 半接线收敛与快速失败 | tech-debt | P2 | Done | 代码健康审查 2026-06-01 / Iteration 038 | 2026-06-04 完成：config validate + create_pool 对 mysql 快速失败；main.rs 后置 MySql 分支移除；CONFIG/EVOLUTION 同步 |
 | EVO-053 | 测试盲区补齐 | tech-debt | P2 | Proposed | 代码健康审查 2026-06-01 | service-audit 零测试、8 个 repo 集成测试仅覆盖 SQLite，PostgreSQL repository 无集成测试；PG 测试基础设施待与 EVO-030 CI 协调 |
 | EVO-054 | backlog 状态漂移与编号一致性修复 | bug | P1 | Done | 代码健康审查 2026-06-01 / Iteration 035 | 2026-06-01 完成：EVO-016-B 详情块 In Progress → Done、EVO-026 详情块 Ready → Done（额外漂移）、EVO-042 缺号登记 Dropped 行；详情块 100% 与总表一致 |
@@ -1228,12 +1228,12 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
   - 不清理前端死代码（归 EVO-058）。
   - 不改任何运行时行为。
 - 验收标准：
-  - [ ] `rg "TODO: Hash password" backend/` 无结果。
-  - [ ] `NewUser.password` 全仓无引用，`password_hash` 字段贯通构造点与 repository 绑定。
-  - [ ] `db/sqlite.rs` / `db/postgres.rs` 不再出现 "not implemented / TODO: Implement repositories" 失效描述。
-  - [ ] `guards.rs` / 三个 registry/repository 桩 / reference.rs / search.rs / error.rs 已删除，且对应 `mod` 声明清理干净。
-  - [ ] `rg "dev_secret_key_for_testing_only" backend/` 无结果。
-  - [ ] `cargo test --workspace` 与 `cargo clippy --workspace -- -D warnings` 通过（证明纯命名/注释/死代码删除未破坏行为）。
+  - [x] `rg "TODO: Hash password" backend/` 无结果。
+  - [x] `NewUser.password` 全仓无引用，`password_hash` 字段贯通构造点与 repository 绑定。
+  - [x] `db/sqlite.rs` / `db/postgres.rs` 不再出现 "not implemented / TODO: Implement repositories" 失效描述。
+  - [x] `guards.rs` / 三个 registry/repository 桩 / reference.rs / search.rs / error.rs 已删除，且对应 `mod` 声明清理干净。
+  - [x] `rg "dev_secret_key_for_testing_only" backend/` 无结果。
+  - [x] `cargo test --workspace` 与 `cargo clippy --workspace -- -D warnings` 通过（证明纯命名/注释/死代码删除未破坏行为）。
 - 依赖或阻塞：无。
 - 解锁内容：减少 EVO-049-A 数据模型改造时对密码字段语义的误读；缩小鉴权相关攻击面（删除硬编码 secret 死路径）。
 - 影响范围：backend

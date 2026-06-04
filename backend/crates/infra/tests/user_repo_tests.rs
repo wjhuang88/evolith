@@ -40,10 +40,10 @@ async fn test_create_user() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "testuser".to_string(),
-        email: "test@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let user = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -65,10 +65,10 @@ async fn test_find_by_id() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "findbyid".to_string(),
-        email: "findbyid@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "findbyid".to_string(),
+            email: "findbyid@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -98,10 +98,10 @@ async fn test_find_by_email() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "emailuser".to_string(),
-        email: "emailuser@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "emailuser".to_string(),
+            email: "emailuser@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -122,10 +122,10 @@ async fn test_find_by_username() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "usernameuser".to_string(),
-        email: "usernameuser@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "usernameuser".to_string(),
+            email: "usernameuser@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -149,10 +149,10 @@ async fn test_update_username() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "originalname".to_string(),
-        email: "original@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "originalname".to_string(),
+            email: "original@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -176,10 +176,10 @@ async fn test_update_email() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "emailupdater".to_string(),
-        email: "oldemail@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "emailupdater".to_string(),
+            email: "oldemail@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -203,10 +203,10 @@ async fn test_delete_user() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "deleteuser".to_string(),
-        email: "deleteuser@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "deleteuser".to_string(),
+            email: "deleteuser@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -226,10 +226,10 @@ async fn test_verify_email() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "verifyuser".to_string(),
-        email: "verifyuser@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "verifyuser".to_string(),
+            email: "verifyuser@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -253,10 +253,10 @@ async fn test_set_and_find_verify_token() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "tokenuser".to_string(),
-        email: "tokenuser@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "tokenuser".to_string(),
+            email: "tokenuser@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -280,10 +280,10 @@ async fn test_set_and_find_reset_token() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "resetuser".to_string(),
-        email: "resetuser@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "resetuser".to_string(),
+            email: "resetuser@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -311,10 +311,10 @@ async fn test_clear_reset_token() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "clearreset".to_string(),
-        email: "clearreset@example.com".to_string(),
-        password: "password123".to_string(),
-    };
+            username: "clearreset".to_string(),
+            email: "clearreset@example.com".to_string(),
+            password_hash: "password123".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)
@@ -344,10 +344,10 @@ async fn test_update_password() {
     let repo = SqliteUserRepository::new(pool.clone());
 
     let new_user = NewUser {
-        username: "pwduser".to_string(),
-        email: "pwduser@example.com".to_string(),
-        password: "oldpassword".to_string(),
-    };
+            username: "pwduser".to_string(),
+            email: "pwduser@example.com".to_string(),
+            password_hash: "oldpassword".to_string(),
+        };
 
     let created = repo
         .create(new_user, tenant_id, TenantRole::Member)

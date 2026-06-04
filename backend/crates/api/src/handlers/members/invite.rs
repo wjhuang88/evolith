@@ -231,7 +231,7 @@ pub async fn accept_invitation(
     let new_user = NewUser {
         username: body.username.clone(),
         email: invitation.email.clone(),
-        password: password_hash,
+        password_hash,
     };
 
     let tenant_role = match invitation.role.as_str() {

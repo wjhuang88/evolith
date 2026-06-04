@@ -79,7 +79,7 @@ pub async fn register(
     let new_user = NewUser {
         username: body.username.clone(),
         email: body.email.clone(),
-        password: password_hash,
+        password_hash,
     };
 
     // Generate a temporary user ID for tenant creation

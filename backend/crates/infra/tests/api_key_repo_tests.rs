@@ -37,10 +37,10 @@ async fn create_test_tenant_and_user(pool: &sqlx::SqlitePool) -> (Uuid, Uuid) {
     let user = user_repo
         .create(
             NewUser {
-                username: "apikeyuser".to_string(),
-                email: "apikeyuser@apikeytest.com".to_string(),
-                password: "password123".to_string(),
-            },
+                    username: "apikeyuser".to_string(),
+                    email: "apikeyuser@apikeytest.com".to_string(),
+                    password_hash: "password123".to_string(),
+                },
             tenant.id,
             TenantRole::Admin,
         )

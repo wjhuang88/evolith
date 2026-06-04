@@ -81,10 +81,10 @@ async fn test_update_usage_counts_users() {
     user_repo
         .create(
             NewUser {
-                username: "actualuser".to_string(),
-                email: "actualuser@usagetest.com".to_string(),
-                password: "password123".to_string(),
-            },
+                    username: "actualuser".to_string(),
+                    email: "actualuser@usagetest.com".to_string(),
+                    password_hash: "password123".to_string(),
+                },
             tenant.id,
             TenantRole::Member,
         )
@@ -220,10 +220,10 @@ async fn test_update_usage_counts_multiple_users() {
     user_repo
         .create(
             NewUser {
-                username: "user1".to_string(),
-                email: "user1@usagetest.com".to_string(),
-                password: "password123".to_string(),
-            },
+                    username: "user1".to_string(),
+                    email: "user1@usagetest.com".to_string(),
+                    password_hash: "password123".to_string(),
+                },
             tenant.id,
             TenantRole::Member,
         )
@@ -233,10 +233,10 @@ async fn test_update_usage_counts_multiple_users() {
     user_repo
         .create(
             NewUser {
-                username: "user2".to_string(),
-                email: "user2@usagetest.com".to_string(),
-                password: "password123".to_string(),
-            },
+                    username: "user2".to_string(),
+                    email: "user2@usagetest.com".to_string(),
+                    password_hash: "password123".to_string(),
+                },
             tenant.id,
             TenantRole::Member,
         )

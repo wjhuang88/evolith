@@ -48,7 +48,7 @@ pub struct NewUser {
     #[validate(email)]
     pub email: String,
     #[validate(length(min = 8))]
-    pub password: String,
+    pub password_hash: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
@@ -110,7 +110,7 @@ mod tests {
         NewUser {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
-            password: "TestPass123!".to_string(),
+            password_hash: "TestPass123!".to_string(),
         }
     }
 
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn test_new_user_password_too_short() {
         let mut user = valid_new_user();
-        user.password = "short".to_string(); // Min 8 chars
+        user.password_hash = "short".to_string(); // Min 8 chars
         let result = user.validate();
         assert!(result.is_err());
     }

@@ -5,7 +5,5 @@
 pub mod discovery;
 pub mod executor;
 pub mod mcp;
-pub mod registry;
 
 pub use executor::ToolExecutor;
-pub use registry::ToolRegistry;

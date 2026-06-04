@@ -21,10 +21,7 @@ pub mod pg_tool_repo;
 pub mod pg_user_repo;
 
 // Database drivers
-pub mod mysql;
 pub mod pool;
-pub mod postgres;
-pub mod sqlite;
 
 // SQLite re-exports
 pub use api_key_repo::SqliteApiKeyRepository;
