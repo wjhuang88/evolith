@@ -739,7 +739,7 @@ ENVIRONMENT=production
 | `APP__PUBLIC_URL` | 对外访问入口，用于邮件链接等绝对 URL | `http://localhost:3001` |
 | `CORS__ALLOWED_ORIGIN` | 允许的前端域名 | `http://localhost:3001` |
 | `CSRF__ENABLED` | CSRF 保护开关 | `true` |
-| `SANDBOX__ENABLED` | 沙箱执行器开关 | `true` |
+| `SANDBOX__ENABLED` | 沙箱执行器开关 | `false` |
 | `SANDBOX__TIMEOUT_SECONDS` | 沙箱执行超时 | `30` |
 | `SANDBOX__MEMORY_MB` | 沙箱内存限制 | `256` |
 | `RATE_LIMIT__UNAUTHENTICATED_RPM` | 未认证请求限流 | `30` |

@@ -62,7 +62,7 @@
 | EVO-043 | 后端依赖全量版本审计与迁移 | tech-debt | P1 | Done | Iteration 032 | 2026-06-01 完成：36 个 workspace 功能依赖 + 3 个 path dep + 3 个 crate 私有 dep 完整审计；cargo check 0 / cargo test 274 pass；22 个保留（caret 已覆盖 latest stable，无需修改 Cargo.toml）；14 个 workspace 大版本升级 + 2 个 crate 私有 deprecation → EVO-061~076（16 个新 backlog 项全部 P3 Proposed）；clippy 18 errors 归口 EVO-059 不并入 |
 | EVO-044 | 前端 CLI 命名简化 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | 导航、页面、i18n 中 "CLI Interfaces" / "CLI 接口" 统一简化为 "CLI" |
 | EVO-045 | CLI 命令执行引擎（Serverless） | feature | P0 | Proposed | 用户反馈 2026-05-29 | CLI 从纯文本记录升级为可执行命令接口，支持 serverless 执行环境或外部执行信息记录 |
-| EVO-045-A | ExecutionProvider 统一 trait + Docker 容器池化 | tech-debt | P0 | In Progress | EVO-045 split / EVO-048 输出 | Iteration 041 激活（2026-06-04）；EVO-045 关键路径首步：基于 Spike 输出建立统一执行接口与本地容器池基础，不直接实现 CLI endpoint |
+| EVO-045-A | ExecutionProvider 统一 trait + Docker 容器池化 | tech-debt | P0 | Done | EVO-045 split / EVO-048 输出 / Iteration 041 | 2026-06-04 完成；2026-06-05 回归修复：sandbox 默认关闭，lite/local 启动不依赖 Docker，显式启用仍 fail-fast |
 | EVO-046 | Skill 可下载制品与 Agent 一键安装 | product-change | P1 | Proposed | 用户反馈 2026-05-29 | Skill 从服务端执行改为可下载制品（ClawHub 模式），支持搜索、下载和一键安装到 Agent 工作空间 |
 | EVO-047 | MCP 工具 Serverless 执行 | feature | P1 | Proposed | 用户反馈 2026-05-29 | MCP 工具支持 serverless 执行环境或外部执行信息记录，与 CLI 共享执行基础设施 |
 | EVO-048 | Serverless 执行架构设计 Spike | spike | P0 | Done | EVO-045/047 前置 / Iteration 033 | Iteration 033 收口（2026-06-03）：输出 `docs/proposals/SERVERLESS-RUNTIME.md`（11 节）；Phase 7 sandbox 复用结论=部分复用；统一 ExecutionProvider 接口设计；冷启动方法学（已缓存 ~350ms-1800ms / 池模式 ~50-200ms，实测待 Docker）；Vercel 演进路径 + 组件替换清单；EVO-045/047 依赖图 + 推荐实施顺序；本机无 Docker，冷启动实测 conditional |
@@ -98,6 +98,10 @@
 | EVO-076 | serde_yaml 0.9 → serde_yml / serde_norway 迁移 | tech-debt | P3 | Proposed | Iteration 032 依赖审计暂缓项 | 上游 serde_yaml 0.9 已 deprecate；建议迁移到 `serde_yml`（社区 fork）或 `serde_norway`（纯 Rust 替代）；影响 `service-skill` + `service-snippet` 的 YAML 解析路径 |
 | EVO-077 | Governance board 派生运营视图 | governance | P1 | Done | 用户反馈 2026-06-03 / Iteration 036 | 按 agent-project-governance skill 标准新增 `docs/BOARD.md`，只汇总 owner docs 与 gate，不作为新状态源；验证通过并收口 |
 | EVO-078 | 最近开发任务治理漂移修复 | governance | P1 | Done | 用户反馈 2026-06-04 / Iteration 037 | 修复 Board / iterations README / Iteration 029 / Iteration 033 / 设计文档归类 / 文档断链漂移；补齐 EVO-045-A 子任务；记录近期 Figma 与脚本任务治理归口 |
+| EVO-079 | sandbox 默认启用导致本地启动依赖 Docker 回归修复 | bug | P1 | Done | 用户反馈 2026-06-05 / Iteration 041 follow-up | 将 `sandbox.enabled`、`.env.development`、`.env.example` 默认改为 false；显式启用 sandbox 时仍保留 Docker fail-fast |
+| EVO-080 | Spike: 验证 Wasmer/WASI 替代 Docker sandbox 可行性 | spike | P1 | Ready | 用户反馈 2026-06-05 / Docker 依赖反思 | 评估 Wasmer/Wasmtime/WASI 能否承接 Skill/CLI/MCP 执行；输出 ADR 或提案更新，不直接替换运行时 |
+| EVO-081 | 内部文档页面基于独立 Markdown 目录渲染 | feature | P1 | Ready | 用户反馈 2026-06-05 | 新增内部文档页面，文档源放独立 md 目录，前端根据目录渲染文档列表和详情 |
+| EVO-082 | evolution feedback SOP 缺失导致治理 validator 失败修复 | governance | P1 | Done | 本轮治理验证 2026-06-05 | 补 `docs/sop/EVOLUTION-FEEDBACK.md` 并从 AGENTS/docs README 路由，恢复 governance validator |
 
 
 ## 故事模板
@@ -1809,3 +1813,127 @@ EVO-049 Phase 1（数据模型）→ Phase 2（Parser 接线）→ Phase 3（打
 - 解锁内容：后续可按 START-ITERATION 在 Iteration 034、EVO-045-A 或 P2 Ready 微迭代之间做显式选择。
 - 影响范围：docs。
 - 最小验证方式：文档链接检查；`sh /Users/GHuang/WorkSpace/AiProjects/skill-sources/agent-project-governance/skills/agent-project-governance/scripts/validate_project_governance.sh /Users/GHuang/WorkSpace/AiProjects/evolith`；`git diff --check`。
+
+### EVO-079 sandbox 默认启用导致本地启动依赖 Docker 回归修复
+
+- 类型：bug
+- 优先级：P1
+- 状态：Done
+- 父 Epic：无
+- Story 形态：Technical
+- 用户价值或技术目标：
+  - 为了：恢复 lite/local 开发启动不依赖 Docker 的既有约束。
+  - 维护者需要：默认配置不启用 sandbox；只有显式 `SANDBOX__ENABLED=true` 时才要求 Docker executor 可初始化。
+  - 以便：`cargo run` / `./scripts/dev.sh lite` 能在无 Docker 环境启动，同时不回退到 sandbox 伪成功。
+- 范围：
+  - `AppConfig` 的 `sandbox.enabled` 默认值改为 `false`。
+  - `.env.development` / `.env.example` 的 `SANDBOX__ENABLED` 改为 `false`。
+  - 同步 AGENTS、CONFIG、EVOLUTION、Iteration 041 和 Board 的状态口径。
+- 不做：
+  - 不恢复 Docker 初始化失败时的 fallback。
+  - 不改容器池实现。
+  - 不改 production compose；其默认已经是 `SANDBOX_ENABLED:-false`。
+- 验收标准：
+  - [x] 不设置 `SANDBOX__ENABLED` 时，配置默认 sandbox 关闭。
+  - [x] `.env.development` / `.env.example` 默认 sandbox 关闭。
+  - [x] `SANDBOX__ENABLED=true` 仍保留 Docker 初始化 fail-fast。
+  - [x] `cargo check --workspace`、配置测试、治理校验和 `git diff --check` 通过。
+- 技术备注：
+  - 本修复是 Iteration 041 的 follow-up regression fix；根因是 fail-fast 行为正确，但默认值没有从“执行能力默认启用”调整成“开发启动默认不依赖 Docker”。
+- 依赖或阻塞：无。
+- 解锁内容：恢复本地开发体验，同时保留显式 sandbox 的失败可见性。
+- 影响范围：backend config / env / docs。
+- 最小验证方式：`cargo test -p infra config`；`cargo check --workspace`；文档治理 validator。
+
+### EVO-080 Spike: 验证 Wasmer/WASI 替代 Docker sandbox 可行性
+
+- 类型：spike
+- 优先级：P1
+- 状态：Ready
+- 父 Epic：EVO-045 / EVO-047 执行基础设施方向参考
+- Story 形态：Spike
+- 问题：
+  - Wasmer / WASI 是否能让 Evolith 的 Skill、CLI 和 MCP tool 执行摆脱 Docker daemon 依赖？
+  - 如果可行，现有 Python/Node sandbox、ExecutionProvider、权限模型、文件/网络隔离和执行协议需要怎样改造？
+- 时间盒：1 个微迭代。
+- 候选方案：
+  - Wasmer / WASIX 嵌入 Rust 后端，作为 `ExecutionProvider` 的新实现。
+  - Wasmtime / WASI 作为对照方案。
+  - 保留 Docker provider，仅把 lite/local 默认关闭作为当前稳定路径。
+- 输出：
+  - 更新 `docs/proposals/SERVERLESS-RUNTIME.md` 或新增 ADR，给出采用、暂缓或放弃 Wasmer 的结论。
+  - 明确 PoC 需要执行的最小 guest 程序、权限边界、依赖打包方式和性能/安全验证。
+  - 如可行，拆出一个不超过 0.5-2 天的实现 Story；如不可行，记录阻断条件。
+- 不做：
+  - 不直接替换 Docker provider。
+  - 不改生产执行路径。
+  - 不承诺 Python/Node 代码无需编译即可在 Wasm 中运行。
+- 验收标准：
+  - [ ] 明确 Wasmer 是否能覆盖当前执行需求；不能覆盖时列出具体缺口。
+  - [ ] 至少比较 Wasmer、Wasmtime 和现有 Docker provider 的隔离边界、冷启动、语言支持和运维依赖。
+  - [ ] 输出 ADR/提案更新和下一步 backlog 归口。
+- 依赖或阻塞：EVO-045-A 已完成 ExecutionProvider 基线；需要查阅 Wasmer/Wasmtime 当前官方能力。
+- 解锁内容：决定是否建立非 Docker 本地执行路线。
+- 影响范围：docs / backend execution architecture。
+- 最小验证方式：官方文档调研；必要时最小 Wasm/WASI PoC；`git diff --check`。
+
+### EVO-081 内部文档页面基于独立 Markdown 目录渲染
+
+- 类型：feature
+- 优先级：P1
+- 状态：Ready
+- 父 Epic：无
+- Story 形态：Product / User Story
+- 用户故事：
+  - 作为 Evolith 平台用户，
+  - 我希望在应用内查看内部文档页面，
+  - 以便不用离开平台即可浏览团队维护的 Markdown 文档。
+- 范围：
+  - 新增一个独立文档源目录，专门存放内部文档 Markdown。
+  - 新增前端内部文档页面，从该目录生成/读取文档列表并渲染 Markdown 详情。
+  - 支持至少标题、正文、基础 Markdown 排版和空状态。
+  - 在导航或路由中接入文档页面。
+- 不做：
+  - 不实现在线编辑、权限分级、版本历史或全文搜索。
+  - 不混用 `docs/` 治理文档作为应用内文档源。
+  - 不新增后端数据库模型，除非实现时证明静态/构建时加载不可行。
+- 验收场景：
+  - Given 独立文档目录中存在至少一篇 Markdown 文档
+    When 用户打开内部文档页面
+    Then 页面展示文档列表，并能打开对应详情查看渲染后的内容
+  - Given 独立文档目录为空
+    When 用户打开内部文档页面
+    Then 页面展示空状态，不报错
+  - Given Markdown 包含标题、列表和代码块
+    When 用户查看详情
+    Then 基础格式正确渲染且前端构建通过
+- 依赖或阻塞：需在实现前确认文档源目录命名和路由命名；默认可采用 `frontend/content/docs/` 与 `/docs` 或 `/internal-docs`。
+- 解锁内容：后续可扩展内部知识库、搜索和权限。
+- 影响范围：frontend / docs。
+- 最小验证方式：`bun run build`；必要时 Playwright 打开文档页面验证列表和详情。
+
+### EVO-082 evolution feedback SOP 缺失导致治理 validator 失败修复
+
+- 类型：governance
+- 优先级：P1
+- 状态：Done
+- 父 Epic：无
+- Story 形态：Governance
+- 失败模式：
+  - `.agent-governance/manifest.yaml` 将 `evolution_feedback` 标为 conformant，但仓库缺少 `docs/sop/EVOLUTION-FEEDBACK.md`，且 `AGENTS.md` 未路由该 SOP。
+  - governance validator 因此失败，阻塞本轮收口。
+- 范围：
+  - 新增 `docs/sop/EVOLUTION-FEEDBACK.md`。
+  - 更新 `AGENTS.md` 的经验写回规则和 Task Router。
+  - 更新 `docs/README.md` 文档地图。
+- 不做：
+  - 不重构 `EVOLUTION.md` 历史内容。
+  - 不修改治理 skill validator。
+- 验收标准：
+  - [x] `docs/sop/EVOLUTION-FEEDBACK.md` 存在。
+  - [x] `AGENTS.md` 包含 `docs/sop/EVOLUTION-FEEDBACK.md` 路由。
+  - [x] governance validator 通过。
+- 依赖或阻塞：无。
+- 解锁内容：恢复项目治理声明与实际文档一致。
+- 影响范围：docs / AGENTS.md。
+- 最小验证方式：governance validator；Markdown 链接检查；`git diff --check`。

@@ -121,17 +121,19 @@
   删除 7 个死代码文件（-139 行）+ uiStore re-export 移除 +
   skillsApi.versions 假实现移除 + 重复 User 接口合并；
   bun run build + tsc 0 errors。
-- [Iteration 041](ITERATION-041.md) — `Active / In Progress`：EVO-045-A
-  ExecutionProvider 统一 trait + Docker 容器池化；2026-06-04 激活。
+- [Iteration 041](ITERATION-041.md) — `Closed`：EVO-045-A
+  ExecutionProvider 统一 trait + Docker 容器池化。2026-06-05 follow-up 修复 sandbox
+  默认启用导致 lite/local 启动依赖 Docker 的回归。
 
 ## 下一周建议顺序
 
 该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
 并记录库存 disposition：
 
-1. **EVO-045-A**（新 iteration）— ExecutionProvider 统一 trait + Docker 容器池化（EVO-048 Spike 输出的关键路径首步；依赖 EVO-048 Done）。
-2. **新进 Ready 待评估**：
-   - EVO-057 / 058（健康审查 P2 Ready，可独立启动微迭代）
+1. **新进 Ready 待评估**：
+   - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
+   - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
+   - EVO-081（内部文档页面基于独立 Markdown 目录渲染）
 
 ## 命名
 

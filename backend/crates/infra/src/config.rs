@@ -127,7 +127,7 @@ impl AppConfig {
             .set_default("storage.secret_key", "minioadmin")?
             .set_default("storage.use_ssl", false)?
             .set_default("storage.bucket", "evolith")?
-            .set_default("sandbox.enabled", true)?
+            .set_default("sandbox.enabled", false)?
             .set_default("sandbox.timeout_seconds", 30)?
             .set_default("sandbox.memory_mb", 256)?
             .set_default("sandbox.cpu_shares", 512)?

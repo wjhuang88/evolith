@@ -77,7 +77,7 @@ execute(request) →
 
 **不需要改动**：
 
-- `DefaultSkillExecutor`（stub 降级） — 继续作为无 Docker 时的 fallback
+- `DefaultSkillExecutor`（禁用占位） — 仅在 `SANDBOX__ENABLED=false` 时保留禁用语义，不作为 Docker 不可用 fallback
 - `service-tool/src/executor.rs`（HTTP tool executor） — 外部执行通道，不走容器
 
 ### 2.3 不复用的部分
@@ -298,7 +298,7 @@ ToolExecutor::execute()
 | 执行超时 | `tokio::time::timeout` | 返回 `timed_out: true`；容器归还池（exec 已结束） |
 | 容器 OOM | Docker 自动 kill | `exit_code: 137`；容器归还池前做健康检查 |
 | 容器死锁/无响应 | 健康检查（定期 `docker exec true`） | 强制移除 + 补充新 idle |
-| Docker daemon 不可达 | `docker.ping()` | 降级到 `DefaultSkillExecutor`（EVO-056 已登记修复） |
+| Docker daemon 不可达 | provider init / prewarm | 默认关闭不影响 lite/local 启动；显式启用 sandbox 时启动 fail-fast（EVO-056/EVO-079） |
 
 ## 5. 冷启动分析与优化
 
@@ -522,7 +522,7 @@ EVO-048 (Serverless 架构 Spike) ← 本 Spike，输出设计
 
 - 不实现 serverless runtime（本 Spike 仅输出设计）
 - 不实现 Vercel/Lambda 集成（远期）
-- 不引入 Wasmtime / V8 Isolate（远期评估）
+- 不引入 Wasmer / Wasmtime / V8 Isolate（由 EVO-080 单独评估）
 - 不改数据库 schema（EVO-049-A 负责）
 - 不改前端 UI（EVO-045-C 负责）
 - 不修改 `SkillExecutor` / `ToolExecutor` 的公开签名（Phase 1 内部 facade）
@@ -532,7 +532,8 @@ EVO-048 (Serverless 架构 Spike) ← 本 Spike，输出设计
 | 风险 | 影响 | 缓解 |
 |------|------|------|
 | 容器池内存占用过高 | 10 容器 × 256MB = 2.5GB | 默认 min_idle=1；按需扩展；生产监控 |
-| Docker daemon 单点 | daemon 挂掉则全部执行失败 | 降级到 DefaultSkillExecutor；健康检查 + 告警 |
+| Docker daemon 单点 | daemon 挂掉则 sandbox 执行失败 | 默认关闭不影响 lite/local 启动；显式启用时 fail-fast，生产用健康检查 + 告警 |
+| Docker 技术依赖本身不可接受 | 本地/生产都要维护 daemon 和镜像 | EVO-080 评估 Wasmer/Wasmtime/WASI 作为非 Docker provider |
 | bollard 0.17 API 不支持池化 | 需要升级到 0.18+ | EVO-061 已登记，可在 EVO-045-A 前完成 |
 | 容器 exec 并发瓶颈 | 单 Docker host 并发 exec 有限 | 生产可横向扩展 Docker host |
 | Vercel/Lambda API 变化 | ExternalServerlessProvider 实现成本不确定 | 延迟到有明确需求时再设计 |
@@ -548,3 +549,4 @@ EVO-048 (Serverless 架构 Spike) ← 本 Spike，输出设计
 - [ ] 冷启动实测数据：待 Docker 环境执行（方法学见 §5.3，环境约束见 §5.4）
 - [x] 远期 Vercel 模式组件替换清单完成（§6.2）
 - [x] 后续 Story 依赖图完成（§8）
+- [ ] 非 Docker runtime 可行性：归口 EVO-080，评估 Wasmer/Wasmtime/WASI。

@@ -21,7 +21,7 @@
 - **复杂任务分阶段结对**：跨多层、合约、数据库、权限、发布或高风险改动时，按 `docs/sop/PAIRING-WORKFLOW.md` 在 Driver 实现后切换 Navigator 审查；不要在同一段推理中并行扮演双角色。
 - **中途变更先停手**：开发中收到需求变更时，先暂停扩大代码改动，按 `docs/sop/CHANGE-CONTROL.md` 做变更分类、backlog/ADR/iteration 记录，再继续。
 - **文档分层**：需求池写 `docs/backlog/`，迭代记录写 `docs/iterations/`，决策写 `docs/decisions/`，操作流程写 `docs/sop/`，稳定事实写 `docs/reference/`，阶段计划写 `docs/roadmap/`，远期提案写 `docs/proposals/`，历史快照写 `docs/archive/`。
-- **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，按模板写入 `EVOLUTION.md`。
+- **经验写回**：失败后找到根因、发现新陷阱、多次尝试后成功、用户指出遗漏时，先按 `docs/sop/EVOLUTION-FEEDBACK.md` 判断是否写入 `EVOLUTION.md` 或升级为规则/检查。
 - **脚本行为变更必须写 Release Note**：修改 `scripts/*.sh`、部署脚本、构建脚本的参数、默认值、退出码、执行顺序或副作用时，更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
 - **双数据库一致性**：数据库结构或 repository 行为变化必须同时考虑 SQLite 和 PostgreSQL migrations/repositories/tests。
 - **前端 API 前缀**：`VITE_API_URL` 应包含 `/api/v1`，除非网关明确做路径重写；旧 `NEXT_PUBLIC_API_URL` 仅为兼容读取。
@@ -111,7 +111,7 @@
 | 配置排查 | [docs/reference/CONFIG.md](docs/reference/CONFIG.md) | [docs/sop/LOCAL-DEV.md](docs/sop/LOCAL-DEV.md) |
 | 发布/部署/回滚 | [docs/sop/RELEASE.md](docs/sop/RELEASE.md) | [docs/reference/SCRIPTS-RELEASE-NOTES.md](docs/reference/SCRIPTS-RELEASE-NOTES.md) |
 | Git 提交 | [docs/sop/GIT-WORKFLOW.md](docs/sop/GIT-WORKFLOW.md) | [EVOLUTION.md](EVOLUTION.md) |
-| 排查问题 | [EVOLUTION.md](EVOLUTION.md) | [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) |
+| 排查问题/经验写回 | [docs/sop/EVOLUTION-FEEDBACK.md](docs/sop/EVOLUTION-FEEDBACK.md) | [EVOLUTION.md](EVOLUTION.md), [docs/reference/PROJECT-MAP.md](docs/reference/PROJECT-MAP.md) |
 | 文档整理 | [docs/sop/DOC-CHECK.md](docs/sop/DOC-CHECK.md) | [docs/README.md](docs/README.md) |
 | 技术决策 | [docs/decisions/README.md](docs/decisions/README.md) | [docs/roadmap/IMPLEMENTATION-ROADMAP.md](docs/roadmap/IMPLEMENTATION-ROADMAP.md) |
 
@@ -120,7 +120,7 @@
 1. `docker-compose.yml` 里的后端环境变量必须使用 `DATABASE__DATABASE_TYPE` / `DATABASE__URL` 形式，否则 `AppConfig` 不会按预期读取嵌套配置。
 2. 前端容器或本地环境的 `VITE_API_URL` 如果只有 `http://localhost:8080`，请求会打到 `/auth/...` 而不是 `/api/v1/auth/...`。
 3. `CsrfMiddleware` 保护所有非豁免状态变更请求，手写 fetch 时要带 `X-CSRF-Token`。
-4. `SANDBOX__ENABLED=true` 时 Docker sandbox 初始化失败会导致服务启动失败；本地不执行 skill 时显式设置 `SANDBOX__ENABLED=false`。
+4. `SANDBOX__ENABLED` 默认关闭，lite/local 启动不依赖 Docker；显式设为 `true` 时 Docker sandbox 初始化失败会导致服务启动失败。
 5. SQLite 和 PostgreSQL SQL 类型、时间、JSON、UUID 行为不同，migration 不能简单复制后不验证。
 6. 邮件链接必须使用 `APP__PUBLIC_URL` 指向前端公开地址；不要用后端监听地址拼 reset/invite 链接。
 7. 前端静态资源已通过 `rust-embed-for-web` 嵌入后端发布物；Nginx 仅作为可选网关/SSL/反代。修改反代或 fallback 时必须验证 `/assets/`、`/api/v1`、`/health`、`/mcp` 和 SPA 深层路由不互相截获。
@@ -312,7 +312,7 @@ Environment variables (see `crates/infra/src/config.rs`):
 | `APP__PUBLIC_URL` | Public frontend URL for email links | `http://localhost:3001` |
 | `CORS__ALLOWED_ORIGIN` | Allowed frontend origin | `http://localhost:3001` |
 | `CSRF__ENABLED` | Enable CSRF protection | `true` |
-| `SANDBOX__ENABLED` | Enable Docker sandbox executor; startup fails if Docker executor cannot initialize | `true` |
+| `SANDBOX__ENABLED` | Enable Docker sandbox executor; startup fails if Docker executor cannot initialize | `false` |
 | `SANDBOX__TIMEOUT_SECONDS` | Sandbox execution timeout | `30` |
 | `SANDBOX__MEMORY_MB` | Sandbox memory limit | `256` |
 | `RATE_LIMIT__UNAUTHENTICATED_RPM` | Unauthenticated request limit | `30` |

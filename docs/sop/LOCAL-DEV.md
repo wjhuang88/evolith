@@ -84,11 +84,12 @@ curl -i -s -X POST http://127.0.0.1:8080/api/v1/auth/register \
 | 前端请求 404 | 检查 `VITE_API_URL` 是否包含 `/api/v1`；旧 `NEXT_PUBLIC_API_URL` 仅兼容读取 |
 | CSRF 403 | 先完成登录，让浏览器拿到 `csrf_token` cookie |
 | 种子账号登录 500 或失败 | 不要继续尝试历史种子账号；按“本地测试账号”注册临时账号 |
-| sandbox 不生效 | 检查 Docker 是否可用，以及后端启动日志是否降级到 default executor |
+| sandbox 不生效 | 默认关闭；需要执行 skill 时设置 `SANDBOX__ENABLED=true`，并确认 Docker 与 sandbox 镜像可用 |
 
 ## 注意事项
 
 - `.env.development` 和 `.env.example` 应使用双下划线配置键。
 - SQLite 内存库每次重启都会重置数据。
+- lite/local 启动默认不依赖 Docker；显式启用 sandbox 后，Docker provider 初始化失败会导致后端启动失败。
 - Vite 前端默认端口是 `3001`；如需覆盖，设置 `FRONTEND_PORT` 并保持 `APP__PUBLIC_URL` 与实际前端地址一致。
 - full 模式下只改前端无需重启后端；只改后端通常不需要重启 Docker 基础设施。

@@ -14,7 +14,7 @@
 | 3 | 修改 ConfigMap/Nginx/Compose 后线上不生效 | Git 提交不等于部署刷新 | 按发布 SOP 执行重建、重启或重新 apply |
 | 4 | SQLite 与 PostgreSQL 行为不一致 | 只改了一侧 migration/repository | 同步修改 `migrations/sqlite`、`migrations/postgres` 和两套 repository |
 | 5 | CSRF 403 | 状态变更请求缺少 `csrf_token` cookie 或 `X-CSRF-Token` header | 先完成登录/刷新，再由 API client 自动带 header |
-| 6 | `SANDBOX__ENABLED=true` 时服务启动失败 | Docker executor 初始化失败；现在不再降级成伪成功 default executor | 本地不执行 skill 时设 `SANDBOX__ENABLED=false`；需要执行时先启动 Docker 并构建 sandbox 镜像 |
+| 6 | `SANDBOX__ENABLED=true` 时服务启动失败 | Docker executor 初始化失败；现在不再降级成伪成功 default executor | 默认/lite 不启用 sandbox；需要执行时先启动 Docker、构建 sandbox 镜像并显式设为 `true` |
 | 7 | lite 模式种子账号不能登录 | migrations 中的测试/admin 密码哈希是占位值，且 SQLite 内存库重启即清空 | 启动后通过注册接口创建临时账号 |
 | 8 | 前端改了但 release 二进制没更新 | `rust-embed-for-web` proc macro 不跟踪 dist 目录变更 | 确认 `build.rs` 中有 `cargo:rerun-if-changed` 指向前端 dist |
 | 9 | `cargo fmt --check` 退出码 1 但 0 个文件 diff | `rustfmt.toml` 含 nightly-only 选项被 stable 静默忽略 | 先跑 `cargo fmt --check 2>&1 \| grep nightly`；有 warning 就删除 nightly-only 选项或切 nightly toolchain |
@@ -25,6 +25,15 @@
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-06-05 - sandbox fail-fast 不能和默认启用混用
+
+- Trigger: 用户指出普通启动现在依赖 Docker。
+- Symptom: `EVO-056` / `EVO-045-A` 将 sandbox 初始化失败改为 fail-fast 后，默认/lite 启动也进入 Docker provider 初始化和 prewarm。
+- Root cause: 修复“Docker 不可用时静默伪成功”时只收紧了启用态失败语义，没有同步把 `sandbox.enabled`、`.env.development` 和 `.env.example` 默认值改为 `false`。
+- Fix: `AppConfig`、本地 env 示例和稳定参考文档默认关闭 sandbox；显式 `SANDBOX__ENABLED=true` 时继续 fail-fast。
+- Prevention: 配置默认值必须匹配 `docs/sop/LOCAL-DEV.md` 的 lite/local 依赖声明；改变 fail-fast 行为时同时检查默认 env、示例 env、AGENTS trap 和 CONFIG/TECH-STACK/ARCHITECTURE。
+- Promoted to rule/check: `AGENTS.md` known trap、`docs/sop/LOCAL-DEV.md`、`docs/reference/CONFIG.md`、`docs/sop/EVOLUTION-FEEDBACK.md`。
 
 ### 2026-06-03 Governance board 必须按 skill 标准放在 docs/BOARD.md
 

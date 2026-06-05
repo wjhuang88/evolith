@@ -78,6 +78,7 @@ git diff --check
 | 2026-06-04 | activation | 状态 → Active / In Progress。前置：Iteration 040 Closed，无 Active/Review 迭代。EVO-045-A Ready → In Progress。委托 deep agent 实施。 |
 | 2026-06-04 | execution | Deep agent 完成实施（17m 15s）：创建 `common/src/execution.rs`（410 行，统一 trait + 类型）+ `service-skill/src/docker_sandbox_provider.rs`（612 行，容器池化）+ `service-tool/src/http_proxy_provider.rs`（249 行，HTTP 转发）；修改 10 个文件（lib.rs/Cargo.toml/executor.rs/state.rs/main.rs/测试文件）；新增 27 个单元测试。 |
 | 2026-06-04 | closure | 独立验证通过：cargo check 0 errors / clippy 0 errors 0 warnings / cargo test 309 passed（基线 282 + 新增 27）。状态 → Closed。 |
+| 2026-06-05 | regression-fix | 用户指出本地启动依赖 Docker。根因：EVO-056/041 的 fail-fast 行为保留了 `sandbox.enabled=true` 默认值，导致默认/lite 启动也进入 Docker provider prewarm。修复：`sandbox.enabled`、`.env.development`、`.env.example` 默认改为 `false`；显式 `SANDBOX__ENABLED=true` 时仍 fail-fast。归口 EVO-079。 |
 
 ## 9. 变更请求
 
@@ -95,11 +96,13 @@ git diff --check
   - `AppState` 添加 `execution_provider` 字段
   - `main.rs` 初始化 `DockerSandboxProvider` → `CompositeProvider` → 适配器连接
   - 新增 27 个单元测试（common 7 + docker_sandbox 8 + skill_adapter 3 + tool_adapter 3 + http_proxy 6）
+  - 2026-06-05 follow-up：sandbox 默认关闭，恢复 lite/local 启动不依赖 Docker；显式启用仍 fail-fast
 - 未完成：无
 - 验证结果：
   - `cargo check --workspace` → 0 errors ✅
   - `cargo clippy --workspace --all-targets -- -D warnings` → 0 errors, 0 warnings ✅
   - `cargo test --workspace` → 309 passed, 0 failed（基线 282 + 新增 27）✅
+  - 2026-06-05 follow-up：`cargo test -p infra config` / `cargo check --workspace` / governance validator / `git diff --check` 通过
 - 闭环状态：`Complete`
 - 残余归口：
   - 真实 Docker 集成测试 → 延期到 CI 环境（需要 Docker daemon）
@@ -117,4 +120,5 @@ git diff --check
 - 需要调整的：
   - Deep agent 耗时 17m 15s，超出预期（10-15m），主要因为 `SemaphorePermit` 生命周期问题的调试和修复
   - 健康检查后台任务未实现，当前依赖 borrow 时清理，可能不够及时
-- 写入 EVOLUTION：无新陷阱。本次为基础设施新增，未触发代码变更或流程问题。
+  - fail-fast 不能和默认启用混在一起；默认配置必须匹配 lite/local 启动不依赖 Docker 的开发约束
+- 写入 EVOLUTION：2026-06-05 已更新 sandbox 速查口径。

@@ -31,10 +31,9 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-049-A Skill/CLI 规范兼容数据模型基线 | Planned / Ready for activation | [Iteration 034](iterations/ITERATION-034.md) | Activate via START-ITERATION inventory; preserve the published baseline. |
-| EVO-045-A ExecutionProvider 统一 trait + Docker 容器池化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a new iteration only after choosing to prioritize execution-layer infrastructure over the published Iteration 034 data-model baseline. |
 | EVO-057 生产 CORS Origin 可配置化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate deploy/config micro-iteration if production custom-domain support should be hardened before product-mainline work. |
-| EVO-058 前端死代码与类型卫生清理 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate frontend hygiene micro-iteration if type-contract drift should be reduced before larger frontend changes. |
+| EVO-080 Wasmer/WASI 替代 Docker sandbox 可行性 Spike | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Run before adding more Docker-specific execution work if daemon dependency remains a product risk. |
+| EVO-081 内部文档页面基于独立 Markdown 目录渲染 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a focused frontend/content story when internal docs should become visible in-app. |
 
 ## Later
 
@@ -50,12 +49,14 @@
 Current iteration ordering is reasonable after the 2026-06-04 repair:
 
 - `EVO-048 / Iteration 033` is Closed and should not appear in Now.
-- Keep `EVO-049-A / Iteration 034` as the next planned product-mainline slice because it selects
-  a Ready child Story rather than the parent Epic.
-- `EVO-045-A` is now recorded as a Ready child Story and may be started as a new iteration if the
-  execution-layer path should interrupt the planned data-model baseline.
+- `EVO-049-A / Iteration 034` and `EVO-045-A / Iteration 041` are Closed.
+- `EVO-045-A` follow-up restored lite/local startup so Docker is required only when sandbox is
+  explicitly enabled.
 - `EVO-052 / EVO-056` were completed in Iteration 038; the remaining "do not delegate casually"
-  candidates are `EVO-057` and `EVO-058`.
+  candidate is `EVO-057`; `EVO-058` is already Closed.
+- `EVO-080` captures the non-Docker runtime question as a Spike before committing to Wasmer or
+  Wasmtime.
+- `EVO-081` captures the internal Markdown-backed docs page as a Ready product story.
 - Keep Iterations 018-020 and 025-027 blocked until their refinement/dependency gates are met.
 - Use P2 Ready items only as explicit micro-iteration interruptions; do not silently bypass the
   selected product-mainline order.

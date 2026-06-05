@@ -75,7 +75,7 @@ LOG__LEVEL=info
 | `STORAGE__SECRET_KEY` | 对象存储 secret key | `minioadmin` |
 | `STORAGE__USE_SSL` | 对象存储是否使用 SSL | `false` |
 | `STORAGE__BUCKET` | 默认 bucket | `evolith` |
-| `SANDBOX__ENABLED` | 是否启用 Docker sandbox executor；启用时 Docker executor 初始化失败会导致服务启动失败 | `true` |
+| `SANDBOX__ENABLED` | 是否启用 Docker sandbox executor；启用时 Docker executor 初始化失败会导致服务启动失败 | `false` |
 | `SANDBOX__TIMEOUT_SECONDS` | 执行超时 | `30` |
 | `SANDBOX__MEMORY_MB` | 内存限制 | `256` |
 | `SANDBOX__CPU_SHARES` | Docker CPU shares | `512` |

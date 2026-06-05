@@ -15,7 +15,7 @@
 | `docs/roadmap/` | 盘点、路线图、阶段检查点 | 阶段规划或汇报口径变化时 |
 | `docs/proposals/` | 想法暂存区，尚未满足 Backlog 进入条件的提案（Agent 不从中选取任务） | 晋升到 Backlog 或废弃时 |
 | `docs/archive/` | 历史快照、过期路线、压缩后的经验 | 归档时 |
-| `EVOLUTION.md` | 故障速查和经验写回 | 发现新陷阱或被纠正时 |
+| `EVOLUTION.md` | 故障速查和经验写回 | 按 `docs/sop/EVOLUTION-FEEDBACK.md` 判断后写入 |
 
 ## 当前入口
 
@@ -47,6 +47,7 @@
 - [数据库迁移](sop/DATABASE-MIGRATION.md) — SQLite/PostgreSQL 双轨 migration 和 repository 检查。
 - [测试与验证](sop/TESTING.md) — 按变更类型选择验证命令和记录结果。
 - [任务收口与完成声明](sop/TASK-CLOSURE.md) — 实施任务的闭环台账、状态同步、残余归口和完成判定。
+- [经验写回与规则升级](sop/EVOLUTION-FEEDBACK.md) — 判断何时更新 `EVOLUTION.md`、何时升级为规则或检查。
 - [文档一致性检查](sop/DOC-CHECK.md) — 断链、旧术语、提案边界和 ADR 替代关系检查。
 - [发布与部署](sop/RELEASE.md) — 发布前检查、构建、验证和回滚。
 - [Git 工作流](sop/GIT-WORKFLOW.md) — 提交前检查、提交信息和变更拆分。
@@ -99,5 +100,5 @@
 3. Roadmap 可以写取舍和阶段目标，但要和当前代码状态分开。
 4. Backlog item 必须有优先级、状态和验收标准。
 5. 任何脚本行为变更必须同步更新相关 SOP；如果变更影响使用者，也更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。
-6. 发现新坑时写入 `EVOLUTION.md`，不要只留在对话里。
+6. 发现新坑时先按 [经验写回与规则升级](sop/EVOLUTION-FEEDBACK.md) 判断，再写入 `EVOLUTION.md` 或升级规则/检查。
 7. Agent 参与生成的 Git commit 必须遵守 [Git 工作流](sop/GIT-WORKFLOW.md)，提交信息末尾带 `[model: <name>]`。
