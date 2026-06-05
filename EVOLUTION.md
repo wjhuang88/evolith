@@ -35,6 +35,15 @@
 - Prevention: 配置默认值必须匹配 `docs/sop/LOCAL-DEV.md` 的 lite/local 依赖声明；改变 fail-fast 行为时同时检查默认 env、示例 env、AGENTS trap 和 CONFIG/TECH-STACK/ARCHITECTURE。
 - Promoted to rule/check: `AGENTS.md` known trap、`docs/sop/LOCAL-DEV.md`、`docs/reference/CONFIG.md`、`docs/sop/EVOLUTION-FEEDBACK.md`。
 
+### 2026-06-05 - skill 更新后要复核标准结构新增入口
+
+- Trigger: 用户提示 skill 已更新，要求重新载入并纠偏。
+- Symptom: 项目 governance validator 通过，但更新后的 `agent-project-governance` 1.0.7 标准结构要求 `CLAUDE.md` 和 `GEMINI.md` 单行 redirect，本项目缺失。
+- Root cause: validator 尚未覆盖新版 redirect 要求，且项目上次收口只按旧 validator 和旧结构检查。
+- Fix: 新增 `CLAUDE.md` / `GEMINI.md`，同步 `.agent-governance/manifest.yaml`、`docs/README.md` 和 backlog `EVO-083`。
+- Prevention: 用户提示 skill 更新时，必须重新读取 `SKILL.md` 和直接相关 references，不能只跑 validator。
+- Promoted to rule/check: `EVO-083`；后续可推动治理 validator 增加 redirect 检查。
+
 ### 2026-06-03 Governance board 必须按 skill 标准放在 docs/BOARD.md
 
 **现象**: 用户要求“本项目没有做看板”，最初误判为前端看板页；随后又把治理看板放到

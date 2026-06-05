@@ -16,8 +16,15 @@
 | `docs/proposals/` | 想法暂存区，尚未满足 Backlog 进入条件的提案（Agent 不从中选取任务） | 晋升到 Backlog 或废弃时 |
 | `docs/archive/` | 历史快照、过期路线、压缩后的经验 | 归档时 |
 | `EVOLUTION.md` | 故障速查和经验写回 | 按 `docs/sop/EVOLUTION-FEEDBACK.md` 判断后写入 |
+| `CLAUDE.md` / `GEMINI.md` | Agent 专用启动重定向 | skill 标准更新或 Agent 入口变化时 |
 
 ## 当前入口
+
+### Root Entrypoints
+
+- [AGENTS.md](../AGENTS.md) — Agent 主启动文档和任务路由。
+- [CLAUDE.md](../CLAUDE.md) — Claude Code 单行重定向入口。
+- [GEMINI.md](../GEMINI.md) — Gemini CLI 单行重定向入口。
 
 ### Reference
 
