@@ -8,7 +8,7 @@
 
 - **流程操作先查 Task Router**：涉及需求进入、迭代变更、发布部署、数据库迁移等流程性操作时，必须先查下方 Task Router 找到必读 SOP，读完再动手——即使操作本身看起来很简单。
 - **先看工作区状态**：修改前运行 `git status --short --branch`，识别用户已有改动；不要回滚无关变更。
-- **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；紧急修复除外，但事后必须补记录。
+- **Backlog first**：新功能、缺陷、技术债先进入 `docs/backlog/PRODUCT-BACKLOG.md`；可执行上下文写入 `docs/backlog/active/` item file，并在主表 `Required Reads` 中显式列出；紧急修复除外，但事后必须补记录。
 - **迭代推进**：开始迭代按 `docs/sop/START-ITERATION.md` 固定步骤执行；进入开发前按 `docs/sop/REQUIREMENT-INTAKE.md` 检查 DoR，再按 `docs/sop/ITERATION-WORKFLOW.md` 推进；完成时检查 DoD 并更新 backlog/iteration 状态。
 - **开始迭代先盘点既有计划**：用户要求开始迭代时，先检查 `docs/iterations/` 中
   `Active / In Progress / Review / Planned / Blocked` 的迭代并记录处置结论；未处理
@@ -253,7 +253,7 @@ pub enum AppError {
 
 ### Adding New Features
 
-1. **Create or update backlog item** in `docs/backlog/PRODUCT-BACKLOG.md`
+1. **Create or update backlog item** in `docs/backlog/PRODUCT-BACKLOG.md` and its `docs/backlog/active/` item file
 2. **Check iteration readiness** using `docs/sop/REQUIREMENT-INTAKE.md`, then execute with `docs/sop/ITERATION-WORKFLOW.md`
 3. **Update API contract** in `docs/reference/API-CONTRACT.md` when interfaces change
 4. **Define domain models** in `crates/domain/`

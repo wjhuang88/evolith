@@ -15,6 +15,7 @@
 | 目录边界 | 远期想法只能在 `docs/proposals/`，可执行任务必须在 `docs/backlog/` |
 | 旧术语 | ADR 替代旧概念后，旧术语只能出现在“迁移参考/兼容说明/历史实现”语境 |
 | Backlog 状态 | 只能使用 SOP 定义的状态 |
+| Backlog compact 结构 | `PRODUCT-BACKLOG.md` 只保留决策入口；活跃/阻塞条目必须有 `docs/backlog/active/` item file 和 `Required Reads`；非活跃历史进入 `docs/backlog/archive/` |
 | Proposal 状态 | 必须使用 `远期想法` / `待整理` / `远期目标` / `已晋升` / `已废弃` |
 | 替代关系 | 被替代故事必须标注 `Deferred`、`Dropped` 或 `superseded/replaces` |
 | Epic 父子关系 | 新 Epic 采用 `<前缀>-NNN` / `<前缀>-NNN-A`；父项列子项，子项反向标父项；历史 ID 可显式保留 |

@@ -62,7 +62,7 @@
 ### Backlog / Iterations / Decisions
 
 - [Operating Board](BOARD.md) — 派生运营看板；只汇总 owner doc 状态和 gate，不作为状态源。
-- [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 统一需求池和优先级。
+- [Product Backlog](backlog/PRODUCT-BACKLOG.md) — compact 需求决策入口；详情见 `docs/backlog/active/` item files 和 `docs/backlog/archive/`。
 - [迭代目录](iterations/README.md) — 迭代记录和模板。
 - [决策记录](decisions/README.md) — ADR 目录。
 - [ADR-0001 前端采用 React + Vite + Bun](decisions/ADR-0001-react-vite-bun-frontend.md) — 前端技术路线决策。
@@ -92,7 +92,7 @@
 原有根目录文档已按新结构迁移，`docs/` 根目录只保留文档地图。后续按以下规则演进：
 
 1. 不在 `docs/` 根目录新增专题文档。
-2. 新需求先进入 `docs/backlog/PRODUCT-BACKLOG.md`，远期想法可先放 `docs/proposals/`。
+2. 新需求先进入 `docs/backlog/PRODUCT-BACKLOG.md` 和对应 `docs/backlog/active/` item file，远期想法可先放 `docs/proposals/`。
 3. 每轮开发在 `docs/iterations/` 留下计划、验证和复盘。
 4. 新增操作流程放 `docs/sop/`。
 5. 新增稳定事实或索引放 `docs/reference/`。

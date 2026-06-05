@@ -17,8 +17,8 @@
 | 输入类型 | 放置位置 | 处理方式 |
 |----------|----------|----------|
 | 远期想法、方向探索、范围不清 | `docs/proposals/` | 写成提案或补充现有提案；Agent 不直接开工 |
-| 可在 0.5-2 天内完成的功能/缺陷/技术债 | `docs/backlog/PRODUCT-BACKLOG.md` | 补齐必填字段，满足 DoR 后才可排期 |
-| 阻塞运行、安全或数据损坏问题 | `docs/backlog/PRODUCT-BACKLOG.md` | 标记 P0，可插队；事后补齐记录 |
+| 可在 0.5-2 天内完成的功能/缺陷/技术债 | `docs/backlog/PRODUCT-BACKLOG.md` + `docs/backlog/active/` item file | 补齐必填字段，满足 DoR 后才可排期 |
+| 阻塞运行、安全或数据损坏问题 | `docs/backlog/PRODUCT-BACKLOG.md` + `docs/backlog/active/` item file | 标记 P0，可插队；事后补齐记录 |
 | 重大技术或产品取舍 | `docs/decisions/` | 先写 ADR，再把可执行部分拆入 backlog |
 
 ## Backlog 必填字段
@@ -38,15 +38,21 @@
 
 ## Backlog 结构规则
 
-`docs/backlog/PRODUCT-BACKLOG.md` 采用“总表 + 详情块”结构：
+`docs/backlog/PRODUCT-BACKLOG.md` 采用 compact 决策入口结构，详细可执行上下文放在 item file：
 
 | 区域 | 责任 | 防呆规则 |
 |------|------|----------|
-| 当前需求池总表 | 路由、排序、状态和来源索引 | 每个 backlog item 必须有一行；备注只写一句关键状态，不写完整需求 |
-| 待细化故事详情块 | 用户价值、验收标准、依赖、影响范围和验证方式 | `Ready`、`In Progress`、`Review`、`Done` 的 story 必须有详情块或明确链接到等价文档 |
-| Proposal / ADR / Roadmap | 背景、远期方向和重大取舍 | 不替代 backlog 详情；进入实施前仍要有 backlog item |
+| `Current Priorities` | 当前可优先评估或启动的 Ready / Review / In Progress 条目 | 每行必须有 `Required Reads` |
+| `Active Items` | 仍可能执行或影响排期的 Proposed / Ready / Review / In Progress 条目 | 每行必须指向 `docs/backlog/active/` item file |
+| `Blocked Items` | 阻塞但仍相关的条目 | 写清阻塞原因和必读依赖 |
+| `Archived Index` | Done / Deferred / Dropped / Superseded 历史索引 | 保留决策上下文和 archive 路径 |
+| `docs/backlog/active/` item file | 用户价值、验收标准、依赖、影响范围、验证方式和残余归口 | `Ready`、`In Progress`、`Review` 的 story 必须具备完整 item file |
+| `docs/backlog/archive/` | 非活跃历史和旧详情快照 | 不作为新任务的默认读取对象，除非 `Required Reads` 指向它 |
 
-`Proposed` item 可以先只有总表行；晋升 `Ready` 前必须补齐详情块。Agent 选择任务时不得只凭总表备注开工。
+`PRODUCT-BACKLOG.md` 只保留足够做优先级、范围、依赖和 ADR 影响判断的决策上下文。
+不要把长验收、讨论或执行日志写回主表。`Proposed` item 可以先用较轻 item file，
+但晋升 `Ready` 前必须补齐验收、依赖、验证和残余归口。Agent 选择任务时必须先读主表
+目标行，再读该行 `Required Reads` 的所有路径，不得只凭主表备注开工。
 
 ## Epic / Story 方法论
 
@@ -97,14 +103,14 @@ EVO-120-B     子 Story：第二个独立切片
 ```
 
 - Evolith 固定使用 `EVO-` 前缀；其他项目可替换项目前缀，不照搬 `PB-` 或 `EVO-`。
-- 父项详情块必须列出子 Story；子项详情块必须写 `父 Epic：EVO-120`。
+- 父项 item file 必须列出子 Story；子项 item file 必须写 `父 Epic：EVO-120`。
 - 已有独立 ID 或历史拆分关系不为统一格式而重编号。例如 `EVO-002` 已拆为 `EVO-021` 至 `EVO-025`，继续作为历史有效关系保留。
 - 现有 Story 后续扩大成 Epic 时，保留原 ID 作为父项，从下一切片开始创建后缀子 Story。
 - 默认只使用父项和一层子项。子 Story 再度过大时应重新 refinement，避免深层编号树掩盖范围失控。
 
 ### 依赖管理与校验
 
-Epic 详情块至少维护下列子项表：
+Epic item file 至少维护下列子项表：
 
 ```markdown
 | 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
@@ -113,7 +119,7 @@ Epic 详情块至少维护下列子项表：
 | EVO-120-B | ... | Proposed | EVO-120-A | - |
 ```
 
-每个子 Story 的详情块还必须记录 `父 Epic`、`依赖或阻塞` 和 `解锁内容`。依赖检查规则：
+每个子 Story 的 item file 还必须记录 `父 Epic`、`依赖或阻塞` 和 `解锁内容`。依赖检查规则：
 
 1. 依赖必须指向具体 Story、外部条件或 ADR，不写模糊的“前置完成后”。
 2. 有未完成硬依赖的子 Story 不得标为 `Ready` 或 `In Progress`；应保持 `Proposed` 或 `Blocked`。
@@ -315,25 +321,43 @@ And <必要的状态变化、副作用或审计证据>
 | Deferred | 暂缓 |
 | Dropped | 明确放弃 |
 
-## 标准记录模板
+## 标准 item file 模板
 
 ```markdown
-### EVO-XXX <Story 标题>
+# EVO-XXX <Story 标题>
+
+## Required Reads
+
+- Product Backlog: `../PRODUCT-BACKLOG.md`（从 item file 视角）
+- ADR / spec / dependency path
+
+## Summary
 
 - 类型：feature / bug / chore / tech-debt / spike
 - 优先级：P0 / P1 / P2 / P3
 - 状态：Proposed / Ready / In Progress / Review / Done / Blocked / Deferred / Dropped
 - 父 Epic：（非子 Story 填无）
-- 用户价值或技术目标：
-- 验收标准：
+
+## Problem Or Outcome
+
+## Goal And Non-Goals
+
+## Dependencies And Blockers
+
+## Governing ADRs, Specs Or Decisions
+
+## Acceptance Criteria
+
   - [ ] 
-- 依赖或阻塞：
-- 解锁内容：
-- 影响范围：backend / frontend / db / docs / deploy
-- 最小验证方式：
+
+## Validation Evidence Required
+
+## Residual Work Destination
+
+## Source Snapshot
 ```
 
-Epic 详情块在上述基础上增加：
+Epic item file 在上述基础上增加：
 
 ```markdown
 - 类型：epic

@@ -44,6 +44,15 @@
 - Prevention: 用户提示 skill 更新时，必须重新读取 `SKILL.md` 和直接相关 references，不能只跑 validator。
 - Promoted to rule/check: `EVO-083`；后续可推动治理 validator 增加 redirect 检查。
 
+### 2026-06-05 - 点名的 skill reference 必须补读后再纠偏
+
+- Trigger: 用户追问是否读到 `backlog-compaction` 内容。
+- Symptom: 已重新载入 `agent-project-governance` 1.0.7，但只读了 `SKILL.md`、closure、standard-structure 和 initialization，遗漏 `references/backlog-compaction.md`，导致 backlog 仍停留在 monolithic 结构。
+- Root cause: 把新版 skill 的显性要求当成完整变更范围，没有继续读取用户点名且与当前任务直接相关的 reference。
+- Fix: 补读 `references/backlog-compaction.md`，将 `PRODUCT-BACKLOG.md` 压缩为决策入口，新增 `docs/backlog/active/` item files 和 `docs/backlog/archive/2026-Q2/INDEX.md`，并同步 intake/doc-check 规则。
+- Prevention: 用户点名 skill 的某个 reference、术语或流程时，必须读取该 reference 后再判断纠偏范围；不能用 validator 通过替代 reference 读取。
+- Promoted to rule/check: `docs/sop/REQUIREMENT-INTAKE.md`、`docs/sop/DOC-CHECK.md`、EVO-084。
+
 ### 2026-06-03 Governance board 必须按 skill 标准放在 docs/BOARD.md
 
 **现象**: 用户要求“本项目没有做看板”，最初误判为前端看板页；随后又把治理看板放到
