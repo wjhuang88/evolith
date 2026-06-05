@@ -49,8 +49,16 @@
 - Trigger: 用户追问是否读到 `backlog-compaction` 内容。
 - Symptom: 已重新载入 `agent-project-governance` 1.0.7，但只读了 `SKILL.md`、closure、standard-structure 和 initialization，遗漏 `references/backlog-compaction.md`，导致 backlog 仍停留在 monolithic 结构。
 - Root cause: 把新版 skill 的显性要求当成完整变更范围，没有继续读取用户点名且与当前任务直接相关的 reference。
-- Fix: 补读 `references/backlog-compaction.md`，将 `PRODUCT-BACKLOG.md` 压缩为决策入口，新增 `docs/backlog/active/` item files 和 `docs/backlog/archive/2026-Q2/INDEX.md`，并同步 intake/doc-check 规则。
+- Fix: 补读 `references/backlog-compaction.md`，将 `PRODUCT-BACKLOG.md` 压缩为决策入口，新增 `docs/backlog/active/` item files，并将 archive 拆为短 `INDEX.md` + per-item archived files；同步 intake/doc-check 规则。
 - Prevention: 用户点名 skill 的某个 reference、术语或流程时，必须读取该 reference 后再判断纠偏范围；不能用 validator 通过替代 reference 读取。
+
+### 2026-06-05 - Archive index 不能变成新的 backlog dump
+
+- Trigger: 用户指出 `docs/backlog/archive/2026-Q2` 的内容看起来仍不符合要求。
+- Symptom: `PRODUCT-BACKLOG.md` 已压缩，但 `archive/2026-Q2/INDEX.md` 仍有 1666 行，集中承载所有 archived detail snapshots。
+- Root cause: 执行 compaction 时只满足了主 backlog 变短，没有落实 `archive/<period>/<item>.md` 的归档 item file 形态。
+- Fix: 将 54 个 archived detail sections 拆为独立 item files，`INDEX.md` 缩短为索引，主 backlog archived links 指向具体 item file。
+- Prevention: backlog compaction 的验收必须同时检查主入口行数、active item files、archive per-item files 和 INDEX 是否只做索引。
 - Promoted to rule/check: `docs/sop/REQUIREMENT-INTAKE.md`、`docs/sop/DOC-CHECK.md`、EVO-084。
 
 ### 2026-06-03 Governance board 必须按 skill 标准放在 docs/BOARD.md
