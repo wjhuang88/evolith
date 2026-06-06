@@ -35,10 +35,10 @@ async fn create_test_tenant_and_user(pool: &sqlx::SqlitePool) -> (Uuid, Uuid) {
     let user = user_repo
         .create(
             NewUser {
-                    username: "snippetowner".to_string(),
-                    email: "snippetowner@test.com".to_string(),
-                    password_hash: "password123".to_string(),
-                },
+                username: "snippetowner".to_string(),
+                email: "snippetowner@test.com".to_string(),
+                password_hash: "password123".to_string(),
+            },
             tenant.id,
             TenantRole::Admin,
         )
@@ -529,7 +529,9 @@ async fn test_create_snippet_with_cli_fields() {
         ],
         inputs: vec![serde_json::json!({"name": "project_name", "type": "string"})],
         output: Some(serde_json::json!({"type": "object", "properties": {"status": "string"}})),
-        examples: vec![serde_json::json!({"command": "mytool init", "output": "Project initialized"})],
+        examples: vec![
+            serde_json::json!({"command": "mytool init", "output": "Project initialized"}),
+        ],
         error_model: Some(serde_json::json!({"codes": [1, 2, 3]})),
     };
 

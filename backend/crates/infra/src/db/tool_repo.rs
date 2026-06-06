@@ -141,7 +141,7 @@ impl ToolRepository for SqliteToolRepository {
         let offset = (page.saturating_sub(1)) * per_page;
         sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
-        let mut query = sqlx::query_as::<_, ToolRow>(&sql);
+        let mut query = sqlx::query_as::<_, ToolRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in bindings {
             query = query.bind(binding);
         }
@@ -184,7 +184,7 @@ impl ToolRepository for SqliteToolRepository {
             bindings.push(owner_id.to_string());
         }
 
-        let mut query = sqlx::query_as::<_, CountRow>(&sql);
+        let mut query = sqlx::query_as::<_, CountRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in bindings {
             query = query.bind(binding);
         }

@@ -34,9 +34,8 @@ impl SkillRepository for SqliteSkillRepository {
         let dependencies_str = serde_json::to_string(&skill.dependencies).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
         })?;
-        let tags_str = serde_json::to_string(&skill.tags).map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
-        })?;
+        let tags_str = serde_json::to_string(&skill.tags)
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize tags: {}", e)))?;
         let permissions_str = skill
             .permissions
             .as_ref()
@@ -189,7 +188,7 @@ impl SkillRepository for SqliteSkillRepository {
         let offset = (page.saturating_sub(1)) * per_page;
         sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
-        let mut query = sqlx::query_as::<_, SkillRow>(&sql);
+        let mut query = sqlx::query_as::<_, SkillRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in bindings {
             query = query.bind(binding);
         }
@@ -242,7 +241,7 @@ impl SkillRepository for SqliteSkillRepository {
             bindings.push(owner_id.to_string());
         }
 
-        let mut query = sqlx::query_as::<_, CountRow>(&sql);
+        let mut query = sqlx::query_as::<_, CountRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in bindings {
             query = query.bind(binding);
         }
@@ -279,8 +278,9 @@ impl SkillRepository for SqliteSkillRepository {
         let permissions = skill.permissions.or(existing.permissions);
         let license = skill.license.or(existing.license);
         let compatibility = skill.compatibility.or(existing.compatibility);
-        let disable_model_invocation =
-            skill.disable_model_invocation.unwrap_or(existing.disable_model_invocation);
+        let disable_model_invocation = skill
+            .disable_model_invocation
+            .unwrap_or(existing.disable_model_invocation);
         let user_invocable = skill.user_invocable.unwrap_or(existing.user_invocable);
         let argument_hint = skill.argument_hint.or(existing.argument_hint);
 
@@ -296,9 +296,8 @@ impl SkillRepository for SqliteSkillRepository {
         let dependencies_str = serde_json::to_string(&dependencies).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
         })?;
-        let tags_str = serde_json::to_string(&tags).map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
-        })?;
+        let tags_str = serde_json::to_string(&tags)
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize tags: {}", e)))?;
         let permissions_str = permissions
             .as_ref()
             .map(serde_json::to_string)
@@ -455,9 +454,7 @@ impl From<SkillRow> for Skill {
             entrypoint: row.entrypoint,
             timeout: row.timeout.unwrap_or(30),
             memory_mb: row.memory_mb.unwrap_or(256),
-            permissions: row
-                .permissions
-                .and_then(|s| serde_json::from_str(&s).ok()),
+            permissions: row.permissions.and_then(|s| serde_json::from_str(&s).ok()),
             license: row.license,
             compatibility: row.compatibility,
             disable_model_invocation: row.disable_model_invocation.unwrap_or(0) != 0,

@@ -42,7 +42,6 @@
 | EVO-045 CLI 命令执行引擎（Serverless） | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine through child stories after EVO-045-A establishes the shared execution provider. |
 | EVO-047 MCP 工具 Serverless 执行 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine after EVO-045-A establishes the shared execution boundary. |
 | EVO-027 / EVO-028 / EVO-046 / EVO-050 Skill 生态能力 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Refine after EVO-049-A/B establish model and parser baselines. |
-| EVO-061 至 EVO-076 依赖升级 | Proposed | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Pull forward only when a specific compatibility risk exceeds the current P0 product mainline. |
 
 ## Operating Review
 
@@ -57,6 +56,7 @@ Current iteration ordering is reasonable after the 2026-06-04 repair:
 - `EVO-080` captures the non-Docker runtime question as a Spike before committing to Wasmer or
   Wasmtime.
 - `EVO-081` captures the internal Markdown-backed docs page as a Ready product story.
+- `EVO-061` 至 `EVO-076` 已由 `EVO-086` 一次性 latest 迁移收口，不再作为 Later 候选项保留。
 - Keep Iterations 018-020 and 025-027 blocked until their refinement/dependency gates are met.
 - Use P2 Ready items only as explicit micro-iteration interruptions; do not silently bypass the
   selected product-mainline order.

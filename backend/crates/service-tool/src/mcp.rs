@@ -215,29 +215,19 @@ pub fn build_initialize_result() -> InitializeResult {
 /// Returns Ok(()) if validation passes, or an error message if validation fails.
 pub fn validate_arguments(schema: &Value, arguments: &Value) -> Result<(), String> {
     // If schema is empty or not an object, skip validation
-    if !schema.is_object() || schema.as_object().map_or(true, |o| o.is_empty()) {
+    if !schema.is_object() || schema.as_object().is_none_or(|o| o.is_empty()) {
         return Ok(());
     }
 
-    // Create a JSON Schema validator
-    let compiled =
-        jsonschema::JSONSchema::compile(schema).map_err(|e| format!("Invalid schema: {}", e))?;
+    let validator =
+        jsonschema::validator_for(schema).map_err(|e| format!("Invalid schema: {}", e))?;
 
-    // Validate the arguments
-    let result = compiled.validate(arguments);
-
-    if let Err(errors) = result {
-        let error_messages: Vec<String> = errors
-            .map(|e| {
-                let path = e.instance_path.to_string();
-                if path.is_empty() {
-                    format!("{}", e)
-                } else {
-                    format!("at '{}': {}", path, e)
-                }
-            })
-            .collect();
-        return Err(format!("Validation failed: {}", error_messages.join(", ")));
+    if let Err(error) = validator.validate(arguments) {
+        let path = error.instance_path().to_string();
+        if path.is_empty() {
+            return Err(format!("Validation failed: {}", error));
+        }
+        return Err(format!("Validation failed: at '{}': {}", path, error));
     }
 
     Ok(())

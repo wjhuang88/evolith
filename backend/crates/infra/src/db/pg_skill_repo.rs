@@ -191,7 +191,7 @@ impl SkillRepository for PgSkillRepository {
         let offset = (page.saturating_sub(1)) * per_page;
         sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
-        let mut query = sqlx::query_as::<_, PgSkillRow>(&sql);
+        let mut query = sqlx::query_as::<_, PgSkillRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in &bindings {
             query = query.bind(binding);
         }
@@ -253,7 +253,7 @@ impl SkillRepository for PgSkillRepository {
             bindings.push(owner_id.to_string());
         }
 
-        let mut query = sqlx::query_as::<_, CountRow>(&sql);
+        let mut query = sqlx::query_as::<_, CountRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in &bindings {
             query = query.bind(binding);
         }
@@ -290,8 +290,9 @@ impl SkillRepository for PgSkillRepository {
         let permissions = skill.permissions.or(existing.permissions);
         let license = skill.license.or(existing.license);
         let compatibility = skill.compatibility.or(existing.compatibility);
-        let disable_model_invocation =
-            skill.disable_model_invocation.unwrap_or(existing.disable_model_invocation);
+        let disable_model_invocation = skill
+            .disable_model_invocation
+            .unwrap_or(existing.disable_model_invocation);
         let user_invocable = skill.user_invocable.unwrap_or(existing.user_invocable);
         let argument_hint = skill.argument_hint.or(existing.argument_hint);
 
@@ -327,17 +328,25 @@ impl SkillRepository for PgSkillRepository {
         })?)
         .bind(visibility_str)
         .bind(&author)
-        .bind(serde_json::to_value(&tags).map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
-        })?)
+        .bind(
+            serde_json::to_value(&tags).map_err(|e| {
+                AppError::ValidationError(format!("Failed to serialize tags: {}", e))
+            })?,
+        )
         .bind(&skill_type)
         .bind(&execution)
         .bind(&entrypoint)
         .bind(timeout)
         .bind(memory_mb)
-        .bind(permissions.as_ref().map(serde_json::to_value).transpose().map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize permissions: {}", e))
-        })?)
+        .bind(
+            permissions
+                .as_ref()
+                .map(serde_json::to_value)
+                .transpose()
+                .map_err(|e| {
+                    AppError::ValidationError(format!("Failed to serialize permissions: {}", e))
+                })?,
+        )
         .bind(&license)
         .bind(&compatibility)
         .bind(disable_model_invocation)

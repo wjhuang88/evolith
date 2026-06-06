@@ -39,7 +39,7 @@ async fn run_migration_sql(pool: &SqlitePool, sql: &str) {
         if without_comments.is_empty() {
             continue;
         }
-        sqlx::query(without_comments)
+        sqlx::query(sqlx::AssertSqlSafe(without_comments))
             .execute(pool)
             .await
             .unwrap_or_else(|e| {

@@ -140,7 +140,7 @@ impl ToolRepository for PgToolRepository {
         let offset = (page.saturating_sub(1)) * per_page;
         sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
-        let mut query = sqlx::query_as::<_, PgToolRow>(&sql);
+        let mut query = sqlx::query_as::<_, PgToolRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in &bindings {
             query = query.bind(binding);
         }
@@ -191,7 +191,7 @@ impl ToolRepository for PgToolRepository {
             bindings.push(owner_id.to_string());
         }
 
-        let mut query = sqlx::query_as::<_, CountRow>(&sql);
+        let mut query = sqlx::query_as::<_, CountRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in &bindings {
             query = query.bind(binding);
         }

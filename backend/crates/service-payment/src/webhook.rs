@@ -1,5 +1,5 @@
 use crate::{PaymentConfig, PaymentError, Result};
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use tracing::{debug, error, info, warn};
@@ -77,34 +77,44 @@ impl WebhookHandler {
     }
 
     pub fn parse_event(&self, payload: &[u8]) -> Result<WebhookEvent> {
-        // Parse the raw Stripe event JSON
-        let raw_event: stripe::Event = serde_json::from_slice(payload).map_err(|e| {
+        let raw_event: serde_json::Value = serde_json::from_slice(payload).map_err(|e| {
             error!("Failed to parse Stripe event: {:?}", e);
             PaymentError::WebhookProcessingFailed(e.to_string())
         })?;
 
-        // Convert the EventObject to serde_json::Value
-        let object_value = serde_json::to_value(&raw_event.data.object).map_err(|e| {
-            error!("Failed to serialize event object: {:?}", e);
-            PaymentError::WebhookProcessingFailed(e.to_string())
-        })?;
-
-        // Convert previous_attributes from HashMap to Value
-        let previous_attributes = raw_event
-            .data
-            .previous_attributes
-            .as_ref()
-            .map(|attrs| serde_json::to_value(attrs).unwrap_or(serde_json::Value::Null));
+        let id = raw_event
+            .get("id")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                PaymentError::WebhookProcessingFailed("Stripe event id missing".to_string())
+            })?;
+        let event_type = raw_event
+            .get("type")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                PaymentError::WebhookProcessingFailed("Stripe event type missing".to_string())
+            })?;
+        let object_value = raw_event
+            .pointer("/data/object")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
+        let previous_attributes = raw_event.pointer("/data/previous_attributes").cloned();
 
         Ok(WebhookEvent {
-            id: raw_event.id.to_string(),
-            event_type: raw_event.type_.to_string(),
+            id: id.to_string(),
+            event_type: event_type.to_string(),
             data: WebhookEventData {
                 object: object_value,
                 previous_attributes,
             },
-            created: raw_event.created,
-            livemode: raw_event.livemode,
+            created: raw_event
+                .get("created")
+                .and_then(serde_json::Value::as_i64)
+                .unwrap_or_default(),
+            livemode: raw_event
+                .get("livemode")
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false),
         })
     }
 

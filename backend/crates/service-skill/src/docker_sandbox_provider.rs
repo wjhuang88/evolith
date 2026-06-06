@@ -8,14 +8,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
-use bollard::container::{Config as ContainerConfig, RemoveContainerOptions};
 use bollard::exec::{CreateExecOptions, StartExecResults};
-use bollard::models::HostConfig;
+use bollard::models::{ContainerCreateBody, HostConfig};
+use bollard::query_parameters::{CreateContainerOptions, RemoveContainerOptions};
 use bollard::Docker;
 use common::error::{AppError, Result};
-use common::execution::{
-    ExecutionPayload, ExecutionProvider, ExecutionRequest, ExecutionResponse,
-};
+use common::execution::{ExecutionPayload, ExecutionProvider, ExecutionRequest, ExecutionResponse};
 use futures_util::StreamExt;
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
 use tracing::{debug, info, warn};
@@ -171,10 +169,7 @@ impl DockerSandboxProvider {
         let sem = {
             let pools = self.pools.lock().await;
             let pool = pools.get(runtime).ok_or_else(|| {
-                AppError::external_service(
-                    "docker",
-                    format!("Runtime pool not found: {}", runtime),
-                )
+                AppError::external_service("docker", format!("Runtime pool not found: {}", runtime))
             })?;
             pool.semaphore.clone()
         };
@@ -185,24 +180,13 @@ impl DockerSandboxProvider {
         )
         .await
         .map_err(|_| {
-            AppError::external_service(
-                "docker",
-                "Timeout waiting for container slot".to_string(),
-            )
+            AppError::external_service("docker", "Timeout waiting for container slot".to_string())
         })?
-        .map_err(|_| {
-            AppError::external_service(
-                "docker",
-                "Pool semaphore closed".to_string(),
-            )
-        })?;
+        .map_err(|_| AppError::external_service("docker", "Pool semaphore closed".to_string()))?;
 
         let mut pools = self.pools.lock().await;
         let pool = pools.get_mut(runtime).ok_or_else(|| {
-            AppError::external_service(
-                "docker",
-                format!("Runtime pool not found: {}", runtime),
-            )
+            AppError::external_service("docker", format!("Runtime pool not found: {}", runtime))
         })?;
 
         pool.idle.retain(|c| !c.is_expired(&self.pool_config));
@@ -258,9 +242,10 @@ impl DockerSandboxProvider {
             }
         };
 
-        let mut labels: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
-        labels.insert("evolith.sandbox", "true");
-        labels.insert("evolith.pool", "true");
+        let mut labels: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        labels.insert("evolith.sandbox".to_string(), "true".to_string());
+        labels.insert("evolith.pool".to_string(), "true".to_string());
 
         let network_mode = if self.sandbox_config.network_enabled {
             "bridge"
@@ -282,11 +267,15 @@ impl DockerSandboxProvider {
             ..Default::default()
         };
 
-        let container_config = ContainerConfig {
-            image: Some(image),
-            cmd: Some(vec!["tail", "-f", "/dev/null"]),
-            working_dir: Some("/workspace"),
-            user: Some("sandbox"),
+        let container_config = ContainerCreateBody {
+            image: Some(image.to_string()),
+            cmd: Some(vec![
+                "tail".to_string(),
+                "-f".to_string(),
+                "/dev/null".to_string(),
+            ]),
+            working_dir: Some("/workspace".to_string()),
+            user: Some("sandbox".to_string()),
             host_config: Some(host_config),
             labels: Some(labels),
             ..Default::default()
@@ -298,9 +287,9 @@ impl DockerSandboxProvider {
         let response = self
             .docker
             .create_container(
-                Some(bollard::container::CreateContainerOptions {
-                    name: &container_name,
-                    platform: None,
+                Some(CreateContainerOptions {
+                    name: Some(container_name),
+                    platform: String::new(),
                 }),
                 container_config,
             )
@@ -310,7 +299,7 @@ impl DockerSandboxProvider {
             })?;
 
         self.docker
-            .start_container::<String>(&response.id, None)
+            .start_container(&response.id, None)
             .await
             .map_err(|e| {
                 AppError::external_service("docker", format!("Failed to start container: {}", e))

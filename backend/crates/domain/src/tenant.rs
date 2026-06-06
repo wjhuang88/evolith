@@ -152,7 +152,7 @@ pub struct CreateTenantRequest {
     #[validate(length(min = 1, max = 128))]
     pub name: String,
 
-    #[validate(length(min = 1, max = 64), custom = "validate_slug")]
+    #[validate(length(min = 1, max = 64), custom(function = "validate_slug"))]
     pub slug: String,
 
     #[validate(email)]

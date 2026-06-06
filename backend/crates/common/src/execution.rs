@@ -19,15 +19,9 @@ use crate::error::{AppError, Result};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionCaller {
     /// Skill code execution (from Skill handler)
-    Skill {
-        skill_id: Uuid,
-        runtime: String,
-    },
+    Skill { skill_id: Uuid, runtime: String },
     /// CLI command execution (from CLI interface handler)
-    Cli {
-        snippet_id: Uuid,
-        command: String,
-    },
+    Cli { snippet_id: Uuid, command: String },
     /// MCP tool execution (from MCP handler)
     McpTool { tool_id: Uuid },
 }
@@ -36,20 +30,11 @@ pub enum ExecutionCaller {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionPayload {
     /// Execute source code (Skill / Serverless Function)
-    Code {
-        source: String,
-        language: String,
-    },
+    Code { source: String, language: String },
     /// Execute a shell command (CLI interface)
-    Command {
-        command: String,
-        args: Vec<String>,
-    },
+    Command { command: String, args: Vec<String> },
     /// Forward to an external HTTP endpoint (MCP HTTP tool)
-    HttpProxy {
-        url: String,
-        method: String,
-    },
+    HttpProxy { url: String, method: String },
 }
 
 /// Resource and safety constraints for an execution.
@@ -164,16 +149,13 @@ impl CompositeProvider {
 
     fn route(&self, request: &ExecutionRequest) -> Result<&dyn ExecutionProvider> {
         match &request.payload {
-            ExecutionPayload::Code { .. } | ExecutionPayload::Command { .. } => {
-                self.docker_sandbox
-                    .as_ref()
-                    .map(|p| p.as_ref() as &dyn ExecutionProvider)
-                    .ok_or_else(|| {
-                        AppError::ConfigError(
-                            "Docker sandbox provider is not available".to_string(),
-                        )
-                    })
-            }
+            ExecutionPayload::Code { .. } | ExecutionPayload::Command { .. } => self
+                .docker_sandbox
+                .as_ref()
+                .map(|p| p.as_ref() as &dyn ExecutionProvider)
+                .ok_or_else(|| {
+                    AppError::ConfigError("Docker sandbox provider is not available".to_string())
+                }),
             ExecutionPayload::HttpProxy { .. } => self
                 .http_proxy
                 .as_ref()
@@ -290,10 +272,8 @@ mod tests {
             }
         }
 
-        let composite = CompositeProvider::new(
-            Some(Arc::new(MockDocker)),
-            Some(Arc::new(MockHttp)),
-        );
+        let composite =
+            CompositeProvider::new(Some(Arc::new(MockDocker)), Some(Arc::new(MockHttp)));
 
         // Code payload → docker
         let req = ExecutionRequest {
@@ -366,7 +346,9 @@ mod tests {
             context: ExecutionContext::default(),
         };
         let err = composite.execute(req).await.unwrap_err();
-        assert!(err.to_string().contains("Docker sandbox provider is not available"));
+        assert!(err
+            .to_string()
+            .contains("Docker sandbox provider is not available"));
     }
 
     #[tokio::test]
@@ -405,6 +387,8 @@ mod tests {
             context: ExecutionContext::default(),
         };
         let err = composite.execute(req).await.unwrap_err();
-        assert!(err.to_string().contains("HTTP proxy provider is not available"));
+        assert!(err
+            .to_string()
+            .contains("HTTP proxy provider is not available"));
     }
 }

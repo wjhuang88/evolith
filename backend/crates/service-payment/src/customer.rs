@@ -1,21 +1,20 @@
 use crate::{PaymentConfig, PaymentError, Result};
-use std::str::FromStr;
-use stripe::{Client, CreateCustomer, Customer, CustomerId, UpdateCustomer};
+use reqwest::{Method, RequestBuilder, StatusCode};
+use serde_json::Value;
 use tracing::{debug, error, info};
 use uuid::Uuid;
 
+const STRIPE_API_BASE: &str = "https://api.stripe.com/v1";
+
 pub struct StripeCustomerService {
-    client: Client,
-    _config: PaymentConfig,
+    client: reqwest::Client,
+    config: PaymentConfig,
 }
 
 impl StripeCustomerService {
     pub fn new(config: PaymentConfig) -> Self {
-        let client = Client::new(config.stripe_secret_key.as_str());
-        Self {
-            client,
-            _config: config,
-        }
+        let client = reqwest::Client::new();
+        Self { client, config }
     }
 
     pub async fn create_customer(
@@ -26,43 +25,41 @@ impl StripeCustomerService {
     ) -> Result<String> {
         info!("Creating Stripe customer for tenant: {}", tenant_id);
 
-        let mut metadata = std::collections::HashMap::new();
-        metadata.insert("tenant_id".to_string(), tenant_id.to_string());
+        let mut form = vec![
+            ("email", email.to_string()),
+            ("metadata[tenant_id]", tenant_id.to_string()),
+        ];
+        if let Some(name) = name {
+            form.push(("name", name.to_string()));
+        }
 
-        let mut create_params = CreateCustomer::new();
-        create_params.email = Some(email);
-        create_params.name = name;
-        create_params.metadata = Some(metadata);
+        let customer = self
+            .stripe_json(self.stripe_request(Method::POST, "customers").form(&form))
+            .await?;
 
-        let customer = Customer::create(&self.client, create_params)
-            .await
-            .map_err(|e: stripe::StripeError| {
-                error!("Failed to create Stripe customer: {:?}", e);
-                PaymentError::StripeApi(e.to_string())
-            })?;
+        let customer_id = customer
+            .get("id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| PaymentError::StripeApi("Stripe customer id missing".to_string()))?;
 
-        debug!("Created Stripe customer: {}", customer.id);
-        Ok(customer.id.to_string())
+        debug!("Created Stripe customer: {}", customer_id);
+        Ok(customer_id.to_string())
     }
 
-    pub async fn get_customer(&self, customer_id: &str) -> Result<Option<Customer>> {
+    pub async fn get_customer(&self, customer_id: &str) -> Result<Option<Value>> {
         debug!("Fetching Stripe customer: {}", customer_id);
 
-        let cid = CustomerId::from_str(customer_id)
-            .map_err(|e| PaymentError::CustomerNotFound(e.to_string()))?;
+        let response = self
+            .stripe_request(Method::GET, &format!("customers/{}", customer_id))
+            .send()
+            .await
+            .map_err(|e| PaymentError::StripeApi(e.to_string()))?;
 
-        match Customer::retrieve(&self.client, &cid, &[]).await {
-            Ok(customer) => Ok(Some(customer)),
-            Err(e) => {
-                let error_str = e.to_string().to_lowercase();
-                if error_str.contains("not found") || error_str.contains("404") {
-                    Ok(None)
-                } else {
-                    error!("Failed to retrieve Stripe customer: {:?}", e);
-                    Err(PaymentError::StripeApi(e.to_string()))
-                }
-            }
+        if response.status() == StatusCode::NOT_FOUND {
+            return Ok(None);
         }
+
+        Ok(Some(self.parse_stripe_response(response).await?))
     }
 
     pub async fn update_customer(
@@ -73,19 +70,23 @@ impl StripeCustomerService {
     ) -> Result<()> {
         debug!("Updating Stripe customer: {}", customer_id);
 
-        let cid = CustomerId::from_str(customer_id)
-            .map_err(|e| PaymentError::CustomerNotFound(e.to_string()))?;
+        let mut form = Vec::new();
+        if let Some(email) = email {
+            form.push(("email", email.to_string()));
+        }
+        if let Some(name) = name {
+            form.push(("name", name.to_string()));
+        }
 
-        let mut update_params = UpdateCustomer::new();
-        update_params.email = email;
-        update_params.name = name;
-
-        Customer::update(&self.client, &cid, update_params)
-            .await
-            .map_err(|e: stripe::StripeError| {
-                error!("Failed to update Stripe customer: {:?}", e);
-                PaymentError::StripeApi(e.to_string())
-            })?;
+        self.stripe_json(
+            self.stripe_request(Method::POST, &format!("customers/{}", customer_id))
+                .form(&form),
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to update Stripe customer: {:?}", e);
+            e
+        })?;
 
         Ok(())
     }
@@ -93,16 +94,50 @@ impl StripeCustomerService {
     pub async fn delete_customer(&self, customer_id: &str) -> Result<()> {
         info!("Deleting Stripe customer: {}", customer_id);
 
-        let cid = CustomerId::from_str(customer_id)
-            .map_err(|e| PaymentError::CustomerNotFound(e.to_string()))?;
-
-        Customer::delete(&self.client, &cid)
-            .await
-            .map_err(|e: stripe::StripeError| {
-                error!("Failed to delete Stripe customer: {:?}", e);
-                PaymentError::StripeApi(e.to_string())
-            })?;
+        self.stripe_json(
+            self.stripe_request(Method::DELETE, &format!("customers/{}", customer_id)),
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to delete Stripe customer: {:?}", e);
+            e
+        })?;
 
         Ok(())
+    }
+
+    fn stripe_request(&self, method: Method, path: &str) -> RequestBuilder {
+        let request = self
+            .client
+            .request(method, format!("{}/{}", STRIPE_API_BASE, path))
+            .bearer_auth(&self.config.stripe_secret_key);
+
+        if let Some(version) = &self.config.stripe_api_version {
+            request.header("Stripe-Version", version)
+        } else {
+            request
+        }
+    }
+
+    async fn stripe_json(&self, request: RequestBuilder) -> Result<Value> {
+        let response = request
+            .send()
+            .await
+            .map_err(|e| PaymentError::StripeApi(e.to_string()))?;
+        self.parse_stripe_response(response).await
+    }
+
+    async fn parse_stripe_response(&self, response: reqwest::Response) -> Result<Value> {
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .map_err(|e| PaymentError::StripeApi(e.to_string()))?;
+
+        if !status.is_success() {
+            return Err(PaymentError::StripeApi(body));
+        }
+
+        serde_json::from_str(&body).map_err(|e| PaymentError::StripeApi(e.to_string()))
     }
 }

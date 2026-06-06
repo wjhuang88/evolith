@@ -76,7 +76,7 @@ impl SkillParser {
 
     pub fn parse(&self, content: &str) -> Result<SkillDocument> {
         let (frontmatter, body) = split_frontmatter(content)?;
-        let metadata: SkillMetadata = serde_yaml::from_str(frontmatter)
+        let metadata: SkillMetadata = serde_norway::from_str(frontmatter)
             .map_err(|err| AppError::ValidationError(format!("Invalid skill YAML: {err}")))?;
 
         validate_metadata(&metadata)?;

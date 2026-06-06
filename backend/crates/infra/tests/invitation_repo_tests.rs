@@ -37,10 +37,10 @@ async fn setup_tenant_with_user(pool: &sqlx::SqlitePool) -> (Uuid, Uuid, Uuid) {
     let user = user_repo
         .create(
             NewUser {
-                    username: "inviter".to_string(),
-                    email: "inviter@invitationtest.com".to_string(),
-                    password_hash: "password123".to_string(),
-                },
+                username: "inviter".to_string(),
+                email: "inviter@invitationtest.com".to_string(),
+                password_hash: "password123".to_string(),
+            },
             tenant.id,
             TenantRole::Admin,
         )

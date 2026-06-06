@@ -23,7 +23,9 @@ pub use repository::{
 pub use skill::{
     Dependency as SkillDependency, NewSkill, Runtime, Skill, SkillFilter, UpdateSkill,
 };
-pub use snippet::{Dependency as SnippetDependency, NewSnippet, Snippet, SnippetFilter, UpdateSnippet};
+pub use snippet::{
+    Dependency as SnippetDependency, NewSnippet, Snippet, SnippetFilter, UpdateSnippet,
+};
 pub use tenant::{
     CreateTenantRequest, InviteUserRequest, PlanStatus, Tenant, TenantContext, TenantInvitation,
     TenantPlan, TenantQuotas, TenantStatus, TenantUsage,

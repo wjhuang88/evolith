@@ -39,17 +39,14 @@ impl SnippetRepository for SqliteSnippetRepository {
         let subcommands_str = serde_json::to_string(&snippet.subcommands).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize subcommands: {}", e))
         })?;
-        let inputs_str = serde_json::to_string(&snippet.inputs).map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize inputs: {}", e))
-        })?;
+        let inputs_str = serde_json::to_string(&snippet.inputs)
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize inputs: {}", e)))?;
         let output_str = snippet
             .output
             .as_ref()
             .map(serde_json::to_string)
             .transpose()
-            .map_err(|e| {
-                AppError::ValidationError(format!("Failed to serialize output: {}", e))
-            })?;
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize output: {}", e)))?;
         let examples_str = serde_json::to_string(&snippet.examples).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize examples: {}", e))
         })?;
@@ -191,7 +188,7 @@ impl SnippetRepository for SqliteSnippetRepository {
         let offset = (page.saturating_sub(1)) * per_page;
         sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
-        let mut query = sqlx::query_as::<_, SnippetRow>(&sql);
+        let mut query = sqlx::query_as::<_, SnippetRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in bindings {
             query = query.bind(binding);
         }
@@ -252,7 +249,7 @@ impl SnippetRepository for SqliteSnippetRepository {
             bindings.push(owner_id.to_string());
         }
 
-        let mut query = sqlx::query_as::<_, CountRow>(&sql);
+        let mut query = sqlx::query_as::<_, CountRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in bindings {
             query = query.bind(binding);
         }
@@ -267,9 +264,8 @@ impl SnippetRepository for SqliteSnippetRepository {
 
     async fn update(&self, id: Uuid, snippet: UpdateSnippet) -> Result<Snippet> {
         let existing = self.find_by_id(id).await?;
-        let existing = existing.ok_or_else(|| {
-            AppError::NotFoundError(format!("Snippet with id {} not found", id))
-        })?;
+        let existing = existing
+            .ok_or_else(|| AppError::NotFoundError(format!("Snippet with id {} not found", id)))?;
 
         let now = Utc::now();
 
@@ -280,7 +276,9 @@ impl SnippetRepository for SqliteSnippetRepository {
         let content = snippet.content.unwrap_or(existing.content);
         let code = snippet.code.unwrap_or(existing.code);
         let dependencies = snippet.dependencies.unwrap_or(existing.dependencies);
-        let estimated_tokens = snippet.estimated_tokens.unwrap_or(existing.estimated_tokens);
+        let estimated_tokens = snippet
+            .estimated_tokens
+            .unwrap_or(existing.estimated_tokens);
         let visibility = snippet.visibility.unwrap_or(existing.visibility);
         let version = snippet.version.unwrap_or(existing.version);
         let summary = snippet.summary.or(existing.summary);
@@ -295,27 +293,21 @@ impl SnippetRepository for SqliteSnippetRepository {
             Visibility::Public => "public",
             Visibility::Private => "private",
         };
-        let tags_str =
-            serde_json::to_string(&tags).map_err(|e| {
-                AppError::ValidationError(format!("Failed to serialize tags: {}", e))
-            })?;
+        let tags_str = serde_json::to_string(&tags)
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize tags: {}", e)))?;
         let dependencies_str = serde_json::to_string(&dependencies).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize dependencies: {}", e))
         })?;
         let subcommands_str = serde_json::to_string(&subcommands).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize subcommands: {}", e))
         })?;
-        let inputs_str =
-            serde_json::to_string(&inputs).map_err(|e| {
-                AppError::ValidationError(format!("Failed to serialize inputs: {}", e))
-            })?;
+        let inputs_str = serde_json::to_string(&inputs)
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize inputs: {}", e)))?;
         let output_str = output
             .as_ref()
             .map(serde_json::to_string)
             .transpose()
-            .map_err(|e| {
-                AppError::ValidationError(format!("Failed to serialize output: {}", e))
-            })?;
+            .map_err(|e| AppError::ValidationError(format!("Failed to serialize output: {}", e)))?;
         let examples_str = serde_json::to_string(&examples).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize examples: {}", e))
         })?;

@@ -52,6 +52,22 @@
 | [EVO-058](EVO-058-前端死代码与类型卫生清理.md) | 前端死代码与类型卫生清理 | tech-debt | Done | P2 | 前端代码审查 2026-06-01 | Iteration 040 收口（2026-06-04）：删除 7 个死代码文件（-139 行）+ uiStore re-export 移除 + skillsApi.versions 假实现移除 + 重复 User 接口合并；bun run build + tsc 0 errors |
 | [EVO-059](EVO-059-backend-clippy-历史-lint-升级修复.md) | Backend clippy 历史 lint 升级修复 | tech-debt | Done | P2 | Iteration 028 验证残余 / Iteration 029 配套 | 2026-06-01 Iteration 029 收口：21 个 `-D warnings` 错误归零（原估算 18，实际 13× unwrap_used + 3× dead_code + 4× unnecessary_min_or_max + 1× field_reassign_with_default）。修复策略：unwarp_used 在 7 个 test 文件加文件级 `#![allow(clippy::unwrap_used)]`（workspace deny 覆盖 clippy.toml 行为）；dead_code 移除未使用字段而非 `#[allow]`；unnecessary_min_or_max 移除 `.max(3)` 因 MIN_RPM=30 保障 rpm/10>=3；field_reassign_with_default 改 struct update syntax |
 | [EVO-060](EVO-060-devsh-embeddedfrontendzip-死代码-+-关联-proposal-状态清理.md) | dev.sh EMBEDDED_FRONTEND/ZIP 死代码 + 关联 proposal 状态清理 | tech-debt | Done | P2 | 嵌入式模式验证 2026-06-01 | 2026-06-03 完成：删除 4 处死代码（EMBEDDED_FRONTEND / build_frontend_zip / --features embedded-frontend / ZIP 构建逻辑）；新增 build_frontend() 函数；lite/embedded 模式改为单端口（build + backend）；后端端口改为读 SERVER__PORT 环境变量；proposal 状态已晋升；SCRIPTS-RELEASE-NOTES.md 同步 |
+| [EVO-061](EVO-061-bollard-0-17-0-21-docker-engine-api.md) | bollard 0.17→0.21 Docker Engine API 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`bollard` 升级到 0.21.0，容器创建/启动/删除 API 迁移到 generated models/query parameters |
+| [EVO-062](EVO-062-sqlx-0-7-0-9-迁移.md) | sqlx 0.7→0.9 迁移 | tech-debt | Done | P1 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`sqlx` 升级到 0.9.0，动态 SQL 调用补 `AssertSqlSafe` |
+| [EVO-063](EVO-063-config-0-14-0-15-升级.md) | config 0.14→0.15 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`config` 升级到 0.15.23 |
+| [EVO-064](EVO-064-validator-0-16-0-20-升级.md) | validator 0.16→0.20 升级 | tech-debt | Done | P2 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`validator` 升级到 0.20.0，自定义校验宏语法已迁移 |
+| [EVO-065](EVO-065-jsonwebtoken-9-10-升级.md) | jsonwebtoken 9→10 升级 | tech-debt | Done | P2 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`jsonwebtoken` 升级到 10.4.0 并显式启用 `rust_crypto` provider |
+| [EVO-066](EVO-066-thiserror-1-2-升级.md) | thiserror 1→2 升级 | tech-debt | Done | P2 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`thiserror` 升级到 2.0.18；MSRV 随依赖提升到 1.88 |
+| [EVO-067](EVO-067-jsonschema-0-17-0-46-升级.md) | jsonschema 0.17→0.46 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`jsonschema` 升级到 0.46.5，MCP schema validation 切到 `validator_for` API |
+| [EVO-068](EVO-068-reqwest-0-11-0-13-升级.md) | reqwest 0.11→0.13 升级 | tech-debt | Done | P2 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`reqwest` 升级到 0.13.4，补 `form` feature |
+| [EVO-069](EVO-069-hmac-0-12-0-13-升级.md) | hmac 0.12→0.13 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`hmac` 升级到 0.13.0，webhook 验签改用新版 `KeyInit` |
+| [EVO-070](EVO-070-sha2-0-10-0-11-升级.md) | sha2 0.10→0.11 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`sha2` 升级到 0.11.0 |
+| [EVO-071](EVO-071-redis-0-27-1-x-命名空间重置.md) | redis 0.27→1.x 命名空间重置 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`redis` 升级到 1.2.2 |
+| [EVO-072](EVO-072-actix-governor-0-6-0-10-升级.md) | actix-governor 0.6→0.10 升级 | tech-debt | Done | P2 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`actix-governor` 升级到 0.10.0 |
+| [EVO-073](EVO-073-actix-web-prom-0-8-0-10-升级.md) | actix-web-prom 0.8→0.10 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`actix-web-prom` 升级到 0.10.0 |
+| [EVO-074](EVO-074-prometheus-0-13-0-14-升级.md) | prometheus 0.13→0.14 升级 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：`prometheus` 升级到 0.14.0 |
+| [EVO-075](EVO-075-rand-0-8-私有依赖收敛.md) | rand 0.8 私有依赖收敛 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：移除 `service-auth` 对 `rand` 的直接依赖 |
+| [EVO-076](EVO-076-serde-yaml-0-9-serde-norway.md) | serde_yaml 0.9 → serde_norway 迁移 | tech-debt | Done | P3 | Iteration 032 依赖审计暂缓项 | EVO-086 完成：Skill/CLI parser 改用 `serde_norway 0.9.42` |
 | [EVO-077](EVO-077-governance-board-派生运营视图.md) | Governance board 派生运营视图 | governance | Done | P1 | 用户反馈 2026-06-03 / Iteration 036 | 按 agent-project-governance skill 标准新增 `docs/BOARD.md`，只汇总 owner docs 与 gate，不作为新状态源；验证通过并收口 |
 | [EVO-078](EVO-078-最近开发任务治理漂移修复.md) | 最近开发任务治理漂移修复 | governance | Done | P1 | 用户反馈 2026-06-04 / Iteration 037 | 修复 Board / iterations README / Iteration 029 / Iteration 033 / 设计文档归类 / 文档断链漂移；补齐 EVO-045-A 子任务；记录近期 Figma 与脚本任务治理归口 |
 | [EVO-079](EVO-079-sandbox-默认启用导致本地启动依赖-docker-回归修复.md) | sandbox 默认启用导致本地启动依赖 Docker 回归修复 | bug | Done | P1 | 用户反馈 2026-06-05 / Iteration 041 follow-up | 将 `sandbox.enabled`、`.env.development`、`.env.example` 默认改为 false；显式启用 sandbox 时仍保留 Docker fail-fast |
@@ -59,6 +75,7 @@
 | [EVO-083](EVO-083-skill-107-agent-redirect-入口纠偏.md) | skill 1.0.7 agent redirect 入口纠偏 | governance | Done | P1 | 用户反馈 2026-06-05 / skill 更新 | 补 `CLAUDE.md` / `GEMINI.md` 单行重定向入口，并同步 manifest 与文档地图 |
 | [EVO-084](EVO-084-backlog-compaction-标准结构迁移.md) | Backlog compaction 标准结构迁移 | governance | Done | P1 | 用户反馈 2026-06-05 / skill backlog-compaction | 将 monolithic backlog 压缩为决策入口 + active item files + archive index；验证通过后收口 |
 | [EVO-085](EVO-085-archive-index-二次压缩与-item-file-拆分纠偏.md) | Archive index 二次压缩与 item file 拆分纠偏 | governance | Done | P1 | 用户反馈 2026-06-05 / backlog compaction follow-up | `archive/2026-Q2/INDEX.md` 不应承载全部历史详情，已拆为 per-item archive files 并保留短索引 |
+| [EVO-086](EVO-086-全量依赖-latest-迁移.md) | 全量依赖 latest 迁移 | tech-debt | Done | P1 | 用户反馈 2026-06-06 | 后端/前端依赖直接追 latest 并完成 breaking migration；覆盖 EVO-061~076；验证全绿 |
 
 ## Reading Rules
 

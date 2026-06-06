@@ -302,7 +302,10 @@ mod tests {
         impl ExecutionProvider for MockProvider {
             async fn execute(&self, request: ExecutionRequest) -> Result<UnifiedResponse> {
                 assert!(matches!(request.caller, ExecutionCaller::McpTool { .. }));
-                assert!(matches!(request.payload, ExecutionPayload::HttpProxy { .. }));
+                assert!(matches!(
+                    request.payload,
+                    ExecutionPayload::HttpProxy { .. }
+                ));
                 Ok(UnifiedResponse {
                     output: serde_json::json!({"status": "ok"}),
                     stdout: "{\"status\":\"ok\"}".to_string(),

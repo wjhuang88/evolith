@@ -102,8 +102,10 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
     let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::new());
     info!("HTTP proxy provider initialized");
 
-    let execution_provider: Arc<dyn ExecutionProvider> =
-        Arc::new(CompositeProvider::new(docker_sandbox.clone(), Some(http_proxy.clone())));
+    let execution_provider: Arc<dyn ExecutionProvider> = Arc::new(CompositeProvider::new(
+        docker_sandbox.clone(),
+        Some(http_proxy.clone()),
+    ));
 
     let skill_executor: Arc<dyn SkillExecutor> = if docker_sandbox.is_some() {
         Arc::new(SkillExecutorAdapter::new(execution_provider.clone()))

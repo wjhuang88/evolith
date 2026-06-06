@@ -198,9 +198,10 @@ pub async fn update_snippet(
         tags: body.tags.clone(),
         content: body.content.clone(),
         code: body.code.clone(),
-        dependencies: body.dependencies.as_ref().map(|deps| {
-            deps.iter().map(|d| d.to_domain()).collect()
-        }),
+        dependencies: body
+            .dependencies
+            .as_ref()
+            .map(|deps| deps.iter().map(|d| d.to_domain()).collect()),
         estimated_tokens: body.estimated_tokens,
         visibility,
         version: body.version.clone(),

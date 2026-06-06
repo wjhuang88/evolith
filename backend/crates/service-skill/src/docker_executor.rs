@@ -1,9 +1,9 @@
 //! Docker-based sandbox executor for skill code execution
 
 use async_trait::async_trait;
-use bollard::container::{Config as ContainerConfig, RemoveContainerOptions};
 use bollard::exec::{CreateExecOptions, StartExecResults};
-use bollard::models::HostConfig;
+use bollard::models::{ContainerCreateBody, HostConfig};
+use bollard::query_parameters::{CreateContainerOptions, RemoveContainerOptions};
 use bollard::Docker;
 use common::error::{AppError, Result};
 use futures_util::StreamExt;
@@ -48,9 +48,9 @@ impl DockerExecutor {
             }
         };
 
-        let mut labels: HashMap<&str, &str> = HashMap::new();
-        labels.insert("evolith.sandbox", "true");
-        labels.insert("evolith.sandbox-id", sandbox_id);
+        let mut labels: HashMap<String, String> = HashMap::new();
+        labels.insert("evolith.sandbox".to_string(), "true".to_string());
+        labels.insert("evolith.sandbox-id".to_string(), sandbox_id.to_string());
 
         let network_mode = if self.config.network_enabled {
             "bridge"
@@ -72,11 +72,15 @@ impl DockerExecutor {
             ..Default::default()
         };
 
-        let container_config = ContainerConfig {
-            image: Some(image),
-            cmd: Some(vec!["tail", "-f", "/dev/null"]),
-            working_dir: Some("/workspace"),
-            user: Some("sandbox"),
+        let container_config = ContainerCreateBody {
+            image: Some(image.to_string()),
+            cmd: Some(vec![
+                "tail".to_string(),
+                "-f".to_string(),
+                "/dev/null".to_string(),
+            ]),
+            working_dir: Some("/workspace".to_string()),
+            user: Some("sandbox".to_string()),
             host_config: Some(host_config),
             labels: Some(labels),
             ..Default::default()
@@ -87,9 +91,9 @@ impl DockerExecutor {
         let response = self
             .docker
             .create_container(
-                Some(bollard::container::CreateContainerOptions {
-                    name: &container_name,
-                    platform: None,
+                Some(CreateContainerOptions {
+                    name: Some(container_name),
+                    platform: String::new(),
                 }),
                 container_config,
             )
@@ -99,7 +103,7 @@ impl DockerExecutor {
             })?;
 
         self.docker
-            .start_container::<String>(&response.id, None)
+            .start_container(&response.id, None)
             .await
             .map_err(|e| {
                 AppError::external_service("docker", format!("Failed to start container: {}", e))

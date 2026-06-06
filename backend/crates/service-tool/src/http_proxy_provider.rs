@@ -7,9 +7,7 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use common::error::{AppError, Result};
-use common::execution::{
-    ExecutionPayload, ExecutionProvider, ExecutionRequest, ExecutionResponse,
-};
+use common::execution::{ExecutionPayload, ExecutionProvider, ExecutionRequest, ExecutionResponse};
 use futures_util::StreamExt;
 use reqwest::Client;
 use tracing::debug;
@@ -221,7 +219,9 @@ mod tests {
             context: ExecutionContext::default(),
         };
         let err = provider.execute(request).await.unwrap_err();
-        assert!(err.to_string().contains("HttpProxyProvider only handles HttpProxy payloads"));
+        assert!(err
+            .to_string()
+            .contains("HttpProxyProvider only handles HttpProxy payloads"));
     }
 
     #[tokio::test]

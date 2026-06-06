@@ -3,11 +3,10 @@
 //! Uses Argon2id algorithm for secure password hashing.
 
 use argon2::{
-    password_hash::SaltString, Algorithm, Argon2, Params, PasswordHash, PasswordHasher,
-    PasswordVerifier, Version,
+    password_hash::{rand_core::OsRng, SaltString},
+    Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
 };
 use common::error::Result;
-use rand::rngs::OsRng;
 use thiserror::Error;
 
 /// Password-related errors

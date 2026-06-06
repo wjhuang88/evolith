@@ -90,9 +90,10 @@ impl CliInterfaceParser {
 
     pub fn parse(&self, content: &str) -> Result<CliInterfaceDocument> {
         let (frontmatter, body) = split_frontmatter(content)?;
-        let metadata: CliInterfaceMetadata = serde_yaml::from_str(frontmatter).map_err(|err| {
-            AppError::ValidationError(format!("Invalid CLI interface YAML: {err}"))
-        })?;
+        let metadata: CliInterfaceMetadata =
+            serde_norway::from_str(frontmatter).map_err(|err| {
+                AppError::ValidationError(format!("Invalid CLI interface YAML: {err}"))
+            })?;
 
         validate_metadata(&metadata)?;
 

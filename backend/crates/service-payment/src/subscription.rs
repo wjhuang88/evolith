@@ -1,13 +1,12 @@
 use crate::{PaymentConfig, PaymentError, Result};
 use chrono::{DateTime, Utc};
+use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use stripe::{
-    CancelSubscription, Client, CreateSubscription, CreateSubscriptionItems, CustomerId,
-    Subscription, SubscriptionId, SubscriptionStatus, UpdateSubscription,
-};
+use serde_json::Value;
 use tracing::{debug, error, info};
 use uuid::Uuid;
+
+const STRIPE_API_BASE: &str = "https://api.stripe.com/v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionData {
@@ -23,17 +22,14 @@ pub struct SubscriptionData {
 }
 
 pub struct StripeSubscriptionService {
-    client: Client,
-    _config: PaymentConfig,
+    client: reqwest::Client,
+    config: PaymentConfig,
 }
 
 impl StripeSubscriptionService {
     pub fn new(config: PaymentConfig) -> Self {
-        let client = Client::new(config.stripe_secret_key.as_str());
-        Self {
-            client,
-            _config: config,
-        }
+        let client = reqwest::Client::new();
+        Self { client, config }
     }
 
     pub async fn create_subscription(
@@ -45,26 +41,25 @@ impl StripeSubscriptionService {
     ) -> Result<SubscriptionData> {
         info!("Creating Stripe subscription for customer: {}", customer_id);
 
-        let cid = CustomerId::from_str(customer_id)
-            .map_err(|e| PaymentError::CustomerNotFound(e.to_string()))?;
+        let mut form = vec![
+            ("customer", customer_id.to_string()),
+            ("items[0][price]", price_id.to_string()),
+            ("items[0][quantity]", "1".to_string()),
+            ("metadata[tenant_id]", tenant_id.to_string()),
+        ];
+        if let Some(trial_days) = trial_days {
+            form.push(("trial_period_days", trial_days.to_string()));
+        }
 
-        let mut metadata = std::collections::HashMap::new();
-        metadata.insert("tenant_id".to_string(), tenant_id.to_string());
-
-        let mut create_params = CreateSubscription::new(cid);
-        create_params.items = Some(vec![CreateSubscriptionItems {
-            price: Some(price_id.to_string()),
-            quantity: Some(1),
-            ..Default::default()
-        }]);
-        create_params.metadata = Some(metadata);
-        create_params.trial_period_days = trial_days;
-
-        let subscription = Subscription::create(&self.client, create_params)
+        let subscription = self
+            .stripe_json(
+                self.stripe_request(Method::POST, "subscriptions")
+                    .form(&form),
+            )
             .await
-            .map_err(|e: stripe::StripeError| {
+            .map_err(|e| {
                 error!("Failed to create Stripe subscription: {:?}", e);
-                PaymentError::StripeApi(e.to_string())
+                e
             })?;
 
         Ok(self.subscription_to_data(&subscription))
@@ -76,21 +71,19 @@ impl StripeSubscriptionService {
     ) -> Result<Option<SubscriptionData>> {
         debug!("Fetching Stripe subscription: {}", subscription_id);
 
-        let sub_id = SubscriptionId::from_str(subscription_id)
-            .map_err(|e| PaymentError::SubscriptionNotFound(e.to_string()))?;
+        let response = self
+            .stripe_request(Method::GET, &format!("subscriptions/{}", subscription_id))
+            .send()
+            .await
+            .map_err(|e| PaymentError::StripeApi(e.to_string()))?;
 
-        match Subscription::retrieve(&self.client, &sub_id, &[]).await {
-            Ok(subscription) => Ok(Some(self.subscription_to_data(&subscription))),
-            Err(e) => {
-                let error_str = e.to_string().to_lowercase();
-                if error_str.contains("not found") || error_str.contains("404") {
-                    Ok(None)
-                } else {
-                    error!("Failed to retrieve Stripe subscription: {:?}", e);
-                    Err(PaymentError::StripeApi(e.to_string()))
-                }
-            }
+        if response.status() == StatusCode::NOT_FOUND {
+            return Ok(None);
         }
+
+        Ok(Some(self.subscription_to_data(
+            &self.parse_stripe_response(response).await?,
+        )))
     }
 
     pub async fn cancel_subscription(
@@ -103,69 +96,125 @@ impl StripeSubscriptionService {
             subscription_id, immediately
         );
 
-        let sub_id = SubscriptionId::from_str(subscription_id)
-            .map_err(|e| PaymentError::SubscriptionNotFound(e.to_string()))?;
-
         let subscription = if immediately {
-            Subscription::cancel(&self.client, &sub_id, CancelSubscription::new())
-                .await
-                .map_err(|e: stripe::StripeError| {
-                    error!("Failed to cancel Stripe subscription: {:?}", e);
-                    PaymentError::StripeApi(e.to_string())
-                })?
+            self.stripe_json(self.stripe_request(
+                Method::DELETE,
+                &format!("subscriptions/{}", subscription_id),
+            ))
+            .await
+            .map_err(|e| {
+                error!("Failed to cancel Stripe subscription: {:?}", e);
+                e
+            })?
         } else {
-            let mut update_params = UpdateSubscription::new();
-            update_params.cancel_at_period_end = Some(true);
-            Subscription::update(&self.client, &sub_id, update_params)
-                .await
-                .map_err(|e: stripe::StripeError| {
-                    error!("Failed to schedule subscription cancellation: {:?}", e);
-                    PaymentError::StripeApi(e.to_string())
-                })?
+            let form = [("cancel_at_period_end", "true")];
+            self.stripe_json(
+                self.stripe_request(Method::POST, &format!("subscriptions/{}", subscription_id))
+                    .form(&form),
+            )
+            .await
+            .map_err(|e| {
+                error!("Failed to schedule subscription cancellation: {:?}", e);
+                e
+            })?
         };
 
         Ok(self.subscription_to_data(&subscription))
     }
 
-    fn subscription_to_data(&self, subscription: &Subscription) -> SubscriptionData {
-        let status = match subscription.status {
-            SubscriptionStatus::Active => "active",
-            SubscriptionStatus::PastDue => "past_due",
-            SubscriptionStatus::Canceled => "canceled",
-            SubscriptionStatus::Unpaid => "unpaid",
-            SubscriptionStatus::Trialing => "trialing",
-            SubscriptionStatus::Incomplete => "incomplete",
-            SubscriptionStatus::IncompleteExpired => "incomplete_expired",
-            SubscriptionStatus::Paused => "paused",
-        };
+    fn subscription_to_data(&self, subscription: &Value) -> SubscriptionData {
+        let status = subscription
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
 
         let price_id = subscription
-            .items
-            .data
-            .first()
-            .and_then(|item| item.price.as_ref())
-            .map(|p| p.id.to_string())
+            .pointer("/items/data")
+            .and_then(Value::as_array)
+            .and_then(|items| items.first())
+            .and_then(|item| item.get("price"))
+            .and_then(|price| {
+                price
+                    .as_str()
+                    .or_else(|| price.get("id").and_then(Value::as_str))
+            })
             .unwrap_or_default();
 
-        let customer_id = match &subscription.customer {
-            stripe::Expandable::Id(id) => id.to_string(),
-            stripe::Expandable::Object(customer) => customer.id.to_string(),
-        };
+        let customer_id = subscription
+            .get("customer")
+            .and_then(|customer| {
+                customer
+                    .as_str()
+                    .or_else(|| customer.get("id").and_then(Value::as_str))
+            })
+            .unwrap_or_default();
+
+        let period_start = subscription
+            .get("current_period_start")
+            .and_then(Value::as_i64)
+            .unwrap_or_else(|| Utc::now().timestamp());
+        let period_end = subscription
+            .get("current_period_end")
+            .and_then(Value::as_i64)
+            .unwrap_or_else(|| Utc::now().timestamp());
+        let trial_end = subscription
+            .get("trial_end")
+            .and_then(Value::as_i64)
+            .and_then(|ts| DateTime::from_timestamp(ts, 0));
 
         SubscriptionData {
-            stripe_subscription_id: subscription.id.to_string(),
-            stripe_customer_id: customer_id,
+            stripe_subscription_id: subscription
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            stripe_customer_id: customer_id.to_string(),
             status: status.to_string(),
-            plan_id: price_id,
+            plan_id: price_id.to_string(),
             billing_cycle: "monthly".to_string(),
-            current_period_start: DateTime::from_timestamp(subscription.current_period_start, 0)
+            current_period_start: DateTime::from_timestamp(period_start, 0)
                 .unwrap_or_else(Utc::now),
-            current_period_end: DateTime::from_timestamp(subscription.current_period_end, 0)
-                .unwrap_or_else(Utc::now),
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            trial_end: subscription
-                .trial_end
-                .map(|ts| DateTime::from_timestamp(ts, 0).unwrap_or_else(Utc::now)),
+            current_period_end: DateTime::from_timestamp(period_end, 0).unwrap_or_else(Utc::now),
+            cancel_at_period_end: subscription
+                .get("cancel_at_period_end")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            trial_end,
         }
+    }
+
+    fn stripe_request(&self, method: Method, path: &str) -> RequestBuilder {
+        let request = self
+            .client
+            .request(method, format!("{}/{}", STRIPE_API_BASE, path))
+            .bearer_auth(&self.config.stripe_secret_key);
+
+        if let Some(version) = &self.config.stripe_api_version {
+            request.header("Stripe-Version", version)
+        } else {
+            request
+        }
+    }
+
+    async fn stripe_json(&self, request: RequestBuilder) -> Result<Value> {
+        let response = request
+            .send()
+            .await
+            .map_err(|e| PaymentError::StripeApi(e.to_string()))?;
+        self.parse_stripe_response(response).await
+    }
+
+    async fn parse_stripe_response(&self, response: reqwest::Response) -> Result<Value> {
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .map_err(|e| PaymentError::StripeApi(e.to_string()))?;
+
+        if !status.is_success() {
+            return Err(PaymentError::StripeApi(body));
+        }
+
+        serde_json::from_str(&body).map_err(|e| PaymentError::StripeApi(e.to_string()))
     }
 }

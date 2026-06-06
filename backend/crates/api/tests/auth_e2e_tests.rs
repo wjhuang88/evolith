@@ -13,6 +13,7 @@ use api::middleware::rbac::RbacMiddleware;
 use api::routes;
 use api::routes::auth;
 use api::state::AppState;
+use common::execution::{CompositeProvider, ExecutionProvider};
 use domain::repository::{
     ApiKeyRepository, AuditRepository, InvitationRepository, NewInvitation, SkillRepository,
     SnippetRepository, TenantRepository, ToolRepository, UserRepository,
@@ -26,7 +27,6 @@ use infra::db::{
     SqliteSkillRepository, SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository,
     SqliteUserRepository,
 };
-use common::execution::{CompositeProvider, ExecutionProvider};
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_tool::executor::ToolExecutorAdapter;
@@ -130,7 +130,7 @@ async fn run_migration_sql(pool: &SqlitePool, sql: &str) {
         if without_comments.is_empty() {
             continue;
         }
-        sqlx::query(without_comments)
+        sqlx::query(sqlx::AssertSqlSafe(without_comments))
             .execute(pool)
             .await
             .unwrap_or_else(|e| {

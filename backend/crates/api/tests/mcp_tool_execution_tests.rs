@@ -9,6 +9,7 @@ use std::{net::TcpListener, sync::Arc, time::Duration};
 use api::middleware::rbac::RbacMiddleware;
 use api::routes;
 use api::state::AppState;
+use common::execution::{CompositeProvider, ExecutionProvider};
 use domain::repository::{
     ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
     TenantRepository, ToolRepository, UserRepository,
@@ -23,7 +24,6 @@ use infra::db::{
     SqliteSkillRepository, SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository,
     SqliteUserRepository,
 };
-use common::execution::{CompositeProvider, ExecutionProvider};
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_tool::executor::{HttpToolExecutor, ToolExecutor, ToolExecutorAdapter};
@@ -61,11 +61,11 @@ async fn setup_test_db() -> SqlitePool {
         .await
         .expect("Failed to create in-memory SQLite pool");
 
-run_migration_sql(&pool, MIGRATION_001).await;
-run_migration_sql(&pool, MIGRATION_003).await;
-run_migration_sql(&pool, MIGRATION_004).await;
-run_migration_sql(&pool, MIGRATION_005).await;
-run_migration_sql(&pool, MIGRATION_006).await;
+    run_migration_sql(&pool, MIGRATION_001).await;
+    run_migration_sql(&pool, MIGRATION_003).await;
+    run_migration_sql(&pool, MIGRATION_004).await;
+    run_migration_sql(&pool, MIGRATION_005).await;
+    run_migration_sql(&pool, MIGRATION_006).await;
 
     pool
 }
@@ -80,7 +80,7 @@ async fn run_migration_sql(pool: &SqlitePool, sql: &str) {
         if without_comments.is_empty() {
             continue;
         }
-        sqlx::query(without_comments)
+        sqlx::query(sqlx::AssertSqlSafe(without_comments))
             .execute(pool)
             .await
             .unwrap_or_else(|e| {

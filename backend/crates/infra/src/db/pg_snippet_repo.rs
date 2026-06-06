@@ -194,7 +194,7 @@ impl SnippetRepository for PgSnippetRepository {
         let offset = (page.saturating_sub(1)) * per_page;
         sql.push_str(&format!(" LIMIT {} OFFSET {}", per_page, offset));
 
-        let mut query = sqlx::query_as::<_, PgSnippetRow>(&sql);
+        let mut query = sqlx::query_as::<_, PgSnippetRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in &bindings {
             query = query.bind(binding);
         }
@@ -267,7 +267,7 @@ impl SnippetRepository for PgSnippetRepository {
             bindings.push(owner_id.to_string());
         }
 
-        let mut query = sqlx::query_as::<_, CountRow>(&sql);
+        let mut query = sqlx::query_as::<_, CountRow>(sqlx::AssertSqlSafe(sql.as_str()));
         for binding in &bindings {
             query = query.bind(binding);
         }
@@ -282,9 +282,8 @@ impl SnippetRepository for PgSnippetRepository {
 
     async fn update(&self, id: Uuid, snippet: UpdateSnippet) -> Result<Snippet> {
         let existing = self.find_by_id(id).await?;
-        let existing = existing.ok_or_else(|| {
-            AppError::NotFoundError(format!("Snippet with id {} not found", id))
-        })?;
+        let existing = existing
+            .ok_or_else(|| AppError::NotFoundError(format!("Snippet with id {} not found", id)))?;
 
         let now = Utc::now();
 
@@ -295,7 +294,9 @@ impl SnippetRepository for PgSnippetRepository {
         let content = snippet.content.unwrap_or(existing.content);
         let code = snippet.code.unwrap_or(existing.code);
         let dependencies = snippet.dependencies.unwrap_or(existing.dependencies);
-        let estimated_tokens = snippet.estimated_tokens.unwrap_or(existing.estimated_tokens);
+        let estimated_tokens = snippet
+            .estimated_tokens
+            .unwrap_or(existing.estimated_tokens);
         let visibility = snippet.visibility.unwrap_or(existing.visibility);
         let version = snippet.version.unwrap_or(existing.version);
         let summary = snippet.summary.or(existing.summary);
@@ -324,9 +325,11 @@ impl SnippetRepository for PgSnippetRepository {
         .bind(&name)
         .bind(&language)
         .bind(&framework)
-        .bind(serde_json::to_value(&tags).map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize tags: {}", e))
-        })?)
+        .bind(
+            serde_json::to_value(&tags).map_err(|e| {
+                AppError::ValidationError(format!("Failed to serialize tags: {}", e))
+            })?,
+        )
         .bind(&content)
         .bind(&code)
         .bind(serde_json::to_value(&dependencies).map_err(|e| {
@@ -340,18 +343,32 @@ impl SnippetRepository for PgSnippetRepository {
         .bind(serde_json::to_value(&subcommands).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize subcommands: {}", e))
         })?)
-        .bind(serde_json::to_value(&inputs).map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize inputs: {}", e))
-        })?)
-        .bind(output.as_ref().map(serde_json::to_value).transpose().map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize output: {}", e))
-        })?)
+        .bind(
+            serde_json::to_value(&inputs).map_err(|e| {
+                AppError::ValidationError(format!("Failed to serialize inputs: {}", e))
+            })?,
+        )
+        .bind(
+            output
+                .as_ref()
+                .map(serde_json::to_value)
+                .transpose()
+                .map_err(|e| {
+                    AppError::ValidationError(format!("Failed to serialize output: {}", e))
+                })?,
+        )
         .bind(serde_json::to_value(&examples).map_err(|e| {
             AppError::ValidationError(format!("Failed to serialize examples: {}", e))
         })?)
-        .bind(error_model.as_ref().map(serde_json::to_value).transpose().map_err(|e| {
-            AppError::ValidationError(format!("Failed to serialize error_model: {}", e))
-        })?)
+        .bind(
+            error_model
+                .as_ref()
+                .map(serde_json::to_value)
+                .transpose()
+                .map_err(|e| {
+                    AppError::ValidationError(format!("Failed to serialize error_model: {}", e))
+                })?,
+        )
         .bind(now)
         .bind(id)
         .execute(&self.pool)
