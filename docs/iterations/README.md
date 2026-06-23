@@ -45,28 +45,29 @@
 - [Iteration 039](ITERATION-039.md) — 后端死代码与误导性注释清理（EVO-051；Closed：删除 10 个死代码文件 + NewUser.password → password_hash 重命名 + 282 tests passed）。
 - [Iteration 040](ITERATION-040.md) — 前端死代码与类型卫生清理（EVO-058；Closed：删除 7 个死代码文件 + skillsApi.versions 假实现移除 + 重复 User 接口合并 + build/tsc 0 errors）。
 - [Iteration 041](ITERATION-041.md) — ExecutionProvider 统一 trait + Docker 容器池化（EVO-045-A；Closed：创建统一执行抽象 + 容器池化 + HTTP 转发 + 适配器 facade + 309 tests passed）。
+- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Planned：2026-06-24 启动，含 ST-1 Tenant quota 适配 + ST-2 ExecutionProvider 简化准备）。
 
 ## 未来计划
 
 以下文档仅为仍可能激活的排期草案，未启动实施，也不代表候选事项已进入 `In Progress`。
 已关闭或已被取代的计划仅保留在文件清单和库存记录中，不再列入未来候选：
 
-- [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
-  Blocked for activation：候选仍需 DoR/refinement）。
-- [Iteration 019](ITERATION-019.md) — Skill 多来源导入闭环（EVO-027；
-  Blocked for activation：依赖 Iteration 018 前置结论与交付）。
-- [Iteration 020](ITERATION-020.md) — Skill 版本与正确性验证（EVO-028；
-  Blocked for activation：依赖 Iteration 019 导入模型）。
+- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Ready for activation：2026-06-24 启动计划）。
 - [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013；
   Blocked for activation：候选需 Story/BDD refinement）。
 - [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014；
   Blocked for activation：候选需 webhook 安全与 mock 验收 refinement）。
+- [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
+  Superseded by 2026-06-23 方向调整 → EVO-100 Phase E'-3 / EVO-108）。
+- [Iteration 019](ITERATION-019.md) — Skill 多来源导入闭环（EVO-027；
+  Superseded by 2026-06-23 方向调整 → EVO-100 Phase E'-3 / EVO-108）。
+- [Iteration 020](ITERATION-020.md) — Skill 版本与正确性验证（EVO-028；
+  Superseded by 2026-06-23 方向调整 → git 原生版本管理 + EVO-108）。
 - [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029；
-  Blocked for activation：需核对与 Iteration 019/020 的边界）。
-- [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；
-  Ready for activation：一周工程质量切片）。
-- [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A；
-  Ready for activation：父 Epic EVO-049 的首个可执行子 Story）。
+  Superseded by 2026-06-23 方向调整 → EVO-109 Discovery API + Pages 式发现 UI）。
+
+> **2026-06-24 文档漂移清理**（ITERATION-042 启动前）：
+> Iteration 028（Rustfmt 基线 / EVO-033）与 Iteration 034（Skill/CLI 数据模型基线 / EVO-049-A）**实际已 Closed**（见非终态库存），不应再列入"Ready for activation"。本轮已从未来计划 section 移除。
 
 ## 非终态库存
 
@@ -79,20 +80,18 @@
 - [Iteration 017](ITERATION-017.md) — `Closed`：EVO-026 前端 CLI Interface 概念收口；
   前端代码符号 Snippet→CliInterface 重命名 + UI 迁移完成。
 - [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
-  `Planned / Blocked`：按 Phase E 依赖链保留排期，待前置计划和各 story DoR 满足后
-  逐轮激活。
+  `Superseded by 2026-06-23 方向调整 → EVO-100 Phase E'-3 / EVO-108`：原 Phase E Skill 导入 / 多来源 / 版本验证已由 git 原生能力 + indexer 覆盖。
 - [Iteration 024](ITERATION-024.md) — `Superseded by Iteration 031`：EVO-016-A
   refinement 已被 rust-embed-for-web 实施覆盖。
-- [Iteration 025](ITERATION-025.md) 至 [Iteration 027](ITERATION-027.md) —
-  `Planned / Blocked`：Phase F 与 Skill 发现质量候选需 refinement 或依赖确认。
-- [Iteration 028](ITERATION-028.md) — `Planned / Ready for activation`：EVO-033
-  Rustfmt 基线和 CI 命令准备。
+- [Iteration 025](ITERATION-025.md) 至 [Iteration 026](ITERATION-026.md) —
+  `Planned / Blocked`：Phase F 候选需 refinement，与 Phase E' 独立。
+- [Iteration 027](ITERATION-027.md) — `Superseded by 2026-06-23 方向调整 → EVO-109 Discovery API + Pages 式发现 UI`。
+- [Iteration 028](ITERATION-028.md) — `Closed`：EVO-033 Rustfmt 基线和 CI 命令准备；fmt/check/test 通过，clippy 1 pre-existing error 归口 EVO-059。
 - [Iteration 029](ITERATION-029.md) — `Closed`：2026-06-01 EVO-030 + EVO-059 双 Done。`.github/workflows/ci.yml` 建立（tag-only `v*.*.*` semver trigger / 单 job 后端+前端串联 / Swatinem/rust-cache + oven-sh/setup-bun 缓存 / postgres:16-alpine service 容器）。9 门禁全绿：fmt / check / clippy / cargo test 274 passed。TECH-STACK §4.2 + TESTING §5 同步。deploy workflow + PR trigger 显式 Deferred。
 - [Iteration 030](ITERATION-030.md) — `Superseded`：ZIP 流式方案改线到
   rust-embed-for-web（Iteration 031）。
 - [Iteration 031](ITERATION-031.md) — `Closed`：EVO-016-B 前端静态服务迁移到
   rust-embed-for-web。全部 14 项验收标准通过。Iteration 012 激活条件已解除。
-- [Iteration 028](ITERATION-028.md) — `Closed`：EVO-033 Rustfmt 基线；fmt/check/test 通过，clippy 1 pre-existing error 归口 EVO-059。
 - [Iteration 032](ITERATION-032.md) — `Closed`：EVO-043 后端依赖审计与迁移。
   完整审计 39 workspace dep + 3 crate 私有 dep；16 个大版本升级归口
   EVO-061~076（全部 P3 Proposed）；clippy 18 pre-existing errors 维持 EVO-059
@@ -130,7 +129,8 @@
 该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
 并记录库存 disposition：
 
-1. **新进 Ready 待评估**：
+1. **2026-06-24 启动 ITERATION-042**（Phase E'-1）：EVO-101 + EVO-102；详见 [ITERATION-042.md](ITERATION-042.md)。
+2. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
    - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
    - EVO-081（内部文档页面基于独立 Markdown 目录渲染）
