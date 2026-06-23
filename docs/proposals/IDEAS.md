@@ -60,13 +60,28 @@
 
 ## Workspace (工作台空间)
 
-- [ ] **工作台空间核心** | 用户可创建自定义工作台空间, 自由组合平台功能（Tools/Skills/Snippets）形成专属能力集合 | 优先级：🔥 | 状态：💡
-- [ ] **统一智能体入口 (Agent Gateway)** | 每个工作台暴露单一入口 URL, 智能体访问后获得该空间全部能力的结构化描述（工具列表 + 技能列表 + 片段索引 + 操作 API schema）, 可自主完成发现→安装→调用全流程, 无需人工中转 | 优先级：🔥 | 状态：💡
-- [ ] **智能体自助操作 API** | 统一入口返回的所有资源都附带可执行的 API endpoint, 智能体可通过 API 直接完成: 安装 Skill 到本地、生成 MCP 配置、拉取 Snippet、执行 Tool, 所有操作均为 API-first | 优先级：🔥 | 状态：💡
-- [ ] **智能体适配协议** | 入口接口支持 `?agent=opencode|cursor|claude-desktop` 参数, 自动输出目标智能体原生格式的配置（skill 目录结构 / mcp.json / rules 文件）, 智能体无需理解转换逻辑 | 优先级：🔥 | 状态：💡
-- [ ] **工作台模板市场** | 预置常见场景的工作台模板（如"前端开发"、"数据分析"、"DevOps"）, 用户一键克隆后自定义 | 优先级：⚡ | 状态：💡
-- [ ] **工作台权限隔离** | 不同工作台空间之间资源隔离, 支持团队协作与独立 API Key 管理 | 优先级：⚡ | 状态：📋
-- [ ] **工作台状态同步** | 工作台配置变更时主动通知已接入的智能体, 实现热更新而非重新拉取 | 优先级：💭 | 状态：💡
+> **2026-06-23 方向调整**：工作台空间概念**全部折叠为 git repo**（详见 [GIT-CENTRIC-PLATFORM.md](GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) + EVO-100 Epic）。
+>
+> 代码层验证：`workspace_id` / `workspace_slug` 全代码库零命中；仅 6 处 cosmetic 文案（已修复）。Tenant 模型无 workspace 概念；多租户边界由 `tenant_id` 维护。
+>
+> 7 条原始 ideas 与新方向映射如下：
+> - 工作台空间核心 → **Repo**（EVO-100 ~ EVO-103）
+> - 统一智能体入口 (Agent Gateway) → Repo Context API（EVO-103）+ Discovery API（EVO-109）
+> - 智能体自助操作 API → Agent Session API（EVO-106）+ Webhook Out（EVO-107）
+> - 智能体适配协议 → `.evolith/agents.yaml` + `?agent=` query param（EVO-102 + 后续独立 EVO）
+> - 工作台模板市场 → Template repos（git fork/clone，天然支持，Phase 5+ 评估）
+> - 工作台权限隔离 → Per-repo ACL + tenant RBAC（EVO-103）
+> - 工作台状态同步 → Webhook Out（EVO-107）
+>
+> 状态：**已整合进 GIT-CENTRIC-PLATFORM**，保留条目作为历史设计意图参考，不再单独推进。
+
+- [ ] **工作台空间核心** | 用户可创建自定义工作台空间, 自由组合平台功能（Tools/Skills/Snippets）形成专属能力集合 | 优先级：🔥 | 状态：✅ 已整合（折叠为 Repo；EVO-100 ~ EVO-103） |
+- [ ] **统一智能体入口 (Agent Gateway)** | 每个工作台暴露单一入口 URL, 智能体访问后获得该空间全部能力的结构化描述（工具列表 + 技能列表 + 片段索引 + 操作 API schema）, 可自主完成发现→安装→调用全流程, 无需人工中转 | 优先级：🔥 | 状态：✅ 已整合（EVO-103 Repo Context API + EVO-109 Discovery） |
+- [ ] **智能体自助操作 API** | 统一入口返回的所有资源都附带可执行的 API endpoint, 智能体可通过 API 直接完成: 安装 Skill 到本地、生成 MCP 配置、拉取 Snippet、执行 Tool, 所有操作均为 API-first | 优先级：🔥 | 状态：✅ 已整合（EVO-106 Agent Session API + EVO-107 Webhook Out） |
+- [ ] **智能体适配协议** | 入口接口支持 `?agent=opencode|cursor|claude-desktop` 参数, 自动输出目标智能体原生格式的配置（skill 目录结构 / mcp.json / rules 文件）, 智能体无需理解转换逻辑 | 优先级：🔥 | 状态：✅ 已整合（EVO-102 `.evolith/policy.yaml` + `agents.yaml` + 后续 EVO-109 跨仓适配） |
+- [ ] **工作台模板市场** | 预置常见场景的工作台模板（如"前端开发"、"数据分析"、"DevOps"）, 用户一键克隆后自定义 | 优先级：⚡ | 状态：💡 Phase 5+ 评估（template repos 由 git fork 天然支持） |
+- [ ] **工作台权限隔离** | 不同工作台空间之间资源隔离, 支持团队协作与独立 API Key 管理 | 优先级：⚡ | 状态：✅ 已整合（EVO-103 per-repo ACL + tenant RBAC） |
+- [ ] **工作台状态同步** | 工作台配置变更时主动通知已接入的智能体, 实现热更新而非重新拉取 | 优先级：💭 | 状态：✅ 已整合（EVO-107 Webhook Out） |
 
 ## AI / LLM Integration (AI 集成)
 

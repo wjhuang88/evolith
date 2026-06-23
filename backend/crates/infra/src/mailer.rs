@@ -53,7 +53,7 @@ pub trait Mailer: Send + Sync {
     /// # Arguments
     /// * `to` - Recipient email address
     /// * `inviter_name` - Name of the person sending the invitation
-    /// * `tenant_name` - Name of the tenant/workspace
+    /// * `tenant_name` - Name of the tenant (organization)
     /// * `token` - Invitation token
     /// * `base_url` - Base URL for the invitation link
     async fn send_invitation_email(

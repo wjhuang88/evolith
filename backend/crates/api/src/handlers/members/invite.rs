@@ -101,18 +101,18 @@ pub async fn invite_member(
         Ok(invitation) => {
             let tenant_name = match state.tenant_repo.find_by_id(tenant_id).await {
                 Ok(Some(tenant)) => tenant.name,
-                Ok(None) => "your workspace".to_string(),
+                Ok(None) => "your organization".to_string(),
                 Err(e) => {
                     tracing::warn!("Failed to load tenant for invitation email: {}", e);
-                    "your workspace".to_string()
+                    "your organization".to_string()
                 }
             };
             let inviter_name = match state.user_repo.find_by_id(user.user_id).await {
                 Ok(Some(inviter)) => inviter.username,
-                Ok(None) => "A workspace admin".to_string(),
+                Ok(None) => "An admin".to_string(),
                 Err(e) => {
                     tracing::warn!("Failed to load inviter for invitation email: {}", e);
-                    "A workspace admin".to_string()
+                    "An admin".to_string()
                 }
             };
             let public_url = state.config.app.public_url.trim_end_matches('/');

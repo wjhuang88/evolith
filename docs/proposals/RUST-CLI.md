@@ -143,9 +143,16 @@ evolith agent sync
 
 ### CLI Phase 3 — Agent Workspace
 
-- 实现 `.evolith/` 工作区。
-- 生成不同 agent 工具的配置。
-- 支持同步和本地运行。
+> **2026-06-23 方向调整**：原"Agent Workspace"概念已**整合进 [GIT-CENTRIC-PLATFORM](GIT-CENTRIC-PLATFORM.md)**。Evolith CLI Phase 3 重新定位为：
+> - 在本地 clone 用户的 git repo 后，生成 `.evolith/agents.yaml` 配置
+> - 输出不同 agent 工具（OpenCode / Cursor / Claude Desktop）的原生格式（mcp.json / rules / skill 目录结构）
+> - 支持本地 sync（与 Evolith 远端 git 同步）
+> - 不再独立实现"工作空间"抽象；workspace = repo
+> - 详见 EVO-104 UX 调研 U-03（chat 流式架构）+ EVO-109 跨仓适配
+
+- 实现 `.evolith/agents.yaml` 与 `.evolith/policy.yaml` 读写。
+- 生成不同 agent 工具的原生格式配置。
+- 支持 git sync（pull / push / branch / promote）。
 
 ## 6. 暂不做
 

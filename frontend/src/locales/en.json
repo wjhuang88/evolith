@@ -168,7 +168,7 @@
       "resetFailed": "Failed to reset password. The link may have expired."
     },
     "joinPage": {
-      "title": "Join workspace",
+      "title": "Join organization",
       "subtitle": "Create your account to accept this invitation.",
       "confirmPassword": "Confirm password",
       "usernamePlaceholder": "your-name",
@@ -690,7 +690,7 @@
     },
     "step3": {
       "title": "You're All Set!",
-      "subtitle": "Your workspace is ready to go",
+      "subtitle": "Your account is ready to go",
       "nextSteps": {
         "title": "What's Next",
         "exploreTools": "Explore and manage your MCP tools",
