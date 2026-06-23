@@ -26,6 +26,28 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-23 - 开发目标重大变更：从 Skill/CLI/MCP Registry 转向 Git 托管 + Vibe Coding 平台
+
+- Trigger: 用户在 2026-06-23 提出方向调整：删除 skill 执行 + 智能体执行能力；保留 mcp/cli 作为 FaaS；重心转向 git 仓库（嵌入 git 引擎，类 GitHub 代码管理）；skill/mcp/cli 存储基于 git 仓库联动；git 仓库外挂外部 agent engine。
+- Symptom: 原定位"企业级 AI Agent Harness 平台"在 Phase 0-7 实施过程中累积了 Phase 7 sandbox + ExecutionProvider 三种 payload + 多条 skill lifecycle 故事（EVO-019/020/027/028/029/045/046/047/049/050），技术债务与用户实际使用场景（vibe coding、agent 远端调用）出现错位；用户明确表达"git 仓库本身可以是普通项目"（GitHub Pages ↔ GitHub Repo 类比），原 per-resource 仓模型与"通用 git 托管"心智不符。
+- Root cause: (1) 原实施路径（Phase E Skill 生命周期 / CLI 友好接口完整性）默认"DB-centric registry"假设，未考虑"git-centric substrate" 替代。(2) 当外部生态变化（agent engine 由用户其他项目提供）时，原"自建执行环境"的假设需要重新审视，但未在 Phase 0-7 过程中触发重新评估。(3) 把 ExecutionProvider 设计为多 payload 抽象（Code / Command / HttpProxy），但实际只有 HttpProxy 用得上；过度抽象导致后续清理成本。
+- Fix:
+  - 写 `docs/proposals/GIT-CENTRIC-PLATFORM.md`（设计稿，11 节），定位主线为 git 托管 + vibe coding + Pages 式 skill/CLI/MCP 索引。
+  - 写 `docs/decisions/ADR-0004-git-centric-storage.md`（DB content 列 → git 文件指针）+ `docs/decisions/ADR-0005-deprecate-sandbox-runtime.md`（删除 sandbox，仅保留 FaaS）。
+  - 创建 EVO-100（Epic：Git-Centric Platform Foundation）+ 10 个子 Story（EVO-101~103、105~111）+ EVO-104（Vibe Coding Web UI，含 UX 调研前置门禁 U-01~U-13）。
+  - 旧 backlog 项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）按 Superseded/Dropped 移至 Archived Index，决策上下文记录。
+  - `IMPLEMENTATION-ROADMAP.md` 中 Phase E 整体替换为 Phase E'（Git 托管 + Vibe Coding），分 4 个子阶段（E'-1 Git Service 基础 / E'-2 Agent 集成 + Vibe Coding 形态 / E'-3 Indexer + Discovery + 旧表双写 / E'-4 Sandbox 废弃收尾）。
+  - `PROPOSALS` 中 AI-GATEWAY.md / AGENT-RUNTIME.md 状态标注"整合进 GIT-CENTRIC-PLATFORM"；SERVERLESS-RUNTIME.md 保留作历史参考，ExecutionProvider 大幅简化。
+- Prevention:
+  - 当用户明确表达"心智模型应该是 X"（如本次的 GitHub Pages 类比），先回到心智模型本身重新设计架构，不要套用既有 backlog / phase。
+  - 重大方向变更必须直接走 `proposal → ADR → backlog` 流程，禁止绕过。
+  - Iteration / Phase 之间的"假设复审"应有显式检查项（如"外部执行环境是否仍由我们提供？"）。
+- Promoted to rule/check:
+  - `AGENTS.md` Task Router 增加"Git-Centric Platform"入口。
+  - `PRODUCT-BACKLOG.md` / `IMPLEMENTATION-ROADMAP.md` / `BOARD.md` / `EVOLUTION.md` / `docs/README.md` 已同步。
+  - UX 调研前置门禁写入 EVO-104（U-01~U-05 P0 阻塞）。
+  - sandbox 整层删除路径写入 EVO-111 + ADR-0005。
+
 ### 2026-06-05 - sandbox fail-fast 不能和默认启用混用
 
 - Trigger: 用户指出普通启动现在依赖 Docker。

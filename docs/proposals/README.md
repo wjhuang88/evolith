@@ -47,6 +47,7 @@ Evolith 的执行者是 AI Agent。Agent 从 Backlog 选取任务时会直接开
 | [Evolith Rust CLI](RUST-CLI.md) | 远期目标 | API 合约稳定后启动 CLI 子项目 |
 | [前端嵌入后端](EMBEDDED-FRONTEND.md) | 已晋升 | Iteration 031 已用 `rust-embed-for-web` 实现 |
 | [Artifact Repository](ARTIFACT-REPOSITORY.md) | 远期目标 | Skill / CLI interface 稳定后再定义制品元数据和存储模型 |
-| [AI Gateway](AI-GATEWAY.md) | 远期想法 | 核心平台稳定后展开技术方案评审 |
-| [Agent Runtime](AGENT-RUNTIME.md) | 远期想法 | 核心功能稳定后定义工作空间模型和执行方案 |
-| [Serverless Runtime](SERVERLESS-RUNTIME.md) | 设计稿 | EVO-048 Spike 输出（Iteration 033）；为 EVO-045/047 提供统一执行架构设计 |
+| [AI Gateway](AI-GATEWAY.md) | 整合进 GIT-CENTRIC-PLATFORM | 2026-06-23 方向调整；Agent Bridge 层范围由 [EVO-106](../backlog/active/EVO-106-agent-session-and-scoped-token.md) 承载；本文档保留作背景参考 |
+| [Agent Runtime](AGENT-RUNTIME.md) | 整合进 GIT-CENTRIC-PLATFORM | 2026-06-23 方向调整；Agent Session 抽象由 [EVO-106](../backlog/active/EVO-106-agent-session-and-scoped-token.md) 承载；本文档保留作背景参考 |
+| [Serverless Runtime](SERVERLESS-RUNTIME.md) | 历史参考 | EVO-048 Spike 输出（Iteration 033）；为原 EVO-045/047 提供统一执行架构设计；2026-06-23 方向调整后 `ExecutionProvider` 大幅简化（仅 HttpProxy 形态），详见 [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) |
+| [Git-Centric Platform](GIT-CENTRIC-PLATFORM.md) | 设计稿 | 2026-06-23 方向调整；主线从 Skill/CLI/MEP Registry 转向 Git 托管 + Vibe Coding 平台；含 [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) |

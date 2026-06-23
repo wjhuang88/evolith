@@ -23,6 +23,8 @@ ADR-0002-cli-friendly-interface-replaces-snippet.md
 | [ADR-0001](ADR-0001-react-vite-bun-frontend.md) | Accepted | 前端采用 React + Vite + Bun |
 | [ADR-0002](ADR-0002-cli-friendly-interface-replaces-snippet.md) | Accepted | CLI 友好接口替代旧 snippet 主线 |
 | [ADR-0003](ADR-0003-embedded-frontend-rust-embed-for-web.md) | Accepted | 前端静态文件嵌入从 ZIP 方案迁移到 rust-embed-for-web |
+| [ADR-0004](ADR-0004-git-centric-storage.md) | Accepted | 内容存储从 DB 列迁移到 Git 仓库文件（2026-06-23 方向调整） |
+| [ADR-0005](ADR-0005-deprecate-sandbox-runtime.md) | Accepted | 废弃 Skill 沙箱执行，仅保留 FaaS 形态（2026-06-23 方向调整） |
 
 ## 模板
 
