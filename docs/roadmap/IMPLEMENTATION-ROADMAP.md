@@ -1,7 +1,7 @@
 # Evolith 实施路线图
 
 > 制定日期：2026-05-15
-> 最近更新：2026-06-01
+> 最近更新：2026-06-23（方向调整：从 Skill/CLI/MCP Registry 转向 Git 托管 + Vibe Coding 平台）
 > 目标：维护阶段优先级、实施顺序和 Backlog / Proposals 归口关系。
 
 本文档不是任务池。Agent 不应直接从本文档开工：
@@ -13,17 +13,17 @@
 
 ## 1. 当前判断
 
-Evolith 的产品定位是企业级 AI Agent Harness 平台：为企业内部智能体提供可治理、可审计、可复用、可集成的工具、技能、CLI 友好接口和运行支撑能力。后续路线优先服务这个定位，不再按“代码片段仓库”或纯演示控制台扩展。
+**2026-06-23 方向调整**：Evolith 的产品定位从"企业级 AI Agent Harness 平台（DB-centric skill/CLI/MCP registry）"转变为"**Git 托管 + Vibe Coding 平台 + Pages 式 skill/CLI/MCP 索引发现**"。git repo 作为 substrate，skill/CLI/MCP 作为 Pages 式衍生能力（类比 GitHub Pages ↔ GitHub Repo）。详见 [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md)。
 
-Evolith 的后端主体架构已经成型：数据库 repository、双数据库 migration、认证、RBAC、CSRF、基础 CRUD、Docker sandbox 和部署栈都已具备。GitHub CI/CD 在前端迁移期间暂不作为主线门禁，待项目结构和部署命令稳定后统一重建。
+Evolith 的后端主体架构已经成型：数据库 repository、双数据库 migration、认证、RBAC、CSRF、基础 CRUD、Docker sandbox 和部署栈都已具备；GitHub CI/CD（EVO-030）已在 Iteration 029 落地。
 
-下一阶段不应继续扩展大而散的新功能，而应先处理三类问题：
+下一阶段的主线不再是"扩展 skill/CLI/MCP 注册能力"，而是"构建 git 托管服务 + 接入外部 agent engine + 让 vibe coding 可用"。旧 Phase E（Skill 生命周期 / CLI 友好接口完整性）整体 Superseded/Dropped，被新的 Phase E'（Git 托管 + Vibe Coding）替代。
 
-1. **需求闭环缺口**：需求和 API 合约中仍存在 501、stub、前端 mock 和服务 crate placeholder。
-2. **前端工程简化**：前端已迁移为 `React + Vite + Bun` 静态 SPA，并已通过
-   `rust-embed-for-web` 嵌入后端发布物。Nginx 现在应定位为可选网关/SSL/反代组件，
-   不再是前端静态资源托管的必需组件。
-3. **产品概念迁移**：旧 snippet 主线停止扩展，后续替换为面向大模型和 CLI 调用的 CLI 友好接口，见 [ADR-0002](../decisions/ADR-0002-cli-friendly-interface-replaces-snippet.md)。
+原路线图关注的三类问题（需求闭环、前端工程、产品概念迁移）已部分解决：
+
+1. **需求闭环缺口**：EVO-006（Skill update）、EVO-009（parser）等关键缺口已 Done；剩余 stub 由 Phase F（EVO-012~014）单独处理。
+2. **前端工程简化**：EVO-002 + EVO-016-B + EVO-026 全部 Done；React + Vite + Bun + rust-embed-for-web 落地。
+3. **产品概念迁移**：EVO-017 + EVO-009 完成 snippet → CLI interface 概念迁移；下一步迁移到 git 存储（Phase E'）。
 
 具体需求池维护在 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)。本文档只保留阶段方向和优先级判断。
 
@@ -147,13 +147,44 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 
 阶段完成标准：MCP `initialize`、`tools/list`、`tools/call` 可由 API key 调用；私有工具不能被越权调用；HTTP tool 返回值能被 MCP content 包装。
 
-### Phase E — Skill 生命周期 / CLI 友好接口完整性（P1）
+### Phase E' — Git 托管 + Vibe Coding（P0 / 高优先级 / 2026-06-23 方向调整后主线）
 
-目标：把 Skill 从“可手工创建和执行”的基础能力升级为企业级 Skill 生命周期管理：支持 ZIP 上传、Git 仓库接入、SkillHub 同步、版本管理、正确性验证和专业描述检查；同时将旧 snippet 主线迁移为 CLI 友好接口。
+**目标**：将 Evolith 从 DB-centric skill/CLI/MCP registry 重构为通用 git 托管 + vibe coding 平台 + Pages 式 skill/CLI/MCP 索引发现能力。git repo 作为 substrate，skill/CLI/MCP 作为 Pages 式衍生能力（类比 GitHub Pages ↔ GitHub Repo）。
 
-归口：EVO-006、EVO-009、EVO-017、EVO-019、EVO-020、EVO-026、EVO-027、EVO-028、EVO-029。
+**归口**：[EVO-100](../backlog/active/EVO-100-git-centric-platform-foundation.md)（Epic）+ EVO-101~103、105~111（10 个子 Story）+ [EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md)（Vibe Coding Web UI）。
 
-阶段完成标准：Skill CRUD 完整；创建入口覆盖手写、ZIP、Git 和 SkillHub 同步；每次导入或更新都有版本记录、校验报告和回滚路径；Skill 描述满足 Agent Skills 的发现要求，能说明能力、触发场景和关键词；CLI interface 描述可直接给 LLM 使用，也可被 Rust CLI 复用；格式 parser 对示例文档有测试覆盖。
+**子阶段**：
+
+- **Phase E'-1 Git Service 基础**：[EVO-101](../backlog/active/EVO-101-git-repos-schema.md)（git_repos 表 + 双轨 migration）+ [EVO-102](../backlog/active/EVO-102-evolith-policy-yaml.md)（policy.yaml 规范）+ [EVO-103](../backlog/active/EVO-103-repo-context-and-smart-http.md)（Repo CRUD + Smart HTTP + Repo Context API）。
+- **Phase E'-2 Agent 集成 + Vibe Coding 形态**：[EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md)（Vibe Coding Web UI）+ [EVO-105](../backlog/active/EVO-105-commit-and-promote-api.md)（Commit API + 直推直合 + Promote API）+ [EVO-106](../backlog/active/EVO-106-agent-session-and-scoped-token.md)（Agent Session API + Scoped Token）+ [EVO-107](../backlog/active/EVO-107-webhook-out.md)（Webhook Out）。
+- **Phase E'-3 Indexer + Discovery + 旧表双写**：[EVO-108](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)（Skill/CLI/MCP Indexer）+ [EVO-109](../backlog/active/EVO-109-discovery-api-and-pages-ui.md)（Discovery API + Pages 式发现 UI）+ [EVO-110](../backlog/active/EVO-110-old-table-dual-write.md)（旧表双写适配）。
+- **Phase E'-4 Sandbox 废弃收尾**：[EVO-111](../backlog/active/EVO-111-deprecate-sandbox-runtime.md)（按 ADR-0005 删除 service-skill 执行层 + bollard + sandbox 镜像）。
+
+**阶段完成标准**：
+
+- 用户可创建 git repo，`git clone http://.../repos/{id}` 完整可用。
+- `.evolith/policy.yaml` 解析生效，三态（auto_merge / require_review / block）行为正确。
+- Vibe Coding 三栏 UI（file tree + editor + chat panel）MVP 可用。
+- Agent Session 创建 / 审计 / 撤销全链路贯通。
+- Push 一个含 `SKILL.md` / `interface.yaml` / `tool.yaml` 的 commit → `*_index` 表在 5s 内更新。
+- `GET /skills?q=` 等跨仓搜索 API 可用；旧 `GET /skills/{id}` 等 API 行为不变。
+- `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿。
+- Docker sandbox 整层删除，启动时间显著缩短。
+
+**UX 调研前置门禁**：[EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md) U-01 ~ U-05（编辑器选型、主布局、Chat 流式架构、Agent Branch 心智模型、直推直合三态视觉反馈）在 Phase E'-2 启动前完成决策，写入 `docs/design/vibe-coding-ui-decisions.md`（或类似位置），本文件 Required Reads 同步。
+
+**不做**：
+
+- 不实现 PR/MR UI（MVP 仅仓库浏览 + 直推直合）。
+- 不实现 SSH / LFS（Phase 5+ 扩展）。
+- 不构建 LLM loop（外部 agent engine 提供）。
+- 不实现 live preview pane / web 终端 / Yjs 多人协作（明确 out of MVP）。
+
+**关联文档**：
+
+- [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)
+- [ADR-0004 Git-Centric Storage](../decisions/ADR-0004-git-centric-storage.md)
+- [ADR-0005 Deprecate Sandbox Runtime](../decisions/ADR-0005-deprecate-sandbox-runtime.md)
 
 ### Phase F — 租户管理、计费和审计增强（P1/P2）
 
@@ -173,14 +204,20 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 
 ## 5. 推荐执行顺序
 
-近期建议按以下顺序执行：
+近期建议按以下顺序执行（2026-06-23 方向调整后重排）：
 
-1. **EVO-002：React + Vite + Bun 迁移拆分并实施**，去掉 Next.js runtime；这是当前最高优先级工程门禁。
-2. **EVO-003 / EVO-004 / EVO-018：认证与邀请闭环**，补齐 SaaS 用户生命周期。
-3. **EVO-005：MCP 工具执行闭环**，让核心价值真正可用。
-4. **EVO-006 / EVO-009 / EVO-019 / EVO-020 / EVO-026 至 EVO-029：Skill 生命周期与 CLI interface 完整性**。
-5. **EVO-010 至 EVO-014：租户管理、计费和审计增强**。
-6. **EVO-030：GitHub CI/CD 重建**，放到项目后段，等前端迁移、部署形态和核心命令稳定后统一做。
+1. ~~**EVO-002：React + Vite + Bun 迁移拆分并实施**~~ — ✅ Done（Iteration 003-004）
+2. ~~**EVO-003 / EVO-004 / EVO-018：认证与邀请闭环**~~ — ✅ Done（Iteration 005 + EVO-031 补漏）
+3. ~~**EVO-005：MCP 工具执行闭环**~~ — ✅ Done（Iteration 006 + EVO-032 补漏）
+4. ~~**EVO-030：GitHub CI/CD 重建**~~ — ✅ Done（Iteration 029）
+5. ~~**EVO-016-B：前端嵌入后端发布物（rust-embed-for-web）**~~ — ✅ Done（Iteration 031）
+6. ~~**EVO-086：全量依赖 latest 迁移**~~ — ✅ Done（2026-06-06）
+7. **EVO-100 Phase E'-1：Git Service 基础**（EVO-101 + EVO-102 + EVO-103）🆕 主线
+8. **EVO-100 Phase E'-2：Agent 集成 + Vibe Coding 形态**（EVO-104 + EVO-105 + EVO-106 + EVO-107；UX 调研 U-01~U-05 先行）
+9. **EVO-100 Phase E'-3：Indexer + Discovery + 旧表双写**（EVO-108 + EVO-109 + EVO-110）
+10. **EVO-100 Phase E'-4：Sandbox 废弃收尾**（EVO-111）
+11. **EVO-012 / EVO-013 / EVO-014：租户管理、计费和审计增强**（独立进行，不阻塞主线）
+12. **EVO-080：Wasmer/WASI 替代 Docker sandbox Spike**（如 EVO-111 收尾后无 runtime 候选则启动）
 
 ## 6. 暂缓事项
 
@@ -221,21 +258,21 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 | 路线图内容 | 当前归口 | 状态 |
 |----------------------|----------|------|
 | Phase A API 对齐 | EVO-001 | Done |
-| Phase B React + Vite + Bun | EVO-002 / EVO-021 至 EVO-025 | Done；GitHub CI/CD 已拆出到 EVO-030 |
+| Phase B React + Vite + Bun | EVO-002 / EVO-021 至 EVO-025 | Done |
 | Phase C forgot/reset password | EVO-003 | Done |
-| Phase C invitation join | EVO-004 | Done；EVO-031 补齐公开入口与邮件链接 |
-| Phase C send/verify email | EVO-018 | Done；Iteration 009 实现并测试通过，contract/reference 收口见 EVO-040 |
-| Phase D MCP 工具执行闭环 | EVO-005 / EVO-032 | Done；Iteration 007 修复执行鉴权、错误映射和验收可靠性 |
-| Phase E Skill update | EVO-006 | Done；Iteration 010 完成 PUT /skills/{id} |
-| Phase E CLI interface 迁移 | EVO-017 / EVO-009 | EVO-017 Done；EVO-009 Done |
-| Phase E Skill registry | EVO-019 | Proposed |
-| Phase E Storage | EVO-020 | Proposed |
-| Phase E Frontend snippet residue | EVO-026 | Ready；Iteration 017 已解除旧 Review 阻塞 |
-| Phase E Skill import sources | EVO-027 | Proposed |
-| Phase E Skill versioning and validation | EVO-028 | Proposed |
-| Phase E Skill discovery description | EVO-029 | Proposed |
-| Phase F tenant members/api keys/settings/audit/billing | EVO-010 至 EVO-014 | Proposed |
-| Phase G GitHub CI/CD 重建 | EVO-030 | Proposed；项目后段统一做 |
+| Phase C invitation join | EVO-004 | Done |
+| Phase C send/verify email | EVO-018 | Done |
+| Phase D MCP 工具执行闭环 | EVO-005 / EVO-032 | Done |
+| Phase E Skill update | EVO-006 | Done |
+| Phase E CLI interface 迁移 | EVO-017 / EVO-009 | Done |
+| Phase E Frontend snippet residue | EVO-026 | Done（Iteration 017） |
+| Phase E' Git 托管 + Vibe Coding（2026-06-23 新主线） | EVO-100 + EVO-101~111 + EVO-104 | Proposed；UX 调研 U-01~U-05 前置门禁 |
+| Phase E (old) Skill registry / Storage / 多来源 / 版本 / 描述 / CLI / MCP Serverless / 评分 / 生态兼容 | EVO-019 / EVO-020 / EVO-027 / EVO-028 / EVO-029 / EVO-045 / EVO-046 / EVO-047 / EVO-049 / EVO-049-B / EVO-050 | Superseded / Dropped by Phase E'（详见 [Product Backlog Archived Index](../backlog/PRODUCT-BACKLOG.md#archived-index)） |
+| Phase F tenant members / api keys / settings / audit / billing | EVO-010 至 EVO-014 | EVO-010 / EVO-011 Done；EVO-012~014 Proposed |
+| Phase G GitHub CI/CD 重建 | EVO-030 | Done（Iteration 029） |
 | Rust CLI | Proposal: [RUST-CLI](../proposals/RUST-CLI.md) | Deferred |
-| 前端嵌入后端发布物 | Proposal: [EMBEDDED-FRONTEND](../proposals/EMBEDDED-FRONTEND.md) | Done：Iteration 031 完成 rust-embed-for-web 迁移 |
-| AI Gateway / Agent Runtime | Proposals | 远期想法，不进当前实施路线 |
+| 前端嵌入后端发布物 | Proposal: [EMBEDDED-FRONTEND](../proposals/EMBEDDED-FRONTEND.md) | Done（Iteration 031） |
+| Git-Centric Platform | Proposal: [GIT-CENTRIC-PLATFORM](../proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) | 设计稿；2026-06-23 |
+| AI Gateway / Agent Runtime | Proposals: [AI-GATEWAY](../proposals/AI-GATEWAY.md) / [AGENT-RUNTIME](../proposals/AGENT-RUNTIME.md) | 整合进 GIT-CENTRIC-PLATFORM |
+| Serverless Runtime | Proposal: [SERVERLESS-RUNTIME](../proposals/SERVERLESS-RUNTIME.md) | 历史参考；ExecutionProvider 大幅简化（仅 HttpProxy） |
+| Wasmer/WASI 替代 Docker sandbox Spike | [EVO-080](../backlog/active/EVO-080-spike-验证-wasmer-wasi-替代-docker-sandbox-可行性.md) | Ready；待 Phase E'-4 后视需要启动 |
