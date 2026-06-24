@@ -1,110 +1,115 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    /* Figma design system — Light theme */
-    --radius: 0.5rem;
+/* Figma design system — all values defined as CSS variables for Tailwind v4 to pick up.
+   Naming follows Tailwind v4 convention: --color-X generates bg-X / text-X / border-X.
+   --font-X generates font-X, --radius-X generates rounded-X, etc. */
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #000000;
 
-    --background: #ffffff;
-    --foreground: #000000;
+  --color-muted: #f7f7f5;
+  --color-muted-foreground: #000000;
 
-    --muted: #f7f7f5;
-    --muted-foreground: #000000;
+  --color-border: #e6e6e6;
+  --color-input: #e6e6e6;
+  --color-ring: #000000;
 
-    --border: #e6e6e6;
+  --color-card: #ffffff;
+  --color-card-foreground: #000000;
 
-    --card: #ffffff;
-    --card-foreground: #000000;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #000000;
 
-    --popover: #ffffff;
-    --popover-foreground: #000000;
+  --color-primary: #000000;
+  --color-primary-foreground: #ffffff;
 
-    --input: #e6e6e6;
-    --ring: #000000;
+  --color-secondary: #ffffff;
+  --color-secondary-foreground: #000000;
 
-    --primary: #000000;
-    --primary-foreground: #ffffff;
+  --color-accent: #f7f7f5;
+  --color-accent-foreground: #000000;
 
-    --secondary: #ffffff;
-    --secondary-foreground: #000000;
+  --color-success: #1ea64a;
+  --color-success-foreground: #ffffff;
 
-    --accent: #f7f7f5;
-    --accent-foreground: #000000;
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #ffffff;
 
-    --success: #1ea64a;
-    --success-foreground: #ffffff;
-    --warning: #f59e0b;
-    --warning-foreground: #ffffff;
-    --error: #ef4444;
-    --error-foreground: #ffffff;
-    --info: #3b82f6;
-    --info-foreground: #ffffff;
+  --color-error: #ef4444;
+  --color-error-foreground: #ffffff;
 
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.04), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.04), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  }
+  --color-info: #3b82f6;
+  --color-info-foreground: #ffffff;
 
-  .dark {
-    --background: #000000;
-    --foreground: #ffffff;
+  --radius-xs: 2px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 50px;
 
-    --muted: #1a1a1a;
-    --muted-foreground: #ffffff;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
 
-    --border: #2a2a2a;
-
-    --card: #0a0a0a;
-    --card-foreground: #ffffff;
-
-    --popover: #0a0a0a;
-    --popover-foreground: #ffffff;
-
-    --input: #2a2a2a;
-    --ring: #ffffff;
-
-    --primary: #ffffff;
-    --primary-foreground: #000000;
-
-    --secondary: #1a1a1a;
-    --secondary-foreground: #ffffff;
-
-    --accent: #1a1a1a;
-    --accent-foreground: #ffffff;
-
-    --success: #1ea64a;
-    --success-foreground: #ffffff;
-    --warning: #f59e0b;
-    --warning-foreground: #000000;
-    --error: #ef4444;
-    --error-foreground: #ffffff;
-    --info: #3b82f6;
-    --info-foreground: #ffffff;
-
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  }
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.04), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.04), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.04), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 }
 
+/* Dark theme overrides — applied when html.dark is present */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
-  * {
-    border-color: var(--border);
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
   }
 
   body {
-    background: var(--background);
-    color: var(--foreground);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1, "kern" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+@utility text-balance {
+  text-wrap: balance;
+}
+
+/* Backward-compatible CSS variable aliases — the codebase uses var(--primary),
+   var(--foreground), etc. in arbitrary value syntax (bg-[var(--primary)]).
+   Tailwind v4 @theme names these as --color-primary, so we alias the old names. */
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --muted: var(--color-muted);
+  --muted-foreground: var(--color-muted-foreground);
+  --border: var(--color-border);
+  --input: var(--color-input);
+  --ring: var(--color-ring);
+  --card: var(--color-card);
+  --card-foreground: var(--color-card-foreground);
+  --popover: var(--color-popover);
+  --popover-foreground: var(--color-popover-foreground);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-foreground);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-secondary-foreground);
+  --accent: var(--color-accent);
+  --accent-foreground: var(--color-accent-foreground);
+  --success: var(--color-success);
+  --success-foreground: var(--color-success-foreground);
+  --warning: var(--color-warning);
+  --warning-foreground: var(--color-warning-foreground);
+  --error: var(--color-error);
+  --error-foreground: var(--color-error-foreground);
+  --info: var(--color-info);
+  --info-foreground: var(--color-info-foreground);
+  --radius: var(--radius-lg);
 }
