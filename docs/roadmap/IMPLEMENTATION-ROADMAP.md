@@ -156,6 +156,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 **子阶段**：
 
 - **Phase E'-1 Git Service 基础**：[EVO-101](../backlog/active/EVO-101-git-repos-schema.md)（git_repos 表 + 双轨 migration）+ [EVO-102](../backlog/active/EVO-102-evolith-policy-yaml.md)（policy.yaml 规范）+ [EVO-103](../backlog/active/EVO-103-repo-context-and-smart-http.md)（Repo CRUD + Smart HTTP + Repo Context API）。
+- **Phase E'-1.5 仓库管理 UI**：[EVO-112](../backlog/active/EVO-112-repo-management-ui.md)（仓库列表 / 创建 / 详情页 + 导航重构 + Dashboard repo-centric 改版）。依赖 EVO-103 后端 API 就绪。
 - **Phase E'-2 Agent 集成 + Vibe Coding 形态**：[EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md)（Vibe Coding Web UI）+ [EVO-105](../backlog/active/EVO-105-commit-and-promote-api.md)（Commit API + 直推直合 + Promote API）+ [EVO-106](../backlog/active/EVO-106-agent-session-and-scoped-token.md)（Agent Session API + Scoped Token）+ [EVO-107](../backlog/active/EVO-107-webhook-out.md)（Webhook Out）。
 - **Phase E'-3 Indexer + Discovery + 旧表双写**：[EVO-108](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)（Skill/CLI/MCP Indexer）+ [EVO-109](../backlog/active/EVO-109-discovery-api-and-pages-ui.md)（Discovery API + Pages 式发现 UI）+ [EVO-110](../backlog/active/EVO-110-old-table-dual-write.md)（旧表双写适配）。
 - **Phase E'-4 Sandbox 废弃收尾**：[EVO-111](../backlog/active/EVO-111-deprecate-sandbox-runtime.md)（按 ADR-0005 删除 service-skill 执行层 + bollard + sandbox 镜像）。
@@ -164,6 +165,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 
 - 用户可创建 git repo，`git clone http://.../repos/{id}` 完整可用。
 - `.evolith/policy.yaml` 解析生效，三态（auto_merge / require_review / block）行为正确。
+- 仓库管理 UI（列表 / 创建 / 详情 / 导航重构）可用，平台以 Git 仓库为中心。
 - Vibe Coding 三栏 UI（file tree + editor + chat panel）MVP 可用。
 - Agent Session 创建 / 审计 / 撤销全链路贯通。
 - Push 一个含 `SKILL.md` / `interface.yaml` / `tool.yaml` 的 commit → `*_index` 表在 5s 内更新。
@@ -213,11 +215,12 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 5. ~~**EVO-016-B：前端嵌入后端发布物（rust-embed-for-web）**~~ — ✅ Done（Iteration 031）
 6. ~~**EVO-086：全量依赖 latest 迁移**~~ — ✅ Done（2026-06-06）
 7. **EVO-100 Phase E'-1：Git Service 基础**（EVO-101 + EVO-102 + EVO-103）🆕 主线
-8. **EVO-100 Phase E'-2：Agent 集成 + Vibe Coding 形态**（EVO-104 + EVO-105 + EVO-106 + EVO-107；UX 调研 U-01~U-05 先行）
-9. **EVO-100 Phase E'-3：Indexer + Discovery + 旧表双写**（EVO-108 + EVO-109 + EVO-110）
-10. **EVO-100 Phase E'-4：Sandbox 废弃收尾**（EVO-111）
-11. **EVO-012 / EVO-013 / EVO-014：租户管理、计费和审计增强**（独立进行，不阻塞主线）
-12. **EVO-080：Wasmer/WASI 替代 Docker sandbox Spike**（如 EVO-111 收尾后无 runtime 候选则启动）
+8. **EVO-100 Phase E'-1.5：仓库管理 UI**（EVO-112；依赖 EVO-103 后端 API）
+9. **EVO-100 Phase E'-2：Agent 集成 + Vibe Coding 形态**（EVO-104 + EVO-105 + EVO-106 + EVO-107；UX 调研 U-01~U-05 先行）
+10. **EVO-100 Phase E'-3：Indexer + Discovery + 旧表双写**（EVO-108 + EVO-109 + EVO-110）
+11. **EVO-100 Phase E'-4：Sandbox 废弃收尾**（EVO-111）
+12. **EVO-012 / EVO-013 / EVO-014：租户管理、计费和审计增强**（独立进行，不阻塞主线）
+13. **EVO-080：Wasmer/WASI 替代 Docker sandbox Spike**（如 EVO-111 收尾后无 runtime 候选则启动）
 
 ## 6. 暂缓事项
 

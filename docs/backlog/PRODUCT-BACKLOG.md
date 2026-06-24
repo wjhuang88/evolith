@@ -3,7 +3,7 @@
 > Compact routing and prioritization surface. Executable context lives in `docs/backlog/active/`; completed, deferred and dropped history lives in `docs/backlog/archive/`.
 > Status and DoR rules: [Requirement Intake](../sop/REQUIREMENT-INTAKE.md). Completion rules: [Iteration Workflow](../sop/ITERATION-WORKFLOW.md). Compaction protocol: `agent-project-governance/references/backlog-compaction.md`.
 
-> **2026-06-23 方向调整**：主线从 "Skill/CLI/MCP DB Registry" 转向 **Git 托管 + Vibe Coding 平台 + Pages 式 skill/CLI/MCP 索引**。详见 [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md)。新方向 Epic EVO-100 + 子 Story EVO-101~111 + 独立 Story EVO-104 全部 Proposed，等待 UX 调研（EVO-104 U-01~U-05）完成后晋升 Ready 排入迭代。旧 skill/CLI/MCP lifecycle 相关项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）按 Superseded/Dropped 移至 Archived Index。
+> **2026-06-23 方向调整**：主线从 "Skill/CLI/MCP DB Registry" 转向 **Git 托管 + Vibe Coding 平台 + Pages 式 skill/CLI/MCP 索引**。详见 [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md)。新方向 Epic EVO-100 + 子 Story EVO-101~112 + 独立 Story EVO-104 全部 Proposed，等待 UX 调研（EVO-104 U-01~U-05）完成后晋升 Ready 排入迭代。旧 skill/CLI/MCP lifecycle 相关项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）按 Superseded/Dropped 移至 Archived Index。
 
 ## Current Priorities
 
@@ -21,7 +21,8 @@
 | EVO-101 | `git_repos` 表 + 双轨 migration | Proposed | P0 | Epic EVO-100 子 Story; `git_repos` 第一类实体表，无 resource_type 字段（与 GitHub repo 模型对齐） | [Item file](active/EVO-101-git-repos-schema.md) |
 | EVO-102 | `.evolith/policy.yaml` 规范 + 解析器 | Proposed | P1 | Epic EVO-100 子 Story; 仓库级策略文件，承载 auto_merge / require_review / block 三态、protected_paths、agents scope；类比 GitHub Pages Settings | [Item file](active/EVO-102-evolith-policy-yaml.md) |
 | EVO-103 | Repo CRUD + Smart HTTP + Repo Context API | Proposed | P0 | Epic EVO-100 子 Story; 依赖 EVO-101；smart HTTP 基于 gix，push 临时 subprocess | [Item file](active/EVO-103-repo-context-and-smart-http.md) |
-| EVO-104 | Vibe Coding Web UI | Proposed | P0 | Epic EVO-100 配套 Story（前端）; 三栏（file tree + editor + chat panel）；依赖 EVO-103/105/106；UX 调研前置门禁：U-01~U-05 必须在迭代开始前完成 | [Item file](active/EVO-104-vibe-coding-web-ui.md)<br>[Design System](../reference/DESIGN.md) |
+| EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | Proposed | P0 | Epic EVO-100 子 Story（前端）; 依赖 EVO-103；Files/Commits/Settings 三 Tab；侧边栏改 Repos 为主入口；Dashboard repo-centric 改版 | [Item file](active/EVO-112-repo-management-ui.md)<br>[Design System](../reference/DESIGN.md) |
+| EVO-104 | Vibe Coding Web UI | Proposed | P0 | Epic EVO-100 配套 Story（前端）; 三栏（file tree + editor + chat panel）；依赖 EVO-103/105/106/112；UX 调研前置门禁：U-01~U-05 必须在迭代开始前完成 | [Item file](active/EVO-104-vibe-coding-web-ui.md)<br>[Design System](../reference/DESIGN.md) |
 | EVO-105 | Commit API + 直推直合 + Promote API | Proposed | P0 | Epic EVO-100 子 Story; 依赖 EVO-102/103；agent commit → policy 评估 → auto_merge / require_review / block 三态 | [Item file](active/EVO-105-commit-and-promote-api.md) |
 | EVO-106 | Agent Session API + Scoped Token | Proposed | P0 | Epic EVO-100 子 Story; 依赖 EVO-103；外部 agent engine 集成 surface；token 限 read + commit + promote，禁止 force_push / admin | [Item file](active/EVO-106-agent-session-and-scoped-token.md) |
 | EVO-107 | Webhook Out（push / promote → external agent engine） | Proposed | P1 | Epic EVO-100 子 Story; 依赖 EVO-105/106；指数退避重试；HMAC-SHA256 签名 | [Item file](active/EVO-107-webhook-out.md) |

@@ -17,7 +17,7 @@
 
 ## Problem Or Outcome
 
-将 Evolith 从"DB-centric skill/CLI/MCP registry"重构为"git 托管 + Pages 式衍生能力 + vibe coding 平台"。本 Epic 涵盖后端基础与索引层；前端 UX 单独走 EVO-104。
+将 Evolith 从"DB-centric skill/CLI/MCP registry"重构为"git 托管 + Pages 式衍生能力 + vibe coding 平台"。本 Epic 涵盖后端基础、仓库管理 UI 与索引层；完整 Vibe Coding 编辑器 UX 单独走 EVO-104。
 
 ## Goal And Non-Goals
 
@@ -40,6 +40,7 @@
 | [EVO-101](EVO-101-git-repos-schema.md) | `git_repos` 表 + 双轨 migration + tenant 创建仓默认能力 | Proposed | 无 | Phase 1 |
 | [EVO-102](EVO-102-evolith-policy-yaml.md) | `.evolith/policy.yaml` 规范文档 + 解析器 + 默认值 fallback | Proposed | 无 | Phase 1 |
 | [EVO-103](EVO-103-repo-context-and-smart-http.md) | Repo CRUD + Smart HTTP（`info/refs` + `git-upload-pack` + 临时 `git-receive-pack` subprocess）+ Repo Context API（file-tree / blobs / commits / diff） | Proposed | EVO-101 | Phase 1 |
+| [EVO-112](EVO-112-repo-management-ui.md) | 仓库列表 / 创建 / 详情页（Files + Commits + Settings）+ 导航重构（Repos 为主入口）+ Dashboard repo-centric 改版 | Proposed | EVO-103 | Phase 2 |
 | [EVO-105](EVO-105-commit-and-promote-api.md) | `POST /repos/{id}/commits`（policy 评估 + 三态）+ `POST /repos/{id}/promote` + agent branch 自动命名 | Proposed | EVO-102, EVO-103 | Phase 2 |
 | [EVO-106](EVO-106-agent-session-and-scoped-token.md) | `agent_sessions` 表 + `POST /agent-sessions` + scoped token + 权限模型 | Proposed | EVO-103 | Phase 2 |
 | [EVO-107](EVO-107-webhook-out.md) | `webhook_deliveries` 表 + push/promote 事件触发 POST + retry 指数退避 + 失败记录 | Proposed | EVO-105, EVO-106 | Phase 2 |
