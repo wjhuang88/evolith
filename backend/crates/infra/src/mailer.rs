@@ -236,7 +236,7 @@ impl Mailer for SmtpMailer {
     <div style="background: #f9f9f9; border-radius: 8px; padding: 30px; margin-top: 20px;">
         <h1 style="color: #2c3e50; margin-bottom: 20px;">You're Invited!</h1>
         <p style="margin-bottom: 20px;"><strong>{}</strong> has invited you to join <strong>{}</strong> on Evolith.</p>
-        <p style="margin-bottom: 20px;">Evolith is an AI agent development platform that helps teams build, share, and deploy AI-powered tools and skills.</p>
+        <p style="margin-bottom: 20px;">Evolith is an AI-native git platform where developers and AI agents collaborate to ship code, publish skills, and build together.</p>
         <div style="text-align: center; margin: 30px 0;">
             <a href="{}" style="background: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Accept Invitation</a>
         </div>

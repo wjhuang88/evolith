@@ -61,30 +61,30 @@
   },
   "landing": {
     "hero": {
-      "title": "Build AI Agents Faster",
-      "subtitle": "Evolith provides MCP tools, hybrid skills, and CLI interfaces to accelerate your AI agent development. One platform, endless possibilities.",
-      "getStarted": "Get Started Free",
+      "title": "Ship Code at AI Speed",
+      "subtitle": "Evolith is the AI-native git platform where developers and AI agents collaborate. Host repos, vibe-code with built-in AI, and publish agent skills — all in one place.",
+      "getStarted": "Start Building Free",
       "learnMore": "Learn More"
     },
     "features": {
       "title": "Everything You Need",
-      "subtitle": "Comprehensive tools and resources for AI agent development",
+      "subtitle": "The complete platform for AI-native development",
       "tools": {
-        "title": "MCP Tools",
-        "description": "Standardized tool encapsulation via MCP protocol. Register, discover, and invoke tools with a unified interface."
+        "title": "Git Hosting, Reimagined",
+        "description": "Full git repository hosting with AI-native collaboration. Every repo is agent-ready out of the box."
       },
       "skills": {
-        "title": "Hybrid Skills",
-        "description": "Claude Skills compatible format with server-side execution. Share and reuse skills across projects."
+        "title": "Vibe Coding",
+        "description": "Write, review, and ship code with AI agents that commit directly to your repos. No copy-paste, no context switching."
       },
       "interfaces": {
-        "title": "CLI Interfaces",
-        "description": "Machine-readable interface definitions with stable commands, parameter schemas, and usage examples for LLM and CLI consumption."
+        "title": "Agent Skills Hub",
+        "description": "Publish skills, MCP tools, and CLI interfaces from any repo. AI agents discover and use them automatically — like npm for AI."
       }
     },
     "cta": {
-      "title": "Ready to Get Started?",
-      "subtitle": "Join thousands of developers building AI agents with Evolith.",
+      "title": "Ready to Build with AI?",
+      "subtitle": "Join the next generation of developers shipping code with AI agents.",
       "button": "Start Building Now"
     },
     "footer": {
@@ -199,7 +199,7 @@
   "dashboard": {
     "welcomeBack": "Welcome back, {{name}}!",
     "orgPrefix": "Organization: {{name}}",
-    "defaultSubtitle": "Evolith - AI Agent Development Platform",
+    "defaultSubtitle": "Evolith — Your AI Coding Workspace",
     "stats": {
       "totalTools": "Total Tools",
       "mcpToolsAvailable": "MCP tools available",

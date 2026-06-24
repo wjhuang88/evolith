@@ -98,20 +98,20 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid gap-8 text-center md:grid-cols-4">
             <div>
-              <div className="text-4xl font-bold text-white">100+</div>
-              <div className="mt-1 text-sm text-purple-200/60">MCP Tools</div>
+              <div className="text-4xl font-bold text-white">Git-Compatible</div>
+              <div className="mt-1 text-sm text-purple-200/60">Zero migration cost</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-white">50+</div>
-              <div className="mt-1 text-sm text-purple-200/60">Skills</div>
+              <div className="text-4xl font-bold text-white">MCP-Native</div>
+              <div className="mt-1 text-sm text-purple-200/60">Industry-standard protocol</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-white">1000+</div>
-              <div className="mt-1 text-sm text-purple-200/60">CLI Interfaces</div>
+              <div className="text-4xl font-bold text-white">Enterprise-Ready</div>
+              <div className="mt-1 text-sm text-purple-200/60">RBAC · Audit · Multi-tenant</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-white">99.9%</div>
-              <div className="mt-1 text-sm text-purple-200/60">Uptime</div>
+              <div className="text-4xl font-bold text-white">Open Format</div>
+              <div className="mt-1 text-sm text-purple-200/60">Claude Skills compatible</div>
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function LandingPage() {
               <Link to="/terms"className="hover:text-white">{t('landing.footer.terms')}</Link>
             </div>
             <p className="text-sm text-purple-200/40">
-              © 2024 Evolith. All rights reserved.
+              © 2026 Evolith. All rights reserved.
             </p>
           </div>
         </div>

@@ -1,4 +1,6 @@
-# Evolith - Enterprise AI Agent Harness Platform
+# Evolith — AI-Native Git Platform
+
+> AI-native git hosting + vibe coding + agent skill ecosystem.
 
 > 本文件是 AI Agent 的启动文档。先读本文件建立约束和任务路由；复杂步骤不要堆在这里，按任务读取 `docs/sop/`、`docs/reference/` 或 `EVOLUTION.md`。
 
@@ -154,11 +156,11 @@
 
 ## Project Overview
 
-Evolith is an enterprise-grade AI Agent Harness platform providing:
-- MCP Server tool encapsulation (remote MCP tools)
-- Hybrid skill system (Claude Skills compatible + server-side code execution)
-- CLI-friendly interface repository (replacing the legacy snippet concept)
-- Governance, audit, permission, and deployment foundations for enterprise agent adoption
+Evolith is an AI-native git platform where developers and AI agents collaborate:
+- Git repository hosting with agent-ready collaboration (push, review, promote)
+- Vibe Coding — AI agents commit directly to repos, no copy-paste
+- Agent Skills Hub — auto-indexed Skill / MCP tool / CLI interface discovery from repos
+- Enterprise-grade governance: RBAC, audit, multi-tenant, CSRF protection
 
 **Tech Stack**: Rust + Actix-web (backend), React + Vite + Bun static SPA frontend, SQLite (dev) / PostgreSQL (prod)
 

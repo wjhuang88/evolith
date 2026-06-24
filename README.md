@@ -1,49 +1,42 @@
-# Evolith - 企业级 AI Agent Harness 平台
+# Evolith — AI-Native Git Platform
 
-## 项目简介
+> AI 原生 Git 平台 | Where AI Ships Code
 
-Evolith 的定位是构建企业级 AI Agent Harness 平台：为企业内部智能体提供可治理、可审计、可复用、可集成的工具、技能、CLI 友好接口和运行支撑能力。
+Evolith 是面向 AI 时代的开发平台，将 Git 仓库托管、AI 智能体协作和 Agent 技能发布融为一体。不是在传统平台上加 AI，而是为 AI Agent 从零构建。
 
-平台不是单纯的代码片段仓库或演示型控制台，而是面向企业落地的 agent 能力承载层，重点解决工具接入、权限边界、执行安全、接口契约、团队复用和运维交付问题。
+## 为什么选择 Evolith？
 
-## 核心价值
+- **AI 原生架构**：为 AI Agent 协作从零设计，不是事后补丁
+- **Git 兼容**：标准 Git 协议，现有仓库零迁移成本接入
+- **Vibe Coding**：AI 智能体直接在仓库中编码、审查和提交
+- **技能生态**：从代码仓库自动索引 Skill / MCP 工具 / CLI 接口，Agent 自动发现
+- **企业级安全**：RBAC 权限、审计日志、多租户隔离、CSRF 防护
 
-- **工具治理**：通过 MCP 协议提供标准化工具封装、权限控制和审计边界
-- **技能复用**：兼容 Claude Skills 格式的混合型技能系统，支持远程加载和沙箱执行
-- **CLI 友好接口**：用机器可读 schema、usage、examples 和错误语义替代旧 snippet 主线
-- **企业交付**：面向多租户、RBAC、审计、部署、运行时配置和后续 CLI 同步能力设计
+## 核心能力
 
-## 功能模块
+### Git 仓库托管
 
-### 1. MCP Server工具封装（第一期）
+AI 原生的 Git 托管服务，每个仓库开箱即用：
+- 标准 Git 协议，支持 clone / push / pull
+- 仓库级策略文件（`.evolith/policy.yaml`）控制 Agent 权限
+- 直推直合工作流，适配 AI 协作场景
+- 可见性控制（public / private）
 
-提供基于Model Context Protocol的工具封装服务，支持：
-- 工具注册与发现
-- 统一的工具调用接口
-- 权限管理和访问控制
+### Vibe Coding（在线 AI 编程）
 
-### 2. 智能体技能系统（第一期）
+与 AI 智能体一起编码、审查和交付：
+- Agent 直接向仓库提交代码，无需复制粘贴
+- 基于仓库上下文的智能代码生成
+- 在线代码编辑器，支持实时预览
+- 提交策略控制（auto-merge / require-review / block）
 
-混合型技能系统，特性包括：
-- 兼容Claude Skills格式（SKILL.md）
-- 服务端代码执行
-- 技能版本管理
-- 技能市场与分享
+### Agent 技能中心
 
-### 3. CLI 友好接口仓库（第一期）
-
-面向大模型和本地 CLI 调用的接口描述管理：
-- 稳定命令、子命令和参数 schema
-- 面向大模型的 usage、examples、error model
-- JSON-friendly 输入输出契约
-- 可由前端管理，也可被后续 Rust CLI push / pull / sync
-
-### 4. 制品仓库（远期规划）
-
-多语言依赖库管理：
-- 预编译依赖库
-- 面向大模型的API文档
-- 版本管理
+从任意仓库自动索引和发布 AI Agent 能力：
+- Skill（`.evolith/SKILL.md`）— Claude Skills 兼容格式
+- MCP 工具（`.evolith/tool.yaml`）— Model Context Protocol 标准
+- CLI 接口（`.evolith/interface.yaml`）— 面向大模型的命令描述
+- Agent 自动发现并使用——就像 AI 领域的 npm
 
 ## 技术栈
 
@@ -88,7 +81,7 @@ Evolith 的定位是构建企业级 AI Agent Harness 平台：为企业内部智
 | Rust | 1.75 | 1.82+ | `Cargo.toml` 中 `rust-version = "1.75"`，生产 Dockerfile 使用 1.82 |
 | Node.js | 18 | 20 LTS | Vite/React 工具链运行时 |
 | Bun | 1.3 | 1.3.14+ | 前端包管理、锁文件和脚本执行 |
-| Docker | 20.10+ | 24+ | 用于基础设施服务和沙箱执行 |
+| Docker | 20.10+ | 24+ | 可选，用于完整模式的基础设施服务 |
 | Docker Compose | 2.0+ | 2.20+ | V2 插件模式（`docker compose`，非 `docker-compose`） |
 
 ### 基础设施服务（Docker 自动管理）
@@ -100,16 +93,9 @@ Evolith 的定位是构建企业级 AI Agent Harness 平台：为企业内部智
 | MinIO | latest | 对象存储（S3 兼容） |
 | Nginx | 1.27-alpine | 生产环境反向代理 |
 
-### 沙箱运行时（技能执行）
-
-| 运行时 | 镜像版本 |
-|--------|----------|
-| Python | 3.11-alpine |
-| Node.js | 20-alpine |
-
 ### 开发模式（Lite）
 
-Lite 模式（`./scripts/dev.sh lite`）无需 Docker，使用 SQLite 内存数据库，仅需 Rust 和 Node.js。
+Lite 模式（`./scripts/dev.sh lite`）无需 Docker，使用 SQLite 内存数据库，仅需 Rust 和 Bun。
 
 ## 快速开始
 
