@@ -209,6 +209,7 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
             .wrap(SecurityHeadersMiddleware::new(is_dev))
             .configure(configure_routes)
             .route("/config.js", web::get().to(frontend::config_js))
+            .route("/favicon.ico", web::get().to(frontend::favicon_ico))
             .default_service(web::route().to(frontend::spa_fallback))
     })
     .bind((host.as_str(), port))?

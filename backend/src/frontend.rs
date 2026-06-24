@@ -60,6 +60,10 @@ pub async fn config_js(_req: HttpRequest) -> HttpResponse {
         .body(body)
 }
 
+pub async fn favicon_ico(_req: HttpRequest) -> HttpResponse {
+    HttpResponse::NoContent().finish()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
