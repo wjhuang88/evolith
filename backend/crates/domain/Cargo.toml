@@ -20,3 +20,6 @@ lazy_static.workspace = true
 
 # Internal crates
 common.workspace = true
+
+# YAML parsing for .evolith/policy.yaml
+serde_norway = "0.9.42"

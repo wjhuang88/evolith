@@ -5,6 +5,8 @@
 pub mod api_key;
 pub mod audit;
 pub mod errors;
+pub mod git_repo;
+pub mod policy;
 pub mod repository;
 pub mod skill;
 pub mod snippet;
@@ -14,9 +16,11 @@ pub mod user;
 
 pub use api_key::{ApiKey, ApiKeyStatus, NewApiKey};
 pub use errors::DomainError;
+pub use policy::{AgentPolicy, DefaultAction, EvolithPolicy, Scope};
+pub use git_repo::{GitRepo, NewGitRepo, RepoVisibility, UpdateGitRepo};
 pub use repository::{
-    ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
-    TenantRepository, ToolRepository, UserRepository,
+    ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository,
+    SkillRepository, SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
 
 // Re-export commonly used types

@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::audit::AuditLog;
+use crate::git_repo::{GitRepo, NewGitRepo, UpdateGitRepo};
 use crate::user::{TenantRole, UpdateUser};
 use crate::Invitation;
 use crate::{
@@ -168,4 +169,21 @@ pub trait ApiKeyRepository: Send + Sync {
     async fn revoke(&self, id: Uuid) -> Result<()>;
     async fn delete(&self, id: Uuid) -> Result<()>;
     async fn update_last_used(&self, id: Uuid) -> Result<()>;
+}
+
+/// Git repo repository trait
+#[async_trait]
+pub trait GitRepoRepository: Send + Sync {
+    async fn create(&self, repo: NewGitRepo, tenant_id: Uuid) -> Result<GitRepo>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<GitRepo>>;
+    async fn find_by_name(&self, tenant_id: Uuid, name: &str) -> Result<Option<GitRepo>>;
+    async fn find_by_tenant(&self, tenant_id: Uuid) -> Result<Vec<GitRepo>>;
+    async fn update(&self, id: Uuid, repo: UpdateGitRepo) -> Result<GitRepo>;
+    async fn delete(&self, id: Uuid) -> Result<()>;
+    async fn update_last_commit(
+        &self,
+        id: Uuid,
+        sha: &str,
+        committed_at: DateTime<Utc>,
+    ) -> Result<()>;
 }
