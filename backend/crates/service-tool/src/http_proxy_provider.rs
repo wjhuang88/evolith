@@ -169,6 +169,7 @@ fn map_reqwest_error(err: reqwest::Error, url: &str) -> AppError {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used)]
+    #![allow(deprecated)]
 
     use super::*;
     use common::execution::{ExecutionCaller, ExecutionConstraints, ExecutionContext};

@@ -3,6 +3,9 @@
 //! Implements `ExecutionProvider` for `Code` and `Command` payloads using a
 //! pool of pre-warmed Docker containers.
 
+// This entire provider is a deprecated code path that will be removed in EVO-111.
+#![allow(deprecated)]
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};

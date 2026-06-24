@@ -1,5 +1,10 @@
 //! Skill executor
 
+// SkillExecutorAdapter constructs deprecated ExecutionCaller::Skill and
+// ExecutionPayload::Code variants. This entire module is a legacy facade that
+// will be removed in EVO-111.
+#![allow(deprecated)]
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
