@@ -11,8 +11,8 @@ use api::routes;
 use api::state::AppState;
 use common::execution::{CompositeProvider, ExecutionProvider};
 use domain::repository::{
-    ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
-    TenantRepository, ToolRepository, UserRepository,
+    ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,
+    SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
 use domain::{HandlerConfig, HandlerType, NewTool, Visibility};
 use infra::config::{
@@ -20,9 +20,9 @@ use infra::config::{
     SandboxConfig, ServerConfig, SmtpConfig, StorageConfig, StripeConfig,
 };
 use infra::db::{
-    SqliteApiKeyRepository, SqliteAuditRepository, SqliteInvitationRepository,
-    SqliteSkillRepository, SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository,
-    SqliteUserRepository,
+    SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
+    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
+    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
@@ -36,6 +36,8 @@ const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_t
 const MIGRATION_004: &str = include_str!("../../../migrations/sqlite/004_user_permissions.sql");
 const MIGRATION_005: &str = include_str!("../../../migrations/sqlite/005_payment_integration.sql");
 const MIGRATION_006: &str = include_str!("../../../migrations/sqlite/006_skill_cli_data_model.sql");
+const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_repos.sql");
+const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 
 fn strip_leading_comments(sql: &str) -> &str {
     let mut result = sql;
@@ -66,6 +68,8 @@ async fn setup_test_db() -> SqlitePool {
     run_migration_sql(&pool, MIGRATION_004).await;
     run_migration_sql(&pool, MIGRATION_005).await;
     run_migration_sql(&pool, MIGRATION_006).await;
+    run_migration_sql(&pool, MIGRATION_007).await;
+    run_migration_sql(&pool, MIGRATION_008).await;
 
     pool
 }
@@ -179,7 +183,8 @@ fn build_app_state(pool: SqlitePool) -> AppState {
         audit_repo: Arc::new(SqliteAuditRepository::new(pool.clone())) as Arc<dyn AuditRepository>,
         invitation_repo: Arc::new(SqliteInvitationRepository::new(pool.clone()))
             as Arc<dyn InvitationRepository>,
-        api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool)) as Arc<dyn ApiKeyRepository>,
+        api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone())) as Arc<dyn ApiKeyRepository>,
+        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)) as Arc<dyn GitRepoRepository>,
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         execution_provider,

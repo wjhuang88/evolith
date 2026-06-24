@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use common::execution::ExecutionProvider;
 use domain::repository::{
-    ApiKeyRepository, AuditRepository, InvitationRepository, SkillRepository, SnippetRepository,
-    TenantRepository, ToolRepository, UserRepository,
+    ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,
+    SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
 use infra::cache::Cache;
 use infra::config::AppConfig;
@@ -38,6 +38,8 @@ pub struct AppState {
     pub invitation_repo: Arc<dyn InvitationRepository>,
     /// API Key repository for API key management
     pub api_key_repo: Arc<dyn ApiKeyRepository>,
+    /// Git repo repository for git repo operations
+    pub git_repo_repo: Arc<dyn GitRepoRepository>,
     /// Cache for session data, rate limiting counters, etc.
     pub cache: Arc<dyn Cache>,
     /// Mailer for sending transactional emails

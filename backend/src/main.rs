@@ -24,11 +24,11 @@ use infra::cache::create_cache;
 use infra::config::AppConfig;
 use infra::db::pool::{create_pool, DatabasePool};
 use infra::db::{
-    PgApiKeyRepository, PgAuditRepository, PgInvitationRepository, PgSkillRepository,
-    PgSnippetRepository, PgTenantRepository, PgToolRepository, PgUserRepository,
-    SqliteApiKeyRepository, SqliteAuditRepository, SqliteInvitationRepository,
-    SqliteSkillRepository, SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository,
-    SqliteUserRepository,
+    PgApiKeyRepository, PgAuditRepository, PgGitRepoRepository, PgInvitationRepository,
+    PgSkillRepository, PgSnippetRepository, PgTenantRepository, PgToolRepository, PgUserRepository,
+    SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
+    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
+    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use infra::mailer::create_mailer;
 use service_auth::{Argon2Hasher, JwtHandler};
@@ -143,7 +143,8 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 snippet_repo: Arc::new(SqliteSnippetRepository::new(pool.clone())),
                 audit_repo: Arc::new(SqliteAuditRepository::new(pool.clone())),
                 invitation_repo: Arc::new(SqliteInvitationRepository::new(pool.clone())),
-                api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool)),
+                api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone())),
+                git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)),
                 cache: cache.clone(),
                 mailer: mailer.clone(),
                 execution_provider: execution_provider.clone(),
@@ -175,7 +176,8 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 snippet_repo: Arc::new(PgSnippetRepository::new(pool.clone())),
                 audit_repo: Arc::new(PgAuditRepository::new(pool.clone())),
                 invitation_repo: Arc::new(PgInvitationRepository::new(pool.clone())),
-                api_key_repo: Arc::new(PgApiKeyRepository::new(pool)),
+                api_key_repo: Arc::new(PgApiKeyRepository::new(pool.clone())),
+                git_repo_repo: Arc::new(PgGitRepoRepository::new(pool)),
                 cache: cache.clone(),
                 mailer: mailer.clone(),
                 execution_provider: execution_provider.clone(),
