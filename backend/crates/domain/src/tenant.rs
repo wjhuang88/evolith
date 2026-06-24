@@ -75,22 +75,20 @@ pub enum TenantStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TenantQuotas {
     pub max_users: u32,
-    pub max_tools: u32,
-    pub max_skills: u32,
-    pub max_snippets: u32,
-    pub max_api_calls_per_month: u32,
+    /// Maximum number of git repos (git-centric primary quota).
+    pub max_repos: u32,
+    /// Total storage for all git repos in MB.
     pub max_storage_mb: u32,
+    pub max_api_calls_per_month: u32,
 }
 
 impl Default for TenantQuotas {
     fn default() -> Self {
         Self {
             max_users: 5,
-            max_tools: 10,
-            max_skills: 20,
-            max_snippets: 100,
-            max_api_calls_per_month: 10000,
+            max_repos: 10,
             max_storage_mb: 500,
+            max_api_calls_per_month: 10000,
         }
     }
 }
@@ -101,35 +99,27 @@ impl TenantQuotas {
         match plan {
             TenantPlan::Free => Self {
                 max_users: 3,
-                max_tools: 5,
-                max_skills: 10,
-                max_snippets: 50,
-                max_api_calls_per_month: 1000,
+                max_repos: 3,
                 max_storage_mb: 100,
+                max_api_calls_per_month: 1000,
             },
             TenantPlan::Starter => Self {
                 max_users: 10,
-                max_tools: 20,
-                max_skills: 50,
-                max_snippets: 200,
-                max_api_calls_per_month: 10000,
+                max_repos: 20,
                 max_storage_mb: 500,
+                max_api_calls_per_month: 10000,
             },
             TenantPlan::Pro => Self {
                 max_users: 50,
-                max_tools: 100,
-                max_skills: 200,
-                max_snippets: 1000,
-                max_api_calls_per_month: 100000,
+                max_repos: 100,
                 max_storage_mb: 5000,
+                max_api_calls_per_month: 100000,
             },
             TenantPlan::Enterprise => Self {
                 max_users: u32::MAX,
-                max_tools: u32::MAX,
-                max_skills: u32::MAX,
-                max_snippets: u32::MAX,
-                max_api_calls_per_month: u32::MAX,
+                max_repos: u32::MAX,
                 max_storage_mb: u32::MAX,
+                max_api_calls_per_month: u32::MAX,
             },
         }
     }
@@ -139,9 +129,7 @@ impl TenantQuotas {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TenantUsage {
     pub current_users: u32,
-    pub current_tools: u32,
-    pub current_skills: u32,
-    pub current_snippets: u32,
+    pub current_repos: u32,
     pub current_api_calls: u32,
     pub current_storage_mb: u32,
 }
@@ -260,18 +248,14 @@ mod tests {
     fn test_tenant_quotas_default() {
         let quotas = TenantQuotas::default();
         assert_eq!(quotas.max_users, 5);
-        assert_eq!(quotas.max_tools, 10);
-        assert_eq!(quotas.max_skills, 20);
-        assert_eq!(quotas.max_snippets, 100);
+        assert_eq!(quotas.max_repos, 10);
     }
 
     #[test]
     fn test_tenant_quotas_for_free_plan() {
         let quotas = TenantQuotas::for_plan(&TenantPlan::Free);
         assert_eq!(quotas.max_users, 3);
-        assert_eq!(quotas.max_tools, 5);
-        assert_eq!(quotas.max_skills, 10);
-        assert_eq!(quotas.max_snippets, 50);
+        assert_eq!(quotas.max_repos, 3);
         assert_eq!(quotas.max_api_calls_per_month, 1000);
     }
 
@@ -279,18 +263,14 @@ mod tests {
     fn test_tenant_quotas_for_starter_plan() {
         let quotas = TenantQuotas::for_plan(&TenantPlan::Starter);
         assert_eq!(quotas.max_users, 10);
-        assert_eq!(quotas.max_tools, 20);
-        assert_eq!(quotas.max_skills, 50);
-        assert_eq!(quotas.max_snippets, 200);
+        assert_eq!(quotas.max_repos, 20);
     }
 
     #[test]
     fn test_tenant_quotas_for_pro_plan() {
         let quotas = TenantQuotas::for_plan(&TenantPlan::Pro);
         assert_eq!(quotas.max_users, 50);
-        assert_eq!(quotas.max_tools, 100);
-        assert_eq!(quotas.max_skills, 200);
-        assert_eq!(quotas.max_snippets, 1000);
+        assert_eq!(quotas.max_repos, 100);
         assert_eq!(quotas.max_api_calls_per_month, 100000);
     }
 
@@ -298,7 +278,7 @@ mod tests {
     fn test_tenant_quotas_for_enterprise_plan() {
         let quotas = TenantQuotas::for_plan(&TenantPlan::Enterprise);
         assert_eq!(quotas.max_users, u32::MAX);
-        assert_eq!(quotas.max_tools, u32::MAX);
+        assert_eq!(quotas.max_repos, u32::MAX);
     }
 
     #[test]

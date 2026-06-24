@@ -31,10 +31,10 @@ impl TenantRepository for SqliteTenantRepository {
             r#"
             INSERT INTO tenants (
                 id, name, slug, owner_id, plan, plan_status,
-                max_users, max_tools, max_skills, max_snippets, 
+                max_users, max_repos,
                 max_api_calls_per_month, max_storage_mb,
-                current_users, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                current_users, current_repos, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(id.to_string())
@@ -44,12 +44,11 @@ impl TenantRepository for SqliteTenantRepository {
         .bind("free")
         .bind("active")
         .bind(quotas.max_users)
-        .bind(quotas.max_tools)
-        .bind(quotas.max_skills)
-        .bind(quotas.max_snippets)
+        .bind(quotas.max_repos)
         .bind(quotas.max_api_calls_per_month)
         .bind(quotas.max_storage_mb)
         .bind(1i32) // current_users = 1 (the owner)
+        .bind(0i32) // current_repos = 0
         .bind("active")
         .bind(now.to_rfc3339())
         .bind(now.to_rfc3339())
@@ -147,15 +146,11 @@ impl TenantRepository for SqliteTenantRepository {
             r#"
             UPDATE tenants SET
                 current_users = (SELECT COUNT(*) FROM users WHERE tenant_id = ?),
-                current_tools = (SELECT COUNT(*) FROM tools WHERE tenant_id = ?),
-                current_skills = (SELECT COUNT(*) FROM skills WHERE tenant_id = ?),
-                current_snippets = (SELECT COUNT(*) FROM snippets WHERE tenant_id = ?),
+                current_repos = (SELECT COUNT(*) FROM git_repos WHERE tenant_id = ?),
                 updated_at = ?
             WHERE id = ?
             "#,
         )
-        .bind(id.to_string())
-        .bind(id.to_string())
         .bind(id.to_string())
         .bind(id.to_string())
         .bind(&now)
@@ -180,15 +175,11 @@ struct TenantRow {
     plan: String,
     plan_status: String,
     max_users: i32,
-    max_tools: i32,
-    max_skills: i32,
-    max_snippets: i32,
+    max_repos: i32,
     max_api_calls_per_month: i32,
     max_storage_mb: i32,
     current_users: i32,
-    current_tools: i32,
-    current_skills: i32,
-    current_snippets: i32,
+    current_repos: i32,
     current_api_calls: i32,
     current_storage_mb: i32,
     settings: String,
@@ -224,9 +215,7 @@ impl From<TenantRow> for Tenant {
             quotas: TenantQuotas::for_plan(&plan),
             usage: TenantUsage {
                 current_users: row.current_users as u32,
-                current_tools: row.current_tools as u32,
-                current_skills: row.current_skills as u32,
-                current_snippets: row.current_snippets as u32,
+                current_repos: row.current_repos as u32,
                 current_api_calls: row.current_api_calls as u32,
                 current_storage_mb: row.current_storage_mb as u32,
             },

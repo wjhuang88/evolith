@@ -31,10 +31,10 @@ impl TenantRepository for PgTenantRepository {
             r#"
             INSERT INTO tenants (
                 id, name, slug, owner_id, plan, plan_status,
-                max_users, max_tools, max_skills, max_snippets, 
+                max_users, max_repos,
                 max_api_calls_per_month, max_storage_mb,
-                current_users, status, settings, features, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                current_users, current_repos, status, settings, features, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             "#,
         )
         .bind(id)
@@ -44,12 +44,11 @@ impl TenantRepository for PgTenantRepository {
         .bind("free")
         .bind("active")
         .bind(quotas.max_users as i32)
-        .bind(quotas.max_tools as i32)
-        .bind(quotas.max_skills as i32)
-        .bind(quotas.max_snippets as i32)
+        .bind(quotas.max_repos as i32)
         .bind(quotas.max_api_calls_per_month as i32)
         .bind(quotas.max_storage_mb as i32)
         .bind(1i32)
+        .bind(0i32)
         .bind("active")
         .bind(serde_json::json!({}))
         .bind(serde_json::json!({}))
@@ -148,15 +147,11 @@ impl TenantRepository for PgTenantRepository {
             r#"
             UPDATE tenants SET
                 current_users = (SELECT COUNT(*) FROM users WHERE tenant_id = $1),
-                current_tools = (SELECT COUNT(*) FROM tools WHERE tenant_id = $2),
-                current_skills = (SELECT COUNT(*) FROM skills WHERE tenant_id = $3),
-                current_snippets = (SELECT COUNT(*) FROM snippets WHERE tenant_id = $4),
-                updated_at = $5
-            WHERE id = $6
+                current_repos = (SELECT COUNT(*) FROM git_repos WHERE tenant_id = $2),
+                updated_at = $3
+            WHERE id = $4
             "#,
         )
-        .bind(id)
-        .bind(id)
         .bind(id)
         .bind(id)
         .bind(now)
@@ -181,15 +176,11 @@ struct PgTenantRow {
     plan: String,
     plan_status: String,
     max_users: i32,
-    max_tools: i32,
-    max_skills: i32,
-    max_snippets: i32,
+    max_repos: i32,
     max_api_calls_per_month: i32,
     max_storage_mb: i32,
     current_users: i32,
-    current_tools: i32,
-    current_skills: i32,
-    current_snippets: i32,
+    current_repos: i32,
     current_api_calls: i32,
     current_storage_mb: i32,
     settings: serde_json::Value,
@@ -225,9 +216,7 @@ impl From<PgTenantRow> for Tenant {
             quotas: TenantQuotas::for_plan(&plan),
             usage: TenantUsage {
                 current_users: row.current_users as u32,
-                current_tools: row.current_tools as u32,
-                current_skills: row.current_skills as u32,
-                current_snippets: row.current_snippets as u32,
+                current_repos: row.current_repos as u32,
                 current_api_calls: row.current_api_calls as u32,
                 current_storage_mb: row.current_storage_mb as u32,
             },

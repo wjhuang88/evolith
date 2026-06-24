@@ -22,9 +22,7 @@ fn plan_catalog() -> Vec<PlanInfo> {
             monthly_price: 0.0,
             yearly_price: Some(0.0),
             max_users: 3,
-            max_tools: 5,
-            max_skills: 10,
-            max_snippets: 50,
+            max_repos: 3,
             max_api_calls_per_month: 1000,
             max_storage_mb: 100,
             features: serde_json::json!({
@@ -43,9 +41,7 @@ fn plan_catalog() -> Vec<PlanInfo> {
             monthly_price: 29.0,
             yearly_price: Some(290.0),
             max_users: 10,
-            max_tools: 20,
-            max_skills: 50,
-            max_snippets: 200,
+            max_repos: 20,
             max_api_calls_per_month: 10000,
             max_storage_mb: 1024,
             features: serde_json::json!({
@@ -64,9 +60,7 @@ fn plan_catalog() -> Vec<PlanInfo> {
             monthly_price: 99.0,
             yearly_price: Some(990.0),
             max_users: 50,
-            max_tools: 100,
-            max_skills: 200,
-            max_snippets: 1000,
+            max_repos: 100,
             max_api_calls_per_month: 100000,
             max_storage_mb: 10240,
             features: serde_json::json!({
@@ -85,9 +79,7 @@ fn plan_catalog() -> Vec<PlanInfo> {
             monthly_price: 0.0,
             yearly_price: None,
             max_users: -1,
-            max_tools: -1,
-            max_skills: -1,
-            max_snippets: -1,
+            max_repos: -1,
             max_api_calls_per_month: -1,
             max_storage_mb: -1,
             features: serde_json::json!({

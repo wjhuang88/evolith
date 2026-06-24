@@ -9,6 +9,8 @@ const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_t
 const MIGRATION_004: &str = include_str!("../../../migrations/sqlite/004_user_permissions.sql");
 const MIGRATION_005: &str = include_str!("../../../migrations/sqlite/005_payment_integration.sql");
 const MIGRATION_006: &str = include_str!("../../../migrations/sqlite/006_skill_cli_data_model.sql");
+const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_repos.sql");
+const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 
 /// Setup an in-memory SQLite database with all migrations applied.
 /// Skips seed data migration (002) to avoid test conflicts.
@@ -24,6 +26,8 @@ pub async fn setup_test_db() -> SqlitePool {
     run_migration_sql(&pool, MIGRATION_004).await;
     run_migration_sql(&pool, MIGRATION_005).await;
     run_migration_sql(&pool, MIGRATION_006).await;
+    run_migration_sql(&pool, MIGRATION_007).await;
+    run_migration_sql(&pool, MIGRATION_008).await;
 
     pool
 }
