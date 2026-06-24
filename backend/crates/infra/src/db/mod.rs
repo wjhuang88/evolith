@@ -3,6 +3,7 @@
 // SQLite repositories
 pub mod api_key_repo;
 pub mod audit_repo;
+pub mod git_repo_repo;
 pub mod invitation_repo;
 pub mod skill_repo;
 pub mod snippet_repo;
@@ -13,6 +14,7 @@ pub mod user_repo;
 // PostgreSQL repositories
 pub mod pg_api_key_repo;
 pub mod pg_audit_repo;
+pub mod pg_git_repo_repo;
 pub mod pg_invitation_repo;
 pub mod pg_skill_repo;
 pub mod pg_snippet_repo;
@@ -26,6 +28,7 @@ pub mod pool;
 // SQLite re-exports
 pub use api_key_repo::SqliteApiKeyRepository;
 pub use audit_repo::SqliteAuditRepository;
+pub use git_repo_repo::SqliteGitRepoRepository;
 pub use invitation_repo::SqliteInvitationRepository;
 pub use pool::create_pool;
 pub use skill_repo::SqliteSkillRepository;
@@ -37,6 +40,7 @@ pub use user_repo::SqliteUserRepository;
 // PostgreSQL re-exports
 pub use pg_api_key_repo::PgApiKeyRepository;
 pub use pg_audit_repo::PgAuditRepository;
+pub use pg_git_repo_repo::PgGitRepoRepository;
 pub use pg_invitation_repo::PgInvitationRepository;
 pub use pg_skill_repo::PgSkillRepository;
 pub use pg_snippet_repo::PgSnippetRepository;
