@@ -45,14 +45,15 @@
 - [Iteration 039](ITERATION-039.md) — 后端死代码与误导性注释清理（EVO-051；Closed：删除 10 个死代码文件 + NewUser.password → password_hash 重命名 + 282 tests passed）。
 - [Iteration 040](ITERATION-040.md) — 前端死代码与类型卫生清理（EVO-058；Closed：删除 7 个死代码文件 + skillsApi.versions 假实现移除 + 重复 User 接口合并 + build/tsc 0 errors）。
 - [Iteration 041](ITERATION-041.md) — ExecutionProvider 统一 trait + Docker 容器池化（EVO-045-A；Closed：创建统一执行抽象 + 容器池化 + HTTP 转发 + 适配器 facade + 309 tests passed）。
-- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Planned：2026-06-24 启动，含 ST-1 Tenant quota 适配 + ST-2 ExecutionProvider 简化准备）。
+- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Closed：2026-06-24，git_repos schema + policy.yaml parser + TenantQuotas 适配 + ExecutionProvider deprecated）。
 
 ## 未来计划
 
 以下文档仅为仍可能激活的排期草案，未启动实施，也不代表候选事项已进入 `In Progress`。
 已关闭或已被取代的计划仅保留在文件清单和库存记录中，不再列入未来候选：
 
-- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Ready for activation：2026-06-24 启动计划）。
+- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；
+  Closed：2026-06-24，314 tests passed）。
 - [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013；
   Blocked for activation：候选需 Story/BDD refinement）。
 - [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014；
@@ -129,8 +130,10 @@
 该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
 并记录库存 disposition：
 
-1. **2026-06-24 启动 ITERATION-042**（Phase E'-1）：EVO-101 + EVO-102；详见 [ITERATION-042.md](ITERATION-042.md)。
-2. **新进 Ready 待评估**（独立微迭代候选）：
+1. **ITERATION-042 已 Closed**（Phase E'-1）：EVO-101 + EVO-102 完成（2026-06-24）。
+2. **下一轮 ITERATION-043**（Phase E'-2）：EVO-103 Repo CRUD + Smart HTTP + Repo Context API；
+   **前置阻塞**：EVO-104 Vibe Coding UI 需 UX 调研 design doc U-01~U-05 先决策。
+3. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
    - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
    - EVO-081（内部文档页面基于独立 Markdown 目录渲染）

@@ -11,7 +11,7 @@
 
 - 类型：tech-debt / data-model
 - 优先级：P0
-- 状态：Proposed
+- 状态：Done
 - 父 Epic: EVO-100
 
 ## Problem Or Outcome

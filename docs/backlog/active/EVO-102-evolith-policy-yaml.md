@@ -10,7 +10,7 @@
 
 - 类型：feature / governance
 - 优先级：P1
-- 状态：Proposed
+- 状态：Done
 - 父 Epic: EVO-100
 
 ## Problem Or Outcome

@@ -19,6 +19,7 @@
 | 8 | 前端改了但 release 二进制没更新 | `rust-embed-for-web` proc macro 不跟踪 dist 目录变更 | 确认 `build.rs` 中有 `cargo:rerun-if-changed` 指向前端 dist |
 | 9 | `cargo fmt --check` 退出码 1 但 0 个文件 diff | `rustfmt.toml` 含 nightly-only 选项被 stable 静默忽略 | 先跑 `cargo fmt --check 2>&1 \| grep nightly`；有 warning 就删除 nightly-only 选项或切 nightly toolchain |
 | 10 | `DATABASE__DATABASE_TYPE=mysql` 启动失败 | MySQL repositories 未实现；配置/连接池会快速拒绝 | 使用 SQLite 开发或 PostgreSQL 生产；不要把 MySQL 当成可用后端 |
+| 11 | SQLite FK 约束失败（code 787） | 新表 FK 引用 `tenants(id)` 但 `tenant_id` 以 Uuid BLOB 绑定，而 `tenants.id` 以 TEXT 存储 | SQLite repository 中所有 UUID 绑定使用 `.to_string()`，与 tenant_repo 既有模式一致 |
 
 ---
 

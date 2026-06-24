@@ -1,7 +1,9 @@
 # Iteration 042: Phase E'-1 Git Service 基础（git_repos + policy.yaml + 双轨 schema）
 
-> 文档状态：Planned
+> 文档状态：Closed
 > 计划发布日期：2026-06-24
+> 实际激活日期：2026-06-24
+> 实际关闭日期：2026-06-24
 > 计划目标：在 Evoith 后端建立 git-centric 平台的最小可运行底层——`git_repos` schema + 双轨 migration、`.evolith/policy.yaml` 解析器、Tenant quota 适配 git-centric 模型、ExecutionProvider 简化准备。
 >
 > 基线保护：本文件一旦提交，以下「发布计划基线」内容不可因实施或改线而覆写；同目标执行只向执行区追加事实，换目标必须保留本页并新建 iteration 编号。
@@ -107,18 +109,18 @@ cd frontend && bun run build
 
 | 项目 | 本轮记录 |
 |------|----------|
-| 请求结果 | _实施时填_ |
-| 产物 | migration 007 SQL × 2；`domain::repository.rs` `GitRepoRepository` trait；`infra/src/db/{sqlite,pg}_git_repo_repo.rs`；`domain::tenant.rs` quota 字段；`common/src/execution.rs` `#[deprecated]` 标注；`docs/reference/formats/POLICY-YAML-FORMAT.md`；policy parser crate |
-| 状态同步归口 | PRODUCT-BACKLOG.md（EVO-101/102 状态从 Proposed → Ready → In Progress → Done）；EVO-100 Epic 子项表状态更新；README.md inventory |
-| Story/BDD 归口 | EVO-101 / EVO-102 各自 item file 收口 |
-| 验证证据 | `cargo test --workspace` 完整输出；`cargo clippy --workspace --all-targets -- -D warnings` 0 errors；migration 跑通截图 |
-| 残余工作归口 | EVO-103 Smart HTTP（下一轮）+ EVO-108 Indexer（Phase E'-3）+ EVO-111 Sandbox 废弃（Phase E'-4） |
+| 请求结果 | Complete — EVO-101 + EVO-102 全部验收标准满足 |
+| 产物 | migration 007/008 SQL × 2（sqlite + postgres）；`domain::git_repo` GitRepo/NewGitRepo/UpdateGitRepo/RepoVisibility；`domain::policy` EvolithPolicy/DefaultAction/AgentPolicy/Scope；`GitRepoRepository` trait；`SqliteGitRepoRepository` + `PgGitRepoRepository`；15 集成测试；11 policy parser 单元测试；TenantQuotas/TenantUsage 重构；ExecutionCaller/Payload `#[deprecated]`；POLICY-YAML-FORMAT.md 规范 |
+| 状态同步归口 | PRODUCT-BACKLOG.md（EVO-101/102 状态 Done）；iterations/README.md（ITERATION-042 Closed） |
+| Story/BDD 归口 | EVO-101 / EVO-102 各自 item file 状态已更新为 Done |
+| 验证证据 | `cargo test --workspace` → 314 passed / 1 pre-existing env-dependent failure；`cargo clippy --workspace --all-targets -- -D warnings` → 0 errors；`bun run build` → 0 errors（498ms） |
+| 残余工作归口 | EVO-103 Smart HTTP（ITERATION-043）；EVO-108 Indexer（Phase E'-3）；EVO-111 Sandbox 废弃（Phase E'-4） |
 
 ## 8. 实际激活与执行记录
 
 | 日期 | 类型 | 记录 |
 |------|------|------|
-| 2026-06-24 | activation | _待执行时填入_ |
+| 2026-06-24 | activation | 迭代启动——EVO-101 Git repos schema + ST-1 Tenant quota + ST-2 ExecutionProvider deprecation + EVO-102 policy.yaml parser |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 
@@ -152,17 +154,17 @@ cd frontend && bun run build
 
 ## 10. Review
 
-- 完成：_收口时填_
-- 未完成：_收口时填_
-- 验证结果：_收口时填_
-- 闭环状态：`Complete / Partial / Blocked`
-- 残余归口：_收口时填_
+- 完成：EVO-101（git_repos schema + 双轨 migration 007/008 + GitRepoRepository trait + Sqlite/Pg 双实现 + 15 集成测试）+ ST-1（TenantQuotas 适配 max_repos/current_repos）+ ST-2（ExecutionCaller/Payload deprecated 标注）+ EVO-102（.evolith/policy.yaml 规范文档 + EvolithPolicy parser + 11 单元测试）
+- 未完成：无（全部验收标准满足）
+- 验证结果：`cargo test --workspace` 314 passed / 1 pre-existing env-dependent failure（Docker test）；`cargo clippy --workspace --all-targets -- -D warnings` 0 errors；`bun run build` 0 errors
+- 闭环状态：`Complete`
+- 残余归口：EVO-103 Smart HTTP（下一轮 ITERATION-043）；EVO-108 Indexer（Phase E'-3）；EVO-111 Sandbox 废弃（Phase E'-4）
 
 ## 11. Retrospective
 
-- 做得好的：_收口时填_
-- 需要调整的：_收口时填_
-- 写入 EVOLUTION：_收口时填_
+- 做得好的：EVO-101 和 EVO-102 独立性高，可同迭代并行推进；migration 双轨验证顺利
+- 需要调整的：TenantQuotas schema 变更影响面超出预期（billing DTO/handlers + E2E test helpers 均需同步修改），应在 story 拆分时将 ripple effect 纳入预估
+- 写入 EVOLUTION：SQLite FK 约束下 UUID 必须以 TEXT 形式绑定（`.to_string()`），不能直接 bind Uuid（BLOB）；与 tenant_repo 既有模式保持一致
 
 ---
 
