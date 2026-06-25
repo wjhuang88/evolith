@@ -3,7 +3,12 @@ managed_by: "agent-project-governance"
 profile: "high-risk"
 status: "conformant"
 initialized_at: "2026-05-28"
-last_audited_at: "2026-06-05"
+last_audited_at: "2026-06-25"
+
+governance:
+  skill_name: "agent-project-governance"
+  skill_version: "2.0.0"
+  last_refresh: "2026-06-25"
 
 entrypoints:
   agent_guide: "AGENTS.md"
@@ -49,6 +54,21 @@ risk_gates:
   - signal: "agent-driven iteration planning"
     gate: "iteration inventory, story format, evidence and closure checks"
     owner: "docs/sop/START-ITERATION.md"
+  - signal: "git repositories stored as tenant-scoped bare repos on filesystem"
+    gate: "tenant-bound storage path construction, RBAC checks, and no cross-tenant blob access"
+    owner: "docs/backlog/active/EVO-103-repo-context-and-smart-http.md"
+  - signal: "repository policy controls auto-merge, review, and block behavior"
+    gate: "safe defaults require review; policy parser, DB defaults, UI defaults, and commit evaluator must match"
+    owner: "docs/reference/formats/POLICY-YAML-FORMAT.md"
+  - signal: "Smart HTTP push temporarily uses git CLI subprocess until gix-push is available"
+    gate: "bounded subprocess invocation, explicit args, local E2E clone/push tests, and EVOLUTION residual tracking"
+    owner: "docs/backlog/active/EVO-103-repo-context-and-smart-http.md"
+  - signal: "external agent engine integration through sessions, scoped tokens, and webhooks"
+    gate: "scoped token forbids admin/force-push, webhook HMAC signing, retry bounds, and audit logging"
+    owner: "docs/backlog/active/EVO-106-agent-session-and-scoped-token.md"
+  - signal: "sandbox execution is accepted for removal"
+    gate: "new work must not depend on sandbox execute; legacy references stay marked until EVO-111 removes code/config"
+    owner: "docs/decisions/ADR-0005-deprecate-sandbox-runtime.md"
 
 migration:
   legacy_assets:

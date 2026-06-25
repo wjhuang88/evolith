@@ -3,7 +3,7 @@
 > Compact routing and prioritization surface. Executable context lives in `docs/backlog/active/`; completed, deferred and dropped history lives in `docs/backlog/archive/`.
 > Status and DoR rules: [Requirement Intake](../sop/REQUIREMENT-INTAKE.md). Completion rules: [Iteration Workflow](../sop/ITERATION-WORKFLOW.md). Compaction protocol: `agent-project-governance/references/backlog-compaction.md`.
 
-> **2026-06-23 方向调整**：主线从 "Skill/CLI/MCP DB Registry" 转向 **Git 托管 + Vibe Coding 平台 + Pages 式 skill/CLI/MCP 索引**。详见 [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md)。新方向 Epic EVO-100 + 子 Story EVO-101~112 + 独立 Story EVO-104 全部 Proposed，等待 UX 调研（EVO-104 U-01~U-05）完成后晋升 Ready 排入迭代。旧 skill/CLI/MCP lifecycle 相关项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）按 Superseded/Dropped 移至 Archived Index。
+> **2026-06-23 方向调整**：主线从 "Skill/CLI/MCP DB Registry" 转向 **Git 托管 + Vibe Coding 平台 + Pages 式 skill/CLI/MCP 索引**。详见 [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](../decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md)。新方向 Epic EVO-100 已进入 Phase E' 实施；EVO-101 / EVO-102 已由 Iteration 042 完成，下一步是 EVO-103 Repo CRUD + Smart HTTP。EVO-104 的 UX 调研（U-01~U-05）只阻塞 Vibe Coding UI / Agent 集成阶段，不阻塞 EVO-103 后端基础能力。旧 skill/CLI/MCP lifecycle 相关项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）按 Superseded/Dropped 标注。
 
 ## Current Priorities
 
@@ -17,9 +17,10 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-100 | Epic: Git-Centric Platform Foundation | Proposed | P0 | 用户反馈 2026-06-23 方向调整; Epic 容器；含 10 个子 Story（EVO-101~103、105~111）；覆盖 git 托管、smart HTTP、commit/promote、agent session、indexer、旧表双写、sandbox 废弃 | [Item file](active/EVO-100-git-centric-platform-foundation.md)<br>[Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)<br>[ADR-0004](../decisions/ADR-0004-git-centric-storage.md)<br>[ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) |
-| EVO-101 | `git_repos` 表 + 双轨 migration | Proposed | P0 | Epic EVO-100 子 Story; `git_repos` 第一类实体表，无 resource_type 字段（与 GitHub repo 模型对齐） | [Item file](active/EVO-101-git-repos-schema.md) |
-| EVO-102 | `.evolith/policy.yaml` 规范 + 解析器 | Proposed | P1 | Epic EVO-100 子 Story; 仓库级策略文件，承载 auto_merge / require_review / block 三态、protected_paths、agents scope；类比 GitHub Pages Settings | [Item file](active/EVO-102-evolith-policy-yaml.md) |
+| EVO-113 | Direction Pivot Review Remediation | Done | P0 | 2026-06-25 方向变更全面评审缺口修复完成：安全默认策略、状态同步、断链、sandbox reference 与 manifest risk gates 已闭环；验证全绿 | [Item file](active/EVO-113-direction-pivot-review-remediation.md)<br>[Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)<br>[ADR-0004](../decisions/ADR-0004-git-centric-storage.md)<br>[ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) |
+| EVO-100 | Epic: Git-Centric Platform Foundation | In Progress | P0 | 用户反馈 2026-06-23 方向调整; Epic 容器；EVO-101/102 已 Done，EVO-113 正在修复方向变更评审缺口；下一主线为 EVO-103 Repo CRUD + Smart HTTP | [Item file](active/EVO-100-git-centric-platform-foundation.md)<br>[Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)<br>[ADR-0004](../decisions/ADR-0004-git-centric-storage.md)<br>[ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) |
+| EVO-101 | `git_repos` 表 + 双轨 migration | Done | P0 | Iteration 042 完成；后续 EVO-113 修正 repo 安全默认策略，EVO-103 继续使用该 schema | [Item file](active/EVO-101-git-repos-schema.md)<br>[Iteration 042](../iterations/ITERATION-042.md) |
+| EVO-102 | `.evolith/policy.yaml` 规范 + 解析器 | Done | P1 | Iteration 042 完成；EVO-113 同步 policy 默认语义，EVO-105 后续接入 policy evaluator | [Item file](active/EVO-102-evolith-policy-yaml.md)<br>[Iteration 042](../iterations/ITERATION-042.md) |
 | EVO-103 | Repo CRUD + Smart HTTP + Repo Context API | Proposed | P0 | Epic EVO-100 子 Story; 依赖 EVO-101；smart HTTP 基于 gix，push 临时 subprocess | [Item file](active/EVO-103-repo-context-and-smart-http.md) |
 | EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | Proposed | P0 | Epic EVO-100 子 Story（前端）; 依赖 EVO-103；Files/Commits/Settings 三 Tab；侧边栏改 Repos 为主入口；Dashboard repo-centric 改版 | [Item file](active/EVO-112-repo-management-ui.md)<br>[Design System](../reference/DESIGN.md) |
 | EVO-104 | Vibe Coding Web UI | Proposed | P0 | Epic EVO-100 配套 Story（前端）; 三栏（file tree + editor + chat panel）；依赖 EVO-103/105/106/112；UX 调研前置门禁：U-01~U-05 必须在迭代开始前完成 | [Item file](active/EVO-104-vibe-coding-web-ui.md)<br>[Design System](../reference/DESIGN.md) |
@@ -117,17 +118,17 @@
 | EVO-084 | Backlog compaction 标准结构迁移 | Done | P1 | 用户反馈 2026-06-05 / skill backlog-compaction; 将 monolithic backlog 压缩为决策入口 + active item files + archive index；验证通过后收口 | [2026-Q2](archive/2026-Q2/EVO-084-backlog-compaction-标准结构迁移.md) |
 | EVO-085 | Archive index 二次压缩与 item file 拆分纠偏 | Done | P1 | 用户反馈 2026-06-05; `archive/2026-Q2/INDEX.md` 不应承载全部历史详情，已拆为 per-item archive files 并保留短索引 | [2026-Q2](archive/2026-Q2/EVO-085-archive-index-二次压缩与-item-file-拆分纠偏.md) |
 | EVO-086 | 全量依赖 latest 迁移 | Done | P1 | 用户反馈 2026-06-06; 后端/前端依赖直接追 latest 并完成 breaking migration；覆盖 EVO-061~076，前端 Vite/Tailwind/React/TypeScript 迁移完成；验证全绿 | [2026-Q2](archive/2026-Q2/EVO-086-全量依赖-latest-迁移.md) |
-| EVO-019 | Skill registry 服务化 | Superseded | P2 | 2026-06-23 方向调整；git repos 天然作为 registry；范围被 EVO-100 + EVO-108 覆盖 | [2026-Q3](archive/2026-Q3/EVO-019-skill-registry-服务化.md) |
-| EVO-020 | Storage 能力落地 | Superseded | P2 | 2026-06-23 方向调整；git filesystem 替代 MinIO；LFS HTTP API 由独立 EVO 处理 | [2026-Q3](archive/2026-Q3/EVO-020-storage-能力落地.md) |
-| EVO-027 | Skill 多来源创建 | Re-scoped | P1 | 2026-06-23 方向调整；"创建 skill" 改为"创建文件到 repo"；范围被 EVO-103（Repo CRUD）+ EVO-108（Indexer 识别 `SKILL.md`）覆盖 | [2026-Q3](archive/2026-Q3/EVO-027-skill-多来源创建.md) |
-| EVO-028 | Skill 版本管理与正确性验证 | Superseded | P1 | 2026-06-23 方向调整；git 提供原生版本管理（commit / branch / tag）；正确性验证由 EVO-108 indexer parser 处理 | [2026-Q3](archive/2026-Q3/EVO-028-skill-版本管理与正确性验证.md) |
-| EVO-029 | Skill 专业描述与发现质量提升 | Re-scoped | P2 | 2026-06-23 方向调整；SKILL.md frontmatter 质量由 EVO-108 indexer 解析路径处理；评分体系超出 MVP scope | [2026-Q3](archive/2026-Q3/EVO-029-skill-专业描述与发现质量提升.md) |
-| EVO-045 | CLI 命令执行引擎（Serverless） | Superseded | P0 | 2026-06-23 方向调整；CLI 改为 FaaS 注册（HttpProxy 形态），无 sandbox 执行；范围被 EVO-105 + EVO-108 覆盖 | [2026-Q3](archive/2026-Q3/EVO-045-cli-命令执行引擎-serverless.md) |
-| EVO-046 | Skill 可下载制品与 Agent 一键安装 | Superseded | P1 | 2026-06-23 方向调整；repo 本身就是可下载制品（`git clone`）；"Agent 一键安装" 通过 EVO-104 Vibe Coding UI 实现 | [2026-Q3](archive/2026-Q3/EVO-046-skill-可下载制品与-agent-一键安装.md) |
-| EVO-047 | MCP 工具 Serverless 执行 | Superseded | P1 | 2026-06-23 方向调整；MCP 执行保持 HttpProxy 形态；不引入 serverless code execution；ADR-0005 同步 | [2026-Q3](archive/2026-Q3/EVO-047-mcp-工具-serverless-执行.md) |
-| EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | Dropped | P0 | 2026-06-23 方向调整；Epic 拆分后 EVO-049-A 已 Done（数据模型）；EVO-049-B 已被 EVO-108 覆盖；剩余格式对齐由独立 EVO 评估 | [2026-Q3](archive/2026-Q3/EVO-049-skill-cli-生态兼容与行业标准对齐.md) |
-| EVO-049-B | Skill/CLI parser 接线与校验报告 | Superseded | P0 | 2026-06-23 方向调整；原依赖 EVO-049-A；新方向由 EVO-108 Indexer 触发 parser 接线，blocking/warning 由 indexer 输出；不再需要单独 story | [2026-Q3](archive/2026-Q3/EVO-049-B-skill-cli-parser-接线与校验报告.md) |
-| EVO-050 | Skill/CLI 评分与质量体系 | Dropped | P1 | 2026-06-23 方向调整；评分与质量体系超出 MVP scope；Phase 6+ 评估 | [2026-Q3](archive/2026-Q3/EVO-050-skill-cli-评分与质量体系.md) |
+| EVO-019 | Skill registry 服务化 | Superseded | P2 | 2026-06-23 方向调整；git repos 天然作为 registry；范围被 EVO-100 + EVO-108 覆盖 | [Item file](active/EVO-019-skill-registry-服务化.md) |
+| EVO-020 | Storage 能力落地 | Superseded | P2 | 2026-06-23 方向调整；git filesystem 替代 MinIO；LFS HTTP API 由独立 EVO 处理 | [Item file](active/EVO-020-storage-能力落地.md) |
+| EVO-027 | Skill 多来源创建 | Re-scoped | P1 | 2026-06-23 方向调整；"创建 skill" 改为"创建文件到 repo"；范围被 EVO-103（Repo CRUD）+ EVO-108（Indexer 识别 `SKILL.md`）覆盖 | [Item file](active/EVO-027-skill-多来源创建.md) |
+| EVO-028 | Skill 版本管理与正确性验证 | Superseded | P1 | 2026-06-23 方向调整；git 提供原生版本管理（commit / branch / tag）；正确性验证由 EVO-108 indexer parser 处理 | [Item file](active/EVO-028-skill-版本管理与正确性验证.md) |
+| EVO-029 | Skill 专业描述与发现质量提升 | Re-scoped | P2 | 2026-06-23 方向调整；SKILL.md frontmatter 质量由 EVO-108 indexer 解析路径处理；评分体系超出 MVP scope | [Item file](active/EVO-029-skill-专业描述与发现质量提升.md) |
+| EVO-045 | CLI 命令执行引擎（Serverless） | Superseded | P0 | 2026-06-23 方向调整；CLI 改为 FaaS 注册（HttpProxy 形态），无 sandbox 执行；范围被 EVO-105 + EVO-108 覆盖 | [Item file](active/EVO-045-cli-命令执行引擎-serverless.md) |
+| EVO-046 | Skill 可下载制品与 Agent 一键安装 | Superseded | P1 | 2026-06-23 方向调整；repo 本身就是可下载制品（`git clone`）；"Agent 一键安装" 通过 EVO-104 Vibe Coding UI 实现 | [Item file](active/EVO-046-skill-可下载制品与-agent-一键安装.md) |
+| EVO-047 | MCP 工具 Serverless 执行 | Superseded | P1 | 2026-06-23 方向调整；MCP 执行保持 HttpProxy 形态；不引入 serverless code execution；ADR-0005 同步 | [Item file](active/EVO-047-mcp-工具-serverless-执行.md) |
+| EVO-049 | Skill/CLI 生态兼容与行业标准对齐 | Dropped | P0 | 2026-06-23 方向调整；Epic 拆分后 EVO-049-A 已 Done（数据模型）；EVO-049-B 已被 EVO-108 覆盖；剩余格式对齐由独立 EVO 评估 | [Item file](active/EVO-049-skill-cli-生态兼容与行业标准对齐.md) |
+| EVO-049-B | Skill/CLI parser 接线与校验报告 | Superseded | P0 | 2026-06-23 方向调整；原依赖 EVO-049-A；新方向由 EVO-108 Indexer 触发 parser 接线，blocking/warning 由 indexer 输出；不再需要单独 story | [Item file](active/EVO-049-B-skill-cli-parser-接线与校验报告.md) |
+| EVO-050 | Skill/CLI 评分与质量体系 | Dropped | P1 | 2026-06-23 方向调整；评分与质量体系超出 MVP scope；Phase 6+ 评估 | [Item file](active/EVO-050-skill-cli-评分与质量体系.md) |
 
 ## Reading Rules
 

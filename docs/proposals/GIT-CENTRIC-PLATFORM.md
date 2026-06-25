@@ -294,16 +294,19 @@ EVO-104 (Story: Vibe Coding Web UI)
 
 **推荐迭代顺序**：
 
-1. EVO-100 / Iteration N：EVO-101 + EVO-102 + EVO-103（git service MVP）
-2. Iteration N+1：EVO-105 + EVO-106 + EVO-107（commit/promote + agent session）
-3. Iteration N+2：EVO-104（vibe coding UI，UX 调研先行）
-4. Iteration N+3：EVO-108 + EVO-109 + EVO-110（indexer + discovery + dual-write）
-5. Iteration N+4：EVO-111（sandbox 清理收尾）
+1. Iteration 042：EVO-101 + EVO-102（git_repos schema + policy parser）— Done
+2. Remediation：EVO-113（方向变更评审缺口修复）
+3. Iteration N：EVO-103（Repo CRUD + Smart HTTP + Repo Context API）
+4. Iteration N+1：EVO-112（Repo Management UI）
+5. Iteration N+2：EVO-105 + EVO-106 + EVO-107（commit/promote + agent session）
+6. Iteration N+3：EVO-104（vibe coding UI，UX 调研先行）
+7. Iteration N+4：EVO-108 + EVO-109 + EVO-110（indexer + discovery + dual-write）
+8. Iteration N+5：EVO-111（sandbox 清理收尾）
 
 ## 相关链接
 
-- [ADR-0004 Git-Centric Storage](docs/decisions/ADR-0004-git-centric-storage.md)
-- [ADR-0005 Deprecate Sandbox Runtime](docs/decisions/ADR-0005-deprecate-sandbox-runtime.md)
+- [ADR-0004 Git-Centric Storage](../decisions/ADR-0004-git-centric-storage.md)
+- [ADR-0005 Deprecate Sandbox Runtime](../decisions/ADR-0005-deprecate-sandbox-runtime.md)
 - [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
 - [实施路线图](../roadmap/IMPLEMENTATION-ROADMAP.md)
 - [EVOLUTION.md](../../EVOLUTION.md)（2026-06-23 方向变更记录）

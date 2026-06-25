@@ -94,8 +94,16 @@ impl GitRepoRepository for SqliteGitRepoRepository {
             RepoVisibility::Private => "private",
         };
         let storage_path = format!("repos/{}/{}", tenant_id, &repo.name);
-        let auto_merge = if repo.auto_merge.unwrap_or(true) { 1 } else { 0 };
-        let require_review = if repo.require_review.unwrap_or(false) { 1 } else { 0 };
+        let auto_merge = if repo.auto_merge.unwrap_or(false) {
+            1
+        } else {
+            0
+        };
+        let require_review = if repo.require_review.unwrap_or(true) {
+            1
+        } else {
+            0
+        };
 
         sqlx::query(
             r#"INSERT INTO git_repos (

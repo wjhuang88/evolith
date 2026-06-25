@@ -20,12 +20,38 @@
 | 9 | `cargo fmt --check` 退出码 1 但 0 个文件 diff | `rustfmt.toml` 含 nightly-only 选项被 stable 静默忽略 | 先跑 `cargo fmt --check 2>&1 \| grep nightly`；有 warning 就删除 nightly-only 选项或切 nightly toolchain |
 | 10 | `DATABASE__DATABASE_TYPE=mysql` 启动失败 | MySQL repositories 未实现；配置/连接池会快速拒绝 | 使用 SQLite 开发或 PostgreSQL 生产；不要把 MySQL 当成可用后端 |
 | 11 | SQLite FK 约束失败（code 787） | 新表 FK 引用 `tenants(id)` 但 `tenant_id` 以 Uuid BLOB 绑定，而 `tenants.id` 以 TEXT 存储 | SQLite repository 中所有 UUID 绑定使用 `.to_string()`，与 tenant_repo 既有模式一致 |
+| 12 | 新建 repo 缺失 policy 时默认自动合并 | DB / repository / UI 默认值没有同步方向文档的 `require_review=true` 安全策略 | Git-Centric policy 默认必须在 migration、repository、UI 和 evaluator 中同时验证；缺失 policy 时默认 require review |
+| 13 | `cargo test --workspace` 在有 Docker 的机器失败 sandbox 测试 | 测试假设运行环境一定没有 Docker daemon | legacy sandbox 测试不能依赖宿主 Docker 是否存在；按实际初始化结果校验错误语义或功能语义 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-06-25 - Git-Centric 方向修复必须同时检查默认策略、状态源和环境假设
+
+- Trigger: 2026-06-25 方向变更全面评审发现：EVO-101/102 已完成但主表仍标 Proposed，repo 默认策略与“默认 require review”冲突，sandbox execute 仍在稳定 reference 中作为当前能力出现。
+- Symptom:
+  - 新建 repo 在缺失 `.evolith/policy.yaml` 时会回落到 `auto_merge=true` / `require_review=false`。
+  - `PRODUCT-BACKLOG.md` / EVO-100 子项表 / BOARD / Roadmap 对 EVO-101/102/EVO-103 的状态与依赖顺序不一致。
+  - `cargo test --workspace` 在当前环境中因 `docker_provider_new_fails_without_docker` 失败；测试把“没有 Docker”当成固定事实。
+- Root cause:
+  - Git-Centric 方向文档写了安全策略，但 schema、repository、UI 默认和测试没有一起改。
+  - Iteration 042 的完成事实没有同步到所有 owner docs。
+  - Sandbox 已进入 ADR-0005 废弃路径，但 legacy 测试仍把宿主环境属性当断言前提。
+- Fix:
+  - 新增 SQLite/PostgreSQL migration 009，把 `git_repos` 默认改为 `auto_merge=false` / `require_review=true`。
+  - 更新 SQLite/Postgres repository create 默认值、git repo tests 和 EVO-112 UI 默认。
+  - 同步 PRODUCT-BACKLOG、EVO-100、BOARD、Roadmap、Iterations README、AGENTS、reference docs 和 manifest risk gates。
+  - 修正 sandbox legacy 测试，只在初始化失败时校验 Docker 错误语义，不再要求当前机器必须没有 Docker。
+- Prevention:
+  - 方向文档里的安全默认值必须追踪到 migration、repository、frontend spec、API evaluator 和测试。
+  - 子 Story 完成后必须同步父 Epic 子项表、主 backlog、Board 和 roadmap；断链扫描应作为文档治理收口证据。
+  - 环境依赖测试不得断言宿主机一定缺少或拥有某外部服务；需要按探测结果分支或使用本地可控 mock。
+- Promoted to rule/check:
+  - `.agent-governance/manifest.yaml` 增加 Git-Centric risk gates。
+  - `docs/backlog/active/EVO-113-direction-pivot-review-remediation.md` 记录闭环证据。
 
 ### 2026-06-23 - 开发目标重大变更：从 Skill/CLI/MCP Registry 转向 Git 托管 + Vibe Coding 平台
 

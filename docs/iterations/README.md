@@ -46,6 +46,7 @@
 - [Iteration 040](ITERATION-040.md) — 前端死代码与类型卫生清理（EVO-058；Closed：删除 7 个死代码文件 + skillsApi.versions 假实现移除 + 重复 User 接口合并 + build/tsc 0 errors）。
 - [Iteration 041](ITERATION-041.md) — ExecutionProvider 统一 trait + Docker 容器池化（EVO-045-A；Closed：创建统一执行抽象 + 容器池化 + HTTP 转发 + 适配器 facade + 309 tests passed）。
 - [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Closed：2026-06-24，git_repos schema + policy.yaml parser + TenantQuotas 适配 + ExecutionProvider deprecated）。
+- [Iteration 043](ITERATION-043.md) — Direction Pivot Review Remediation（EVO-113；Closed：2026-06-25，安全默认策略、状态同步、断链、sandbox legacy reference、manifest risk gates 修复）。
 
 ## 未来计划
 
@@ -131,9 +132,10 @@
 并记录库存 disposition：
 
 1. **ITERATION-042 已 Closed**（Phase E'-1）：EVO-101 + EVO-102 完成（2026-06-24）。
-2. **下一轮 ITERATION-043**（Phase E'-2）：EVO-103 Repo CRUD + Smart HTTP + Repo Context API；
-   **前置阻塞**：EVO-104 Vibe Coding UI 需 UX 调研 design doc U-01~U-05 先决策。
-3. **新进 Ready 待评估**（独立微迭代候选）：
+2. **ITERATION-043 已 Closed**：EVO-113 Direction Pivot Review Remediation（方向变更评审缺口修复，2026-06-25）。
+3. **下一轮 ITERATION-044 候选**（Phase E'-1b）：EVO-103 Repo CRUD + Smart HTTP + Repo Context API；
+   **不被 EVO-104 UX 门禁阻塞**。EVO-104 Vibe Coding UI 仍需 UX 调研 design doc U-01~U-05 先决策。
+4. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
    - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
    - EVO-081（内部文档页面基于独立 Markdown 目录渲染）

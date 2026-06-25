@@ -58,8 +58,8 @@ Evolith 战略转型为 Git-centric 平台后，前端没有任何 Git 仓库相
   - description（可选）
   - visibility（public / private，默认 private）
   - default_branch（默认 main）
-  - auto_merge（开关，默认 on）
-  - require_review（开关，默认 off）
+  - auto_merge（开关，默认 off；需 admin 显式开启）
+  - require_review（开关，默认 on）
 - 创建成功后跳转到仓库详情页
 - API: `POST /api/v1/repos`
 

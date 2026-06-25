@@ -19,10 +19,16 @@ use crate::error::{AppError, Result};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionCaller {
     /// Skill code execution (from Skill handler)
-    #[deprecated(since = "0.8.0", note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005")]
+    #[deprecated(
+        since = "0.8.0",
+        note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
+    )]
     Skill { skill_id: Uuid, runtime: String },
     /// CLI command execution (from CLI interface handler)
-    #[deprecated(since = "0.8.0", note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005")]
+    #[deprecated(
+        since = "0.8.0",
+        note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
+    )]
     Cli { snippet_id: Uuid, command: String },
     /// MCP tool execution (from MCP handler)
     McpTool { tool_id: Uuid },
@@ -32,10 +38,16 @@ pub enum ExecutionCaller {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionPayload {
     /// Execute source code (Skill / Serverless Function)
-    #[deprecated(since = "0.8.0", note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005")]
+    #[deprecated(
+        since = "0.8.0",
+        note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
+    )]
     Code { source: String, language: String },
     /// Execute a shell command (CLI interface)
-    #[deprecated(since = "0.8.0", note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005")]
+    #[deprecated(
+        since = "0.8.0",
+        note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
+    )]
     Command { command: String, args: Vec<String> },
     /// Forward to an external HTTP endpoint (MCP HTTP tool)
     HttpProxy { url: String, method: String },

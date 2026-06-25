@@ -122,7 +122,7 @@
 1. `docker-compose.yml` 里的后端环境变量必须使用 `DATABASE__DATABASE_TYPE` / `DATABASE__URL` 形式，否则 `AppConfig` 不会按预期读取嵌套配置。
 2. 前端容器或本地环境的 `VITE_API_URL` 如果只有 `http://localhost:8080`，请求会打到 `/auth/...` 而不是 `/api/v1/auth/...`。
 3. `CsrfMiddleware` 保护所有非豁免状态变更请求，手写 fetch 时要带 `X-CSRF-Token`。
-4. `SANDBOX__ENABLED` 默认关闭，lite/local 启动不依赖 Docker；显式设为 `true` 时 Docker sandbox 初始化失败会导致服务启动失败。
+4. `SANDBOX__ENABLED` 默认关闭，lite/local 启动不依赖 Docker；显式设为 `true` 时 Docker sandbox 初始化失败会导致服务启动失败。ADR-0005 已接受删除 sandbox，EVO-111 收口前仅作 legacy 兼容保留。
 5. SQLite 和 PostgreSQL SQL 类型、时间、JSON、UUID 行为不同，migration 不能简单复制后不验证。
 6. 邮件链接必须使用 `APP__PUBLIC_URL` 指向前端公开地址；不要用后端监听地址拼 reset/invite 链接。
 7. 前端静态资源已通过 `rust-embed-for-web` 嵌入后端发布物；Nginx 仅作为可选网关/SSL/反代。修改反代或 fallback 时必须验证 `/assets/`、`/api/v1`、`/health`、`/mcp` 和 SPA 深层路由不互相截获。
@@ -172,7 +172,7 @@ evolith/
 │   ├── crates/
 │   │   ├── api/           # Routes, handlers, middleware, DTOs
 │   │   ├── service-tool/  # MCP tools service
-│   │   ├── service-skill/ # Skill execution service (Docker sandbox)
+│   │   ├── service-skill/ # Skill parser/legacy execution service (Docker sandbox pending removal by EVO-111)
 │   │   ├── service-snippet/# Code snippets service
 │   │   ├── service-auth/  # JWT, password, RBAC
 │   │   ├── service-audit/ # Audit logging
@@ -314,7 +314,7 @@ Environment variables (see `crates/infra/src/config.rs`):
 | `APP__PUBLIC_URL` | Public frontend URL for email links | `http://localhost:3001` |
 | `CORS__ALLOWED_ORIGIN` | Allowed frontend origin | `http://localhost:3001` |
 | `CSRF__ENABLED` | Enable CSRF protection | `true` |
-| `SANDBOX__ENABLED` | Enable Docker sandbox executor; startup fails if Docker executor cannot initialize | `false` |
+| `SANDBOX__ENABLED` | Legacy Docker sandbox executor; startup fails if enabled and Docker executor cannot initialize; pending removal by EVO-111 | `false` |
 | `SANDBOX__TIMEOUT_SECONDS` | Sandbox execution timeout | `30` |
 | `SANDBOX__MEMORY_MB` | Sandbox memory limit | `256` |
 | `RATE_LIMIT__UNAUTHENTICATED_RPM` | Unauthenticated request limit | `30` |
@@ -516,7 +516,7 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] `cargo test --workspace` → 236 passed, 0 failed
 - [x] Legacy frontend build validation → 0 errors, 22 routes (pre-Vite migration)
 
-### Phase 7 — Sandbox Executor ✅ COMPLETE (2026-03-15)
+### Phase 7 — Sandbox Executor ✅ COMPLETE / Legacy Pending Removal (2026-03-15)
 
 **Goal**: Docker-based sandboxed code execution for skills.
 
@@ -527,6 +527,8 @@ These phases created working UI and API handler code, but all backed by in-memor
 - [x] Sandbox Dockerfiles — `backend/sandbox/python/Dockerfile`, `backend/sandbox/node/Dockerfile`
 - [x] AppState updated with `skill_executor: Arc<dyn SkillExecutor>`
 - [x] `cargo test --workspace` → 236 passed, 0 failed
+
+> 2026-06-23 direction pivot: ADR-0005 deprecates this sandbox runtime. New Git-Centric Platform work must not depend on sandbox execution; EVO-111 removes it.
 
 ### Phase 8 — Production Deployment Baseline ⚠️ PARTIAL (2026-04-08)
 

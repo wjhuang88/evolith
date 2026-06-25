@@ -27,7 +27,7 @@
 | `backend/crates/domain/src/repository.rs` | Repository trait 边界 |
 | `backend/crates/infra/src/db/` | SQLite/PostgreSQL repository 实现 |
 | `backend/crates/infra/src/config.rs` | 环境变量和默认配置 |
-| `backend/crates/service-skill/src/executor.rs` | Skill 执行器和 Docker sandbox |
+| `backend/crates/service-skill/src/executor.rs` | legacy Skill 执行器和 Docker sandbox（ADR-0005 / EVO-111 待删除） |
 
 ## 前端关键入口
 

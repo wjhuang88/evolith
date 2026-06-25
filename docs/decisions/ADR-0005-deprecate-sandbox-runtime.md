@@ -95,7 +95,7 @@ Evolith 当前实现 Skill 执行采用 Docker 容器沙箱：
 
 - [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)
 - [ADR-0004 Git-Centric Storage](ADR-0004-git-centric-storage.md)
-- [EVO-111 废弃 Skill 沙箱执行](../backlog/active/EVO-111-废弃-skill-沙箱执行.md)
+- [EVO-111 废弃 Skill 沙箱执行](../backlog/active/EVO-111-deprecate-sandbox-runtime.md)
 - [SERVERLESS-RUNTIME.md](../proposals/SERVERLESS-RUNTIME.md)（历史参考，简化后保留）
 - [EVO-056 沙箱降级静默成功修复](../backlog/archive/2026-Q2/EVO-056-沙箱降级静默成功修复.md)
 - [EVO-079 sandbox 默认启用导致本地启动依赖 Docker 回归修复](../backlog/archive/2026-Q2/EVO-079-sandbox-默认启用导致本地启动依赖-docker-回归修复.md)

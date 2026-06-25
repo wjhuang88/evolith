@@ -37,9 +37,10 @@ agents:                          # Agent 级策略覆盖
 
 Schema 版本号。当前仅支持 `1`。缺失时默认按 v1 处理以保证向后兼容。
 
-### `default_action`（必选）
+### `default_action`（可选）
 
-仓库默认策略，当没有 Agent 特定规则或路径特定规则匹配时生效。
+仓库默认策略，当没有 Agent 特定规则或路径特定规则匹配时生效。缺失时默认为
+`require_review`。
 
 | 值 | 含义 |
 |----|------|
@@ -66,7 +67,7 @@ Agent 级策略覆盖列表。每个 Agent 可以拥有独立的 scope 和 auto_
 | 字段 | 类型 | 必选 | 说明 |
 |------|------|------|------|
 | `name` | string | 是 | Agent 名称标识 |
-| `scopes` | array | 否 | 权限范围列表；默认为 `["read"]` |
+| `scopes` | array | 否 | 权限范围列表；缺失时默认为空列表（不授予额外权限） |
 | `auto_merge` | boolean | 否 | 是否允许自动合并；覆盖 `default_action` |
 
 #### 权限范围（Scope）
@@ -96,7 +97,7 @@ scopes:
 
 - `version` 字段缺失时，解析器按 v1 处理
 - 未知字段被忽略（允许未来版本新增字段）
-- 空的 `policy.yaml` 等同于缺失，使用 DB 默认值
+- 空的 `policy.yaml` 等同于缺失，使用 parser 默认值 `require_review`
 - 未来版本升级时，`version` 字段必须递增
 
 ## 推荐配置

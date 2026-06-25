@@ -881,7 +881,8 @@ interface SkillLoadResponse {
 ### `POST /api/v1/skills/{id}/execute`
 
 - **Auth:** JWT
-- **Description:** Execute a skill in a sandboxed Docker container. Requires sandbox to be enabled on the server.
+- **Status:** Legacy / pending removal by [ADR-0005](../decisions/ADR-0005-deprecate-sandbox-runtime.md) and [EVO-111](../backlog/active/EVO-111-deprecate-sandbox-runtime.md).
+- **Description:** Execute a skill in a sandboxed Docker container. This is existing compatibility behavior only; Git-Centric Platform work must not add new dependencies on this route. Requires sandbox to be enabled on the server.
 - **RBAC:** Authenticated users can execute skills belonging to their tenant or public skills.
 
 **Request:**

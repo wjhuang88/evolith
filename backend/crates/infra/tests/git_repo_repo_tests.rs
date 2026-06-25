@@ -39,14 +39,17 @@ async fn test_create_git_repo() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
 
     assert_eq!(created.name, "test-repo");
     assert_eq!(created.description, "Test repository");
     assert_eq!(created.default_branch, "main");
     assert_eq!(created.visibility, RepoVisibility::Private);
-    assert!(created.auto_merge);
-    assert!(!created.require_review);
+    assert!(!created.auto_merge);
+    assert!(created.require_review);
     assert!(created.storage_path.contains(&tenant.id.to_string()));
     assert!(created.storage_path.contains("test-repo"));
 }
@@ -57,7 +60,10 @@ async fn test_find_by_id() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
     let found = repo.find_by_id(created.id).await.unwrap().unwrap();
 
     assert_eq!(found.id, created.id);
@@ -78,7 +84,10 @@ async fn test_find_by_name() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
     let found = repo
         .find_by_name(tenant.id, "test-repo")
         .await
@@ -104,8 +113,12 @@ async fn test_find_by_tenant() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    repo.create(make_new_repo("repo-a"), tenant.id).await.unwrap();
-    repo.create(make_new_repo("repo-b"), tenant.id).await.unwrap();
+    repo.create(make_new_repo("repo-a"), tenant.id)
+        .await
+        .unwrap();
+    repo.create(make_new_repo("repo-b"), tenant.id)
+        .await
+        .unwrap();
 
     let repos = repo.find_by_tenant(tenant.id).await.unwrap();
     assert_eq!(repos.len(), 2);
@@ -125,7 +138,9 @@ async fn test_unique_tenant_name() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    repo.create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
 
     let result = repo.create(make_new_repo("test-repo"), tenant.id).await;
     assert!(result.is_err());
@@ -138,8 +153,14 @@ async fn test_same_name_different_tenant() {
     let tenant2 = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let r1 = repo.create(make_new_repo("test-repo"), tenant1.id).await.unwrap();
-    let r2 = repo.create(make_new_repo("test-repo"), tenant2.id).await.unwrap();
+    let r1 = repo
+        .create(make_new_repo("test-repo"), tenant1.id)
+        .await
+        .unwrap();
+    let r2 = repo
+        .create(make_new_repo("test-repo"), tenant2.id)
+        .await
+        .unwrap();
 
     assert_eq!(r1.name, r2.name);
     assert_ne!(r1.tenant_id, r2.tenant_id);
@@ -151,7 +172,10 @@ async fn test_update_git_repo() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
 
     let update = UpdateGitRepo {
         name: Some("renamed-repo".to_string()),
@@ -177,7 +201,10 @@ async fn test_update_partial() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
 
     let update = UpdateGitRepo {
         name: None,
@@ -200,7 +227,10 @@ async fn test_delete_git_repo() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
     repo.delete(created.id).await.unwrap();
 
     let found = repo.find_by_id(created.id).await.unwrap();
@@ -213,7 +243,10 @@ async fn test_update_last_commit() {
     let tenant = setup_tenant(&pool).await;
     let repo = SqliteGitRepoRepository::new(pool);
 
-    let created = repo.create(make_new_repo("test-repo"), tenant.id).await.unwrap();
+    let created = repo
+        .create(make_new_repo("test-repo"), tenant.id)
+        .await
+        .unwrap();
     let now = chrono::Utc::now();
 
     repo.update_last_commit(created.id, "abc123def456", now)

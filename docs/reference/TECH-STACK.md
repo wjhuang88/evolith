@@ -367,7 +367,7 @@ STORAGE__BUCKET="evolith"
 JWT__SECRET="dev_secret_key_change_in_production"
 JWT__EXPIRATION="24h"
 
-# 执行沙箱（默认关闭；需要执行 sandbox 时确认 Docker 可用后改为 true）
+# legacy 执行沙箱（ADR-0005 / EVO-111 待删除；不要在新主线中继续依赖）
 SANDBOX__ENABLED="false"
 SANDBOX__TIMEOUT_SECONDS="30"
 SANDBOX__MEMORY_MB="256"
@@ -396,7 +396,7 @@ STORAGE__BUCKET="evolith"
 JWT__SECRET="${JWT_SECRET}"
 JWT__EXPIRATION="24h"
 
-# 执行沙箱（默认关闭；需要执行 sandbox 时确认 Docker 可用后改为 true）
+# legacy 执行沙箱（ADR-0005 / EVO-111 待删除；不要在新主线中继续依赖）
 SANDBOX__ENABLED="false"
 SANDBOX__TIMEOUT_SECONDS="30"
 SANDBOX__MEMORY_MB="256"

@@ -80,8 +80,8 @@ Evolith 当前将 skill / cli interface / mcp tool 的内容存储在 PostgreSQL
 - [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)
 - [ADR-0005 Deprecate Sandbox Runtime](ADR-0005-deprecate-sandbox-runtime.md)
 - [EVO-100 Epic: Git-Centric Platform Foundation](../backlog/active/EVO-100-git-centric-platform-foundation.md)
-- [EVO-101 git_repos 表](../backlog/active/EVO-101-git-repos-表.md)
+- [EVO-101 git_repos 表](../backlog/active/EVO-101-git-repos-schema.md)
 - [EVO-108 Indexer 服务](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)
-- [EVO-110 旧表双写适配](../backlog/active/EVO-110-旧表双写适配.md)
+- [EVO-110 旧表双写适配](../backlog/active/EVO-110-old-table-dual-write.md)
 - [SERVERLESS-RUNTIME.md](../proposals/SERVERLESS-RUNTIME.md)（历史参考）
 - [EVOLUTION.md](../../EVOLUTION.md)（2026-06-23 方向变更记录）

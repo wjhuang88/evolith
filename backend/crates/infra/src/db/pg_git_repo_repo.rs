@@ -3,8 +3,8 @@ use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
 use domain::git_repo::{GitRepo, NewGitRepo, RepoVisibility, UpdateGitRepo};
 use domain::repository::GitRepoRepository;
-use sqlx::Row;
 use sqlx::PgPool;
+use sqlx::Row;
 use uuid::Uuid;
 
 pub struct PgGitRepoRepository {
@@ -72,8 +72,8 @@ impl GitRepoRepository for PgGitRepoRepository {
         .bind(repo.default_branch.as_deref().unwrap_or("main"))
         .bind(&storage_path)
         .bind(visibility_str)
-        .bind(repo.auto_merge.unwrap_or(true))
-        .bind(repo.require_review.unwrap_or(false))
+        .bind(repo.auto_merge.unwrap_or(false))
+        .bind(repo.require_review.unwrap_or(true))
         .bind(now)
         .bind(now)
         .execute(&self.pool)
