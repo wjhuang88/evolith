@@ -29,6 +29,15 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-25 - git repo storage_path 必须单一来源（DB 列值与磁盘裸仓路径一致）
+
+- Trigger: EVO-103-A Navigator 审查发现 DB `storage_path` 列存 `repos/{tenant}/{name}` 而磁盘 bare repo 实际路径为 `{base_path}/{tenant_id}/{repo_id}.git`，两者不一致。
+- Symptom: DB 记录的 `storage_path` 与磁盘实际裸仓路径不同。后续 Smart HTTP（EVO-103-B）或 Context API（EVO-103-C）读取 `storage_path` 定位仓库时会指向错误路径，导致 clone/push/file-tree 等操作失败。
+- Root cause: Driver 实现 git 存储时未显式约束"DB 存储列必须与磁盘 init 路径一致"，create handler 中 DB 写入和 `gix::init_bare` 使用了不同的路径拼接逻辑。
+- Fix: 统一 SQLite 和 PostgreSQL 两处 create repository 的 `storage_path` 为 `{base_path}/{tenant_id}/{repo_id}.git`，与磁盘 `gix::init_bare` 路径完全一致。EVO-103-A 收口前修复并验证。
+- Prevention: Driver 实现 git 存储相关功能时，应在 prompt 约束中显式要求"DB storage_path 列值必须与磁盘 bare repo 实际路径一致，格式为 `{base_path}/{tenant_id}/{repo_id}.git`"。Navigator 审查时应将 storage_path 一致性作为必查项。
+- Promoted to rule/check: 写入本条目；后续 EVO-103-B/C 的 Driver prompt 应引用此经验。
+
 ### 2026-06-25 - Git-Centric 方向修复必须同时检查默认策略、状态源和环境假设
 
 - Trigger: 2026-06-25 方向变更全面评审发现：EVO-101/102 已完成但主表仍标 Proposed，repo 默认策略与“默认 require review”冲突，sandbox execute 仍在稳定 reference 中作为当前能力出现。

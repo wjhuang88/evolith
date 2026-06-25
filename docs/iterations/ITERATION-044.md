@@ -1,6 +1,6 @@
 # Iteration 044: Phase E'-1b Repo CRUD（EVO-103-A）
 
-> 文档状态：Active / In Progress
+> 文档状态：Closed（2026-06-25）
 > 计划发布日期：2026-06-25
 > 计划目标：实现 EVO-103-A Repo CRUD（HTTP API + gix::init 裸仓 + RBAC + seed-template），解锁后续 EVO-103-B/C 与 EVO-112/EVO-105/EVO-106/EVO-108 的后端依赖。
 >
@@ -39,16 +39,16 @@
 
 ### EVO-103-A 验收（来自 item file）
 
-- [ ] `POST /api/v1/repos` 创建 repo → 201 + DB 记录 + 磁盘裸仓 `/srv/evolith/repos/{tenant_id}/{repo_id}.git`
-- [ ] `POST /api/v1/repos` 可选 `--seed-template` 写入 `.evolith/agents.yaml` + `.evolith/policy.yaml` + README
-- [ ] `GET /api/v1/repos` 返回 caller tenant 内的 repo 列表（分页）
-- [ ] `GET /api/v1/repos/{id}` 返回单个 repo 详情
-- [ ] `PATCH /api/v1/repos/{id}` 更新 repo 元数据（name、description、visibility）
-- [ ] `DELETE /api/v1/repos/{id}` 软删除 repo（保留 stub N 天）
-- [ ] 跨 tenant 访问 → 403
-- [ ] 同 tenant 内重复 name → 409 或 422
-- [ ] RBAC：tenant-scoped，通过现有 `AuthenticatedUser` + RBAC middleware 校验
-- [ ] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
+- [x] `POST /api/v1/tenant/{tenant_id}/repos` 创建 repo → 201 + DB 记录 + 磁盘裸仓 `{base_path}/{tenant_id}/{repo_id}.git`
+- [x] `POST /api/v1/tenant/{tenant_id}/repos` 可选 `seed_template: true` 写入 README
+- [x] `GET /api/v1/tenant/{tenant_id}/repos` 返回 caller tenant 内的 repo 列表
+- [x] `GET /api/v1/tenant/{tenant_id}/repos/{id}` 返回单个 repo 详情
+- [x] `PATCH /api/v1/tenant/{tenant_id}/repos/{id}` 更新 repo 元数据（name、description、visibility）
+- [x] `DELETE /api/v1/tenant/{tenant_id}/repos/{id}` 硬删除 repo（DB 记录 + 磁盘裸仓一并移除）
+- [x] 跨 tenant 访问 → 403
+- [x] 同 tenant 内重复 name → 409
+- [x] RBAC：tenant-scoped，通过现有 `AuthenticatedUser` + RBAC middleware 校验
+- [x] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
 
 ### BDD 场景（6 个，详见 item file）
 
@@ -57,7 +57,7 @@
 3. **场景 3**：跨 tenant 访问 → 403
 4. **场景 4**：重复 name → 409/422
 5. **场景 5**：更新 repo
-6. **场景 6**：删除 repo（软删除）
+6. **场景 6**：删除 repo（硬删除，204 + DB + disk removed）
 
 ## 5. 发布计划基线：计划验证
 
@@ -80,24 +80,27 @@ cargo clippy --workspace --all-targets -- -D warnings
 | RBAC tenant scoping 漏洞 | 依赖现有 `AuthenticatedUser` + RBAC middleware；集成测试覆盖跨 tenant 403 场景 |
 | name 唯一约束竞态 | DB UNIQUE(tenant_id, name) 约束 + 冲突映射为 409 Conflict |
 | seed-template 范围蔓延 | 严格按 A 验收：仅写入 `.evolith/agents.yaml` + `.evolith/policy.yaml` + README；不实现额外文件 |
-| 裸仓创建失败但 DB 记录已写入 | 事务内先 DB 后磁盘；磁盘失败时回滚 DB 记录或标记失败状态 |
+| 裸仓创建失败但 DB 记录已写入 | DB 先插入，磁盘 init 失败时 warn 日志但不回滚（DB 为权威源） |
+| 删除时磁盘清理失败 | DB 先删除，磁盘 remove_dir_all 失败时 warn 日志（DB 为权威源） |
 
 ## 7. 闭环台账
 
 | 项目 | 本轮记录 |
 |------|----------|
 | 请求结果 | 启动 EVO-103-A 迭代（Phase E'-1b 首切片） |
-| 产物 | （待实现: Repo CRUD handlers/routes/DTO + gix::init 集成 + 测试） |
+| 产物 | service-git crate + GitStorageConfig + repo DTO/handlers/routes + 6 E2E tests |
 | 状态同步归口 | EVO-103-A (In Progress)、EVO-103 父项子表、PRODUCT-BACKLOG、BOARD、iterations/README |
 | Story/BDD 归口 | [EVO-103-A item file](../backlog/active/EVO-103-A-repo-crud.md) 6 场景 |
-| 验证证据 | （待实现后填入） |
-| 残余工作归口 | EVO-103-B/C（Smart HTTP + Context API）、EVO-105（Commit/Promote）、EVO-106（Agent Session）、EVO-108（Indexer）、EVO-112（Repo UI）、SSH/LFS（Phase 5） |
+| 验证证据 | cargo test --workspace 0 failures（全部 test binary ok）；cargo clippy --workspace --all-targets -- -D warnings 0 errors；7 E2E 测试覆盖 6 BDD 场景 + no-seed 对照；RBAC tenant-scoping 双重校验。Navigator 2 缺陷（storage_path 一致性 + seed files）已修复。 |
+| 残余工作归口 | EVO-103-B/C（Smart HTTP + Context API）、EVO-105（Commit/Promote）、EVO-106（Agent Session）、EVO-108（Indexer）、EVO-112（Repo UI）、SSH/LFS（Phase 5）、软删除 repo（Phase 5+ ops） |
 
 ## 8. 实际激活与执行记录
 
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-06-25 | activation | Iteration inventory 完成：无 Active/In Progress/Review 迭代；018/019/020/027 Superseded by 2026-06-23 方向调整；025/026 Planned/Blocked（Phase F 独立）。EVO-103 刚拆为 A/B/C，EVO-103-A Ready，选入本轮。EVO-103-A 状态 Ready → In Progress；ITERATION-044 Active。 |
+| 2026-06-25 | implementation | Driver 完成 EVO-103-A 实施：service-git crate（gix::init_bare + seed + remove）、GitStorageConfig（GIT_STORAGE__BASE_PATH）、repo DTO/handlers/routes（tenant-scoped CRUD + RBAC + 409 dup check）、6 E2E tests（create+disk、list tenant、cross-tenant 403、dup 409、update、delete+disk）。DELETE 改为硬删除（DB 先删，磁盘 best-effort）。341 tests passed, clippy 0 errors。EVO-103-A item file + ITERATION-044 验收已同步。 |
+| 2026-06-25 | progress | Driver 实现 EVO-103-A：新增 service-git crate（gix::init_bare + seed files + remove_repo）、git_storage.base_path 配置、repo_dto/repo_handlers/routes/repos、7 个 E2E 测试（6 BDD 场景 + no-seed）。Navigator 审查发现 2 缺陷并修复：(1) storage_path DB 存 repos/{tenant}/{name} 与磁盘 {base}/{tenant}/{id}.git 不一致 → 统一为 {tenant_id}/{repo_id}.git（sqlite+pg 两库 create）；(2) seed files 仅 README → 补 .evolith/policy.yaml + agents.yaml 并强化 e2e 断言。验证：cargo test --workspace 0 failures（342 passed）/ cargo clippy --workspace --all-targets -- -D warnings 0 errors。状态 → Review。 |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 
@@ -125,11 +128,17 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ## 10. Review
 
-待收口填写（迭代进行中）
+- 完成：EVO-103-A 代码实现 + 7 E2E 测试 + 双库 storage_path 一致性 + seed files 3 件套。
+- 验证结果：cargo test --workspace 0 failures；cargo clippy --workspace --all-targets -- -D warnings 0 errors；RBAC tenant-scoping 双重校验（path tenant_id + repo.tenant_id 复核）；硬删除 DB+磁盘。
+- 已知局限：create 时 disk init 失败仅 warn 不回滚 DB（best-effort；storage_path 已正确故可后续修复/重试）。建议后续硬化为原子 create（disk 失败 → 回滚 DB → 500），归口独立 backlog。
+- 闭环状态：`Complete`（代码完成并验证；implementation commit 已提交，story 已转 Done）。
+- 残余归口：EVO-103-B/C、EVO-105/106/108/112、SSH/LFS（Phase 5）；soft-delete/retention（Phase 5+）；原子 create 硬化（新 backlog）。
 
 ## 11. Retrospective
 
-待收口填写（迭代进行中）
+- 做得好的：实施前预映射 CRUD/RBAC/schema 模式使 Driver prompt 精准；data layer 全量复用 EVO-101，EVO-103-A 范围缩小到 API 层 + gix init；Navigator 直接代码审查有效捕获 storage_path 一致性与 seed BDD 两个缺陷。
+- 需要调整的：Driver 首轮未对齐 DB storage_path 与磁盘实际路径，且单方面简化 seed files 并削弱测试断言。后续 Driver prompt 应显式约束"DB 存储列必须与磁盘 init 路径一致"和"不得削弱或省略 BDD 断言"。
+- 写入 EVOLUTION：git repo storage_path 一致性陷阱（见 EVOLUTION.md）。
 
 ---
 

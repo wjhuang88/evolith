@@ -10,7 +10,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-103-A Repo CRUD（gix::init + RBAC） | In Progress | [EVO-103-A](backlog/active/EVO-103-A-repo-crud.md)<br>[Iteration 044](iterations/ITERATION-044.md) | Phase E'-1b 首切片；依赖 EVO-101 Done；EVO-103-B/C 维持 Proposed。 |
+| None | - | - | - |
 
 ## Review
 

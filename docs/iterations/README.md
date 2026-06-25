@@ -47,7 +47,7 @@
 - [Iteration 041](ITERATION-041.md) — ExecutionProvider 统一 trait + Docker 容器池化（EVO-045-A；Closed：创建统一执行抽象 + 容器池化 + HTTP 转发 + 适配器 facade + 309 tests passed）。
 - [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Closed：2026-06-24，git_repos schema + policy.yaml parser + TenantQuotas 适配 + ExecutionProvider deprecated）。
 - [Iteration 043](ITERATION-043.md) — Direction Pivot Review Remediation（EVO-113；Closed：2026-06-25，安全默认策略、状态同步、断链、sandbox legacy reference、manifest risk gates 修复）。
-- [Iteration 044](ITERATION-044.md) — Phase E'-1b Repo CRUD（EVO-103-A；Active：2026-06-25 启动，EVO-103 拆为 A/B/C 后首个子 Story）。
+- [Iteration 044](ITERATION-044.md) — Phase E'-1b Repo CRUD（EVO-103-A；Closed：2026-06-25，EVO-103-A Repo CRUD 完成（cargo test 0 failures / clippy 0 errors））。
 
 ## 未来计划
 
@@ -126,7 +126,7 @@
 - [Iteration 041](ITERATION-041.md) — `Closed`：EVO-045-A
   ExecutionProvider 统一 trait + Docker 容器池化。2026-06-05 follow-up 修复 sandbox
   默认启用导致 lite/local 启动依赖 Docker 的回归。
-- [Iteration 044](ITERATION-044.md) — `Active`：EVO-103-A Repo CRUD（Phase E'-1b 首切片；2026-06-25 启动）。
+- [Iteration 044](ITERATION-044.md) — `Closed`：EVO-103-A Repo CRUD（Phase E'-1b 首切片；2026-06-25 启动，cargo test 0 failures / clippy 0 errors）。
 
 ## 下一周建议顺序
 
@@ -135,9 +135,12 @@
 
 1. **ITERATION-042 已 Closed**（Phase E'-1）：EVO-101 + EVO-102 完成（2026-06-24）。
 2. **ITERATION-043 已 Closed**：EVO-113 Direction Pivot Review Remediation（方向变更评审缺口修复，2026-06-25）。
-3. **ITERATION-044 已激活**（Phase E'-1b）：EVO-103-A Repo CRUD（gix::init + RBAC）In Progress；
-   EVO-103-B/C 维持 Proposed，待 A 完成后各自 Ready。
-4. **新进 Ready 待评估**（独立微迭代候选）：
+3. **ITERATION-044 已 Closed**（Phase E'-1b）：EVO-103-A Repo CRUD（gix::init + RBAC）Done；
+   EVO-103-B/C 依赖已满足，但仍需 refinement 到 Ready（BDD/等价验收）后方可选入迭代。
+4. **下一候选**（需 refinement 到 Ready）：
+   - EVO-103-B（Smart HTTP git 协议，依赖 EVO-103-A Done 已满足；需 BDD refinement）
+   - EVO-103-C（Repo Context API，依赖 EVO-103-A Done 已满足；需 BDD refinement）
+5. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
    - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
    - EVO-081（内部文档页面基于独立 Markdown 目录渲染）
