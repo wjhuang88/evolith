@@ -15,7 +15,7 @@
 
 - 类型：feature / api（跨平台 auth 基础设施）
 - 优先级：P0
-- 状态：In Progress
+- 状态：Done
 - 父 Epic：EVO-103-B（祖父 EVO-103，曾祖 EVO-100）
 
 ## Problem Or Outcome
@@ -47,11 +47,11 @@
 
 ## Acceptance Criteria
 
-- [ ] `extract_token()` 或新增 extractor 支持 `Authorization: Basic base64(user:apikey)` 解析为 `CurrentUser`
-- [ ] `/repos/` 路径前缀注册为 auth-required（RBAC 不再将其视为 public）
-- [ ] git Smart HTTP POST 路径（`/repos/{id}/git-receive-pack`、`/repos/{id}/git-upload-pack`）添加到 CSRF `exempt_paths`
-- [ ] SPA 静态资源 fallback 对真正前端路由仍然有效（不被 `/repos/` 注册误拦截）
-- [ ] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
+- [x] `extract_token()` 或新增 extractor 支持 `Authorization: Basic base64(user:apikey)` 解析为 `CurrentUser`
+- [x] `/repos/` 路径前缀注册为 auth-required（RBAC 不再将其视为 public）
+- [x] git Smart HTTP POST 路径（`/repos/{id}/git-receive-pack`、`/repos/{id}/git-upload-pack`）添加到 CSRF `exempt_paths`
+- [x] SPA 静态资源 fallback 对真正前端路由仍然有效（不被 `/repos/` 注册误拦截）
+- [x] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
 
 ### BDD 验收场景
 

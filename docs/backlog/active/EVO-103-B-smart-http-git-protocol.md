@@ -24,7 +24,7 @@
 
 | 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
 |----------|----------|------|------|----------|
-| [EVO-103-B-1](EVO-103-B-1-git-client-auth-infra.md) | Git 客户端认证基础设施（Basic-Auth + RBAC 端点挂载 + CSRF 豁免） | In Progress | EVO-103-A（Done） | Iteration 045 |
+| [EVO-103-B-1](EVO-103-B-1-git-client-auth-infra.md) | Git 客户端认证基础设施（Basic-Auth + RBAC 端点挂载 + CSRF 豁免） | Done | EVO-103-A（Done） | Iteration 045 |
 | [EVO-103-B-2](EVO-103-B-2-smart-http-endpoints.md) | Smart HTTP 端点实现（git subprocess 流式处理 3 个端点） | Proposed | EVO-103-B-1（硬）, EVO-103-A（Done） | - |
 
 ## Problem Or Outcome

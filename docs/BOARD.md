@@ -10,7 +10,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-103-B-1 Git Client Auth Infra（Basic-Auth + RBAC + CSRF） | In Progress | [EVO-103-B-1](backlog/active/EVO-103-B-1-git-client-auth-infra.md)<br>[Iteration 045](iterations/ITERATION-045.md) | Phase E'-1b auth 基础设施；依赖 EVO-103-A Done；为 EVO-103-B-2 Smart HTTP 端点解锁 git 客户端鉴权。 |
+| None | - | - | - |
 
 ## Review
 

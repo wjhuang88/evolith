@@ -29,6 +29,15 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-25 - actix-web 全局中间件 async 预处理 soundness 陷阱
+
+- Trigger: EVO-103-B-1 实现全局 RBAC 中间件，需要在调用内部 service 前做 async DB 查找（API-key 解析）。
+- Symptom: 第一次实现用 `UnsafeCell<S>` + `unsafe { &mut *self.service.get() }.call(req)`——测试通过但存在并发 UB（共享中间件实例上的重叠 `&mut`，clippy 不报）。第二次用 `tokio::sync::Mutex<S>` 锁住 `srv.call(req).await`——sound 但把整个服务器串行化（全局中间件实例被所有请求共享，持有锁跨越整个下游调用 = 一次只能处理一个请求）。
+- Root cause: `Transform/Service` 的 `let fut = self.service.call(req)` 模式只支持 sync 预处理；`&mut self.service` 在 `.await` 后不可用（self 被 borrow 跨越 await point）。UnsafeCell 绕过 borrow checker 但引入 UB；Mutex 绕过 UB 但引入串行化。
+- Fix: 使用 `actix_web::middleware::from_fn` + 签名 `async fn rbac_middleware<B>(req: ServiceRequest, next: Next<B>) -> Result<ServiceResponse<B>, Error>`。async 查找在 `next.call(req)` 之前执行，`next: Next<B>` 在 `.await` 后仍可用（不在 self 上），无锁无 unsafe，全并发。配置（JWT secret、api_key_repo）从 `app_data::<web::Data<AppState>>()` 读取而非闭包捕获。
+- Prevention: Driver 实现 actix 中间件且需在调用内部 service 前做 async 预处理时，应在 prompt 中明确要求 `from_fn` + `Next<B>` 签名。Navigator 审查时应检查：(1) 无 `UnsafeCell` + `unsafe` 访问内部 service；(2) 无 `Mutex` 锁住整个 `call(req).await`；(3) 配置从 `app_data` 读取而非闭包捕获。
+- Promoted to rule/check: 写入本条目；ITERATION-045 Retrospective 同步。
+
 ### 2026-06-25 - git repo storage_path 必须单一来源（DB 列值与磁盘裸仓路径一致）
 
 - Trigger: EVO-103-A Navigator 审查发现 DB `storage_path` 列存 `repos/{tenant}/{name}` 而磁盘 bare repo 实际路径为 `{base_path}/{tenant_id}/{repo_id}.git`，两者不一致。

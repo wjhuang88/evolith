@@ -48,7 +48,7 @@
 - [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Closed：2026-06-24，git_repos schema + policy.yaml parser + TenantQuotas 适配 + ExecutionProvider deprecated）。
 - [Iteration 043](ITERATION-043.md) — Direction Pivot Review Remediation（EVO-113；Closed：2026-06-25，安全默认策略、状态同步、断链、sandbox legacy reference、manifest risk gates 修复）。
 - [Iteration 044](ITERATION-044.md) — Phase E'-1b Repo CRUD（EVO-103-A；Closed：2026-06-25，EVO-103-A Repo CRUD 完成（cargo test 0 failures / clippy 0 errors））。
-- [Iteration 045](ITERATION-045.md) — Phase E'-1b Git Client Auth Infra（EVO-103-B-1；Active：2026-06-25 启动，Basic-Auth + /repos/ RBAC + CSRF 豁免，解锁 git 客户端鉴权）。
+- [Iteration 045](ITERATION-045.md) — Phase E'-1b Git Client Auth Infra（EVO-103-B-1；Closed：2026-06-25，EVO-103-B-1 完成（cargo test 0 failures / clippy 0 errors；from_fn + Next<B> 中间件））。
 
 ## 未来计划
 
@@ -128,7 +128,7 @@
   ExecutionProvider 统一 trait + Docker 容器池化。2026-06-05 follow-up 修复 sandbox
   默认启用导致 lite/local 启动依赖 Docker 的回归。
 - [Iteration 044](ITERATION-044.md) — `Closed`：EVO-103-A Repo CRUD（Phase E'-1b 首切片；2026-06-25 启动，cargo test 0 failures / clippy 0 errors）。
-- [Iteration 045](ITERATION-045.md) — `Active`：EVO-103-B-1 Git Client Auth Infra（Phase E'-1b 第二切片；2026-06-25 启动，Basic-Auth + /repos/ RBAC + CSRF 豁免）。
+- [Iteration 045](ITERATION-045.md) — `Closed`：EVO-103-B-1 Git Client Auth Infra（Phase E'-1b 第二切片；2026-06-25，cargo test 0 failures / clippy 0 errors；from_fn + Next<B> 中间件）。
 
 ## 下一周建议顺序
 
@@ -138,9 +138,9 @@
 1. **ITERATION-042 已 Closed**（Phase E'-1）：EVO-101 + EVO-102 完成（2026-06-24）。
 2. **ITERATION-043 已 Closed**：EVO-113 Direction Pivot Review Remediation（方向变更评审缺口修复，2026-06-25）。
 3. **ITERATION-044 已 Closed**（Phase E'-1b）：EVO-103-A Repo CRUD（gix::init + RBAC）Done。
-4. **ITERATION-045 已激活**（Phase E'-1b）：EVO-103-B-1 Git Client Auth Infra（Basic-Auth + /repos/ RBAC + CSRF 豁免）。
+4. **ITERATION-045 已 Closed**（Phase E'-1b）：EVO-103-B-1 Git Client Auth Infra（Basic-Auth + /repos/ RBAC + CSRF 豁免）Done。
 5. **下一候选**（需 refinement 到 Ready）：
-   - EVO-103-B-2（Smart HTTP 端点，依赖 B-1 完成）
+   - EVO-103-B-2（Smart HTTP 端点，依赖 B-1 已满足；需 Docker 加 git + subprocess）
    - EVO-103-C（Repo Context API，依赖 EVO-103-A Done 已满足；需 BDD refinement）
 6. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）

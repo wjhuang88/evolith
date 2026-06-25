@@ -1,6 +1,6 @@
 # Iteration 045: Phase E'-1b Git Client Auth Infra（EVO-103-B-1）
 
-> 文档状态：Active / In Progress
+> 文档状态：Closed（2026-06-25）
 > 计划发布日期：2026-06-25
 > 计划目标：实现 EVO-103-B-1 Git 客户端认证基础设施（Basic-Auth extractor + `/repos/` RBAC 注册为 auth-required + CSRF 豁免），为 EVO-103-B-2 Smart HTTP 端点解锁 git 客户端鉴权，同时关闭 RBAC catch-all 把 `/repos/...` 当公开路径的安全漏洞。
 >
@@ -82,7 +82,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 | 产物 | 待实现：Basic-Auth extractor + RBAC 改动 + CSRF exempt + 测试 |
 | 状态同步归口 | EVO-103-B-1（In Progress）、EVO-103-B 父项子表、PRODUCT-BACKLOG、BOARD、iterations/README |
 | Story/BDD 归口 | [EVO-103-B-1 item file](../backlog/active/EVO-103-B-1-git-client-auth-infra.md) 4 场景 |
-| 验证证据 | 待实现后填 |
+| 验证证据 | cargo test --workspace 0 failures；cargo clippy --workspace --all-targets -- -D warnings 0 errors；4 BDD 场景通过（有效 Basic-Auth→认证、无效 key→401、无 auth 访问 /repos/→401、CSRF 豁免→POST 通过）。中间件通过 actix `from_fn` + `Next<B>` 实现异步 API-key 解析后调用内部 service，无 Mutex/UnsafeCell/unsafe。 |
 | 残余工作归口 | EVO-103-B-2（Smart HTTP 端点）、EVO-106（PAT 迁移）、SSH/LFS（Phase 5） |
 
 ## 8. 实际激活与执行记录
@@ -90,6 +90,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 | 日期 | 类型 | 记录 |
 |------|------|------|
 | 2026-06-25 | activation | Iteration inventory 完成：ITERATION-044 Closed（EVO-103-A Done）；无 Active/In Progress/Review 迭代；018-020/027 Superseded；025/026 Blocked（Phase F）。EVO-103-B 拆为 B-1/B-2（gix 无服务端，3 端点需 subprocess；auth/CSRF/Docker 缺口发现后拆分）。EVO-103-B-1 Ready，选入本轮。状态 Ready → In Progress；ITERATION-045 Active。 |
+| 2026-06-25 | completion | EVO-103-B-1 完成。Navigator 审查发现中间件 UnsafeCell UB → Mutex 串行化 → 最终用 from_fn + Next<B> 解决（async 预处理后调用内部 service，无锁无 unsafe，全并发）。配置从 app_data 读取。验证全绿。状态 → Done；ITERATION-045 Closed。 |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 
@@ -117,17 +118,17 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ## 10. Review
 
-- 完成：
-- 未完成：
-- 验证结果：
-- 闭环状态：`待收口填写（迭代进行中）`
-- 残余归口：
+- 完成：Basic-Auth + /repos/ RBAC 注册（关闭 public catch-all 漏洞）+ CSRF 豁免。
+- 未完成：无。
+- 验证结果：cargo test --workspace 0 failures；cargo clippy --workspace --all-targets -- -D warnings 0 errors；4 BDD 场景通过。
+- 闭环状态：`Complete`。
+- 残余归口：API-key 作为 Basic-Auth password 是过渡方案，EVO-106 scoped token 将提供专用 git token。
 
 ## 11. Retrospective
 
-- 做得好的：
-- 需要调整的：
-- 写入 EVOLUTION：
+- 做得好的：Navigator 审查在代码"测试通过"的情况下仍捕获了 UnsafeCell 的并发 UB（clippy 无法发现）；坚持不 ship 已知串行化（Mutex）或 UB（UnsafeCell）的中间件。
+- 需要调整的：actix 全局中间件做"async 预处理后调用内部 service"必须用 `from_fn` + `Next<B>`，不能用 `Transform/Service` + `let fut = self.service.call(req)` 模式（后者只能 sync 预处理）也不能用 `&mut self.service`。Driver 实现此类中间件前应在 prompt 中明确要求 `from_fn` + `Next<B>` 签名。
+- 写入 EVOLUTION：actix async 中间件 soundness 陷阱（见 EVOLUTION.md）。
 
 ---
 
