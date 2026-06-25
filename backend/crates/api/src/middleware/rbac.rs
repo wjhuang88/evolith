@@ -3,46 +3,101 @@
 //! Provides role-based access control for tenant resources.
 //! Role hierarchy: owner > admin > member
 
-use actix_web::{dev::ServiceRequest, http::header, Error, HttpMessage};
+use actix_web::{
+    dev::{ServiceRequest, ServiceResponse},
+    http::header,
+    middleware::Next,
+    web, Error, HttpMessage,
+};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use std::future::{ready, Ready};
+use std::sync::Arc;
 
+use domain::api_key::{ApiKey, ApiKeyStatus};
+use domain::repository::ApiKeyRepository;
 use domain::user::TenantRole;
 use service_auth::jwt::Claims;
+use sha2::{Digest, Sha256};
 
 /// JWT cookie name
 pub const JWT_COOKIE_NAME: &str = "evolith_token";
 
-/// JWT token extractor and validator
-pub fn extract_token(req: &ServiceRequest) -> Option<String> {
-    // Try Authorization header first
+/// Extract token from request (Bearer, Basic, X-API-Key, or cookie).
+/// For Basic-Auth, returns Some(("basic", api_key)) to signal API key resolution needed.
+/// For other methods, returns Some(("token", token_string)).
+pub fn extract_token(req: &ServiceRequest) -> Option<(&'static str, String)> {
     if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth_header.to_str() {
             if let Some(stripped) = auth_str.strip_prefix("Bearer ") {
-                return Some(stripped.to_string());
+                return Some(("token", stripped.to_string()));
+            }
+            if let Some(encoded) = auth_str.strip_prefix("Basic ") {
+                if let Ok(decoded) = base64_decode(encoded.trim()) {
+                    if let Some(colon_pos) = decoded.find(':') {
+                        let api_key = decoded[colon_pos + 1..].to_string();
+                        return Some(("basic", api_key));
+                    }
+                }
             }
         }
     }
 
-    // Try X-API-Key header for API access
     if let Some(api_key) = req.headers().get("X-API-Key") {
         if let Ok(key_str) = api_key.to_str() {
-            return Some(key_str.to_string());
+            return Some(("basic", key_str.to_string()));
         }
     }
 
-    // Try httpOnly cookie
     if let Some(cookie) = req.cookie(JWT_COOKIE_NAME) {
-        return Some(cookie.value().to_string());
+        return Some(("token", cookie.value().to_string()));
     }
 
     None
 }
 
-/// Extract and validate JWT claims from request
+fn base64_decode(input: &str) -> Result<String, ()> {
+    use base64::Engine;
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(input)
+        .map_err(|_| ())?;
+    String::from_utf8(decoded).map_err(|_| ())
+}
+
+pub async fn resolve_api_key(key: &str, repo: &dyn ApiKeyRepository) -> Result<ApiKey, RbacError> {
+    let parts: Vec<&str> = key.split('_').collect();
+    if parts.len() < 3 || parts[0] != "evo" || parts[1] != "sk" {
+        return Err(RbacError::Unauthorized);
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(key.as_bytes());
+    let key_hash = hex::encode(hasher.finalize());
+
+    let api_key = repo
+        .find_by_key(&key_hash)
+        .await
+        .map_err(|_| RbacError::Unauthorized)?
+        .ok_or(RbacError::Unauthorized)?;
+
+    if api_key.status != ApiKeyStatus::Active {
+        return Err(RbacError::Unauthorized);
+    }
+
+    if let Some(expires_at) = api_key.expires_at {
+        use chrono::Utc;
+        if expires_at < Utc::now() {
+            return Err(RbacError::Unauthorized);
+        }
+    }
+
+    Ok(api_key)
+}
+
 pub fn extract_claims(req: &ServiceRequest, secret: &str) -> Option<Claims> {
-    let token = extract_token(req)?;
+    let (kind, token) = extract_token(req)?;
+    if kind != "token" {
+        return None;
+    }
 
     let validation = Validation::new(Algorithm::HS256);
     let token_data = decode::<Claims>(
@@ -55,7 +110,6 @@ pub fn extract_claims(req: &ServiceRequest, secret: &str) -> Option<Claims> {
     Some(token_data.claims)
 }
 
-/// Current user context extracted from JWT
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CurrentUser {
     pub user_id: uuid::Uuid,
@@ -65,36 +119,29 @@ pub struct CurrentUser {
 }
 
 impl CurrentUser {
-    /// Check if user has required role or higher
-    /// Role hierarchy: owner > admin > member
     pub fn has_role(&self, required: TenantRole) -> bool {
         let role_level = match self.tenant_role {
             TenantRole::Owner => 3,
             TenantRole::Admin => 2,
             TenantRole::Member => 1,
         };
-
         let required_level = match required {
             TenantRole::Owner => 3,
             TenantRole::Admin => 2,
             TenantRole::Member => 1,
         };
-
         role_level >= required_level
     }
 
-    /// Check if user is owner
     pub fn is_owner(&self) -> bool {
         matches!(self.tenant_role, TenantRole::Owner)
     }
 
-    /// Check if user is admin or higher
     pub fn is_admin(&self) -> bool {
         matches!(self.tenant_role, TenantRole::Owner | TenantRole::Admin)
     }
 }
 
-/// RBAC error types
 #[derive(Debug, thiserror::Error)]
 pub enum RbacError {
     #[error("Authentication required")]
@@ -124,7 +171,6 @@ impl actix_web::ResponseError for RbacError {
     }
 }
 
-/// Extension trait to get current user from request
 pub trait CurrentUserExt {
     fn get_current_user(&self) -> Option<CurrentUser>;
     fn require_auth(&self) -> Result<CurrentUser, RbacError>;
@@ -140,32 +186,26 @@ impl CurrentUserExt for actix_web::HttpRequest {
     }
 }
 
-/// Check if user has access to tenant resource
 pub fn check_tenant_access(
     user: &CurrentUser,
     tenant_id: uuid::Uuid,
     required_role: TenantRole,
 ) -> Result<(), RbacError> {
-    // Check tenant match
     if user.tenant_id != tenant_id {
         return Err(RbacError::TenantMismatch);
     }
-
-    // Check role
     if !user.has_role(required_role) {
         return Err(RbacError::Forbidden);
     }
-
     Ok(())
 }
 
-/// RBAC middleware configuration
 #[derive(Clone)]
 pub struct RbacMiddleware {
     pub jwt_secret: String,
     pub required_role: Option<TenantRole>,
-    /// Paths that don't require authentication (e.g., "/health", "/api/v1/auth")
     pub public_paths: Vec<String>,
+    pub api_key_repo: Option<Arc<dyn ApiKeyRepository>>,
 }
 
 impl RbacMiddleware {
@@ -184,7 +224,13 @@ impl RbacMiddleware {
                 "/api/v1/auth/verify-email".to_string(),
                 "/api/v1/invitations/accept".to_string(),
             ],
+            api_key_repo: None,
         }
+    }
+
+    pub fn with_api_key_repo(mut self, repo: Arc<dyn ApiKeyRepository>) -> Self {
+        self.api_key_repo = Some(repo);
+        self
     }
 
     pub fn require_role(mut self, role: TenantRole) -> Self {
@@ -192,94 +238,75 @@ impl RbacMiddleware {
         self
     }
 
-    /// Add a public path that doesn't require authentication
     pub fn add_public_path(mut self, path: &str) -> Self {
         self.public_paths.push(path.to_string());
         self
     }
 
-    fn is_public_path(path: &str, public_paths: &[String]) -> bool {
+    pub fn is_public_path(path: &str, public_paths: &[String]) -> bool {
         public_paths.iter().any(|p| path.starts_with(p))
             || (path.starts_with("/api/v1/tenant/") && path.ends_with("/members/join"))
-            || (!path.starts_with("/api/") && !path.starts_with("/mcp"))
+            || (!path.starts_with("/api/")
+                && !path.starts_with("/mcp")
+                && !path.starts_with("/repos/"))
     }
 }
 
-impl<S> actix_web::dev::Transform<S, actix_web::dev::ServiceRequest> for RbacMiddleware
-where
-    S: actix_web::dev::Service<
-        actix_web::dev::ServiceRequest,
-        Response = actix_web::dev::ServiceResponse<actix_web::body::BoxBody>,
-        Error = Error,
-    >,
-    S::Future: 'static,
-{
-    type Response = actix_web::dev::ServiceResponse<actix_web::body::BoxBody>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = RbacMiddlewareService<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+pub fn default_public_paths() -> Vec<String> {
+    vec![
+        "/health".to_string(),
+        "/mcp".to_string(),
+        "/api/v1/auth/register".to_string(),
+        "/api/v1/auth/login".to_string(),
+        "/api/v1/auth/forgot-password".to_string(),
+        "/api/v1/auth/reset-password".to_string(),
+        "/api/v1/auth/send-verify".to_string(),
+        "/api/v1/auth/verify-email".to_string(),
+        "/api/v1/invitations/accept".to_string(),
+    ]
+}
 
-    fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(RbacMiddlewareService {
-            service,
-            jwt_secret: self.jwt_secret.clone(),
-            required_role: self.required_role.clone(),
-            public_paths: self.public_paths.clone(),
-        }))
+/// Global RBAC auth middleware.
+///
+/// `from_fn` passes the inner service as `next: Next<B>` (in scope across `.await`), so the
+/// async API-key lookup can run before `next.call(req)` with NO `Mutex` and NO `unsafe`.
+/// Do not regress to `UnsafeCell` (UB under concurrency) or `Mutex` (serializes the server).
+pub async fn rbac_middleware<B>(
+    req: ServiceRequest,
+    next: Next<B>,
+) -> Result<ServiceResponse<B>, Error> {
+    let path = req.path().to_string();
+    if RbacMiddleware::is_public_path(&path, &default_public_paths()) {
+        return next.call(req).await;
     }
-}
 
-pub struct RbacMiddlewareService<S> {
-    service: S,
-    jwt_secret: String,
-    required_role: Option<TenantRole>,
-    public_paths: Vec<String>,
-}
+    let (jwt_secret, api_key_repo) = match req.app_data::<web::Data<crate::state::AppState>>() {
+        Some(state) => (state.config.jwt.secret.clone(), state.api_key_repo.clone()),
+        None => return Err(Error::from(RbacError::Unauthorized)),
+    };
 
-impl<S> actix_web::dev::Service<actix_web::dev::ServiceRequest> for RbacMiddlewareService<S>
-where
-    S: actix_web::dev::Service<
-        actix_web::dev::ServiceRequest,
-        Response = actix_web::dev::ServiceResponse<actix_web::body::BoxBody>,
-        Error = Error,
-    >,
-    S::Future: 'static,
-{
-    type Response = actix_web::dev::ServiceResponse<actix_web::body::BoxBody>;
-    type Error = Error;
-    type Future =
-        std::pin::Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>>>>;
+    let (kind, token) = match extract_token(&req) {
+        Some(t) => t,
+        None => return Err(Error::from(RbacError::Unauthorized)),
+    };
 
-    actix_web::dev::forward_ready!(service);
-
-    fn call(&self, req: actix_web::dev::ServiceRequest) -> Self::Future {
-        let jwt_secret = self.jwt_secret.clone();
-        let required_role = self.required_role.clone();
-        let public_paths = self.public_paths.clone();
-
-        // Check if the request path is public (doesn't require authentication)
-        let path = req.path();
-        let is_public = RbacMiddleware::is_public_path(path, &public_paths);
-
-        if is_public {
-            // Public path - allow without authentication
-            let fut = self.service.call(req);
-            return Box::pin(fut);
-        }
-
-        // Extract claims from token
-        let current_user = extract_claims(&req, &jwt_secret).and_then(|claims| {
+    if kind == "token" {
+        let validation = Validation::new(Algorithm::HS256);
+        let current_user = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(jwt_secret.as_bytes()),
+            &validation,
+        )
+        .ok()
+        .and_then(|token_data| {
+            let claims = token_data.claims;
             let tenant_role = match claims.tenant_role.as_str() {
                 "owner" => TenantRole::Owner,
                 "admin" => TenantRole::Admin,
                 _ => TenantRole::Member,
             };
-
-            // Parse UUIDs from string
             let user_id = uuid::Uuid::parse_str(&claims.sub).ok()?;
             let tenant_id = uuid::Uuid::parse_str(&claims.tenant_id).ok()?;
-
             Some(CurrentUser {
                 user_id,
                 role: claims.role,
@@ -288,27 +315,24 @@ where
             })
         });
 
-        // Check if authentication is required
         if let Some(user) = current_user {
-            // Check role requirement
-            if let Some(required) = required_role {
-                if !user.has_role(required) {
-                    return Box::pin(
-                        async move { Err(actix_web::Error::from(RbacError::Forbidden)) },
-                    );
-                }
-            }
-
-            // Insert user context into request extensions
             req.extensions_mut().insert(user);
-
-            let fut = self.service.call(req);
-            Box::pin(fut)
-        } else {
-            // No valid token found
-            Box::pin(async move { Err(actix_web::Error::from(RbacError::Unauthorized)) })
+            return next.call(req).await;
         }
+        return Err(Error::from(RbacError::Unauthorized));
     }
+
+    let api_key = resolve_api_key(&token, &*api_key_repo)
+        .await
+        .map_err(Error::from)?;
+    let user = CurrentUser {
+        user_id: api_key.user_id,
+        role: "api_key".to_string(),
+        tenant_id: api_key.tenant_id,
+        tenant_role: TenantRole::Member,
+    };
+    req.extensions_mut().insert(user);
+    next.call(req).await
 }
 
 #[cfg(test)]
@@ -323,14 +347,12 @@ mod tests {
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Owner,
         };
-
         let admin = CurrentUser {
             user_id: uuid::Uuid::new_v4(),
             role: "user".to_string(),
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Admin,
         };
-
         let member = CurrentUser {
             user_id: uuid::Uuid::new_v4(),
             role: "user".to_string(),
@@ -338,17 +360,12 @@ mod tests {
             tenant_role: TenantRole::Member,
         };
 
-        // Owner can do everything
         assert!(owner.has_role(TenantRole::Owner));
         assert!(owner.has_role(TenantRole::Admin));
         assert!(owner.has_role(TenantRole::Member));
-
-        // Admin can do admin and member things
         assert!(!admin.has_role(TenantRole::Owner));
         assert!(admin.has_role(TenantRole::Admin));
         assert!(admin.has_role(TenantRole::Member));
-
-        // Member can only do member things
         assert!(!member.has_role(TenantRole::Owner));
         assert!(!member.has_role(TenantRole::Admin));
         assert!(member.has_role(TenantRole::Member));
@@ -362,7 +379,6 @@ mod tests {
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Owner,
         };
-
         assert!(user.is_owner());
         assert!(user.is_admin());
     }
@@ -375,7 +391,6 @@ mod tests {
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Admin,
         };
-
         assert!(!user.is_owner());
         assert!(user.is_admin());
     }
@@ -388,7 +403,6 @@ mod tests {
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Member,
         };
-
         assert!(!user.is_owner());
         assert!(!user.is_admin());
     }
@@ -401,14 +415,8 @@ mod tests {
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Owner,
         };
-
-        // Owner can access owner-level resources
-        let result = check_tenant_access(&user, user.tenant_id, TenantRole::Owner);
-        assert!(result.is_ok());
-
-        // Owner can access admin-level resources
-        let result = check_tenant_access(&user, user.tenant_id, TenantRole::Admin);
-        assert!(result.is_ok());
+        assert!(check_tenant_access(&user, user.tenant_id, TenantRole::Owner).is_ok());
+        assert!(check_tenant_access(&user, user.tenant_id, TenantRole::Admin).is_ok());
     }
 
     #[test]
@@ -419,10 +427,8 @@ mod tests {
             tenant_id: uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
             tenant_role: TenantRole::Owner,
         };
-
         let other_tenant = uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap();
-        let result = check_tenant_access(&user, other_tenant, TenantRole::Member);
-        assert!(result.is_err());
+        assert!(check_tenant_access(&user, other_tenant, TenantRole::Member).is_err());
     }
 
     #[test]
@@ -433,20 +439,13 @@ mod tests {
             tenant_id: uuid::Uuid::new_v4(),
             tenant_role: TenantRole::Member,
         };
-
-        // Member cannot access owner-level resources
-        let result = check_tenant_access(&user, user.tenant_id, TenantRole::Owner);
-        assert!(result.is_err());
-
-        // Member cannot access admin-level resources
-        let result = check_tenant_access(&user, user.tenant_id, TenantRole::Admin);
-        assert!(result.is_err());
+        assert!(check_tenant_access(&user, user.tenant_id, TenantRole::Owner).is_err());
+        assert!(check_tenant_access(&user, user.tenant_id, TenantRole::Admin).is_err());
     }
 
     #[test]
     fn test_public_invitation_accept_paths() {
         let middleware = RbacMiddleware::new("test-secret".to_string());
-
         assert!(RbacMiddleware::is_public_path(
             "/api/v1/invitations/accept",
             &middleware.public_paths
@@ -459,5 +458,100 @@ mod tests {
             "/api/v1/tenant/11111111-1111-1111-1111-111111111111/members",
             &middleware.public_paths
         ));
+    }
+
+    #[test]
+    fn test_repos_paths_require_auth() {
+        let middleware = RbacMiddleware::new("test-secret".to_string());
+        assert!(!RbacMiddleware::is_public_path(
+            "/repos/abc123/info/refs",
+            &middleware.public_paths
+        ));
+        assert!(!RbacMiddleware::is_public_path(
+            "/repos/abc123/git-upload-pack",
+            &middleware.public_paths
+        ));
+        assert!(!RbacMiddleware::is_public_path(
+            "/repos/abc123/git-receive-pack",
+            &middleware.public_paths
+        ));
+        assert!(!RbacMiddleware::is_public_path(
+            "/repos/abc123",
+            &middleware.public_paths
+        ));
+    }
+
+    #[test]
+    fn test_spa_routes_still_public() {
+        let middleware = RbacMiddleware::new("test-secret".to_string());
+        assert!(RbacMiddleware::is_public_path(
+            "/login",
+            &middleware.public_paths
+        ));
+        assert!(RbacMiddleware::is_public_path(
+            "/dashboard",
+            &middleware.public_paths
+        ));
+        assert!(RbacMiddleware::is_public_path(
+            "/assets/main.js",
+            &middleware.public_paths
+        ));
+        assert!(RbacMiddleware::is_public_path(
+            "/profile",
+            &middleware.public_paths
+        ));
+    }
+
+    #[test]
+    fn test_base64_decode_valid() {
+        let result = base64_decode("dXNlcjpldm9fc2tfdGVzdA==");
+        assert_eq!(result.ok().as_deref(), Some("user:evo_sk_test"));
+    }
+
+    #[test]
+    fn test_base64_decode_invalid() {
+        assert!(base64_decode("!!!not-base64!!!").is_err());
+    }
+
+    #[actix_rt::test]
+    async fn test_extract_token_bearer() {
+        let req = actix_web::test::TestRequest::default()
+            .insert_header(("Authorization", "Bearer my-jwt-token"))
+            .to_srv_request();
+        let result = extract_token(&req);
+        assert!(result.is_some());
+        let (kind, token) = result.unwrap();
+        assert_eq!(kind, "token");
+        assert_eq!(token, "my-jwt-token");
+    }
+
+    #[actix_rt::test]
+    async fn test_extract_token_basic() {
+        let req = actix_web::test::TestRequest::default()
+            .insert_header(("Authorization", "Basic dXNlcjpldm9fc2tfdGVzdA=="))
+            .to_srv_request();
+        let result = extract_token(&req);
+        assert!(result.is_some());
+        let (kind, token) = result.unwrap();
+        assert_eq!(kind, "basic");
+        assert_eq!(token, "evo_sk_test");
+    }
+
+    #[actix_rt::test]
+    async fn test_extract_token_x_api_key() {
+        let req = actix_web::test::TestRequest::default()
+            .insert_header(("X-API-Key", "evo_sk_mykey123"))
+            .to_srv_request();
+        let result = extract_token(&req);
+        assert!(result.is_some());
+        let (kind, token) = result.unwrap();
+        assert_eq!(kind, "basic");
+        assert_eq!(token, "evo_sk_mykey123");
+    }
+
+    #[actix_rt::test]
+    async fn test_extract_token_none() {
+        let req = actix_web::test::TestRequest::default().to_srv_request();
+        assert!(extract_token(&req).is_none());
     }
 }

@@ -76,6 +76,12 @@ impl CsrfMiddleware {
     fn is_exempt_path(path: &str, exempt_paths: &[String]) -> bool {
         exempt_paths.iter().any(|p| path.starts_with(p))
             || (path.starts_with("/api/v1/tenant/") && path.ends_with("/members/join"))
+            || Self::is_git_smart_http_path(path)
+    }
+
+    fn is_git_smart_http_path(path: &str) -> bool {
+        path.starts_with("/repos/")
+            && (path.ends_with("/git-upload-pack") || path.ends_with("/git-receive-pack"))
     }
 }
 
@@ -223,6 +229,32 @@ mod tests {
         assert!(!CsrfMiddleware::is_exempt_path(
             "/api/v1/tenant/11111111-1111-1111-1111-111111111111/members",
             &middleware.exempt_paths
+        ));
+    }
+
+    #[test]
+    fn test_git_smart_http_paths_exempt() {
+        let middleware = CsrfMiddleware::new();
+        assert!(CsrfMiddleware::is_git_smart_http_path(
+            "/repos/abc123/git-upload-pack"
+        ));
+        assert!(CsrfMiddleware::is_git_smart_http_path(
+            "/repos/abc123/git-receive-pack"
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/repos/abc123/git-upload-pack",
+            &middleware.exempt_paths
+        ));
+        assert!(CsrfMiddleware::is_exempt_path(
+            "/repos/abc123/git-receive-pack",
+            &middleware.exempt_paths
+        ));
+        assert!(!CsrfMiddleware::is_git_smart_http_path(
+            "/repos/abc123/info/refs"
+        ));
+        assert!(!CsrfMiddleware::is_git_smart_http_path("/repos/abc123"));
+        assert!(!CsrfMiddleware::is_git_smart_http_path(
+            "/api/v1/repos/abc123/git-upload-pack"
         ));
     }
 }

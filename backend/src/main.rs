@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_governor::Governor;
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{middleware, middleware::from_fn, web, App, HttpServer};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -14,7 +14,6 @@ mod frontend;
 
 use api::middleware::csrf::CsrfMiddleware;
 use api::middleware::rate_limit::create_unauthenticated_limiter;
-use api::middleware::rbac::RbacMiddleware;
 use api::middleware::request_id::RequestIdMiddleware;
 use api::middleware::security_headers::SecurityHeadersMiddleware;
 use api::state::AppState;
@@ -194,7 +193,6 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
     let host = config.server.host.clone();
     let port = config.server.port;
     let is_dev = config.is_development();
-    let jwt_secret = config.jwt.secret.clone();
     let rate_limit_config = config.rate_limit.clone();
 
     HttpServer::new(move || {
@@ -203,7 +201,7 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
         App::new()
             .app_data(app_state.clone())
             .wrap(CsrfMiddleware::new())
-            .wrap(RbacMiddleware::new(jwt_secret.clone()))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .wrap(Governor::new(&governor_config))
             .wrap(RequestIdMiddleware::new())
             .wrap(middleware::Logger::default())

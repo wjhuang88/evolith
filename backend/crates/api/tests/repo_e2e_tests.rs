@@ -1,13 +1,12 @@
 #![allow(clippy::unwrap_used, dead_code)]
 
-use actix_web::{test, web, App};
+use actix_web::{middleware::from_fn, test, web, App};
 use serde::Deserialize;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use tempfile::TempDir;
 
-use api::middleware::rbac::RbacMiddleware;
 use api::routes;
 use api::state::AppState;
 use common::execution::{CompositeProvider, ExecutionProvider};
@@ -243,12 +242,11 @@ async fn test_create_repo_returns_201_with_disk_repo() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -327,12 +325,11 @@ async fn test_create_repo_without_seed_template_has_no_seed_files() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -401,12 +398,11 @@ async fn test_list_repos_returns_only_caller_tenant() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -463,12 +459,11 @@ async fn test_cross_tenant_get_returns_403() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -538,12 +533,11 @@ async fn test_duplicate_name_returns_409() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -598,12 +592,11 @@ async fn test_update_repo_returns_200() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -666,12 +659,11 @@ async fn test_delete_repo_returns_204_and_removes_disk() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
     let app_state = build_app_state(pool, base_path);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;

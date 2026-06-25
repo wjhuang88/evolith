@@ -337,6 +337,7 @@ dependencies = [
  "actix-web-httpauth",
  "actix-web-prom",
  "anyhow",
+ "base64",
  "chrono",
  "common",
  "domain",

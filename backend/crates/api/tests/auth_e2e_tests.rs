@@ -2,14 +2,13 @@
 //!
 //! Tests the full HTTP auth flow through actix-web's test server, including RbacMiddleware JWT validation.
 
-use actix_web::{test, web, App};
+use actix_web::{middleware::from_fn, test, web, App};
 use chrono::Utc;
 use serde::Deserialize;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-use api::middleware::rbac::RbacMiddleware;
 use api::routes;
 use api::routes::auth;
 use api::state::AppState;
@@ -252,12 +251,11 @@ fn build_app_state(pool: SqlitePool) -> AppState {
 async fn test_register_success() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -299,12 +297,11 @@ async fn test_register_success() {
 async fn test_register_duplicate_email() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -350,12 +347,11 @@ async fn test_register_duplicate_email() {
 async fn test_accept_invitation_existing_email_returns_conflict() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool.clone());
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -412,12 +408,11 @@ async fn test_accept_invitation_existing_email_returns_conflict() {
 async fn test_register_weak_password() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -449,12 +444,11 @@ async fn test_register_weak_password() {
 async fn test_register_invalid_email() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -486,12 +480,11 @@ async fn test_register_invalid_email() {
 async fn test_login_success() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -545,12 +538,11 @@ async fn test_login_success() {
 async fn test_login_wrong_password() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -595,12 +587,11 @@ async fn test_login_wrong_password() {
 async fn test_login_nonexistent_user() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -631,12 +622,11 @@ async fn test_login_nonexistent_user() {
 async fn test_get_current_user_authenticated() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -686,12 +676,11 @@ async fn test_get_current_user_authenticated() {
 async fn test_get_current_user_unauthenticated() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -706,12 +695,11 @@ async fn test_get_current_user_unauthenticated() {
 async fn test_refresh_token() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -759,12 +747,11 @@ async fn test_refresh_token() {
 async fn test_update_profile() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -817,12 +804,11 @@ async fn test_update_profile() {
 async fn test_logout() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -869,12 +855,11 @@ async fn test_logout() {
 async fn test_update_skill_success() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -941,12 +926,11 @@ async fn test_update_skill_success() {
 async fn test_update_skill_not_found() {
     let pool = setup_test_db().await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -987,7 +971,7 @@ async fn test_send_verification_email_returns_success() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new("test_secret".to_string()))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -1028,7 +1012,7 @@ async fn test_verify_email_with_valid_token() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(state))
-            .wrap(RbacMiddleware::new("test_secret".to_string()))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -1081,7 +1065,7 @@ async fn test_verify_email_with_invalid_token() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new("test_secret".to_string()))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .service(web::scope("/api/v1").configure(auth::configure)),
     )
     .await;
@@ -1102,4 +1086,286 @@ async fn test_verify_email_with_invalid_token() {
     assert!(!result.success);
     let error = result.error.expect("Expected error in response");
     assert_eq!(error.code, "INVALID_TOKEN");
+}
+
+// ─── Git Client Auth (EVO-103-B-1) ───
+
+use api::middleware::csrf::CsrfMiddleware;
+use base64::Engine;
+use domain::api_key::NewApiKey;
+use sha2::{Digest, Sha256};
+
+fn hash_api_key(key: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(key.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+async fn create_test_api_key(
+    repo: &dyn ApiKeyRepository,
+    tenant_id: Uuid,
+    user_id: Uuid,
+    key_value: &str,
+) {
+    repo.create(NewApiKey {
+        tenant_id,
+        user_id,
+        name: "test-git-key".to_string(),
+        key_hash: hash_api_key(key_value),
+        key_prefix: "evo_sk".to_string(),
+        permissions: vec!["repo:read".to_string(), "repo:write".to_string()],
+        rate_limit: Some(1000),
+        expires_at: None,
+    })
+    .await
+    .expect("Failed to create test API key");
+}
+
+#[actix_rt::test]
+#[allow(clippy::unwrap_used)]
+async fn test_basic_auth_valid_api_key_authenticates() {
+    let pool = setup_test_db().await;
+
+    let register_payload = serde_json::json!({
+        "email": "gituser@example.com",
+        "username": "gituser",
+        "password": "TestPassword123!",
+    });
+    let app_for_register = test::init_service(
+        App::new()
+            .app_data(web::Data::new(build_app_state(pool.clone())))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .service(web::scope("/api/v1").configure(routes::auth::configure)),
+    )
+    .await;
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(&register_payload)
+        .to_request();
+    let register_resp = test::call_service(&app_for_register, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+    let user_id = Uuid::parse_str(&auth_data.user.id).expect("Invalid user UUID");
+    let tenant_id = Uuid::parse_str(&auth_data.tenant.id).expect("Invalid tenant UUID");
+
+    let api_key_repo: Arc<dyn ApiKeyRepository> =
+        Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+    let test_api_key = "evo_sk_git_test_key_12345";
+    create_test_api_key(&*api_key_repo, tenant_id, user_id, test_api_key).await;
+
+    let mut state = build_app_state(pool);
+    state.api_key_repo = api_key_repo;
+
+    async fn echo_user(req: actix_web::HttpRequest) -> actix_web::HttpResponse {
+        use api::middleware::rbac::CurrentUserExt;
+        match req.get_current_user() {
+            Some(user) => actix_web::HttpResponse::Ok().json(serde_json::json!({
+                "user_id": user.user_id.to_string(),
+                "tenant_id": user.tenant_id.to_string(),
+                "role": user.role,
+            })),
+            None => actix_web::HttpResponse::Unauthorized().json(serde_json::json!({
+                "error": "unauthenticated"
+            })),
+        }
+    }
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .route("/repos/test-repo/info/refs", web::get().to(echo_user)),
+    )
+    .await;
+
+    let credentials = format!("gituser:{}", test_api_key);
+    let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
+
+    let req = test::TestRequest::get()
+        .uri("/repos/test-repo/info/refs")
+        .insert_header(("Authorization", format!("Basic {}", encoded)))
+        .to_request();
+
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+
+    let body = test::read_body(resp).await;
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("Failed to parse response");
+    assert_eq!(json["user_id"], auth_data.user.id);
+    assert_eq!(json["role"], "api_key");
+}
+
+#[actix_rt::test]
+#[allow(clippy::unwrap_used)]
+async fn test_basic_auth_invalid_api_key_returns_401() {
+    let pool = setup_test_db().await;
+
+    let register_payload = serde_json::json!({
+        "email": "gituser2@example.com",
+        "username": "gituser2",
+        "password": "TestPassword123!",
+    });
+    let app_for_register = test::init_service(
+        App::new()
+            .app_data(web::Data::new(build_app_state(pool.clone())))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .service(web::scope("/api/v1").configure(routes::auth::configure)),
+    )
+    .await;
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(&register_payload)
+        .to_request();
+    let register_resp = test::call_service(&app_for_register, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+    let user_id = Uuid::parse_str(&auth_data.user.id).expect("Invalid user UUID");
+    let tenant_id = Uuid::parse_str(&auth_data.tenant.id).expect("Invalid tenant UUID");
+
+    let api_key_repo: Arc<dyn ApiKeyRepository> =
+        Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+    create_test_api_key(
+        &*api_key_repo,
+        tenant_id,
+        user_id,
+        "evo_sk_valid_key_wont_be_used",
+    )
+    .await;
+
+    let mut state = build_app_state(pool);
+    state.api_key_repo = api_key_repo;
+
+    async fn echo_user(req: actix_web::HttpRequest) -> actix_web::HttpResponse {
+        use api::middleware::rbac::CurrentUserExt;
+        match req.get_current_user() {
+            Some(user) => actix_web::HttpResponse::Ok().json(serde_json::json!({
+                "user_id": user.user_id.to_string(),
+            })),
+            None => actix_web::HttpResponse::Unauthorized().json(serde_json::json!({
+                "error": "unauthenticated"
+            })),
+        }
+    }
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .route("/repos/test-repo/info/refs", web::get().to(echo_user)),
+    )
+    .await;
+
+    let credentials = "gituser:evo_sk_invalid_key_that_does_not_exist";
+    let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
+
+    let req = test::TestRequest::get()
+        .uri("/repos/test-repo/info/refs")
+        .insert_header(("Authorization", format!("Basic {}", encoded)))
+        .to_request();
+
+    let resp = test::try_call_service(&app, req).await;
+    assert!(resp.is_err(), "Expected error for invalid API key");
+}
+
+#[actix_rt::test]
+async fn test_repos_path_without_auth_returns_401() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+
+    async fn echo_user(_req: actix_web::HttpRequest) -> actix_web::HttpResponse {
+        actix_web::HttpResponse::Ok().json(serde_json::json!({ "ok": true }))
+    }
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .route("/repos/test-repo/info/refs", web::get().to(echo_user)),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri("/repos/test-repo/info/refs")
+        .to_request();
+
+    let resp = test::try_call_service(&app, req).await;
+    assert!(
+        resp.is_err(),
+        "Expected error for unauthenticated /repos/ request"
+    );
+}
+
+#[actix_rt::test]
+#[allow(clippy::unwrap_used)]
+async fn test_csrf_exempt_git_post_passes_without_token() {
+    let pool = setup_test_db().await;
+
+    // Create user and API key for auth
+    let register_payload = serde_json::json!({
+        "email": "csrf-git-user@example.com",
+        "username": "csrfgituser",
+        "password": "TestPassword123!",
+    });
+    let app_for_register = test::init_service(
+        App::new()
+            .app_data(web::Data::new(build_app_state(pool.clone())))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .service(web::scope("/api/v1").configure(routes::auth::configure)),
+    )
+    .await;
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(&register_payload)
+        .to_request();
+    let register_resp = test::call_service(&app_for_register, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let register_body = test::read_body(register_resp).await;
+    let register_result: ApiResponse<AuthResponseData> =
+        serde_json::from_slice(&register_body).expect("Failed to parse register response");
+    let auth_data = register_result.data.expect("Expected auth data");
+    let user_id = Uuid::parse_str(&auth_data.user.id).expect("Invalid user UUID");
+    let tenant_id = Uuid::parse_str(&auth_data.tenant.id).expect("Invalid tenant UUID");
+
+    let api_key_repo: Arc<dyn ApiKeyRepository> =
+        Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+    let test_api_key = "evo_sk_csrf_git_test_key";
+    create_test_api_key(&*api_key_repo, tenant_id, user_id, test_api_key).await;
+
+    let mut app_state = build_app_state(pool);
+    app_state.api_key_repo = api_key_repo;
+
+    async fn git_receive_pack(_req: actix_web::HttpRequest) -> actix_web::HttpResponse {
+        actix_web::HttpResponse::Ok().json(serde_json::json!({ "ok": true }))
+    }
+
+    let csrf = CsrfMiddleware::new();
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(csrf)
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .route(
+                "/repos/test-repo/git-receive-pack",
+                web::post().to(git_receive_pack),
+            ),
+    )
+    .await;
+
+    let credentials = format!("gituser:{}", test_api_key);
+    let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
+
+    let req = test::TestRequest::post()
+        .uri("/repos/test-repo/git-receive-pack")
+        .insert_header(("Authorization", format!("Basic {}", encoded)))
+        .to_request();
+
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
 }

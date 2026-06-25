@@ -1,12 +1,11 @@
 //! MCP tool execution integration tests
 
-use actix_web::{dev::ServerHandle, test, web, App, HttpResponse, HttpServer};
+use actix_web::{dev::ServerHandle, middleware::from_fn, test, web, App, HttpResponse, HttpServer};
 use domain::api_key::NewApiKey;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use std::{net::TcpListener, sync::Arc, time::Duration};
 
-use api::middleware::rbac::RbacMiddleware;
 use api::routes;
 use api::state::AppState;
 use common::execution::{CompositeProvider, ExecutionProvider};
@@ -335,12 +334,11 @@ async fn test_mcp_tools_call_nonexistent_tool() {
     let pool = setup_test_db().await;
     seed_api_key(&pool).await;
     let app_state = build_app_state(pool.clone());
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -379,12 +377,11 @@ async fn test_mcp_tools_call_missing_params() {
     let pool = setup_test_db().await;
     seed_api_key(&pool).await;
     let app_state = build_app_state(pool.clone());
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -425,12 +422,11 @@ async fn test_mcp_tools_call_requires_api_key_even_for_public_tool() {
     )
     .await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -465,12 +461,11 @@ async fn test_mcp_tools_call_executes_authenticated_http_tool() {
     )
     .await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
@@ -508,12 +503,11 @@ async fn test_mcp_tools_call_maps_http_failure_to_mcp_error() {
     )
     .await;
     let app_state = build_app_state(pool);
-    let jwt_secret = app_state.config.jwt.secret.clone();
 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_state))
-            .wrap(RbacMiddleware::new(jwt_secret))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .configure(routes::configure_routes),
     )
     .await;
