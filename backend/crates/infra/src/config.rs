@@ -16,6 +16,7 @@ pub struct AppConfig {
     pub stripe: StripeConfig,
     pub smtp: SmtpConfig,
     pub rate_limit: RateLimitConfig,
+    pub git_storage: GitStorageConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -108,6 +109,11 @@ pub struct RateLimitConfig {
     pub api_key_rpm: u32,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct GitStorageConfig {
+    pub base_path: String,
+}
+
 impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         let config = Config::builder()
@@ -149,6 +155,7 @@ impl AppConfig {
             .set_default("rate_limit.unauthenticated_rpm", 30)?
             .set_default("rate_limit.authenticated_rpm", 300)?
             .set_default("rate_limit.api_key_rpm", 1000)?
+            .set_default("git_storage.base_path", "/srv/evolith/repos")?
             // Add environment variables
             .add_source(Environment::default().separator("__"))
             .build()?;
@@ -317,6 +324,9 @@ mod tests {
                 unauthenticated_rpm: 30,
                 authenticated_rpm: 300,
                 api_key_rpm: 1000,
+            },
+            git_storage: GitStorageConfig {
+                base_path: "/tmp/evolith-test-repos".to_string(),
             },
         }
     }

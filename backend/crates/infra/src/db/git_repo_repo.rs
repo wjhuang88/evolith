@@ -93,7 +93,7 @@ impl GitRepoRepository for SqliteGitRepoRepository {
             RepoVisibility::Public => "public",
             RepoVisibility::Private => "private",
         };
-        let storage_path = format!("repos/{}/{}", tenant_id, &repo.name);
+        let storage_path = format!("{}/{}.git", tenant_id, id);
         let auto_merge = if repo.auto_merge.unwrap_or(false) {
             1
         } else {

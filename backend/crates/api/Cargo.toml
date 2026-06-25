@@ -36,6 +36,7 @@ service-audit.workspace = true
 service-skill.workspace = true
 service-snippet.workspace = true
 service-auth.workspace = true
+service-git.workspace = true
 # service-payment.workspace = true  # Decoupled — has 34 compile errors (async_stripe unresolved). Re-enable after Phase 2.
 domain.workspace = true
 infra.workspace = true
@@ -44,3 +45,4 @@ common.workspace = true
 [dev-dependencies]
 sqlx.workspace = true
 actix-rt = "2"
+tempfile = "3"

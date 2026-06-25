@@ -19,8 +19,9 @@ use domain::repository::{
     SkillRepository, SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
 use infra::config::{
-    AppConfig, AppMetaConfig, DatabaseConfig, JwtConfig, LogConfig, RateLimitConfig, RedisConfig,
-    SandboxConfig, ServerConfig, SmtpConfig, StorageConfig, StripeConfig,
+    AppConfig, AppMetaConfig, DatabaseConfig, GitStorageConfig, JwtConfig, LogConfig,
+    RateLimitConfig, RedisConfig, SandboxConfig, ServerConfig, SmtpConfig, StorageConfig,
+    StripeConfig,
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
@@ -210,6 +211,9 @@ fn create_test_config() -> AppConfig {
             authenticated_rpm: 300,
             api_key_rpm: 1000,
         },
+        git_storage: GitStorageConfig {
+            base_path: "/tmp/evolith-test-repos".to_string(),
+        },
     }
 }
 
@@ -240,6 +244,7 @@ fn build_app_state(pool: SqlitePool) -> AppState {
         execution_provider: execution_provider.clone(),
         skill_executor: Arc::new(DefaultSkillExecutor::new()) as Arc<dyn SkillExecutor>,
         tool_executor: Arc::new(ToolExecutorAdapter::new(execution_provider)),
+        git_storage_base_path: "/tmp/evolith-test-repos".to_string(),
     }
 }
 

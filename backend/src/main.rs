@@ -150,6 +150,7 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 execution_provider: execution_provider.clone(),
                 skill_executor: skill_executor.clone(),
                 tool_executor: tool_executor.clone(),
+                git_storage_base_path: config.git_storage.base_path.clone(),
             }
         }
         DatabasePool::Postgres(pool) => {
@@ -183,6 +184,7 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 execution_provider: execution_provider.clone(),
                 skill_executor: skill_executor.clone(),
                 tool_executor: tool_executor.clone(),
+                git_storage_base_path: config.git_storage.base_path.clone(),
             }
         }
     };

@@ -51,7 +51,7 @@ async fn test_create_git_repo() {
     assert!(!created.auto_merge);
     assert!(created.require_review);
     assert!(created.storage_path.contains(&tenant.id.to_string()));
-    assert!(created.storage_path.contains("test-repo"));
+    assert!(created.storage_path.ends_with(".git"));
 }
 
 #[tokio::test]

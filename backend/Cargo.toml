@@ -45,6 +45,7 @@ members = [
     "crates/infra",
     "crates/common",
     "crates/service-audit",
+    "crates/service-git",
 ]
 
 [workspace.lints.clippy]
@@ -69,6 +70,9 @@ actix-web-rust-embed-responder = "2.4.0"
 
 # Docker
 bollard = "0.21.0"
+
+# Git operations
+gix = "0.78.0"
 
 # Web framework
 actix-web = "4.13.0"
@@ -147,6 +151,9 @@ actix-governor = "0.10.0"
 # Email (async SMTP)
 lettre = { version = "0.11.22", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder", "hostname"] }
 
+# Temp directories for testing
+tempfile = "3"
+
 # Prometheus metrics
 actix-web-prom = "0.10.0"
 prometheus = "0.14.0"
@@ -162,6 +169,7 @@ domain = { path = "crates/domain" }
 infra = { path = "crates/infra" }
 common = { path = "crates/common" }
 service-audit = { path = "crates/service-audit" }
+service-git = { path = "crates/service-git" }
 
 [profile.release]
 lto = true

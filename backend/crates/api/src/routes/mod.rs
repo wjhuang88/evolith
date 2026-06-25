@@ -10,6 +10,7 @@ pub mod billing;
 pub mod health;
 pub mod mcp;
 pub mod members;
+pub mod repos;
 pub mod skills;
 pub mod snippets;
 pub mod tools;
@@ -39,7 +40,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                         .configure(members::configure)
                         .configure(api_keys::configure)
                         .configure(billing::configure)
-                        .configure(audit::configure),
+                        .configure(audit::configure)
+                        .configure(repos::configure),
                 ),
         ); // Terminate the chain
 }

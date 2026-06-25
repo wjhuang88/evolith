@@ -1,0 +1,15 @@
+[package]
+name = "service-git"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Workspace dependencies
+gix.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+uuid.workspace = true

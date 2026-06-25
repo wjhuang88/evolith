@@ -50,4 +50,6 @@ pub struct AppState {
     pub skill_executor: Arc<dyn SkillExecutor>,
     /// Tool executor for executing HTTP-based MCP tools (legacy facade)
     pub tool_executor: Arc<dyn ToolExecutor>,
+    /// Base path for git repo storage on disk
+    pub git_storage_base_path: String,
 }

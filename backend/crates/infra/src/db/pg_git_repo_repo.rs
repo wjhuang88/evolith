@@ -57,7 +57,7 @@ impl GitRepoRepository for PgGitRepoRepository {
             RepoVisibility::Public => "public",
             RepoVisibility::Private => "private",
         };
-        let storage_path = format!("repos/{}/{}", tenant_id, &repo.name);
+        let storage_path = format!("{}/{}.git", tenant_id, id);
 
         sqlx::query(
             r#"INSERT INTO git_repos (
