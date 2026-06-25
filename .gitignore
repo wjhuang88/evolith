@@ -75,6 +75,7 @@ backups/
 
 # ===== Playwright MCP =====
 .playwright-mcp/
+/*.png
 
 # ===== AI/Agent tooling =====
 .sisyphus/
