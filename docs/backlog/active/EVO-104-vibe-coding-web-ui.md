@@ -26,7 +26,7 @@
 
 ## Goal And Non-Goals
 
-- **Goal**：实现可用的 vibe coding 三栏布局 UI（file tree + editor + chat panel），支持 commit / promote / branch 切换 / diff 查看 / 与 agent 实时协作。
+- **Goal**：实现可用的 Codex/TUI-style vibe coding 交互体验：以 agent session stream 为主，文件树按需打开，文件内容和 diff 作为 contextual artifact 呈现，支持 commit / promote / branch 切换 / diff 查看 / 与 agent 实时协作。
 - **Non-goals**：
   - 不实现实时多人协作（Yjs/CRDT）— 后期评估。
   - 不实现 live preview pane（web app 沙箱预览）— 后期评估。
@@ -47,11 +47,12 @@
   - 决策维度：bundle 体积、语言支持（Python/TS/Go/Rust 等）、diff 模式、多光标、性能、LSP client 集成能力。
   - **待确认**：(a) 体积 vs 功能优先级的取舍；(b) 是否需要 Monaco 多光标 / Inlay Hint / 高级代码补全能力；(c) 是否依赖 LSP（Language Server Protocol）做跳转/补全；(d) Monaco bundle 通过 rust-embed-for-web 嵌入后端发布物时的体积叠加。
 
-- [x] **U-02 主布局形态** [Decided: 桌面三栏可拖拽；移动端单主区 + 抽屉]
+- [x] **U-02 主布局形态** [Revised: conversation-first workspace；file tree 抽屉化；文件内容作为 artifact]
   - 候选：A. 三栏（file tree / editor / chat panel，宽度可拖动）；B. 两栏 + Tab（file tree + editor，chat 走 Tab 切换）；C. 单栏 + 命令面板（VS Code 风格，cmd+k 唤起 chat）。
-  - 默认推荐：**A. 三栏**（桌面端）+ 移动端折叠 chat panel。
+  - 旧推荐：**A. 三栏**（桌面端）+ 移动端折叠 chat panel。
+  - 修订决策：**Codex/TUI-style conversation-first workspace**。主区域显示 session stream；file tree 通过 rail / drawer 打开；文件内容、diff、commit history 作为 contextual artifact 在 stream 或 artifact view 中打开。
   - 决策维度：屏幕空间利用、移动端 / 平板适配、agent 操作时的视觉焦点、多文件切换体验。
-  - **待确认**：(a) 平板（iPad）支持是否 MVP 必需；(b) 是否需要"专注模式"（临时隐藏 chat panel）；(c) 拖动分隔条是否要做成可记忆（按用户偏好持久化）。
+  - **已确认**：默认不让 editor 和 chat 常驻并列；用户焦点集中在 agent 交互和执行事件流上。
 
 - [x] **U-03 Chat 流式架构** [Decided: SSE 下行事件流 + POST 上行命令]
   - 候选：A. WebSocket（双向）；B. SSE / Server-Sent Events（单向 server→client）；C. Long polling。
@@ -115,28 +116,29 @@
 - 状态：Proposed
 - 用户价值：用户在 Evolith Web UI 中即可完成代码浏览 / 编辑 / commit / 与 agent 协作，无需本地 git 客户端
 - 核心设计：
-  1. 三栏布局（file tree + editor + chat panel），宽度可拖动
-  2. Monaco 或 CodeMirror 6 编辑器（含 diff 模式）
-  3. 实时 chat panel（SSE 流式，含 markdown 渲染、代码块语法高亮）
-  4. 直推直合 commit / promote 流程，含 `auto_merge` / `require_review` / `block` 三态视觉反馈
-  5. branch 切换 + diff viewer + commit history
+  1. Conversation-first session workspace（user prompt + agent plan + execution events + artifact cards）
+  2. File tree 作为 rail / drawer 按需打开
+  3. CodeMirror 6 editor 作为 artifact / editor mode 打开（含 diff 模式）
+  4. 实时 agent stream（SSE 流式，含 markdown 渲染、代码块语法高亮、tool/file events）
+  5. 直推直合 commit / promote 流程，含 `auto_merge` / `require_review` / `block` 三态视觉反馈
+  6. branch 切换 + diff viewer + commit history
 - 验收标准：
   - [x] UX 议题 U-01 ~ U-05 完成决策并写入 design doc；design doc 链接加到本文件 Required Reads
-  - [ ] 桌面端 MVP：file tree + editor + chat panel 三栏布局可用
+  - [ ] 桌面端 MVP：session stream 为默认主界面；file tree 可从 rail / drawer 打开；文件和 diff 可作为 artifact 打开
   - [ ] 用户可创建文件、编辑、提交 commit（`auto_merge` / `require_review` / `block` 三态都验证）
-  - [ ] 用户可与 agent 通过 chat panel 交互；agent 操作在 editor 中实时反映（通过 SSE 流式推送）
+  - [ ] 用户可与 agent 通过 prompt / session stream 交互；agent 操作以 event + artifact card 形式实时反映（通过 SSE 流式推送）
   - [ ] 用户可切换 branch、查看 diff、promote to main
-  - [ ] 移动端基础布局（chat panel 折叠）可用
+  - [ ] 移动端基础布局：session stream 为主，file tree 和 artifact 使用抽屉 / 全屏 sheet
   - [ ] 所有 UI 颜色 / 字号使用 `docs/reference/DESIGN.md` token，无硬编码
 - 依赖或阻塞：EVO-100 / EVO-103 / EVO-105 / EVO-106 / EVO-112 后端和基础 UI 依赖就绪；UX 决策已完成
 - 影响范围：frontend（新增页面 + 组件 + lib/api + stores）；不涉及 backend
-- 最小验证方式：Playwright 截图（桌面三栏 / 移动折叠 / commit 状态徽章 / diff viewer / chat 流式）+ 手工 vibe coding 全流程（创建文件 → commit → agent 介入 → diff → promote）
+- 最小验证方式：Playwright 截图（桌面 session stream / file tree drawer / artifact editor / diff card / commit 状态徽章 / 移动 sheet / agent stream）+ 手工 vibe coding 全流程（创建文件 → commit → agent 介入 → diff → promote）
 - 不做：实时多人协作（U-09）；live preview（U-10）；终端面板（U-11）；文件拖拽（U-12）；全键位快捷键（U-13）
 
 ## Validation Evidence Required
 
 - UX 决策记录：[Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
-- Playwright 截图：桌面三栏、移动折叠、commit 状态徽章、diff viewer、chat 流式渲染
+- Playwright 截图：桌面 session stream、file tree drawer、artifact editor、diff card、移动 sheet、commit 状态徽章、agent stream 渲染
 - 手工验收报告：完整 vibe coding 流程（创建 → 编辑 → agent 协作 → diff → promote）
 - 视觉对照：所有截图与 Figma 设计 token 一致（`bun run lint:design-tokens` 或类似门禁通过）
 

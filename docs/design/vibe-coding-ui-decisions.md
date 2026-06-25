@@ -3,7 +3,9 @@
 > **状态**：Decided
 > **决策日期**：2026-06-25
 > **适用范围**：EVO-104 Vibe Coding Web UI 的 U-01 ~ U-05 前置 UX 门禁
-> **结论**：U-01 ~ U-05 均已决策。EVO-104 不再被 UX 调研门禁阻塞；仍需等待 EVO-103 / EVO-105 / EVO-106 / EVO-112 等后端与基础 UI 依赖满足后才能进入实现迭代。
+> **结论**：U-01 ~ U-05 均已决策。2026-06-25 根据用户反馈修正 U-02：
+> 主体验从三栏 IDE 式布局改为 Codex/TUI-style conversation-first workspace。
+> EVO-104 不再被 UX 调研门禁阻塞；仍需等待 EVO-103 / EVO-105 / EVO-106 / EVO-112 等后端与基础 UI 依赖满足后才能进入实现迭代。
 
 ## 引用关系
 
@@ -17,7 +19,7 @@
 | ID | 议题 | 决策 | 状态 |
 |----|------|------|------|
 | U-01 | 编辑器选型 | CodeMirror 6 | Decided |
-| U-02 | 主布局形态 | 桌面三栏可拖拽；移动端单主区 + 抽屉 | Decided |
+| U-02 | 主布局形态 | Codex/TUI-style conversation-first workspace；文件树抽屉化；文件内容作为 contextual artifact | Revised |
 | U-03 | Chat 流式架构 | SSE 下行事件流 + POST 上行命令 | Decided |
 | U-04 | Agent Branch 心智模型 | 每个 agent session 使用自动分支 `agent/{session_id}/{feature_slug}` | Decided |
 | U-05 | 直推直合三态视觉反馈 | 持续状态徽章 + inline policy explanation + commit result event | Decided |
@@ -46,21 +48,28 @@
 
 | 字段 | 值 |
 |------|-----|
-| 状态 | `Decided` |
-| 决策 | **桌面三栏：file tree / editor / chat panel，宽度可拖拽；移动端单主区 + 抽屉** |
+| 状态 | `Revised` |
+| 决策 | **Codex/TUI-style conversation-first workspace；文件树抽屉化；文件内容作为 contextual artifact** |
+| 修订来源 | 2026-06-25 用户反馈：三栏会分散注意力，文件内容和聊天窗口不应常驻并列 |
 
 ### 理由
 
-- Vibe Coding 的核心价值是“代码上下文 + agent 对话 + 当前文件”同时可见，三栏比 tab 切换更少打断工作流。
-- 桌面端以 1440px 以上工作区为主场景；平板和移动端提供可用降级，不作为 MVP 的高密度主体验。
-- Chat panel 是 agent 协作的第一等对象，不应被隐藏到命令面板里。
+- Vibe Coding 的核心价值不是“Web IDE + Chat 并排”，而是让用户聚焦在 agent session 的任务流：提出目标、观察计划、查看执行事件、审查 diff、确认 commit/promote。
+- 文件树和文件内容仍然重要，但它们是上下文与产物，不应在默认状态下和对话主线争夺注意力。
+- Codex/TUI-style 的顺序事件流更适合 agent-native 体验：用户能连续理解 agent 正在做什么、改了什么、验证结果如何。
+- 桌面端不再以三栏常驻为默认；桌面和平板都共享“主会话流 + contextual artifact”的心智模型，降低跨设备差异。
 
 ### 实施约束
 
-- 默认宽度：file tree 260px，chat panel 360px，editor 占剩余空间；最小宽度分别为 220px / 320px。
-- 分隔条支持拖拽，宽度偏好先持久化到 localStorage；跨设备同步不进 MVP。
-- 提供 editor focus mode：临时收起 chat panel，但保留顶部 agent status 和恢复入口。
-- 移动端采用 file tree / chat 抽屉，主区显示 editor；不实现完整移动端代码编辑优化。
+- 默认第一屏是 session stream：user prompt、agent plan、tool/file events、diff summary、verification result、policy result 按时间线排列。
+- 左侧只保留窄 rail / 抽屉入口；文件树按需展开，不常驻占用主工作区。
+- 文件内容、diff 和 commit history 作为 artifact panel 呈现：
+  - agent 引用文件时在 stream 内展示 file/diff card；
+  - 用户点击文件树或 file card 时，主区域切换到 artifact view；
+  - 需要长期编辑时进入 editor mode，而不是默认并列打开 editor 和 chat。
+- 命令入口采用 TUI 风格：`/open`、`/diff`、`/commit`、`/promote`、`/policy`，并提供 `Cmd/Ctrl+K` command palette。
+- 顶部持续显示 repo、agent branch、policy state；底部保留 prompt input 和主要 action，不引入第三个常驻面板。
+- 移动端与桌面端使用相同模型：session stream 为主，file tree 和 artifacts 通过抽屉 / 全屏 sheet 打开。
 
 ## U-03：Chat 流式架构
 
@@ -83,7 +92,7 @@
 | `message.delta` | agent 文本增量 |
 | `message.done` | agent 消息完成 |
 | `tool.started` / `tool.finished` | agent 调用外部工具的可视化状态 |
-| `file.changed` | 文件内容或 file tree 变化 |
+| `file.changed` | 文件内容或 file tree 变化，默认渲染为 stream 内 artifact card |
 | `policy.evaluated` | commit policy 三态评估结果 |
 | `commit.created` | commit 已创建 |
 | `promote.completed` | promote / merge 完成 |
@@ -139,14 +148,14 @@
 
 ### 理由
 
-- 状态徽章放在 branch 标签、commit 按钮附近和 commit history 中，提供持续可见的安全边界。
+- 状态徽章放在顶部 branch 标签、prompt/action bar 和 stream 内 commit event 中，提供持续可见的安全边界。
 - 仅改变按钮颜色不够，因为用户需要在提交前、提交后和历史回看时都理解 policy 结果。
 - toast 只作为补充反馈，不作为唯一状态来源。
 
 ### 实施约束
 
 - 状态颜色必须来自 [DESIGN.md](../reference/DESIGN.md) token，不允许硬编码十六进制值到组件。
-- `block` 状态必须禁用危险动作，并展示 policy reason；仍允许用户继续编辑、查看 diff、复制错误信息。
+- `block` 状态必须禁用危险动作，并在 stream 内展示 policy reason；仍允许用户继续编辑、查看 diff、复制错误信息。
 - `require_review` 是默认安全状态。缺失 `.evolith/policy.yaml` 时 UI 也必须显示 review required，而不是 auto merge。
 - 首次进入 vibe session 时，用 inline hint 解释当前 repo policy；不使用阻塞式 onboarding modal。
 
@@ -175,3 +184,9 @@
 - UX 门禁：解除。U-01 ~ U-05 均为 `Decided`。
 - Product / API 依赖：未解除。EVO-104 仍依赖 EVO-103 / EVO-105 / EVO-106 / EVO-112 达到可集成状态。
 - 下一步：EVO-104 item file 可以引用本文件作为 Required Read，并将 UX 阻塞项改为已完成；不要仅因本文件完成就把 EVO-104 标为 `Ready`。
+
+## Change Log
+
+| 日期 | 类型 | 说明 |
+|------|------|------|
+| 2026-06-25 | scope-change | U-02 从桌面三栏常驻布局修订为 Codex/TUI-style conversation-first workspace；文件树抽屉化，文件内容和 diff 作为 contextual artifact 呈现。 |

@@ -166,7 +166,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 - 用户可创建 git repo，`git clone http://.../repos/{id}` 完整可用。
 - `.evolith/policy.yaml` 解析生效，三态（auto_merge / require_review / block）行为正确。
 - 仓库管理 UI（列表 / 创建 / 详情 / 导航重构）可用，平台以 Git 仓库为中心。
-- Vibe Coding 三栏 UI（file tree + editor + chat panel）MVP 可用。
+- Vibe Coding conversation-first UI MVP 可用：agent session stream 为主，file tree 抽屉化，文件内容和 diff 作为 contextual artifact 呈现。
 - Agent Session 创建 / 审计 / 撤销全链路贯通。
 - Push 一个含 `SKILL.md` / `interface.yaml` / `tool.yaml` 的 commit → `*_index` 表在 5s 内更新。
 - `GET /skills?q=` 等跨仓搜索 API 可用；旧 `GET /skills/{id}` 等 API 行为不变。
