@@ -55,7 +55,7 @@
 - 依赖 ADR-0004 + ADR-0005 决策生效。
 - 依赖 `gix` crate 与 `bollard` 升级链路（参考 EVO-061~076 全量依赖迁移，2026-06-06 已完成）。
 - EVO-103 smart HTTP push 阶段临时依赖 `git` CLI subprocess；`gix-push` 合入后移除（独立 EVO 跟踪）。
-- EVO-105 / EVO-106 / EVO-107 软依赖 EVO-104 UX 决策 U-04（agent branch 命名）。
+- EVO-105 / EVO-106 / EVO-107 对 EVO-104 UX 决策 U-04（agent branch 命名）的软依赖已由 [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md) 解除；后续仍需按各自 API 验收实现。
 
 ## Acceptance Criteria（Epic 父项）
 

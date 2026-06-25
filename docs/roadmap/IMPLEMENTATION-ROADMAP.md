@@ -173,7 +173,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 - `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿。
 - Docker sandbox 整层删除，启动时间显著缩短。
 
-**UX 调研前置门禁**：[EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md) U-01 ~ U-05（编辑器选型、主布局、Chat 流式架构、Agent Branch 心智模型、直推直合三态视觉反馈）在 Phase E'-2 启动前完成决策，写入 `docs/design/vibe-coding-ui-decisions.md`（或类似位置），本文件 Required Reads 同步。
+**UX 调研前置门禁**：已解除。[EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md) U-01 ~ U-05（编辑器选型、主布局、Chat 流式架构、Agent Branch 心智模型、直推直合三态视觉反馈）已写入 [Vibe Coding UI Design Decisions](../design/vibe-coding-ui-decisions.md)。EVO-104 实现仍需等待 EVO-103 / EVO-105 / EVO-106 / EVO-112 依赖。
 
 **不做**：
 
@@ -218,7 +218,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 8. ~~**EVO-113：方向变更评审缺口修复**~~ — ✅ Done（2026-06-25：默认策略、状态同步、断链和 reference/manifest 漂移修复）
 9. **EVO-100 Phase E'-1b：Repo CRUD + Smart HTTP**（EVO-103）
 10. **EVO-100 Phase E'-1.5：仓库管理 UI**（EVO-112；依赖 EVO-103 后端 API）
-11. **EVO-100 Phase E'-2：Agent 集成 + Vibe Coding 形态**（EVO-104 + EVO-105 + EVO-106 + EVO-107；UX 调研 U-01~U-05 先行）
+11. **EVO-100 Phase E'-2：Agent 集成 + Vibe Coding 形态**（EVO-104 + EVO-105 + EVO-106 + EVO-107；UX gate 已解除）
 12. **EVO-100 Phase E'-3：Indexer + Discovery + 旧表双写**（EVO-108 + EVO-109 + EVO-110）
 13. **EVO-100 Phase E'-4：Sandbox 废弃收尾**（EVO-111）
 14. **EVO-012 / EVO-013 / EVO-014：租户管理、计费和审计增强**（独立进行，不阻塞主线）
@@ -271,7 +271,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 | Phase E Skill update | EVO-006 | Done |
 | Phase E CLI interface 迁移 | EVO-017 / EVO-009 | Done |
 | Phase E Frontend snippet residue | EVO-026 | Done（Iteration 017） |
-| Phase E' Git 托管 + Vibe Coding（2026-06-23 新主线） | EVO-100 + EVO-101~111 + EVO-104 + EVO-112 + EVO-113 | In Progress；EVO-101/102 Done，EVO-113 Done，EVO-103 为下一后端主线；UX 调研 U-01~U-05 只阻塞 EVO-104 / Phase E'-2 |
+| Phase E' Git 托管 + Vibe Coding（2026-06-23 新主线） | EVO-100 + EVO-101~111 + EVO-104 + EVO-112 + EVO-113 | In Progress；EVO-101/102 Done，EVO-113 Done，EVO-104 UX gate resolved，EVO-103 为下一后端主线 |
 | Phase E (old) Skill registry / Storage / 多来源 / 版本 / 描述 / CLI / MCP Serverless / 评分 / 生态兼容 | EVO-019 / EVO-020 / EVO-027 / EVO-028 / EVO-029 / EVO-045 / EVO-046 / EVO-047 / EVO-049 / EVO-049-B / EVO-050 | Superseded / Dropped by Phase E'（详见 [Product Backlog Archived Index](../backlog/PRODUCT-BACKLOG.md#archived-index)） |
 | Phase F tenant members / api keys / settings / audit / billing | EVO-010 至 EVO-014 | EVO-010 / EVO-011 Done；EVO-012~014 Proposed |
 | Phase G GitHub CI/CD 重建 | EVO-030 | Done（Iteration 029） |

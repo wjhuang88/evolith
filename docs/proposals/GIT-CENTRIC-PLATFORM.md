@@ -210,7 +210,7 @@ agents:
 
 EV0-104 Vibe Coding Web UI 在进入迭代前必须完成 UX 议题决策：
 
-- **P0 阻塞**（U-01 ~ U-05）：编辑器选型、主布局、Chat 流式架构、Agent Branch 心智模型、直推直合三态视觉反馈
+- **P0 阻塞**（U-01 ~ U-05）：编辑器选型、主布局、Chat 流式架构、Agent Branch 心智模型、直推直合三态视觉反馈；已由 [Vibe Coding UI Design Decisions](../design/vibe-coding-ui-decisions.md) 决策完成
 - **P1 实施期可定**（U-06 ~ U-08）：Diff viewer、Commit 消息生成、文件冲突处理
 - **P2 out of MVP**（U-09 ~ U-13）：实时多人协作、Live Preview、终端面板、文件拖拽、键盘快捷键
 
@@ -247,7 +247,7 @@ EV0-104 Vibe Coding Web UI 在进入迭代前必须完成 UX 议题决策：
 - [x] PRODUCT-BACKLOG.md 更新（旧项 Dropped/Superseded 标注）
 - [x] IMPLEMENTATION-ROADMAP.md 更新（Phase E 替换为 git-centric 主线）
 - [ ] EVO-100 Phase 1 完成：用户可创建 repo、push/pull 代码
-- [ ] EVO-104 UX 决策完成：U-01 ~ U-05 design doc 落地
+- [x] EVO-104 UX 决策完成：U-01 ~ U-05 design doc 落地
 - [ ] EVO-100 Phase 2 完成：vibe coding MVP + agent session
 - [ ] EVO-100 Phase 3 完成：skill/CLI/MCP 自动索引发现
 - [ ] EVO-111 完成：sandbox 整层删除，`cargo test --workspace` 全绿
@@ -289,7 +289,7 @@ EVO-100 (Epic: Git-Centric Platform Foundation)
 
 EVO-104 (Story: Vibe Coding Web UI)
   依赖 EVO-103 / EVO-105 / EVO-106（前端依赖后端 API）
-  UX 调研：U-01 ~ U-05 必须在迭代开始前完成
+  UX 调研：U-01 ~ U-05 已完成，见 docs/design/vibe-coding-ui-decisions.md
 ```
 
 **推荐迭代顺序**：
@@ -299,7 +299,7 @@ EVO-104 (Story: Vibe Coding Web UI)
 3. Iteration N：EVO-103（Repo CRUD + Smart HTTP + Repo Context API）
 4. Iteration N+1：EVO-112（Repo Management UI）
 5. Iteration N+2：EVO-105 + EVO-106 + EVO-107（commit/promote + agent session）
-6. Iteration N+3：EVO-104（vibe coding UI，UX 调研先行）
+6. Iteration N+3：EVO-104（vibe coding UI，UX gate 已解除，仍需后端依赖就绪）
 7. Iteration N+4：EVO-108 + EVO-109 + EVO-110（indexer + discovery + dual-write）
 8. Iteration N+5：EVO-111（sandbox 清理收尾）
 

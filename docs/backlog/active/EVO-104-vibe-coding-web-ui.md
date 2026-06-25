@@ -4,8 +4,9 @@
 
 - [Product Backlog](../PRODUCT-BACKLOG.md)
 - [Design System (Figma tokens)](../../reference/DESIGN.md)
-- Git-Centric Platform Proposal (`docs/proposals/GIT-CENTRIC-PLATFORM.md` — 拟写)
-- [Backend Repo Context API item file] (EVO-103 — 拟写)
+- [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
+- [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
+- [Backend Repo Context API item file](EVO-103-repo-context-and-smart-http.md)
 
 ## Summary
 
@@ -17,6 +18,7 @@
 | Priority | P0 |
 | Parent Epic | None recorded |
 | Source | 用户反馈 2026-06-23（vibe coding 重新定位 / GitHub Pages 类比） |
+| UX Gate | Resolved by [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md) |
 
 ## Problem Or Outcome
 
@@ -33,36 +35,38 @@
 
 ## UX Decisions Required Before Implementation
 
-> 进入迭代前，以下 UX 议题必须完成调研与决策。决策产出应写入 design doc 或独立 ADR 留档，本 item 文件的 Acceptance Criteria 引用其结论。
+> U-01 ~ U-05 已在 [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
+> 完成决策。EVO-104 不再被 UX 调研门禁阻塞；仍需等待 EVO-103 / EVO-105 /
+> EVO-106 / EVO-112 等产品与 API 依赖满足后才能进入实现迭代。
 
 ### P0 — 阻塞实施，必须先决策
 
-- [ ] **U-01 编辑器选型** [需调研]
+- [x] **U-01 编辑器选型** [Decided: CodeMirror 6]
   - 候选：A. Monaco Editor（VS Code 内核，~5MB bundle）；B. CodeMirror 6（轻量，~200KB）；C. Theia（重型 IDE 框架）。
   - 默认推荐：**B. CodeMirror 6**（bundle 体积小，Vite chunk 拆分友好；可独立引入语言包）。
   - 决策维度：bundle 体积、语言支持（Python/TS/Go/Rust 等）、diff 模式、多光标、性能、LSP client 集成能力。
   - **待确认**：(a) 体积 vs 功能优先级的取舍；(b) 是否需要 Monaco 多光标 / Inlay Hint / 高级代码补全能力；(c) 是否依赖 LSP（Language Server Protocol）做跳转/补全；(d) Monaco bundle 通过 rust-embed-for-web 嵌入后端发布物时的体积叠加。
 
-- [ ] **U-02 主布局形态** [需调研]
+- [x] **U-02 主布局形态** [Decided: 桌面三栏可拖拽；移动端单主区 + 抽屉]
   - 候选：A. 三栏（file tree / editor / chat panel，宽度可拖动）；B. 两栏 + Tab（file tree + editor，chat 走 Tab 切换）；C. 单栏 + 命令面板（VS Code 风格，cmd+k 唤起 chat）。
   - 默认推荐：**A. 三栏**（桌面端）+ 移动端折叠 chat panel。
   - 决策维度：屏幕空间利用、移动端 / 平板适配、agent 操作时的视觉焦点、多文件切换体验。
   - **待确认**：(a) 平板（iPad）支持是否 MVP 必需；(b) 是否需要"专注模式"（临时隐藏 chat panel）；(c) 拖动分隔条是否要做成可记忆（按用户偏好持久化）。
 
-- [ ] **U-03 Chat 流式架构** [需调研]
+- [x] **U-03 Chat 流式架构** [Decided: SSE 下行事件流 + POST 上行命令]
   - 候选：A. WebSocket（双向）；B. SSE / Server-Sent Events（单向 server→client）；C. Long polling。
   - 默认推荐：**B. SSE**（单向，足够 agent 推送 token 增量与事件；client 用普通 POST 发送消息）。
   - 决策维度：外部 agent engine 是否支持流式、断线重连策略、是否需要"双向"（用户在 agent 执行中追加指令 / 中断 agent）。
   - **待确认**：(a) agent engine 的事件协议是否已就绪；(b) "用户中断 agent" 是否 MVP 必需（决定是否必须 WebSocket）；(c) SSE 在代理（Nginx / CDN）后的兼容性。
 
-- [ ] **U-04 Agent Branch 心智模型** [需调研]
+- [x] **U-04 Agent Branch 心智模型** [Decided: 自动 agent session branch]
   - 问题：用户在 UI 中如何理解"agent 在一个独立分支上工作"？
   - 候选：A. 自动分支 `agent/{session-id}/{feature-name}`，顶栏显示当前分支；B. 每个 vibe session 视为独立 workspace，不直接映射 git branch，commit 时才合并；C. 每条用户消息创建一个分支（`agent/msg-{n}`），UI 显示分支链。
   - 默认推荐：**A. 自动分支**（最贴近 git 原生心智；与 `.evolith/policy.yaml` 的 auto_merge / require_review 配合直接）。
   - 决策维度：与 auto_merge / require_review 配合的清晰度、用户对 branch 的心智负担、与后续 promote 流程的衔接。
   - **待确认**：(a) 是否需要"work in progress"显式分支 vs 直推临时分支；(b) agent 完成任务后，分支是自动 archive 还是保留可继续迭代；(c) 多 agent 并行协作（同一 repo 两个 session）的分支命名冲突处理。
 
-- [ ] **U-05 直推直合三态视觉反馈** [需调研]
+- [x] **U-05 直推直合三态视觉反馈** [Decided: 持续状态徽章 + inline policy explanation]
   - 问题：commit 进入 `auto_merge` / `require_review` / `block` 三种状态时，UI 如何视觉区分？
   - 候选：file tree 上加状态徽章 / 底部 commit 按钮颜色变化 / toast 通知 / commit history 列表染色 / 顶栏 branch 标签染色。
   - 默认推荐：**状态徽章（file tree + branch 标签）+ commit 按钮旁 inline 提示**。
@@ -101,7 +105,7 @@
 - 依赖 EVO-100 / EVO-101（Git Service + `git_repos` 表）
 - 依赖 EVO-103（Repo Context API + Commit/Promote API 后端）
 - 依赖 EVO-106（Agent Session API + Scoped Token）
-- **UX 调研前置门禁**：U-01 ~ U-05 必须在进入迭代前完成决策；产出至少一份 design doc（独立 markdown），并在本文件 Required Reads 区域追加链接。
+- **UX 调研前置门禁**：已解除。U-01 ~ U-05 已写入 [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)。
 - 设计约束：所有 UI 实现须遵循 `docs/reference/DESIGN.md` 的 Figma token；颜色 / 字号 / 间距不允许硬编码。
 
 ## Acceptance Criteria
@@ -117,21 +121,21 @@
   4. 直推直合 commit / promote 流程，含 `auto_merge` / `require_review` / `block` 三态视觉反馈
   5. branch 切换 + diff viewer + commit history
 - 验收标准：
-  - [ ] UX 议题 U-01 ~ U-05 完成决策并写入 design doc；design doc 链接加到本文件 Required Reads
+  - [x] UX 议题 U-01 ~ U-05 完成决策并写入 design doc；design doc 链接加到本文件 Required Reads
   - [ ] 桌面端 MVP：file tree + editor + chat panel 三栏布局可用
   - [ ] 用户可创建文件、编辑、提交 commit（`auto_merge` / `require_review` / `block` 三态都验证）
   - [ ] 用户可与 agent 通过 chat panel 交互；agent 操作在 editor 中实时反映（通过 SSE 流式推送）
   - [ ] 用户可切换 branch、查看 diff、promote to main
   - [ ] 移动端基础布局（chat panel 折叠）可用
   - [ ] 所有 UI 颜色 / 字号使用 `docs/reference/DESIGN.md` token，无硬编码
-- 依赖或阻塞：EVO-100 / EVO-103 / EVO-106 后端接口就绪；U-01 ~ U-05 UX 决策完成
+- 依赖或阻塞：EVO-100 / EVO-103 / EVO-105 / EVO-106 / EVO-112 后端和基础 UI 依赖就绪；UX 决策已完成
 - 影响范围：frontend（新增页面 + 组件 + lib/api + stores）；不涉及 backend
 - 最小验证方式：Playwright 截图（桌面三栏 / 移动折叠 / commit 状态徽章 / diff viewer / chat 流式）+ 手工 vibe coding 全流程（创建文件 → commit → agent 介入 → diff → promote）
 - 不做：实时多人协作（U-09）；live preview（U-10）；终端面板（U-11）；文件拖拽（U-12）；全键位快捷键（U-13）
 
 ## Validation Evidence Required
 
-- UX 决策记录（U-01 ~ U-05 的 design doc 或 ADR，链接加到本文件 Required Reads）
+- UX 决策记录：[Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
 - Playwright 截图：桌面三栏、移动折叠、commit 状态徽章、diff viewer、chat 流式渲染
 - 手工验收报告：完整 vibe coding 流程（创建 → 编辑 → agent 协作 → diff → promote）
 - 视觉对照：所有截图与 Figma 设计 token 一致（`bun run lint:design-tokens` 或类似门禁通过）

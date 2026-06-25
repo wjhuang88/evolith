@@ -42,7 +42,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-100 Phase E'-2 (Agent 集成 + Vibe Coding UI) | Proposed | [EVO-105/106/107/104](backlog/active/EVO-100-git-centric-platform-foundation.md) | Refine after Phase E'-1 closes; UX 调研 design doc 必须先完成。 |
+| EVO-100 Phase E'-2 (Agent 集成 + Vibe Coding UI) | Proposed | [EVO-105/106/107/104](backlog/active/EVO-100-git-centric-platform-foundation.md)<br>[UX Decisions](design/vibe-coding-ui-decisions.md) | Refine after Phase E'-1 closes; UX U-01~U-05 gate resolved，仍需 API / agent session 依赖就绪。 |
 | EVO-100 Phase E'-3 (Indexer + Discovery + 旧表双写) | Proposed | [EVO-108/109/110](backlog/active/EVO-100-git-centric-platform-foundation.md) | Refine after Phase E'-2 closes; 与现有 skill/cli/mcp API 兼容是迁移期硬约束。 |
 | EVO-100 Phase E'-4 (Sandbox 废弃收尾) | Proposed | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) | Refine after Phase E'-3 closes; ADR-0005 收口。 |
 | Phase 5+ 扩展（SSH / LFS / 跨仓搜索 / 资源级 ACL） | 待提案 | — | Independent EVOs after Phase E' closes. |
@@ -53,9 +53,9 @@ Current iteration ordering after 2026-06-23 direction pivot:
 
 - 主线切换：从 Phase E（Skill/CLI/MEP Lifecycle）切换为 Phase E'（Git 托管 + Vibe Coding）。
 - `EVO-100` 是 Epic，已进入 In Progress；EVO-101/102 已由 Iteration 042 完成，EVO-113 已完成方向变更评审缺口修复。
-- 后续启动顺序建议 EVO-103（后端 Repo CRUD + Smart HTTP）→ EVO-112（仓库管理 UI）→ Phase E'-2（EVO-104/105/106/107，含 UX 调研）→ Phase E'-3 → Phase E'-4。
+- 后续启动顺序建议 EVO-103（后端 Repo CRUD + Smart HTTP）→ EVO-112（仓库管理 UI）→ Phase E'-2（EVO-104/105/106/107，UX gate 已解除）→ Phase E'-3 → Phase E'-4。
 - 旧 Phase E 相关 Iterations 018-020、027 因方向调整标 superseded；Iterations 025/026 保持独立（与方向调整无关）。
 - 旧 backlog 项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）已在 PRODUCT-BACKLOG.md Archived Index 标注 Superseded/Dropped。
 - `EVO-061` 至 `EVO-076` 已由 `EVO-086` 一次性 latest 迁移收口。
-- UX 调研前置门禁：EVO-104 Vibe Coding Web UI 的 U-01~U-05（编辑器、主布局、Chat 流式、Agent Branch 心智模型、直推直合三态视觉）必须在 Phase E'-2 / Vibe Coding UI 启动前完成决策；不阻塞 EVO-103 后端基础能力。
+- UX 调研前置门禁：EVO-104 Vibe Coding Web UI 的 U-01~U-05 已在 `docs/design/vibe-coding-ui-decisions.md` 决策完成；不阻塞 EVO-103 后端基础能力，也不再阻塞 Phase E'-2 refinement。EVO-104 实现仍需等待 EVO-103/105/106/112 依赖。
 - Use P2 Ready items only as explicit micro-iteration interruptions; do not silently bypass the selected product-mainline order.
