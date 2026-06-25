@@ -39,7 +39,7 @@
 |----------|----------|------|------|----------|
 | [EVO-101](EVO-101-git-repos-schema.md) | `git_repos` 表 + 双轨 migration + tenant 创建仓默认能力 | Done | 无 | Iteration 042 |
 | [EVO-102](EVO-102-evolith-policy-yaml.md) | `.evolith/policy.yaml` 规范文档 + 解析器 + 默认值 fallback | Done | 无 | Iteration 042 |
-| [EVO-103](EVO-103-repo-context-and-smart-http.md) | Repo CRUD + Smart HTTP（`info/refs` + `git-upload-pack` + 临时 `git-receive-pack` subprocess）+ Repo Context API（file-tree / blobs / commits / diff） | Proposed | EVO-101 | Phase 1 |
+| [EVO-103](EVO-103-repo-context-and-smart-http.md) | Repo 托管父项（拆为 A/B/C，见 [EVO-103](EVO-103-repo-context-and-smart-http.md)） | Proposed | EVO-101 | Phase 1 |
 | [EVO-113](EVO-113-direction-pivot-review-remediation.md) | 方向变更评审缺口修复：安全默认策略、状态同步、断链、reference 与 manifest 风险门禁 | Done | EVO-101, EVO-102 | Remediation |
 | [EVO-112](EVO-112-repo-management-ui.md) | 仓库列表 / 创建 / 详情页（Files + Commits + Settings）+ 导航重构（Repos 为主入口）+ Dashboard repo-centric 改版 | Proposed | EVO-103 | Phase 2 |
 | [EVO-105](EVO-105-commit-and-promote-api.md) | `POST /repos/{id}/commits`（policy 评估 + 三态）+ `POST /repos/{id}/promote` + agent branch 自动命名 | Proposed | EVO-102, EVO-103 | Phase 2 |
@@ -60,7 +60,7 @@
 ## Acceptance Criteria（Epic 父项）
 
 - [ ] Phase 1 完成：用户可在 Web UI 创建 repo；`git clone http://.../repos/{id}` 完整可用；`.evolith/policy.yaml` 解析生效
-- [ ] Phase 2 完成：vibe coding 三栏 UI MVP 可用；agent session 创建/完成/审计全链路贯通
+- [ ] Phase 2 完成：vibe coding **conversation-first UI** MVP 可用（file tree 抽屉化，文件内容/diff 作为 contextual artifact）；agent session 创建/完成/审计全链路贯通
 - [ ] Phase 3 完成：push 一个含 `SKILL.md` 的 commit → `skill_index` 在 5s 内更新；`GET /skills?q=` 跨仓搜索可用；旧 API 兼容
 - [ ] Phase 4 完成：`cargo test --workspace` 全绿；`cargo clippy --workspace --all-targets -- -D warnings` 0 errors；前端 bundle 中无 sandbox 相关依赖
 - [ ] 文档同步：`PRODUCT-BACKLOG.md` / `IMPLEMENTATION-ROADMAP.md` / `EVOLUTION.md` / `BOARD.md` / `docs/README.md` 反映新方向；旧项 Dropped/Superseded 标注完整

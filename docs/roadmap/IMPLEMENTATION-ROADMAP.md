@@ -155,7 +155,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 
 **子阶段**：
 
-- **Phase E'-1 Git Service 基础**：[EVO-101](../backlog/active/EVO-101-git-repos-schema.md)（Done：git_repos 表 + 双轨 migration）+ [EVO-102](../backlog/active/EVO-102-evolith-policy-yaml.md)（Done：policy.yaml 规范）+ [EVO-103](../backlog/active/EVO-103-repo-context-and-smart-http.md)（Next：Repo CRUD + Smart HTTP + Repo Context API）。
+- **Phase E'-1 Git Service 基础**：[EVO-101](../backlog/active/EVO-101-git-repos-schema.md)（Done：git_repos 表 + 双轨 migration）+ [EVO-102](../backlog/active/EVO-102-evolith-policy-yaml.md)（Done：policy.yaml 规范）+ [EVO-103](../backlog/active/EVO-103-repo-context-and-smart-http.md)（Next：拆为 A/B/C；先 A Repo CRUD，再 B Smart HTTP、C Repo Context API）。
 - **Phase E'-1.5 仓库管理 UI**：[EVO-112](../backlog/active/EVO-112-repo-management-ui.md)（仓库列表 / 创建 / 详情页 + 导航重构 + Dashboard repo-centric 改版）。依赖 EVO-103 后端 API 就绪。
 - **Phase E'-2 Agent 集成 + Vibe Coding 形态**：[EVO-104](../backlog/active/EVO-104-vibe-coding-web-ui.md)（Vibe Coding Web UI）+ [EVO-105](../backlog/active/EVO-105-commit-and-promote-api.md)（Commit API + 直推直合 + Promote API）+ [EVO-106](../backlog/active/EVO-106-agent-session-and-scoped-token.md)（Agent Session API + Scoped Token）+ [EVO-107](../backlog/active/EVO-107-webhook-out.md)（Webhook Out）。
 - **Phase E'-3 Indexer + Discovery + 旧表双写**：[EVO-108](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)（Skill/CLI/MCP Indexer）+ [EVO-109](../backlog/active/EVO-109-discovery-api-and-pages-ui.md)（Discovery API + Pages 式发现 UI）+ [EVO-110](../backlog/active/EVO-110-old-table-dual-write.md)（旧表双写适配）。
@@ -216,7 +216,7 @@ Nginx 只保留为可选网关/SSL/反代组件，不再是前端资源托管的
 6. ~~**EVO-086：全量依赖 latest 迁移**~~ — ✅ Done（2026-06-06）
 7. ~~**EVO-100 Phase E'-1a：Git Service schema + policy**（EVO-101 + EVO-102）~~ — ✅ Done（Iteration 042）
 8. ~~**EVO-113：方向变更评审缺口修复**~~ — ✅ Done（2026-06-25：默认策略、状态同步、断链和 reference/manifest 漂移修复）
-9. **EVO-100 Phase E'-1b：Repo CRUD + Smart HTTP**（EVO-103）
+9. **EVO-100 Phase E'-1b：Repo CRUD + Smart HTTP + Context API**（EVO-103 拆为 A/B/C；先 EVO-103-A Repo CRUD，再 B Smart HTTP、C Repo Context API）
 10. **EVO-100 Phase E'-1.5：仓库管理 UI**（EVO-112；依赖 EVO-103 后端 API）
 11. **EVO-100 Phase E'-2：Agent 集成 + Vibe Coding 形态**（EVO-104 + EVO-105 + EVO-106 + EVO-107；UX gate 已解除）
 12. **EVO-100 Phase E'-3：Indexer + Discovery + 旧表双写**（EVO-108 + EVO-109 + EVO-110）

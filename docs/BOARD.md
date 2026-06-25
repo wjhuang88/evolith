@@ -10,7 +10,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| None | - | - | - |
+| EVO-103-A Repo CRUD（gix::init + RBAC） | In Progress | [EVO-103-A](backlog/active/EVO-103-A-repo-crud.md)<br>[Iteration 044](iterations/ITERATION-044.md) | Phase E'-1b 首切片；依赖 EVO-101 Done；EVO-103-B/C 维持 Proposed。 |
 
 ## Review
 
@@ -33,7 +33,6 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-103 Repo CRUD + Smart HTTP + Repo Context API | Proposed | [EVO-103](backlog/active/EVO-103-repo-context-and-smart-http.md)<br>[Proposal](proposals/GIT-CENTRIC-PLATFORM.md) | 下一主线后端 Story；依赖 EVO-101（Done）。不被 EVO-104 UX U-01~U-05 阻塞。 |
 | EVO-057 生产 CORS Origin 可配置化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate deploy/config micro-iteration if production custom-domain support should be hardened before product-mainline work. |
 | EVO-080 Wasmer/WASI 替代 Docker sandbox 可行性 Spike | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Run after Phase E'-4 (EVO-111) if a non-Docker runtime candidate is still needed. |
 | EVO-081 内部文档页面基于独立 Markdown 目录渲染 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a focused frontend/content story when internal docs should become visible in-app. |
