@@ -52,6 +52,7 @@
 ## Governing ADRs, Specs Or Decisions
 
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
+- [ADR-0006 Smart HTTP via git subprocess](../../decisions/ADR-0006-smart-http-via-git-subprocess.md)
 
 ## Acceptance Criteria
 
