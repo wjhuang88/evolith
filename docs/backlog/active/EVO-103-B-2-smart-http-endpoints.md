@@ -14,7 +14,7 @@
 
 - 类型：feature / api
 - 优先级：P0
-- 状态：Review
+- 状态：Done
 - 父 Epic：EVO-103-B（祖父 EVO-103，曾祖 EVO-100）
 
 ## Problem Or Outcome
@@ -59,11 +59,11 @@
 > **BDD 不适用原因**：Smart HTTP 是协议级 git smart HTTP 实现，Given/When/Then 场景不自然。采用等价技术验收（命令级 E2E 验证）。
 
 - [x] `GET /repos/{id}/info/refs` 返回正确 content-type（`application/x-git-*-advertisement`），git 客户端可解析（handler 级测试验证：auth 解析 + git subprocess + content-type 200）
-- [ ] `POST /repos/{id}/git-upload-pack` 流式返回 packfile 结果（`application/x-git-upload-pack-result`）— 端点已实现，真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
-- [ ] `POST /repos/{id}/git-receive-pack` 流式返回 receive-pack 结果（`application/x-git-receive-pack-result`）— 端点已实现，真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
-- [ ] `git clone http://host/repos/{id}` 成功克隆（exit 0）— 真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
-- [ ] `git push` 成功推送 commits 到远程仓库 — 真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
-- [ ] `git pull` 成功拉取远程更新 — 真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
+- [x] `POST /repos/{id}/git-upload-pack` 流式返回 packfile 结果（`application/x-git-upload-pack-result`）— 真实 git-client E2E 已通过（test_git_clone_push_pull_e2e）
+- [x] `POST /repos/{id}/git-receive-pack` 流式返回 receive-pack 结果（`application/x-git-receive-pack-result`）— 真实 git-client E2E 已通过（test_git_clone_push_pull_e2e）
+- [x] `git clone http://host/repos/{id}` 成功克隆（exit 0）— 真实 git-client E2E 已通过（test_git_clone_push_pull_e2e）
+- [x] `git push` 成功推送 commits 到远程仓库 — 真实 git-client E2E 已通过（test_git_clone_push_pull_e2e，write-permission key）
+- [x] `git pull` 成功拉取远程更新 — 真实 git-client E2E 已通过（test_git_clone_push_pull_e2e）
 - [x] 跨 tenant repo → 403/404（RBAC middleware 覆盖）
 - [x] subprocess timeout enforced（`tokio::time::timeout` + `kill_on_drop(true)`；`service-git` timeout 单测覆盖）
 - [x] API key 权限边界：read-only key 可读但不能 advertise / call `git-receive-pack`（handler 级测试覆盖）

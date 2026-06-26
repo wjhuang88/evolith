@@ -1,6 +1,6 @@
 # Iteration 046: Phase E'-1b Smart HTTP Endpoints（EVO-103-B-2）
 
-> 文档状态：Review / Partial
+> 文档状态：Closed（2026-06-26）
 > 计划发布日期：2026-06-26
 > 计划目标：实现 EVO-103-B-2 Smart HTTP git 协议端点（info/refs + git-upload-pack + git-receive-pack，全部 `git --stateless-rpc` subprocess），让标准 git 客户端可 clone/push/pull Evolith 托管的仓库；生产 Docker 运行时加 `git`。解锁 "可用的 git 托管" 核心能力。
 >
@@ -132,7 +132,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 - 完成：3 Smart HTTP 端点（info/refs + git-upload-pack + git-receive-pack，git --stateless-rpc subprocess）+ service-git subprocess 扩展 + actix 流式 + Docker 加 git + SCRIPTS-RELEASE-NOTES + handler 级测试（test_info_refs_with_basic_auth_returns_advertisement）+ subprocess timeout/stderr drain + API key read-only receive-pack 拒绝测试
 - 未完成：真实 git-client clone/push/pull E2E（git 客户端等待服务器 401 返回 `WWW-Authenticate: Basic` challenge，当前 rbac_middleware 401 缺少该 header）
 - 验证结果：cargo test 0 failures / clippy 0 errors / info_refs handler 测试通过（auth 解析 + git subprocess + content-type 200）；2026-06-26 review-fix 验证通过：`cargo test -p service-git`、`cargo test -p api --test git_smart_http_e2e_tests`、`cargo test -p api`、`cargo test --workspace`、`cargo clippy --workspace --all-targets -- -D warnings`
-- 闭环状态：`Partial`（实现完成并 handler 验证；真实 git 客户端 E2E + WWW-Authenticate 归口 EVO-115，完成后转 Done）
+- 闭环状态：`Complete`（2026-06-26：EVO-115 完成（WWW-Authenticate: Basic on /repos/ 401 + 真实 git clone/push/pull E2E 通过），EVO-103-B-2 转 Done。git 托管核心能力（真实 git clone/push/pull）端到端验证通过。）
 - 残余归口：EVO-115（WWW-Authenticate + 真实 git-client E2E）、gix PR#2465 migration、receive-pack 永久 subprocess、SSH/LFS Phase 5
 
 ## 11. Retrospective
@@ -140,6 +140,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 - 做得好的：handler 级测试（test_info_refs_with_basic_auth_returns_advertisement）有效验证了 auth 解析 + git subprocess + 协议 framing 的正确性，即使真实 git 客户端 E2E 暂受阻也能确认端点实现无误
 - 需要调整的：git Smart HTTP 服务端 401 必须带 `WWW-Authenticate: Basic`（标准 git server 行为），否则 git 客户端不会使用 URL 中的凭证重试——应在 B-1/B-2 集成时即包含该 header，而非等到 E2E 阶段才发现
 - 写入 EVOLUTION：git smart HTTP 401 需 WWW-Authenticate: Basic（如确认为重复陷阱再写入 EVOLUTION.md）
+- 2026-06-26 补充：WWW-Authenticate follow-up（EVO-115）已解决 Partial 状态；真实 git clone/push/pull E2E 全通过。
 
 ---
 

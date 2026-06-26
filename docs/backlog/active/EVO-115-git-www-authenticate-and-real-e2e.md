@@ -6,7 +6,7 @@
 - 父 Epic: [EVO-103-B](EVO-103-B-smart-http-git-protocol.md)（祖父 EVO-103，曾祖 EVO-100）
 - 祖父 Epic: [EVO-103](EVO-103-repo-context-and-smart-http.md)
 - 曾祖 Epic: [EVO-100](EVO-100-git-centric-platform-foundation.md)
-- 依赖: [EVO-103-B-2](EVO-103-B-2-smart-http-endpoints.md)（Review；B-2 实现完成，真实 E2E 待本项解锁）
+- 依赖: [EVO-103-B-2](EVO-103-B-2-smart-http-endpoints.md)（Done；B-2 实现完成，真实 E2E 已通过）
 - [EVO-103-B-1](EVO-103-B-1-git-client-auth-infra.md)（Done；Basic-Auth 基础设施）
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
 
@@ -14,7 +14,7 @@
 
 - 类型：feature/test-debt
 - 优先级：P1
-- 状态：Proposed
+- 状态：Done
 - 父 Epic：EVO-103-B（祖父 EVO-103，曾祖 EVO-100）
 
 ## Problem Or Outcome
@@ -45,13 +45,13 @@ EVO-103-B-2 实现了 3 个 Smart HTTP 端点并通过 handler 级测试验证�
 
 ## Acceptance Criteria
 
-- [ ] `/repos/` 路径 401 响应包含 `WWW-Authenticate: Basic realm="evolith"` header
-- [ ] `test_git_clone_push_pull_e2e` 解禁（移除 `#[ignore]`）并通过
-- [ ] `git clone http://user:apikey@host/repos/{id}` 成功（exit 0）
-- [ ] 使用具备写权限的 API key 时，`git push` 成功推送 commits
-- [ ] `git pull` 成功拉取远程更新
-- [ ] `cargo test --workspace` 全绿
-- [ ] `cargo clippy --workspace --all-targets -- -D warnings` 0 errors
+- [x] `/repos/` 路径 401 响应包含 `WWW-Authenticate: Basic realm="evolith"` header
+- [x] `test_git_clone_push_pull_e2e` 解禁（移除 `#[ignore]`）并通过
+- [x] `git clone http://user:apikey@host/repos/{id}` 成功（exit 0）
+- [x] 使用具备写权限的 API key 时，`git push` 成功推送 commits
+- [x] `git pull` 成功拉取远程更新
+- [x] `cargo test --workspace` 全绿
+- [x] `cargo clippy --workspace --all-targets -- -D warnings` 0 errors
 
 ## Validation Evidence Required
 
