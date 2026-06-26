@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
+use gix::bstr::BStr;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -25,6 +26,36 @@ pub enum GitStorageError {
     SubprocessError(String),
     #[error("Invalid git service: {0}")]
     InvalidService(String),
+    #[error("Read error: {0}")]
+    ReadError(String),
+}
+
+/// Entry in a file tree listing.
+#[derive(Debug, Clone)]
+pub struct FileTreeEntry {
+    pub name: String,
+    pub kind: String, // "blob" or "tree"
+    pub oid: String,
+    pub is_tree: bool,
+}
+
+/// Information about a single commit.
+#[derive(Debug, Clone)]
+pub struct CommitInfo {
+    pub sha: String,
+    pub author_name: String,
+    pub author_email: String,
+    pub message: String,
+    pub timestamp: i64,
+}
+
+/// A single change in a diff between two refs.
+#[derive(Debug, Clone)]
+pub struct DiffEntry {
+    pub path: String,
+    pub change_type: String, // "added", "deleted", "modified"
+    pub old_oid: String,
+    pub new_oid: String,
 }
 
 pub type Result<T> = std::result::Result<T, GitStorageError>;
@@ -227,6 +258,222 @@ pub async fn spawn_rpc(repo_path: &Path, service: GitService) -> Result<tokio::p
         .map_err(|e| GitStorageError::SubprocessError(format!("git subprocess failed: {e}")))?;
 
     Ok(child)
+}
+
+/// Read the file tree at a given git ref (recursive, breadth-first).
+pub fn read_file_tree(repo_path: &Path, git_ref: &str) -> Result<Vec<FileTreeEntry>> {
+    let repo = gix::open(repo_path).map_err(|e| {
+        GitStorageError::ReadError(format!(
+            "failed to open repo at {}: {}",
+            repo_path.display(),
+            e
+        ))
+    })?;
+
+    let id = repo
+        .rev_parse_single(BStr::new(git_ref))
+        .map_err(|e| GitStorageError::ReadError(format!("ref '{}' not found: {}", git_ref, e)))?;
+
+    let commit = id
+        .object()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to resolve object: {}", e)))?
+        .into_commit();
+
+    let tree_id = commit
+        .tree_id()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to get tree id: {}", e)))?;
+    let tree = repo
+        .find_tree(tree_id)
+        .map_err(|e| GitStorageError::ReadError(format!("failed to find tree: {}", e)))?;
+
+    let entries: Vec<FileTreeEntry> = tree
+        .traverse()
+        .breadthfirst
+        .files()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to traverse tree: {}", e)))?
+        .into_iter()
+        .map(|entry| {
+            let is_tree = entry.mode.is_tree();
+            FileTreeEntry {
+                name: String::from_utf8_lossy(&entry.filepath).to_string(),
+                kind: if is_tree {
+                    "tree".to_string()
+                } else {
+                    "blob".to_string()
+                },
+                oid: entry.oid.to_string(),
+                is_tree,
+            }
+        })
+        .collect();
+
+    Ok(entries)
+}
+
+/// Read a blob by its SHA (hex string).
+pub fn read_blob(repo_path: &Path, sha: &str) -> Result<Vec<u8>> {
+    let repo = gix::open(repo_path).map_err(|e| {
+        GitStorageError::ReadError(format!(
+            "failed to open repo at {}: {}",
+            repo_path.display(),
+            e
+        ))
+    })?;
+
+    let oid = gix::ObjectId::from_hex(sha.as_bytes())
+        .map_err(|e| GitStorageError::ReadError(format!("invalid sha '{}': {}", sha, e)))?;
+
+    let blob = repo
+        .find_blob(oid)
+        .map_err(|e| GitStorageError::ReadError(format!("blob '{}' not found: {}", sha, e)))?;
+
+    Ok(blob.data.to_vec())
+}
+
+/// Read commit history starting from a ref, limited to `limit` entries (default 50, max 100).
+pub fn read_commits(repo_path: &Path, git_ref: &str, limit: usize) -> Result<Vec<CommitInfo>> {
+    let limit = limit.clamp(1, 100);
+
+    let repo = gix::open(repo_path).map_err(|e| {
+        GitStorageError::ReadError(format!(
+            "failed to open repo at {}: {}",
+            repo_path.display(),
+            e
+        ))
+    })?;
+
+    let id = repo
+        .rev_parse_single(BStr::new(git_ref))
+        .map_err(|e| GitStorageError::ReadError(format!("ref '{}' not found: {}", git_ref, e)))?;
+
+    let commit_id = id
+        .object()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to resolve object: {}", e)))?
+        .into_commit();
+
+    let mut commits = Vec::new();
+    let ancestors = commit_id
+        .ancestors()
+        .sorting(gix::revision::walk::Sorting::ByCommitTime(
+            gix::traverse::commit::simple::CommitTimeOrder::NewestFirst,
+        ))
+        .all()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to walk ancestors: {}", e)))?;
+
+    for ancestor in ancestors {
+        if commits.len() >= limit {
+            break;
+        }
+        let info = ancestor.map_err(|e| {
+            GitStorageError::ReadError(format!("failed to read commit info: {}", e))
+        })?;
+        let commit = info
+            .id()
+            .object()
+            .map_err(|e| {
+                GitStorageError::ReadError(format!("failed to resolve commit object: {}", e))
+            })?
+            .into_commit();
+        let decoded = commit
+            .decode()
+            .map_err(|e| GitStorageError::ReadError(format!("failed to decode commit: {}", e)))?;
+
+        let author = decoded
+            .author()
+            .map_err(|e| GitStorageError::ReadError(format!("failed to read author: {}", e)))?;
+        let timestamp = author.time().map(|t| t.seconds).unwrap_or(0);
+
+        commits.push(CommitInfo {
+            sha: info.id.to_string(),
+            author_name: author.name.to_string(),
+            author_email: author.email.to_string(),
+            message: decoded.message.to_string(),
+            timestamp,
+        });
+    }
+
+    Ok(commits)
+}
+
+/// Read diff between two refs.
+pub fn read_diff(repo_path: &Path, base_ref: &str, head_ref: &str) -> Result<Vec<DiffEntry>> {
+    let repo = gix::open(repo_path).map_err(|e| {
+        GitStorageError::ReadError(format!(
+            "failed to open repo at {}: {}",
+            repo_path.display(),
+            e
+        ))
+    })?;
+
+    let base_id = repo.rev_parse_single(BStr::new(base_ref)).map_err(|e| {
+        GitStorageError::ReadError(format!("base ref '{}' not found: {}", base_ref, e))
+    })?;
+
+    let head_id = repo.rev_parse_single(BStr::new(head_ref)).map_err(|e| {
+        GitStorageError::ReadError(format!("head ref '{}' not found: {}", head_ref, e))
+    })?;
+
+    let base_tree_id = base_id
+        .object()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to resolve base object: {}", e)))?
+        .into_commit()
+        .tree_id()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to get base tree id: {}", e)))?;
+
+    let head_tree_id = head_id
+        .object()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to resolve head object: {}", e)))?
+        .into_commit()
+        .tree_id()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to get head tree id: {}", e)))?;
+
+    let base_tree = repo
+        .find_tree(base_tree_id)
+        .map_err(|e| GitStorageError::ReadError(format!("failed to find base tree: {}", e)))?;
+    let head_tree = repo
+        .find_tree(head_tree_id)
+        .map_err(|e| GitStorageError::ReadError(format!("failed to find head tree: {}", e)))?;
+
+    let changes = repo
+        .diff_tree_to_tree(Some(&base_tree), Some(&head_tree), None)
+        .map_err(|e| GitStorageError::ReadError(format!("failed to compute diff: {}", e)))?;
+
+    let entries: Vec<DiffEntry> = changes
+        .into_iter()
+        .map(|change| {
+            let (change_type, old_oid, new_oid) = match change {
+                gix::object::tree::diff::ChangeDetached::Addition { id, .. } => {
+                    ("added".to_string(), String::new(), id.to_string())
+                }
+                gix::object::tree::diff::ChangeDetached::Deletion { id, .. } => {
+                    ("deleted".to_string(), id.to_string(), String::new())
+                }
+                gix::object::tree::diff::ChangeDetached::Modification {
+                    previous_id, id, ..
+                } => (
+                    "modified".to_string(),
+                    previous_id.to_string(),
+                    id.to_string(),
+                ),
+                gix::object::tree::diff::ChangeDetached::Rewrite { source_id, id, .. } => (
+                    "modified".to_string(),
+                    source_id.to_string(),
+                    id.to_string(),
+                ),
+            };
+
+            let path = change.location().to_string();
+
+            DiffEntry {
+                path,
+                change_type,
+                old_oid,
+                new_oid,
+            }
+        })
+        .collect();
+
+    Ok(entries)
 }
 
 #[cfg(test)]

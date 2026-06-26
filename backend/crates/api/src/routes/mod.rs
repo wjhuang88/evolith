@@ -11,6 +11,7 @@ pub mod git_smart_http;
 pub mod health;
 pub mod mcp;
 pub mod members;
+pub mod repo_context;
 pub mod repos;
 pub mod skills;
 pub mod snippets;
@@ -44,7 +45,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                         .configure(api_keys::configure)
                         .configure(billing::configure)
                         .configure(audit::configure)
-                        .configure(repos::configure),
+                        .configure(repos::configure)
+                        .configure(repo_context::configure),
                 ),
         ); // Terminate the chain
 }

@@ -1,4 +1,4 @@
-use crate::handlers::repo_handlers;
+use crate::handlers::{repo_context_handlers, repo_handlers};
 use actix_web::web;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -8,6 +8,22 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("", web::post().to(repo_handlers::create_repo))
             .route("/{repo_id}", web::get().to(repo_handlers::get_repo))
             .route("/{repo_id}", web::patch().to(repo_handlers::update_repo))
-            .route("/{repo_id}", web::delete().to(repo_handlers::delete_repo)),
+            .route("/{repo_id}", web::delete().to(repo_handlers::delete_repo))
+            .route(
+                "/{repo_id}/file-tree",
+                web::get().to(repo_context_handlers::get_file_tree),
+            )
+            .route(
+                "/{repo_id}/blobs/{sha}",
+                web::get().to(repo_context_handlers::get_blob),
+            )
+            .route(
+                "/{repo_id}/commits",
+                web::get().to(repo_context_handlers::get_commits),
+            )
+            .route(
+                "/{repo_id}/diff",
+                web::get().to(repo_context_handlers::get_diff),
+            ),
     );
 }

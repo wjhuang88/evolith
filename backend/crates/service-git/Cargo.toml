@@ -8,7 +8,7 @@ workspace = true
 
 [dependencies]
 # Workspace dependencies
-gix.workspace = true
+gix = { workspace = true, features = ["revision", "blob-diff"] }
 tokio.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
