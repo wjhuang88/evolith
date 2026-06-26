@@ -11,7 +11,7 @@
 
 - 类型：feature / api（父项，拆为 A/B/C 子 Story）
 - 优先级：P0
-- 状态：Proposed
+- 状态：Done（A+B+C 全部 Done）
 - 父 Epic：EVO-100
 
 ## 拆分理由
@@ -23,8 +23,8 @@
 | 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
 |----------|----------|------|------|----------|
 | [EVO-103-A](EVO-103-A-repo-crud.md) | Repo CRUD API + gix::init 裸仓 + RBAC | Done | EVO-101（Done） | Iteration 044 |
-| [EVO-103-B](EVO-103-B-smart-http-git-protocol.md) | Smart HTTP git 协议（父项，拆为 B-1/B-2：B-1=auth 基础设施 Ready，B-2=端点实现 Proposed） | Proposed | EVO-103-A | - |
-| [EVO-103-C](EVO-103-C-repo-context-api.md) | Repo Context API（file-tree/blobs/commits/diff） | Proposed | EVO-103-A | - |
+| [EVO-103-B](EVO-103-B-smart-http-git-protocol.md) | Smart HTTP git 协议（父项，拆为 B-1/B-2：B-1=auth 基础设施 Done，B-2=端点实现 Done） | Done | EVO-103-A | Iteration 046 |
+| [EVO-103-C](EVO-103-C-repo-context-api.md) | Repo Context API（file-tree/blobs/commits/diff） | Done | EVO-103-A | Iteration 048 |
 
 ## Problem Or Outcome
 

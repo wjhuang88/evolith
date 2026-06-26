@@ -51,6 +51,7 @@
 - [Iteration 045](ITERATION-045.md) — Phase E'-1b Git Client Auth Infra（EVO-103-B-1；Closed：2026-06-25，EVO-103-B-1 完成（cargo test 0 failures / clippy 0 errors；from_fn + Next<B> 中间件））。
 - [Iteration 046](ITERATION-046.md) — Phase E'-1b Smart HTTP Endpoints（EVO-103-B-2；Closed：2026-06-26，EVO-103-B-2 Done（真实 git clone/push/pull E2E 通过））.
 - [Iteration 047](ITERATION-047.md) — git Smart HTTP WWW-Authenticate + 真实 git-client E2E（EVO-115；Closed：2026-06-26，EVO-115 Done（WWW-Authenticate + 真实 git E2E））.
+- [Iteration 048](ITERATION-048.md) — Phase E'-1c Repo Context API（EVO-103-C；Closed：2026-06-26，EVO-103-C Done（gix 读取 API））.
 
 ## 未来计划
 
@@ -79,6 +80,7 @@
 
 启动任何新的产品迭代前，必须先按启动 SOP 处置：
 
+- [Iteration 048](ITERATION-048.md) — `Closed`：2026-06-26，EVO-103-C Done（gix 读取 API）。
 - [Iteration 047](ITERATION-047.md) — `Closed`：2026-06-26，EVO-115 Done（WWW-Authenticate + 真实 git E2E）。
 - [Iteration 046](ITERATION-046.md) — `Closed`：2026-06-26，EVO-103-B-2 Done（真实 git clone/push/pull E2E 通过）。
 - [Iteration 009](ITERATION-009.md) — `Closed`：EVO-040 完成收口。
@@ -145,9 +147,9 @@
 4. **ITERATION-045 已 Closed**（Phase E'-1b）：EVO-103-B-1 Git Client Auth Infra（Basic-Auth + /repos/ RBAC + CSRF 豁免）Done。
 5. **ITERATION-046 已 Closed**（Phase E'-1b）：EVO-103-B-2 Smart HTTP Endpoints Done（真实 git clone/push/pull E2E 通过）。
 6. **ITERATION-047 已 Closed**（Phase E'-1b）：EVO-115 git WWW-Authenticate + 真实 git-client E2E Done。
-7. **下一候选**（需 refinement 到 Ready）：
-   - EVO-103-C（Repo Context API，依赖 EVO-103-A Done 已满足；需 BDD refinement）
-8. **新进 Ready 待评估**（独立微迭代候选）：
+7. **ITERATION-048 已 Closed**（Phase E'-1c）：EVO-103-C Repo Context API Done（4 gix 读取端点：file-tree/blobs/commits/diff）。
+8. **EVO-103 全部完成**（A+B+C Done）→ 解锁 EVO-112 Repo Management UI。
+9. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
    - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
    - EVO-081（内部文档页面基于独立 Markdown 目录渲染）

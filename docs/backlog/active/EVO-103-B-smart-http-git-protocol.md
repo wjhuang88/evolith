@@ -11,7 +11,7 @@
 
 - 类型：epic（父项，拆为 B-1/B-2 子 Story）
 - 优先级：P0
-- 状态：Proposed
+- 状态：Done
 - 父 Epic：EVO-103（祖父 EVO-100）
 
 ## 拆分理由

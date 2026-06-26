@@ -12,7 +12,7 @@
 
 - 类型：feature / api
 - 优先级：P0
-- 状态：Proposed
+- 状态：Done
 - 父 Epic：EVO-103（祖父 EVO-100）
 
 ## Problem Or Outcome
@@ -47,14 +47,14 @@
 
 ## Acceptance Criteria
 
-- [ ] `GET /repos/{id}/file-tree` 返回指定 ref 的文件树结构
-- [ ] `GET /repos/{id}/blobs/{sha}` 返回指定 SHA 的 blob 内容
-- [ ] `GET /repos/{id}/commits` 返回 commit 列表（按时间倒序）
-- [ ] `GET /repos/{id}/diff` 返回两 ref 间的 diff
-- [ ] 所有 GET endpoints 接受 `?ref=` 参数，默认 `main`
-- [ ] 跨 tenant 访问私有 repo → 403
-- [ ] 公开 repo 跨 tenant list 可见，但 blobs 需权限校验
-- [ ] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
+- [x] `GET /repos/{id}/file-tree` 返回指定 ref 的文件树结构
+- [x] `GET /repos/{id}/blobs/{sha}` 返回指定 SHA 的 blob 内容
+- [x] `GET /repos/{id}/commits` 返回 commit 列表（按时间倒序）
+- [x] `GET /repos/{id}/diff` 返回两 ref 间的 diff
+- [x] 所有 GET endpoints 接受 `?ref=` 参数，默认 `main`
+- [x] 跨 tenant 访问私有 repo → 403
+- [x] 公开 repo 跨 tenant list 可见，但 blobs 需权限校验
+- [x] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
 
 ### BDD 验收场景
 
