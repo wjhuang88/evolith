@@ -7,6 +7,7 @@
 
 - 建立脚本发布说明制度。后续脚本行为变更需要记录用途、影响范围、验证方式和注意事项。
 - **`scripts/dev.sh`**: 前端本地启动从旧 Next.js `localhost:3000` 调整为 Vite + Bun 默认 `localhost:3001`，使用 `bun install` / `bun run dev`，支持通过 `FRONTEND_PORT` 覆盖；状态输出和 ready banner 同步使用该端口。验证：脚本语法检查和前端构建。
+- **`backend/Dockerfile`**: 生产运行时镜像（`debian:bookworm-slim`）新增 `git` 包。Smart HTTP 端点（`git-upload-pack` / `git-receive-pack`）通过 `git` CLI 子进程执行，运行时必须安装 `git`。影响范围：生产 Docker 部署。验证：`docker run --rm <image> git --version` 应输出 git 版本。
 
 ## v0.2.0 — dev.sh 嵌入式前端死代码清理 + 单端口 lite 模式 (2026-06-03)
 

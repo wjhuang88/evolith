@@ -19,9 +19,58 @@ pub enum GitStorageError {
     },
     #[error("Base path not configured")]
     NoBasePath,
+    #[error("Git subprocess error: {0}")]
+    SubprocessError(String),
+    #[error("Invalid git service: {0}")]
+    InvalidService(String),
 }
 
 pub type Result<T> = std::result::Result<T, GitStorageError>;
+
+/// Smart HTTP git service types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GitService {
+    UploadPack,
+    ReceivePack,
+}
+
+impl GitService {
+    pub fn parse_service(s: &str) -> Option<Self> {
+        match s {
+            "git-upload-pack" => Some(GitService::UploadPack),
+            "git-receive-pack" => Some(GitService::ReceivePack),
+            _ => None,
+        }
+    }
+
+    pub fn command_name(&self) -> &'static str {
+        match self {
+            GitService::UploadPack => "upload-pack",
+            GitService::ReceivePack => "receive-pack",
+        }
+    }
+
+    pub fn service_name(&self) -> &'static str {
+        match self {
+            GitService::UploadPack => "git-upload-pack",
+            GitService::ReceivePack => "git-receive-pack",
+        }
+    }
+
+    pub fn content_type_advertisement(&self) -> &'static str {
+        match self {
+            GitService::UploadPack => "application/x-git-upload-pack-advertisement",
+            GitService::ReceivePack => "application/x-git-receive-pack-advertisement",
+        }
+    }
+
+    pub fn content_type_result(&self) -> &'static str {
+        match self {
+            GitService::UploadPack => "application/x-git-upload-pack-result",
+            GitService::ReceivePack => "application/x-git-receive-pack-result",
+        }
+    }
+}
 
 pub fn repo_path(base_path: &Path, tenant_id: Uuid, repo_id: Uuid) -> PathBuf {
     base_path
@@ -92,4 +141,62 @@ pub fn remove_repo(storage_path: &Path) -> Result<()> {
         path: storage_path.display().to_string(),
         source: e,
     })
+}
+
+/// Run `git <service> --advertise-refs --stateless-rpc <repo_path>` and return
+/// the output with Smart HTTP pkt-line prefix prepended.
+pub async fn advertise_refs(repo_path: &Path, service: GitService) -> Result<Vec<u8>> {
+    let output = tokio::process::Command::new("git")
+        .args([
+            service.command_name(),
+            "--advertise-refs",
+            "--stateless-rpc",
+            repo_path.to_str().ok_or_else(|| {
+                GitStorageError::SubprocessError("repo_path contains invalid UTF-8".into())
+            })?,
+        ])
+        .output()
+        .await
+        .map_err(|e| GitStorageError::SubprocessError(format!("git subprocess failed: {e}")))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(GitStorageError::SubprocessError(format!(
+            "git {} exited with status {}: {}",
+            service.command_name(),
+            output.status,
+            stderr.trim()
+        )));
+    }
+
+    let mut result = Vec::new();
+
+    let svc_line = format!("# service={}\n", service.service_name());
+    let pkt_len = 4 + svc_line.len();
+    result.extend(format!("{:04x}{}", pkt_len, svc_line).as_bytes());
+    result.extend(b"0000");
+
+    result.extend(output.stdout);
+
+    Ok(result)
+}
+
+/// Spawn `git <service> --stateless-rpc <repo_path>` and return the `Child` handle.
+/// The caller pipes request body into `child.stdin` and streams `child.stdout` to the response.
+pub async fn spawn_rpc(repo_path: &Path, service: GitService) -> Result<tokio::process::Child> {
+    let child = tokio::process::Command::new("git")
+        .args([
+            service.command_name(),
+            "--stateless-rpc",
+            repo_path.to_str().ok_or_else(|| {
+                GitStorageError::SubprocessError("repo_path contains invalid UTF-8".into())
+            })?,
+        ])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| GitStorageError::SubprocessError(format!("git subprocess failed: {e}")))?;
+
+    Ok(child)
 }

@@ -7,6 +7,7 @@ pub mod api_keys;
 pub mod audit;
 pub mod auth;
 pub mod billing;
+pub mod git_smart_http;
 pub mod health;
 pub mod mcp;
 pub mod members;
@@ -24,6 +25,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .configure(health::configure)
         // MCP endpoint - requires API key auth, handled separately
         .service(web::scope("/mcp").configure(mcp::configure))
+        // Smart HTTP git endpoints at /repos/ (auth-required via global rbac_middleware)
+        .service(web::scope("/repos").configure(git_smart_http::configure))
         .service(
             web::scope("/api/v1")
                 // Auth routes - public (login, register)

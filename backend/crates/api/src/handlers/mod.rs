@@ -4,6 +4,7 @@ pub mod api_key_handlers;
 pub mod audit_handlers;
 pub mod auth;
 pub mod billing_handlers;
+pub mod git_smart_http_handlers;
 pub mod health;
 pub mod mcp_handlers;
 pub mod members;

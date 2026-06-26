@@ -62,6 +62,7 @@ repository = "https://github.com/wjhuang88/evolith"
 [workspace.dependencies]
 # Async runtime
 tokio = { version = "1.49.0", features = ["full"] }
+tokio-stream = "0.1"
 futures-util = "0.3"
 
 # Embedded frontend

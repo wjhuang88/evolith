@@ -30,6 +30,8 @@ prometheus.workspace = true
 sha2.workspace = true
 hex.workspace = true
 base64 = "0.22"
+futures-util.workspace = true
+tokio-stream.workspace = true
 
 # Internal crates
 service-tool.workspace = true
@@ -47,3 +49,8 @@ common.workspace = true
 sqlx.workspace = true
 actix-rt = "2"
 tempfile = "3"
+base64 = "0.22"
+sha2.workspace = true
+hex.workspace = true
+futures-util.workspace = true
+tokio-stream.workspace = true
