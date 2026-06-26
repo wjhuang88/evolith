@@ -28,7 +28,38 @@ pub enum GitStorageError {
     InvalidService(String),
     #[error("Read error: {0}")]
     ReadError(String),
+    #[error("Resource exceeded: {0}")]
+    ResourceExceeded(String),
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+    #[error("Ref or object not found: {0}")]
+    NotFound(String),
+    #[error("Git operation timed out: {0}")]
+    Timeout(String),
 }
+
+/// Maximum bytes returned by `read_blob` (EVO-116 resource bound).
+///
+/// Set deliberately so a single API call cannot blow up the response body for
+/// large binary blobs. Callers that need a larger window should switch to a
+/// future streaming endpoint.
+pub const BLOB_MAX_BYTES: usize = 1_048_576;
+
+/// Maximum entries returned by `read_file_tree` (EVO-116 resource bound).
+///
+/// Prevents pathological repos with hundreds of thousands of files from making
+/// a single Context API response unbounded.
+pub const FILE_TREE_MAX_ENTRIES: usize = 5_000;
+
+/// Maximum entries returned by `read_diff` (EVO-116 resource bound).
+pub const DIFF_MAX_ENTRIES: usize = 5_000;
+
+/// Upper bound on a single blocking gix read.
+///
+/// Wrapping `web::block` does not bound wall-clock time — the closure still
+/// runs to completion on the blocking pool. We surface a `Timeout` error
+/// instead of letting a slow disk / huge tree pin a worker indefinitely.
+pub const CONTEXT_BLOCKING_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Entry in a file tree listing.
 #[derive(Debug, Clone)]
@@ -270,9 +301,9 @@ pub fn read_file_tree(repo_path: &Path, git_ref: &str) -> Result<Vec<FileTreeEnt
         ))
     })?;
 
-    let id = repo
-        .rev_parse_single(BStr::new(git_ref))
-        .map_err(|e| GitStorageError::ReadError(format!("ref '{}' not found: {}", git_ref, e)))?;
+    let id = repo.rev_parse_single(BStr::new(git_ref)).map_err(|e| {
+        GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e))
+    })?;
 
     let commit = id
         .object()
@@ -307,11 +338,23 @@ pub fn read_file_tree(repo_path: &Path, git_ref: &str) -> Result<Vec<FileTreeEnt
         })
         .collect();
 
+    if entries.len() > FILE_TREE_MAX_ENTRIES {
+        return Err(GitStorageError::ResourceExceeded(format!(
+            "file-tree has {} entries (max {})",
+            entries.len(),
+            FILE_TREE_MAX_ENTRIES
+        )));
+    }
+
     Ok(entries)
 }
 
 /// Read a blob by its SHA (hex string).
 pub fn read_blob(repo_path: &Path, sha: &str) -> Result<Vec<u8>> {
+    if sha.trim().is_empty() {
+        return Err(GitStorageError::InvalidInput("blob sha is empty".into()));
+    }
+
     let repo = gix::open(repo_path).map_err(|e| {
         GitStorageError::ReadError(format!(
             "failed to open repo at {}: {}",
@@ -321,13 +364,22 @@ pub fn read_blob(repo_path: &Path, sha: &str) -> Result<Vec<u8>> {
     })?;
 
     let oid = gix::ObjectId::from_hex(sha.as_bytes())
-        .map_err(|e| GitStorageError::ReadError(format!("invalid sha '{}': {}", sha, e)))?;
+        .map_err(|e| GitStorageError::InvalidInput(format!("invalid sha '{}': {}", sha, e)))?;
 
     let blob = repo
         .find_blob(oid)
-        .map_err(|e| GitStorageError::ReadError(format!("blob '{}' not found: {}", sha, e)))?;
+        .map_err(|e| GitStorageError::NotFound(format!("blob '{}' not found: {}", sha, e)))?;
 
-    Ok(blob.data.to_vec())
+    let data = blob.data.to_vec();
+    if data.len() > BLOB_MAX_BYTES {
+        return Err(GitStorageError::ResourceExceeded(format!(
+            "blob size {} exceeds max {} bytes",
+            data.len(),
+            BLOB_MAX_BYTES
+        )));
+    }
+
+    Ok(data)
 }
 
 /// Read commit history starting from a ref, limited to `limit` entries (default 50, max 100).
@@ -342,9 +394,9 @@ pub fn read_commits(repo_path: &Path, git_ref: &str, limit: usize) -> Result<Vec
         ))
     })?;
 
-    let id = repo
-        .rev_parse_single(BStr::new(git_ref))
-        .map_err(|e| GitStorageError::ReadError(format!("ref '{}' not found: {}", git_ref, e)))?;
+    let id = repo.rev_parse_single(BStr::new(git_ref)).map_err(|e| {
+        GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e))
+    })?;
 
     let commit_id = id
         .object()
@@ -406,11 +458,11 @@ pub fn read_diff(repo_path: &Path, base_ref: &str, head_ref: &str) -> Result<Vec
     })?;
 
     let base_id = repo.rev_parse_single(BStr::new(base_ref)).map_err(|e| {
-        GitStorageError::ReadError(format!("base ref '{}' not found: {}", base_ref, e))
+        GitStorageError::NotFound(format!("base ref '{}' not found: {}", base_ref, e))
     })?;
 
     let head_id = repo.rev_parse_single(BStr::new(head_ref)).map_err(|e| {
-        GitStorageError::ReadError(format!("head ref '{}' not found: {}", head_ref, e))
+        GitStorageError::NotFound(format!("head ref '{}' not found: {}", head_ref, e))
     })?;
 
     let base_tree_id = base_id
@@ -473,7 +525,61 @@ pub fn read_diff(repo_path: &Path, base_ref: &str, head_ref: &str) -> Result<Vec
         })
         .collect();
 
+    if entries.len() > DIFF_MAX_ENTRIES {
+        return Err(GitStorageError::ResourceExceeded(format!(
+            "diff has {} entries (max {})",
+            entries.len(),
+            DIFF_MAX_ENTRIES
+        )));
+    }
+
     Ok(entries)
+}
+
+/// Resolve `ref_name` to a commit (oid + timestamp).
+///
+/// Used by Smart HTTP to update `git_repos.last_commit_sha` / `last_committed_at`
+/// after a successful push. Accepts both branch shorthand (e.g. `main`) and
+/// fully-qualified ref names (e.g. `refs/heads/main`).
+/// Returns `NotFound` if the ref does not exist (so the caller can log and
+/// continue without breaking the push response).
+pub fn resolve_ref(repo_path: &Path, ref_name: &str) -> Result<(String, i64)> {
+    let repo = gix::open(repo_path).map_err(|e| {
+        GitStorageError::ReadError(format!(
+            "failed to open repo at {}: {}",
+            repo_path.display(),
+            e
+        ))
+    })?;
+
+    let commit_object = if ref_name.starts_with("refs/") {
+        let reference = repo.find_reference(ref_name).map_err(|e| {
+            GitStorageError::NotFound(format!("ref '{}' not found: {}", ref_name, e))
+        })?;
+        let peeled_id = reference
+            .into_fully_peeled_id()
+            .map_err(|e| GitStorageError::ReadError(format!("failed to peel ref: {}", e)))?;
+        repo.find_commit(peeled_id).map_err(|e| {
+            GitStorageError::NotFound(format!("commit for ref '{}' not found: {}", ref_name, e))
+        })?
+    } else {
+        let id = repo.rev_parse_single(BStr::new(ref_name)).map_err(|e| {
+            GitStorageError::NotFound(format!("ref '{}' not found: {}", ref_name, e))
+        })?;
+        id.object()
+            .map_err(|e| GitStorageError::ReadError(format!("failed to resolve object: {}", e)))?
+            .into_commit()
+    };
+
+    let decoded = commit_object
+        .decode()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to decode commit: {}", e)))?;
+    let author = decoded
+        .author()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to read author: {}", e)))?;
+    let timestamp = author.time().map(|t| t.seconds).unwrap_or(0);
+    let oid_str = commit_object.id.to_string();
+    Ok((oid_str, timestamp))
 }
 
 #[cfg(test)]

@@ -1,14 +1,34 @@
 use std::path::Path;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpMessage, HttpResponse, Responder};
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::dto::common::ApiResponse;
 use crate::dto::repo_dto::*;
+use crate::middleware::api_key_scope::{api_key_allows_repo_read, api_key_allows_repo_write};
 use crate::middleware::auth::AuthenticatedUser;
 use crate::state::AppState;
+use domain::api_key::ApiKey;
 use domain::git_repo::{NewGitRepo, RepoVisibility, UpdateGitRepo};
+
+fn forbid_if_api_key_lacks(req: &actix_web::HttpRequest, write: bool) -> Option<HttpResponse> {
+    let extensions = req.extensions();
+    let api_key = extensions.get::<ApiKey>()?;
+    let allowed = if write {
+        api_key_allows_repo_write(api_key)
+    } else {
+        api_key_allows_repo_read(api_key)
+    };
+    if allowed {
+        None
+    } else {
+        Some(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "API key lacks required repository permission",
+        )))
+    }
+}
 
 fn visibility_from_str(s: &str) -> RepoVisibility {
     match s {
@@ -39,10 +59,14 @@ fn repo_to_response(repo: &domain::git_repo::GitRepo) -> RepoResponse {
 }
 
 pub async fn list_repos(
+    req: actix_web::HttpRequest,
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key_lacks(&req, false) {
+        return resp;
+    }
     let tenant_id = tenant_id.into_inner();
 
     if user.tenant_id != tenant_id {
@@ -72,11 +96,15 @@ pub async fn list_repos(
 }
 
 pub async fn create_repo(
+    req: actix_web::HttpRequest,
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
     body: web::Json<CreateRepoRequest>,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key_lacks(&req, true) {
+        return resp;
+    }
     let tenant_id = tenant_id.into_inner();
 
     if user.tenant_id != tenant_id {
@@ -159,10 +187,14 @@ pub async fn create_repo(
 }
 
 pub async fn get_repo(
+    req: actix_web::HttpRequest,
     path: web::Path<(Uuid, Uuid)>,
     user: AuthenticatedUser,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key_lacks(&req, false) {
+        return resp;
+    }
     let (tenant_id, repo_id) = path.into_inner();
 
     if user.tenant_id != tenant_id {
@@ -196,11 +228,15 @@ pub async fn get_repo(
 }
 
 pub async fn update_repo(
+    req: actix_web::HttpRequest,
     path: web::Path<(Uuid, Uuid)>,
     user: AuthenticatedUser,
     body: web::Json<UpdateRepoRequest>,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key_lacks(&req, true) {
+        return resp;
+    }
     let (tenant_id, repo_id) = path.into_inner();
 
     if user.tenant_id != tenant_id {
@@ -255,10 +291,14 @@ pub async fn update_repo(
 }
 
 pub async fn delete_repo(
+    req: actix_web::HttpRequest,
     path: web::Path<(Uuid, Uuid)>,
     user: AuthenticatedUser,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key_lacks(&req, true) {
+        return resp;
+    }
     let (tenant_id, repo_id) = path.into_inner();
 
     if user.tenant_id != tenant_id {

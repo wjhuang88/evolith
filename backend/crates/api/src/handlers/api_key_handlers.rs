@@ -1,7 +1,7 @@
 //! API Key management handlers
 //! Handles API key creation, listing, and revocation
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpMessage, HttpResponse, Responder};
 use chrono::Utc;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -9,9 +9,23 @@ use validator::Validate;
 
 use crate::dto::api_key_dto::*;
 use crate::dto::common::ApiResponse;
+use crate::middleware::api_key_scope::api_key_allows_api_key_management;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::state::AppState;
 use domain::api_key::{ApiKey, ApiKeyStatus, NewApiKey};
+
+fn forbid_if_api_key(req: &actix_web::HttpRequest) -> Option<HttpResponse> {
+    let extensions = req.extensions();
+    let api_key = extensions.get::<ApiKey>()?;
+    if api_key_allows_api_key_management(api_key) {
+        None
+    } else {
+        Some(HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "API key management requires JWT authentication",
+        )))
+    }
+}
 
 /// Generate a new API key with prefix and hash
 fn generate_api_key() -> (String, String, String) {
@@ -34,10 +48,14 @@ fn generate_api_key() -> (String, String, String) {
 
 /// List API keys for a tenant
 pub async fn list_api_keys(
+    req: actix_web::HttpRequest,
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key(&req) {
+        return resp;
+    }
     let tenant_id = tenant_id.into_inner();
 
     // Verify user has access to this tenant
@@ -91,11 +109,15 @@ pub async fn list_api_keys(
 
 /// Create a new API key
 pub async fn create_api_key(
+    req: actix_web::HttpRequest,
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
     body: web::Json<CreateApiKeyRequest>,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key(&req) {
+        return resp;
+    }
     let tenant_id = tenant_id.into_inner();
 
     // Verify user has access to this tenant
@@ -170,11 +192,15 @@ pub async fn create_api_key(
 
 /// Revoke an API key
 pub async fn revoke_api_key(
+    req: actix_web::HttpRequest,
     path: web::Path<(Uuid, Uuid)>,
     user: AuthenticatedUser,
     _body: web::Json<RevokeApiKeyRequest>,
     state: web::Data<AppState>,
 ) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key(&req) {
+        return resp;
+    }
     let (tenant_id, key_id) = path.into_inner();
 
     // Verify user has access to this tenant

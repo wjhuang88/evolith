@@ -1,5 +1,6 @@
 //! Middleware
 
+pub mod api_key_scope;
 pub mod auth;
 pub mod csrf;
 pub mod rate_limit;
@@ -8,6 +9,10 @@ pub mod request_id;
 pub mod security_headers;
 pub mod tenant;
 
+pub use api_key_scope::{
+    api_key_allows_api_key_management, api_key_allows_repo_read, api_key_allows_repo_write,
+    RepoScope,
+};
 pub use csrf::{CsrfMiddleware, CSRF_COOKIE_NAME, CSRF_HEADER_NAME};
 pub use rate_limit::{
     create_api_key_limiter, create_authenticated_limiter, create_default_limiter,

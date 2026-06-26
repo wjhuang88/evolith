@@ -24,7 +24,12 @@ This document describes the complete REST API contract for Evolith, matching the
 14. [API Keys](#api-keys)
 15. [Billing](#billing)
 16. [Audit Logs](#audit-logs)
-17. [Version History](#version-history)
+17. [Repos](#repos)
+18. [Smart HTTP (Git Protocol)](#smart-http-eVO-103)
+19. [Repo Context API](#repo-context-eVO-103-c)
+20. [API key scope](#api-key-scope-eVO-116)
+21. [Push metadata sync](#push-metadata-sync-eVO-116)
+22. [Version History](#version-history)
 
 ---
 
@@ -83,6 +88,7 @@ State-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) require CSRF validati
 - `/api/v1/auth/login`, `/api/v1/auth/register`
 - `/api/v1/auth/forgot-password`, `/api/v1/auth/reset-password`, `/api/v1/auth/verify-email`
 - `/api/v1/invitations/accept`, `/api/v1/tenant/{tenant_id}/members/join`
+- `/repos/{repo_id}/git-upload-pack` (POST), `/repos/{repo_id}/git-receive-pack` (POST) — standard git clients do not send CSRF tokens
 
 **CSRF error response:**
 ```json
@@ -171,8 +177,12 @@ client.interceptors.request.use((config) => {
 | INVALID_ID         | UUID format error                           | 400         |
 | INVALID_RUNTIME    | Unknown runtime string                      | 400         |
 | INVALID_ROLE       | Role must be admin or member                | 400         |
+| INVALID_INPUT      | Repo Context API received malformed input (e.g. invalid blob SHA hex) | 400 |
+| RESOURCE_EXCEEDED  | Repo Context API refused a request that exceeded a size or entry limit (blob > 1 MiB, file-tree > 5000 entries, diff > 5000 entries) | 413 |
+| TIMEOUT            | A blocking gix read exceeded `CONTEXT_BLOCKING_TIMEOUT` (5s) | 504 |
 | ALREADY_INVITED    | Email already has pending invitation        | 400         |
 | PLAN_NOT_FOUND     | Invalid plan ID                             | 400         |
+| REPO_EXISTS        | Repo with that name already exists in tenant | 409         |
 | DATABASE_ERROR     | Database operation failed                   | 500         |
 | INTERNAL_ERROR     | Server error                                | 500         |
 | NOT_IMPLEMENTED    | Feature not yet available                   | 501         |
@@ -1584,9 +1594,365 @@ interface ResourceUsage {
 
 ---
 
-## Audit Logs
+## Repos
 
-### `GET /api/v1/tenant/{tenant_id}/audit-logs`
+> Stable as of EVO-116. The Repo CRUD endpoints (EVO-103-A), Smart HTTP
+> git protocol endpoints (EVO-103-B-1/B-2/EVO-115), and Repo Context read
+> endpoints (EVO-103-C) are documented together here because the path
+> hierarchy shares a single `/repos/{id}` namespace.
+>
+> **Auth scope (EVO-116)**: every route accepts either a JWT session
+> cookie or an API key. API keys must carry a permission that matches
+> the route's scope (see [API key scope](#api-key-scope-eVO-116)).
+> When an API key lacks the required permission, the response is
+> `403 FORBIDDEN` with `code: "FORBIDDEN"`.
+
+### `POST /api/v1/tenant/{tenant_id}/repos`
+
+- **Auth:** JWT or API key with `repo:write` / `write` / `admin` / `commit` / `commit:*`
+- **CSRF:** required when using cookie auth
+- **Description:** Create a new git repo in the tenant. The server
+  `gix::init_bare`s the repo on disk and (if `seed_template: true`)
+  writes `.evolith/agents.yaml`, `.evolith/policy.yaml`, and
+  `README.md` at the default branch.
+
+**Request:**
+```typescript
+interface CreateRepoRequest {
+  name: string;              // 1-128 chars, unique per tenant
+  description?: string;
+  default_branch?: string;   // default "main"
+  visibility?: "public" | "private";  // default "private"
+  auto_merge?: boolean;      // default false
+  require_review?: boolean;  // default true
+  seed_template?: boolean;   // default false
+}
+```
+
+**Response:** `201 Created` with `ApiResponse<RepoResponse>` (see [Repo Types](#repo-types-eVO-103)).
+
+**Errors:**
+- `400 VALIDATION_ERROR` — invalid name
+- `403 FORBIDDEN` — cross-tenant or API key lacks `repo:write`
+- `409 REPO_EXISTS` — a repo with this name already exists in the tenant
+
+---
+
+### `GET /api/v1/tenant/{tenant_id}/repos`
+
+- **Auth:** JWT or API key with `repo:read` / `write` / `admin` / `commit` / `commit:*`
+- **CSRF:** not required (GET)
+- **Description:** List all repos for the tenant.
+
+**Response:**
+```typescript
+ApiResponse<RepoListResponse>
+interface RepoListResponse {
+  repos: RepoResponse[];
+  total: number;
+}
+```
+
+---
+
+### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}`
+
+- **Auth:** JWT or API key with `repo:read` (or any superset)
+- **CSRF:** not required (GET)
+- **Description:** Get a single repo by id.
+
+**Response:** `ApiResponse<RepoResponse>`.
+
+**Errors:**
+- `403 FORBIDDEN` — cross-tenant access
+- `404 NOT_FOUND` — repo does not exist
+
+---
+
+### `PATCH /api/v1/tenant/{tenant_id}/repos/{repo_id}`
+
+- **Auth:** JWT or API key with `repo:write` / `write` / `admin` / `commit` / `commit:*`
+- **CSRF:** required when using cookie auth
+- **Description:** Update repo metadata (name, description, default_branch,
+  visibility, auto_merge, require_review).
+
+**Request:** `UpdateRepoRequest` (all fields optional).
+
+**Response:** `ApiResponse<RepoResponse>`.
+
+---
+
+### `DELETE /api/v1/tenant/{tenant_id}/repos/{repo_id}`
+
+- **Auth:** JWT or API key with `repo:write` / `write` / `admin` / `commit` / `commit:*`
+- **CSRF:** required when using cookie auth
+- **Description:** Delete the repo (DB row + on-disk bare repo).
+- **Response:** `204 No Content`.
+
+---
+
+### Repo Types <a id="repo-types-eVO-103"></a>
+
+```typescript
+interface RepoResponse {
+  id: string;                    // UUID
+  tenant_id: string;             // UUID
+  name: string;
+  description: string;
+  default_branch: string;
+  storage_path: string;          // "{tenant_id}/{repo_id}.git" (mirror of disk path)
+  visibility: "public" | "private";
+  auto_merge: boolean;
+  require_review: boolean;
+  last_commit_sha: string | null;    // updated after each successful push to default branch
+  last_committed_at: string | null;  // ISO 8601
+  created_at: string;            // ISO 8601
+  updated_at: string;            // ISO 8601
+}
+```
+
+---
+
+## Smart HTTP (Git Protocol) <a id="smart-http-eVO-103"></a>
+
+> Standard `git` protocol over HTTP. Standard clients (CLI, libgit2,
+> Tower, SourceTree) talk to these endpoints without modification.
+> Implemented via the `git` subprocess per [ADR-0006](../decisions/ADR-0006-smart-http-via-git-subprocess.md).
+
+### Authentication
+
+- **Basic-Auth**: `Authorization: Basic base64("any:API_KEY")` — git
+  clients send the password field as the API key. The first
+  unauthorized response includes `WWW-Authenticate: Basic realm="evolith"`
+  so the client retries with URL credentials.
+- **X-API-Key header**: `X-API-Key: evo_sk_…` for non-git HTTP clients.
+- **JWT cookie**: the SPA does not normally use these endpoints.
+
+### Permission matrix
+
+| Endpoint                                | Required API key scope |
+|-----------------------------------------|------------------------|
+| `GET /repos/{id}/info/refs`             | `repo:read` (or write/admin) |
+| `POST /repos/{id}/git-upload-pack`      | `repo:read` (or write/admin) |
+| `POST /repos/{id}/git-receive-pack`     | `repo:write` / `write` / `admin` / `commit` / `commit:*` |
+
+A read-only API key calling `git-receive-pack` receives
+`403 Forbidden` ("API key lacks required repository permission") without
+the git subprocess being spawned.
+
+### `GET /repos/{repo_id}/info/refs?service=git-upload-pack|git-receive-pack`
+
+- **Auth:** JWT or API key (scope per matrix above)
+- **CSRF:** not required (GET)
+- **Response:** `Content-Type: application/x-git-{upload,receive}-pack-advertisement` with Smart HTTP pkt-line advertisement.
+
+### `POST /repos/{repo_id}/git-upload-pack`
+
+- **Auth:** JWT or API key with `repo:read` (or write/admin)
+- **CSRF:** exempt (standard git clients do not send CSRF)
+- **Description:** Streaming clone/fetch endpoint. Pipes request body
+  to `git upload-pack --stateless-rpc <path>` stdin and streams stdout
+  to the response. Subprocess timeout: 30s.
+
+### `POST /repos/{repo_id}/git-receive-pack`
+
+- **Auth:** JWT or API key with `repo:write` / `write` / `admin` / `commit` / `commit:*`
+- **CSRF:** exempt (standard git clients do not send CSRF)
+- **Description:** Streaming push endpoint. Pipes request body to
+  `git receive-pack --stateless-rpc <path>` stdin and streams stdout
+  to the response. Subprocess timeout: 30s. After a successful push
+  to the default branch, the server updates
+  `git_repos.last_commit_sha` / `last_committed_at` in the background
+  (see [Push metadata sync](#push-metadata-sync-eVO-116)); a failure
+  to update metadata is logged but does not fail the push.
+
+### `Content-Type` advertisement types
+
+- `application/x-git-upload-pack-advertisement` (refs advertisement)
+- `application/x-git-upload-pack-result` (pack data stream)
+- `application/x-git-receive-pack-advertisement`
+- `application/x-git-receive-pack-result`
+
+### Subprocess safety
+
+- Fixed `Command::new("git")` with an explicit argument vector; no shell.
+- `repo_path` always comes from `service_git::repo_path(base, tenant_id, repo_id)` — never from URL.
+- 30-second wall-clock timeout via `tokio::time::timeout` + `kill_on_drop(true)` + stderr drain.
+- `git_service` parameter is enum-validated (`git-upload-pack` | `git-receive-pack`); other values are rejected.
+
+---
+
+## Repo Context API <a id="repo-context-eVO-103-c"></a>
+
+> Read-only git queries over the bare repo. Backed by the `gix` crate.
+> Implemented in `service-git` and exposed via `repo_context_handlers`.
+
+### Authentication and scope
+
+- **Auth:** JWT or API key with `repo:read` (or any superset).
+- An `execute`-only or unrelated API key receives `403 FORBIDDEN`; the
+  repo path and ref resolution error are not leaked.
+
+### Resource bounds (EVO-116)
+
+| Resource                | Limit                        | On exceed |
+|-------------------------|------------------------------|-----------|
+| Blob response size      | `BLOB_MAX_BYTES` = 1 MiB     | `413 RESOURCE_EXCEEDED` (body never read past limit) |
+| File-tree entries       | `FILE_TREE_MAX_ENTRIES` = 5000 | `413 RESOURCE_EXCEEDED` |
+| Diff entries            | `DIFF_MAX_ENTRIES` = 5000     | `413 RESOURCE_EXCEEDED` |
+| Blocking gix read       | `CONTEXT_BLOCKING_TIMEOUT` = 5s | `504 TIMEOUT` (returns control to client) |
+| Commits limit (existing)| clamped to `[1, 100]`        | clamp only |
+
+### Error mapping
+
+| gix failure                     | HTTP status | Code                |
+|---------------------------------|-------------|---------------------|
+| Ref not found (file-tree, diff) | 404         | `NOT_FOUND`         |
+| Invalid blob SHA hex            | 400         | `INVALID_INPUT`     |
+| Empty blob SHA                  | 400         | `INVALID_INPUT`     |
+| Blob SHA not found              | 404         | `NOT_FOUND`         |
+| Resource bound exceeded         | 413         | `RESOURCE_EXCEEDED` |
+| Blocking gix read timeout       | 504         | `TIMEOUT`           |
+| Any other gix read error        | 500         | `INTERNAL_ERROR`    |
+
+### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}/file-tree?ref={ref}`
+
+- **Auth:** JWT or API key with `repo:read`
+- **CSRF:** not required (GET)
+- **Description:** Breadth-first recursive listing of the tree at `ref`.
+  Default `ref` is `repo.default_branch`.
+
+**Response:**
+```typescript
+ApiResponse<FileTreeResponse>
+interface FileTreeResponse {
+  entries: FileTreeEntryDto[];
+}
+interface FileTreeEntryDto {
+  name: string;        // path relative to repo root
+  kind: "blob" | "tree";
+  oid: string;         // 40-char hex
+  is_tree: boolean;
+}
+```
+
+---
+
+### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}/blobs/{sha}`
+
+- **Auth:** JWT or API key with `repo:read`
+- **CSRF:** not required (GET)
+- **Description:** Return blob content at `sha`. The blob is loaded
+  via `gix::find_blob`; if its size exceeds `BLOB_MAX_BYTES` the server
+  returns `413` without sending the body.
+
+**Response:**
+```typescript
+ApiResponse<BlobResponse>
+interface BlobResponse {
+  content: string;     // utf-8 text or base64 (see encoding)
+  size: number;        // bytes
+  encoding: "utf-8" | "base64";
+}
+```
+
+The server chooses `base64` for blobs containing NUL bytes, `utf-8` otherwise.
+
+**Errors:**
+- `400 INVALID_INPUT` — `sha` is empty or not a 40-char hex string
+- `404 NOT_FOUND` — blob does not exist in the repo
+- `413 RESOURCE_EXCEEDED` — blob size > `BLOB_MAX_BYTES`
+
+---
+
+### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}/commits?ref={ref}&limit={n}`
+
+- **Auth:** JWT or API key with `repo:read`
+- **CSRF:** not required (GET)
+- **Description:** Walk ancestors of `ref` (default = default branch),
+  newest first, up to `limit` (default 50, clamped to 100).
+
+**Response:**
+```typescript
+ApiResponse<CommitListResponse>
+interface CommitListResponse {
+  commits: CommitDto[];
+}
+interface CommitDto {
+  sha: string;
+  author_name: string;
+  author_email: string;
+  message: string;
+  timestamp: number;     // unix seconds
+}
+```
+
+---
+
+### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}/diff?base={ref}&head={ref}`
+
+- **Auth:** JWT or API key with `repo:read`
+- **CSRF:** not required (GET)
+- **Description:** Tree diff between `base` and `head`. Refs may be
+  branch shorthand (`main`) or fully-qualified (`refs/heads/main`)
+  or commit SHAs. `gix::diff_tree_to_tree` is used.
+
+**Response:**
+```typescript
+ApiResponse<DiffResponse>
+interface DiffResponse {
+  entries: DiffEntryDto[];
+}
+interface DiffEntryDto {
+  path: string;
+  change_type: "added" | "deleted" | "modified";
+  old_oid: string;
+  new_oid: string;
+}
+```
+
+---
+
+## API key scope <a id="api-key-scope-eVO-116"></a>
+
+> Single source of truth: `backend/crates/api/src/middleware/api_key_scope.rs`.
+
+| Permission token                     | Read | Write | Manage keys |
+|--------------------------------------|:----:|:-----:|:-----------:|
+| `read` / `repo:read`                 |  ✓   |       |             |
+| `write` / `repo:write`               |  ✓   |  ✓    |             |
+| `admin`                              |  ✓   |  ✓    |             |
+| `commit` / `commit:*`                |  ✓   |  ✓    |             |
+| `execute`                            |      |       |             |
+| (empty / unrelated)                  |      |       |             |
+
+**Notes:**
+- **API keys are NEVER allowed to manage other API keys** regardless
+  of permissions. The `/api-keys` routes are JWT-only; an API key
+  caller receives `403 FORBIDDEN`.
+- Read-only keys can `git clone` / `git fetch` (Smart HTTP read
+  endpoints) and can call the Repo Context `GET` endpoints.
+- Read-only keys CANNOT call `git push` (`git-receive-pack`) and
+  CANNOT call Repo CRUD `POST/PATCH/DELETE`.
+
+---
+
+## Push metadata sync <a id="push-metadata-sync-eVO-116"></a>
+
+> After a successful `git push` to the default branch via
+> `POST /repos/{repo_id}/git-receive-pack`, the server resolves
+> `refs/heads/{default_branch}` via gix and updates
+> `git_repos.last_commit_sha` and `last_committed_at`.
+
+- This runs in the same detached task that streams the Smart HTTP
+  response; it does not delay the push response.
+- Pushes to a non-default branch do NOT update default-branch metadata
+  (per-branch metadata is future work).
+- If the metadata update fails (e.g. resolve error, DB write error,
+  timeout), the failure is logged at WARN level and the push response
+  is NOT affected. The repo continues to function; the next successful
+  push to the default branch will reconcile.
+- Implementation: `git_smart_http_handlers::update_repo_metadata_after_push`.
 
 - **Auth:** JWT (admin only)
 - **Description:** List audit logs
@@ -1633,6 +1999,7 @@ interface AuditLogResponse {
 
 ## Version History
 
+- **2026-06-26:** EVO-116 / Iteration 049 — added Repos, Smart HTTP, Repo Context API, API key scope, and Push metadata sync sections; documented `INVALID_INPUT`, `RESOURCE_EXCEEDED`, `TIMEOUT`, `REPO_EXISTS` error codes; added `/repos/{id}/git-upload-pack` and `/repos/{id}/git-receive-pack` to CSRF-exempt paths. `cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings` green.
 - **2026-05-27:** Removed ⚠️ markers from `send-verify`, `verify-email` (implemented in Iteration 009) and `PUT /skills/{id}` (implemented in Iteration 010). Added response shapes and error codes. Synced with EVO-040 / Iteration 021.
 - **2026-03-15:** Phase 6 updates — Added Authentication section documenting cookie-based auth (httpOnly `evolith_token` + `csrf_token`), CSRF protection (double-submit cookie pattern), `X-CSRF-Token` header requirement. Added `CSRF_ERROR` to error codes. Updated login/register/logout/refresh descriptions to mention cookie behavior. Updated Table of Contents.
 - **2026-03-15:** Phase 3 updates — Added `/health/live` and `/health/ready` endpoints. Added Common Headers section (`X-Request-ID`). Added Rate Limiting section (429 responses). Updated Table of Contents. Health endpoint now returns `status`+`version` directly (not wrapped in `ApiResponse`).

@@ -1,11 +1,13 @@
 use std::path::Path;
 
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse};
+use chrono::{TimeZone, Utc};
 use domain::api_key::ApiKey;
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc;
 
+use crate::middleware::api_key_scope::{api_key_allows_repo_read, api_key_allows_repo_write};
 use crate::middleware::auth::AuthenticatedUser;
 use crate::state::AppState;
 
@@ -143,6 +145,13 @@ async fn handle_rpc(
         return HttpResponse::NotFound().body("Repo not found on disk");
     }
 
+    let default_branch = repo.default_branch.clone();
+    let repo_id_for_meta = repo.id;
+    let state_for_meta = state.clone();
+    let abs_path_for_meta = abs_path.clone();
+    let service_for_meta = service;
+    let user_tenant_for_meta = user.tenant_id;
+
     let mut child = match spawn_rpc(&abs_path, service).await {
         Ok(c) => c,
         Err(e) => {
@@ -190,6 +199,7 @@ async fn handle_rpc(
         drop(stdin);
     });
 
+    let default_branch_for_meta = default_branch.clone();
     actix_web::rt::spawn(async move {
         let mut buf = vec![0u8; 8192];
         let stderr_drain = actix_web::rt::spawn(async move {
@@ -232,6 +242,8 @@ async fn handle_rpc(
         })
         .await;
 
+        let push_succeeded = matches!(&rpc_result, Ok(Ok(status)) if status.success());
+
         match rpc_result {
             Ok(Ok(status)) if !status.success() => {
                 tracing::warn!("git subprocess exited with status: {}", status);
@@ -254,6 +266,17 @@ async fn handle_rpc(
             _ => {}
         }
 
+        if push_succeeded && service_for_meta == GitService::ReceivePack {
+            update_repo_metadata_after_push(
+                &state_for_meta,
+                repo_id_for_meta,
+                user_tenant_for_meta,
+                &default_branch_for_meta,
+                &abs_path_for_meta,
+            )
+            .await;
+        }
+
         stderr_drain.abort();
         stdin_task.abort();
     });
@@ -265,38 +288,95 @@ async fn handle_rpc(
         .streaming(output_stream)
 }
 
+async fn update_repo_metadata_after_push(
+    state: &web::Data<AppState>,
+    repo_id: uuid::Uuid,
+    user_tenant_id: uuid::Uuid,
+    default_branch: &str,
+    abs_path: &Path,
+) {
+    let ref_name = format!("refs/heads/{}", default_branch);
+    let path_for_blocking = abs_path.to_path_buf();
+    let ref_name_for_blocking = ref_name.clone();
+    let resolve = web::block(move || service_git::resolve_ref(&path_for_blocking, &ref_name_for_blocking));
+    let resolved = match tokio::time::timeout(
+        service_git::CONTEXT_BLOCKING_TIMEOUT,
+        resolve,
+    )
+    .await
+    {
+        Ok(Ok(resolved)) => resolved,
+        Ok(Err(e)) => {
+            tracing::warn!(
+                "push metadata resolve_ref error for repo {}: {}",
+                repo_id,
+                e
+            );
+            return;
+        }
+        Err(_) => {
+            tracing::warn!(
+                "push metadata resolve_ref timed out for repo {} after {}s",
+                repo_id,
+                service_git::CONTEXT_BLOCKING_TIMEOUT.as_secs()
+            );
+            return;
+        }
+    };
+
+    let (sha, timestamp) = match resolved {
+        Ok(t) => t,
+        Err(e) => {
+            tracing::warn!(
+                "push metadata: cannot resolve default branch ref '{}' for repo {}: {}",
+                ref_name,
+                repo_id,
+                e
+            );
+            return;
+        }
+    };
+
+    let committed_at = Utc.timestamp_opt(timestamp, 0).single().unwrap_or_else(Utc::now);
+    if let Err(e) = state
+        .git_repo_repo
+        .update_last_commit(repo_id, &sha, committed_at)
+        .await
+    {
+        tracing::warn!(
+            "push metadata update failed for repo {} (push already succeeded): {}",
+            repo_id,
+            e
+        );
+        return;
+    }
+
+    tracing::info!(
+        "push metadata updated for repo {} (tenant={}): {} @ {}",
+        repo_id,
+        user_tenant_id,
+        &sha[..sha.len().min(12)],
+        committed_at.to_rfc3339()
+    );
+}
+
 fn authorize_git_service(req: &HttpRequest, service: GitService) -> Result<(), HttpResponse> {
-    let api_key = req.extensions().get::<ApiKey>().cloned();
-    let Some(api_key) = api_key else {
-        return Ok(());
+    let extensions = req.extensions();
+    let api_key = match extensions.get::<ApiKey>() {
+        Some(k) => k,
+        None => return Ok(()),
     };
 
     let allowed = match service {
-        GitService::UploadPack => api_key_allows_repo_read(&api_key),
-        GitService::ReceivePack => api_key_allows_repo_write(&api_key),
+        GitService::UploadPack => api_key_allows_repo_read(api_key),
+        GitService::ReceivePack => api_key_allows_repo_write(api_key),
     };
 
     if allowed {
         Ok(())
     } else {
-        Err(HttpResponse::Forbidden().body("API key lacks required repository permission"))
+        Err(HttpResponse::Forbidden()
+            .insert_header(("Content-Type", "text/plain; charset=utf-8"))
+            .body("API key lacks required repository permission"))
     }
-}
-
-fn api_key_allows_repo_read(api_key: &ApiKey) -> bool {
-    api_key.permissions.iter().any(|permission| {
-        matches!(
-            permission.as_str(),
-            "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit"
-        ) || permission.starts_with("commit:")
-    })
-}
-
-fn api_key_allows_repo_write(api_key: &ApiKey) -> bool {
-    api_key.permissions.iter().any(|permission| {
-        matches!(
-            permission.as_str(),
-            "write" | "repo:write" | "admin" | "commit"
-        ) || permission.starts_with("commit:")
-    })
 }
