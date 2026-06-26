@@ -65,7 +65,8 @@
 - [ ] `git push` 成功推送 commits 到远程仓库 — 真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
 - [ ] `git pull` 成功拉取远程更新 — 真实 git-client E2E 待 WWW-Authenticate（→ EVO-115）
 - [x] 跨 tenant repo → 403/404（RBAC middleware 覆盖）
-- [x] subprocess timeout enforced（`tokio::time::timeout`）
+- [x] subprocess timeout enforced（`tokio::time::timeout` + `kill_on_drop(true)`；`service-git` timeout 单测覆盖）
+- [x] API key 权限边界：read-only key 可读但不能 advertise / call `git-receive-pack`（handler 级测试覆盖）
 - [x] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
 - [x] `docs/reference/SCRIPTS-RELEASE-NOTES.md` 已更新（Docker 镜像新增 git 包）
 
@@ -77,6 +78,7 @@
 4. **协议观察**：info/refs 请求返回 `application/x-git-upload-pack-advertisement` 或 `application/x-git-receive-pack-advertisement` content-type。
 5. **跨租户隔离**：非所属 tenant 的 repo 访问 → 403/404。
 6. **超时强制**：subprocess 超时后请求被终止，不挂起服务。
+7. **权限边界**：Basic-Auth API key 请求必须使用现有 `permissions` 字段；read-only key 不得获得 push / receive-pack 能力。
 
 ## Validation Evidence Required
 

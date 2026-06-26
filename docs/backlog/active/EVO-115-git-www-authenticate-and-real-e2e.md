@@ -37,6 +37,7 @@ EVO-103-B-2 实现了 3 个 Smart HTTP 端点并通过 handler 级测试验证�
 
 - 依赖 EVO-103-B-2（Review）：3 个 Smart HTTP 端点已实现，handler 级测试通过。
 - 依赖 EVO-103-B-1（Done）：Basic-Auth 基础设施已就绪。
+- 前置边界：EVO-103-B-2 已要求 Basic-Auth API key 使用现有 `permissions` 字段；真实 push E2E 必须使用具备 `repo:write` / `write` / `commit` / `admin` 权限的 key，read-only key 应保持 receive-pack forbidden。
 
 ## Governing ADRs, Specs Or Decisions
 
@@ -47,7 +48,7 @@ EVO-103-B-2 实现了 3 个 Smart HTTP 端点并通过 handler 级测试验证�
 - [ ] `/repos/` 路径 401 响应包含 `WWW-Authenticate: Basic realm="evolith"` header
 - [ ] `test_git_clone_push_pull_e2e` 解禁（移除 `#[ignore]`）并通过
 - [ ] `git clone http://user:apikey@host/repos/{id}` 成功（exit 0）
-- [ ] `git push` 成功推送 commits
+- [ ] 使用具备写权限的 API key 时，`git push` 成功推送 commits
 - [ ] `git pull` 成功拉取远程更新
 - [ ] `cargo test --workspace` 全绿
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings` 0 errors

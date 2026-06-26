@@ -33,21 +33,23 @@
 ### Story 格式与 BDD 适用性
 
 - [x] EVO-103-B-2 标 API/协议形态（git smart HTTP 协议端点）；BDD 不适用，使用等价技术验收。
-- [x] 9 条 acceptance + 6 条等价技术验收（E2E clone/push/pull）已在 [EVO-103-B-2 item file](../backlog/active/EVO-103-B-2-smart-http-endpoints.md) 中定义。
-- [x] 技术验收：`cargo test --workspace` 全绿 + `cargo clippy --workspace --all-targets -- -D warnings` 0 errors + 真实 git CLI E2E。
+- [x] 10 条 acceptance + 7 条等价技术验收（E2E clone/push/pull + subprocess/权限边界）已在 [EVO-103-B-2 item file](../backlog/active/EVO-103-B-2-smart-http-endpoints.md) 中定义。
+- [x] 技术验收：`cargo test --workspace` 全绿 + `cargo clippy --workspace --all-targets -- -D warnings` 0 errors。
+- [ ] 真实 git CLI E2E（clone/push/pull）仍待 EVO-115 解锁 `WWW-Authenticate: Basic` 后完成。
 
 ### EVO-103-B-2 验收（来自 item file）
 
-- [ ] `GET /repos/{id}/info/refs` 返回正确 content-type（`application/x-git-*-advertisement`），git 客户端可解析
+- [x] `GET /repos/{id}/info/refs` 返回正确 content-type（`application/x-git-*-advertisement`），git 客户端可解析（handler 级测试验证）
 - [ ] `POST /repos/{id}/git-upload-pack` 流式返回 packfile 结果（`application/x-git-upload-pack-result`）
 - [ ] `POST /repos/{id}/git-receive-pack` 流式返回 receive-pack 结果（`application/x-git-receive-pack-result`）
 - [ ] `git clone http://host/repos/{id}` 成功克隆（exit 0）
 - [ ] `git push` 成功推送 commits 到远程仓库
 - [ ] `git pull` 成功拉取远程更新
-- [ ] 跨 tenant repo → 403/404
-- [ ] subprocess timeout enforced（`tokio::time::timeout`）
-- [ ] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
-- [ ] `docs/reference/SCRIPTS-RELEASE-NOTES.md` 已更新（Docker 镜像新增 git 包）
+- [x] 跨 tenant repo → 403/404
+- [x] subprocess timeout enforced（`tokio::time::timeout` + `kill_on_drop(true)`；`service-git` timeout 单测覆盖）
+- [x] Basic-Auth API key read-only 权限不得获得 receive-pack / push 能力（handler 级测试覆盖）
+- [x] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
+- [x] `docs/reference/SCRIPTS-RELEASE-NOTES.md` 已更新（Docker 镜像新增 git 包）
 
 ### 等价技术验收（替代 BDD）
 
@@ -57,6 +59,7 @@
 4. **协议观察**：info/refs 请求返回 `application/x-git-upload-pack-advertisement` 或 `application/x-git-receive-pack-advertisement` content-type。
 5. **跨租户隔离**：非所属 tenant 的 repo 访问 → 403/404。
 6. **超时强制**：subprocess 超时后请求被终止，不挂起服务。
+7. **权限边界**：Basic-Auth API key 请求必须使用现有 `permissions` 字段；read-only key 不得获得 push / receive-pack 能力。
 
 ## 5. 发布计划基线：计划验证
 
@@ -76,7 +79,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 | 风险 | 处理 |
 |------|------|
-| subprocess 安全（Command::new("git") 无 shell，固定参数向量，repo_path 从 DB 按 id 查找不从 URL，tokio::time::timeout 防挂起） | 使用 `Command::new("git")`（NO shell），固定参数向量，repo_path 通过 DB 按 repo id 查找（绝不从 URL 读取），不透明 body 传入 stdin，`tokio::time::timeout` 防止挂起。service 参数验证为枚举 {upload-pack, receive-pack}。 |
+| subprocess 安全（Command::new("git") 无 shell，固定参数向量，repo_path 从 DB 按 id 查找不从 URL，tokio::time::timeout 防挂起） | 使用 `Command::new("git")`（NO shell），固定参数向量，repo_path 通过 DB 按 repo id 查找（绝不从 URL 读取），不透明 body 传入 stdin，`tokio::time::timeout` + `kill_on_drop(true)` 防止挂起；stderr drain 防止子进程写满 pipe。service 参数验证为枚举 {upload-pack, receive-pack}。 |
 | Docker 加 git 改镜像（需更新 SCRIPTS-RELEASE-NOTES） | 在 `backend/Dockerfile` 的 `debian:bookworm-slim` 运行时阶段添加 `git`（`apt-get install git`）；更新 `docs/reference/SCRIPTS-RELEASE-NOTES.md`。 |
 | 流式大 packfile 内存（用 web::Payload 流式不缓冲整包） | 响应通过 `HttpResponse::Ok().insert_header(...).streaming(stream)`（返回 `HttpResponse<BoxBody>`）；请求通过 `web::Payload`。Actix-web 4.13.0。 |
 | receive-pack 改仓库内容（需验证 push 后远程有新 commit） | E2E push 验证远程仓库包含新 commit。 |
@@ -86,10 +89,10 @@ cargo clippy --workspace --all-targets -- -D warnings
 | 项目 | 本轮记录 |
 |------|----------|
 | 请求结果 | 实现 EVO-103-B-2（3 Smart HTTP 端点：info/refs + git-upload-pack + git-receive-pack，git --stateless-rpc subprocess） |
-| 产物 | 3 Smart HTTP 端点（info/refs + git-upload-pack + git-receive-pack，git --stateless-rpc subprocess）+ service-git subprocess 扩展 + actix 流式 + Docker 加 git + SCRIPTS-RELEASE-NOTES + handler 级测试 |
+| 产物 | 3 Smart HTTP 端点（info/refs + git-upload-pack + git-receive-pack，git --stateless-rpc subprocess）+ service-git subprocess 扩展 + actix 流式 + Docker 加 git + SCRIPTS-RELEASE-NOTES + handler 级测试 + subprocess timeout/stderr drain + API key read-only receive-pack 拒绝测试 |
 | 状态同步归口 | EVO-103-B-2（Review）、EVO-103-B 父项子表、PRODUCT-BACKLOG、BOARD、iterations/README、SCRIPTS-RELEASE-NOTES |
 | Story/BDD 归口 | [EVO-103-B-2 item file](../backlog/active/EVO-103-B-2-smart-http-endpoints.md)（等价技术验收：协议级） |
-| 验证证据 | cargo test 0 failures / clippy 0 errors / info_refs handler 测试通过（test_info_refs_with_basic_auth_returns_advertisement：auth 解析 + git subprocess + content-type 200） |
+| 验证证据 | cargo test 0 failures / clippy 0 errors / info_refs handler 测试通过（test_info_refs_with_basic_auth_returns_advertisement：auth 解析 + git subprocess + content-type 200）；2026-06-26 review-fix 定向验证通过：`cargo test -p service-git`、`cargo test -p api --test git_smart_http_e2e_tests test_receive_pack_with_read_only_api_key_is_forbidden` |
 | 残余工作归口 | EVO-115（WWW-Authenticate: Basic + 真实 git-client clone/push/pull E2E） |
 
 ## 8. 实际激活与执行记录
@@ -98,6 +101,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 |------|------|------|
 | 2026-06-26 | activation | Iteration inventory 完成：ITERATION-045 Closed（EVO-103-B-1 Done）；无 Active/In Progress/Review；018-020/027 Superseded；025/026 Blocked。EVO-103-B-2 依赖（B-1 Done + A Done）已满足，Proposed → Ready → In Progress，选入本轮。ITERATION-046 Active。 |
 | 2026-06-26 | progress | Driver 实现 EVO-103-B-2：3 Smart HTTP 端点（git --stateless-rpc subprocess）+ Docker 加 git + actix 流式 + SCRIPTS-RELEASE-NOTES。Navigator + 测试修复：SQLite 测试 file mode=rwc + max_connections(1)（修 migration 009 表重建跨连接 schema cache 问题）；clippy from_str→parse_service + dead_code allow；加 handler 级测试 test_info_refs_with_basic_auth（验证 auth 解析 + git subprocess + content-type）。验证：cargo test 0 failures / clippy 0 errors。状态 → Review（真实 git-client E2E 待 WWW-Authenticate，→ EVO-115）。 |
+| 2026-06-26 | review-fix | 架构评审修复：补齐 subprocess timeout 实现（`tokio::time::timeout` + `kill_on_drop(true)` + stderr drain）和 API key 权限边界（read-only key 不得 receive-pack）。验证：`cargo test -p service-git` 通过；`cargo test -p api --test git_smart_http_e2e_tests` 通过（真实 git-client E2E 仍按 EVO-115 ignored）；`cargo test -p api` 通过；`cargo test --workspace` 通过；`cargo clippy --workspace --all-targets -- -D warnings` 通过。 |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 
@@ -125,9 +129,9 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ## 10. Review
 
-- 完成：3 Smart HTTP 端点（info/refs + git-upload-pack + git-receive-pack，git --stateless-rpc subprocess）+ service-git subprocess 扩展 + actix 流式 + Docker 加 git + SCRIPTS-RELEASE-NOTES + handler 级测试（test_info_refs_with_basic_auth_returns_advertisement）
+- 完成：3 Smart HTTP 端点（info/refs + git-upload-pack + git-receive-pack，git --stateless-rpc subprocess）+ service-git subprocess 扩展 + actix 流式 + Docker 加 git + SCRIPTS-RELEASE-NOTES + handler 级测试（test_info_refs_with_basic_auth_returns_advertisement）+ subprocess timeout/stderr drain + API key read-only receive-pack 拒绝测试
 - 未完成：真实 git-client clone/push/pull E2E（git 客户端等待服务器 401 返回 `WWW-Authenticate: Basic` challenge，当前 rbac_middleware 401 缺少该 header）
-- 验证结果：cargo test 0 failures / clippy 0 errors / info_refs handler 测试通过（auth 解析 + git subprocess + content-type 200）
+- 验证结果：cargo test 0 failures / clippy 0 errors / info_refs handler 测试通过（auth 解析 + git subprocess + content-type 200）；2026-06-26 review-fix 验证通过：`cargo test -p service-git`、`cargo test -p api --test git_smart_http_e2e_tests`、`cargo test -p api`、`cargo test --workspace`、`cargo clippy --workspace --all-targets -- -D warnings`
 - 闭环状态：`Partial`（实现完成并 handler 验证；真实 git 客户端 E2E + WWW-Authenticate 归口 EVO-115，完成后转 Done）
 - 残余归口：EVO-115（WWW-Authenticate + 真实 git-client E2E）、gix PR#2465 migration、receive-pack 永久 subprocess、SSH/LFS Phase 5
 

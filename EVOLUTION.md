@@ -29,6 +29,15 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-26 - Smart HTTP 安全不变量必须有代码级门禁和测试
+
+- Trigger: EVO-103-B-2 架构评审发现 ADR/item file 声明了 subprocess timeout，且 backlog 已勾选完成，但 `service-git` 实现没有 timeout；同时 Basic-Auth API key 解析后丢弃 `permissions`，read-only key 会被提升为可 receive-pack 的 tenant member。
+- Symptom: 文档声称 `tokio::time::timeout` 防挂起，实际 `git` subprocess 可无限等待；现有 API key 默认权限为 `read`，但 Smart HTTP 只检查 tenant_id，相当于让 read-only key 获得 push 能力。
+- Root cause: 安全不变量写在 ADR/验收里，但没有落到 service 边界和 handler 测试；RBAC middleware 只把 API key 解析成 `CurrentUser`，没有把原始 key 权限继续传递给协议 handler。
+- Fix: `service-git` 对 advertise refs 使用 `tokio::time::timeout` + `kill_on_drop(true)`；RPC streaming 增加 timeout、stderr drain 和 timeout error；RBAC 把解析出的 `ApiKey` 放入 request extensions，Smart HTTP handler 按 `permissions` 拦截 read-only key 的 receive-pack。新增 `service-git` timeout 单测和 read-only receive-pack forbidden handler 测试。
+- Prevention: Smart HTTP / subprocess / auth 相关 ADR 里的安全不变量必须对应代码级门禁和测试，不能只在 backlog 勾选；协议 handler 需要权限细分时，不要只依赖降维后的 `CurrentUser`。
+- Promoted to rule/check: `service-git` timeout test；`git_smart_http_e2e_tests::test_receive_pack_with_read_only_api_key_is_forbidden`；EVO-103-B-2 / ITERATION-046 验收记录同步。
+
 ### 2026-06-25 - actix-web 全局中间件 async 预处理 soundness 陷阱
 
 - Trigger: EVO-103-B-1 实现全局 RBAC 中间件，需要在调用内部 service 前做 async DB 查找（API-key 解析）。
