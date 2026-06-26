@@ -16,7 +16,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| None | - | - | - |
+| EVO-103-B-2 Smart HTTP Endpoints（git subprocess） | Review | [EVO-103-B-2](backlog/active/EVO-103-B-2-smart-http-endpoints.md)<br>[Iteration 046](iterations/ITERATION-046.md) | 实现完成并 handler 级验证（cargo test 0 failures / clippy 0 errors / info_refs auth+subprocess+content-type 通过）；真实 git clone/push/pull E2E 待 WWW-Authenticate: Basic（→ EVO-115）。 |
 
 ## Blocked Or Paused
 
