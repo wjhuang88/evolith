@@ -29,6 +29,34 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-06-26 - API key 权限矩阵必须单文件归口（EVO-116）
+**现象**: EVO-103 架构组 Conditional Accept 指出 read-only API key 仍可触发 Repo CRUD 写接口（之前只在 Smart HTTP handler 内部硬编码 `permissions.iter().any(|p| matches!(p.as_str(), "write" | ...))`，未覆盖 REST handler）。
+**根因**: 权限字符串散落在 4 个 handler 文件（`repo_handlers` / `repo_context_handlers` / `api_key_handlers` / `git_smart_http_handlers`），任何一个 handler 漏检或新 handler 加入时容易绕开 scope 检查。`permissions` 数组还允许运营自定义 token（`commit:feature-x`），分散判断无法保证一致。
+**方案**: 抽出 `backend/crates/api/src/middleware/api_key_scope.rs` 作为单一权限矩阵 + 共享 helper（`api_key_allows_repo_read/write` / `api_key_allows_api_key_management`），handler 层用 4 个 `forbid_if_api_key_lacks` 闭包调用；权限矩阵表格以 doc 形式写入 `middleware/api_key_scope.rs` 和 `docs/reference/API-CONTRACT.md` 的 API key scope section；JWT 用户绕过 helper 不受影响。13 个 helper 单元测试 + 5 个 E2E 测试覆盖 read-only / write / execute-only / unrelated / admin / JWT 不回归 6 个场景。
+**教训**: API key / RBAC / scope 类权限判断必须有「单一权限矩阵 + 共享 helper」作为门禁；handler 层只能用 helper 函数不能直接读 permissions 数组。运营扩展权限（如 `commit:feature-x`）时只改 helper 即可，不会漏 handler。新增 API key scope story 的验收项必须包含"权限判断不散落为重复字符串判断；至少有共享 helper 或清晰的单一归口"。
+**Promoted to rule/check**: `middleware::api_key_scope::tests`（13 单元测试） + `api/tests/api_key_scope_e2e_tests.rs`（5 E2E）作为 EVO-116 关闭条件之一；ITERATION-049 Retrospective 同步。
+
+### 2026-06-26 - gix `rev_parse_single` 不接受 fully-qualified ref 名称（EVO-116）
+**现象**: 实现 Smart HTTP push metadata 同步时，`gix::rev_parse_single(BStr::new("refs/heads/main"))` 返回 `NotFound: couldn't parse revision: refs/heads/main`。
+**根因**: gix 的 `rev_parse_single` 是「revision 规格」解析器（接受 `HEAD`、`main`、`HEAD~1`、SHA 等），不接受 `refs/heads/main` 这类 fully-qualified 路径。fully-qualified ref 必须走 `repo.find_reference(name).into_fully_peeled_id()` 路径。
+**方案**: `service-git::resolve_ref` 分两路处理：`refs/` 前缀走 `find_reference + into_fully_peeled_id`；其他走 `rev_parse_single`。两种路径统一返回 `ObjectId` → `find_commit` → `(oid, timestamp)`。EVO-108 indexer 触发器复用同一函数。
+**教训**: gix 的 rev 解析 vs ref 解析是两套 API，写 `gix` 集成时必须先看 `find_reference` vs `rev_parse_single` 的语义边界。EVO-108 实现时应复用 `resolve_ref` 而不是再写一次。
+**Promoted to rule/check**: `service-git::resolve_ref` 单元/E2E 覆盖 `main` 与 `refs/heads/main` 两种写法。
+
+### 2026-06-26 - actix-web detached 任务 vs HttpServer graceful shutdown（EVO-116）
+**现象**: 写 Smart HTTP push metadata E2E 时，第一次实现用 `oneshot::Sender` 在 push 后立即发送 shutdown 信号，wait loop 等 10s 仍未看到 `last_commit_sha` 更新。
+**根因**: `actix_web::rt::spawn` 把 metadata update 任务 spawn 在当前 worker 的 runtime 上；HttpServer 的 `oneshot::Sender` 触发 shutdown 时，actix-web 只等待「当前 in-flight request handler future」完成，不会等待 detached spawn。worker runtime 在 request handler 返回后即可被回收，metadata update future 在 `child.wait()` 阶段或 `update_last_commit` SQL 阶段被 drop 掉。
+**方案**: 集成测试不再显式发送 shutdown；让 `_shutdown_tx` 变量在 test 函数末尾自然 drop（drop 不触发 server shutdown，receiver 仍在 spawn 里），test 函数返回时 actix-rt runtime 析构 → AppState 析构 → pool 析构 → server 析构，metadata update 有完整生命周期。生产环境的 HttpServer graceful drain 路径未来需要在 worker shutdown 前手动 drain detached tasks。
+**教训**: 写「HttpServer 内 detached spawn 后台任务」的测试时，不要主动 shutdown server；如果必须验证 detached 副作用，让 test 函数自然退出 + TempDir 析构清理资源。生产环境对 detached task 的 graceful drain 仍未实现，需要在后续 worker lifecycle 改造时补齐。
+**Promoted to rule/check**: `api/tests/repo_context_bounds_e2e_tests::test_push_updates_repo_default_branch_metadata` 测试 pattern 作为未来类似场景的模板。
+
+### 2026-06-26 - Resource bound + 错误映射必须 handler 层做（service-git 不应返回 HTTP code）（EVO-116）
+**现象**: EVO-103-C 实现把 `GitStorageError::ReadError(String)` 一律映射为 500。gix 内部对 invalid ref / invalid blob SHA 也会返回 `ReadError`，导致 4xx 类输入错误被吞成 500，client 无法区分「我输错了」与「服务挂了」。
+**根因**: service 层把 gix 错误混在一起包成 `ReadError(String)`，没有区分「输入错误 / 资源错误 / 内部错误」三种语义；handler 层只看到 `ReadError`，没有信息做精准 HTTP 映射。
+**方案**: `service-git` 新增 4 个语义化错误变体：`InvalidInput(String)` / `NotFound(String)` / `ResourceExceeded(String)` / `Timeout(String)`，gix 错误根据错误消息和错误类型（`find_blob` 返回 not found 时映射为 `NotFound`；`rev_parse_single` 解析失败映射为 `NotFound`；blob/file-tree/diff 超过常量上限映射为 `ResourceExceeded`；`web::block` 外层 `tokio::time::timeout` 触发时映射为 `Timeout`）。`repo_context_handlers::map_context_error` 把 4 个新变体映射为 400/404/413/504，其余 `ReadError` 仍为 500。`docs/reference/API-CONTRACT.md` 新增 4 个错误码。
+**教训**: service 层的错误枚举必须按「HTTP 语义」切分（`InvalidInput` / `NotFound` / `ResourceExceeded` / `InternalError` / `Timeout`），不要让 handler 层靠错误消息字符串做分类。新增 service 错误变体时同步更新 API contract 的错误码表格。
+**Promoted to rule/check**: `service-git` 错误枚举 7 个变体（`InitError` / `SeedWriteError` / `RemoveError` / `NoBasePath` / `SubprocessError` / `InvalidService` / `ReadError` + `ResourceExceeded` / `InvalidInput` / `NotFound` / `Timeout`），每个变体在 `repo_context_handlers::map_context_error` 有显式 HTTP 映射。
+
 ### 2026-06-26 - Smart HTTP 安全不变量必须有代码级门禁和测试
 
 - Trigger: EVO-103-B-2 架构评审发现 ADR/item file 声明了 subprocess timeout，且 backlog 已勾选完成，但 `service-git` 实现没有 timeout；同时 Basic-Auth API key 解析后丢弃 `permissions`，read-only key 会被提升为可 receive-pack 的 tenant member。
