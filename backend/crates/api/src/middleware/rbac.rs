@@ -5,6 +5,7 @@
 
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
+    error::InternalError,
     http::header,
     middleware::Next,
     web, Error, HttpMessage,
@@ -266,6 +267,22 @@ pub fn default_public_paths() -> Vec<String> {
     ]
 }
 
+/// Build an Unauthorized error. For git Smart HTTP paths (`/repos/`), the 401 carries
+/// `WWW-Authenticate: Basic` so standard git clients retry with the URL credentials
+/// (git does not send Basic creds proactively without a challenge).
+fn unauthorized_response(path: &str) -> Error {
+    if path.starts_with("/repos/") {
+        Error::from(InternalError::from_response(
+            RbacError::Unauthorized,
+            actix_web::HttpResponse::Unauthorized()
+                .append_header(("WWW-Authenticate", "Basic realm=\"evolith\""))
+                .finish(),
+        ))
+    } else {
+        Error::from(RbacError::Unauthorized)
+    }
+}
+
 /// Global RBAC auth middleware.
 ///
 /// `from_fn` passes the inner service as `next: Next<B>` (in scope across `.await`), so the
@@ -282,12 +299,12 @@ pub async fn rbac_middleware<B>(
 
     let (jwt_secret, api_key_repo) = match req.app_data::<web::Data<crate::state::AppState>>() {
         Some(state) => (state.config.jwt.secret.clone(), state.api_key_repo.clone()),
-        None => return Err(Error::from(RbacError::Unauthorized)),
+        None => return Err(unauthorized_response(&path)),
     };
 
     let (kind, token) = match extract_token(&req) {
         Some(t) => t,
-        None => return Err(Error::from(RbacError::Unauthorized)),
+        None => return Err(unauthorized_response(&path)),
     };
 
     if kind == "token" {
@@ -319,12 +336,12 @@ pub async fn rbac_middleware<B>(
             req.extensions_mut().insert(user);
             return next.call(req).await;
         }
-        return Err(Error::from(RbacError::Unauthorized));
+        return Err(unauthorized_response(&path));
     }
 
     let api_key = resolve_api_key(&token, &*api_key_repo)
         .await
-        .map_err(Error::from)?;
+        .map_err(|_| unauthorized_response(&path))?;
     let user = CurrentUser {
         user_id: api_key.user_id,
         role: "api_key".to_string(),

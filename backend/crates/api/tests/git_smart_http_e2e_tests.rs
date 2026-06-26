@@ -565,7 +565,6 @@ async fn test_receive_pack_with_read_only_api_key_is_forbidden() {
 }
 
 #[actix_rt::test]
-#[ignore = "real git-client E2E: git waits for a WWW-Authenticate: Basic challenge on 401 for /repos/ (standard git-server behavior); handler-level auth/subprocess verified in test_info_refs_with_basic_auth. Re-enable once the server sends WWW-Authenticate: Basic on /repos/ 401s (tracked as a B-2 follow-up)."]
 async fn test_git_clone_push_pull_e2e() {
     let (pool, _db_dir) = setup_test_db().await;
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
