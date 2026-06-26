@@ -1,4 +1,6 @@
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
+use std::time::Duration;
 
 use thiserror::Error;
 use uuid::Uuid;
@@ -26,6 +28,16 @@ pub enum GitStorageError {
 }
 
 pub type Result<T> = std::result::Result<T, GitStorageError>;
+
+/// Upper bound for a single git subprocess operation.
+///
+/// This is intentionally fixed at the git-service boundary so Smart HTTP cannot leave
+/// unbounded `git` children behind if a client stalls or the repository is pathological.
+#[cfg(not(test))]
+pub const GIT_SUBPROCESS_TIMEOUT: Duration = Duration::from_secs(30);
+
+#[cfg(test)]
+pub const GIT_SUBPROCESS_TIMEOUT: Duration = Duration::from_millis(50);
 
 /// Smart HTTP git service types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,7 +158,7 @@ pub fn remove_repo(storage_path: &Path) -> Result<()> {
 /// Run `git <service> --advertise-refs --stateless-rpc <repo_path>` and return
 /// the output with Smart HTTP pkt-line prefix prepended.
 pub async fn advertise_refs(repo_path: &Path, service: GitService) -> Result<Vec<u8>> {
-    let output = tokio::process::Command::new("git")
+    let child = tokio::process::Command::new("git")
         .args([
             service.command_name(),
             "--advertise-refs",
@@ -155,9 +167,24 @@ pub async fn advertise_refs(repo_path: &Path, service: GitService) -> Result<Vec
                 GitStorageError::SubprocessError("repo_path contains invalid UTF-8".into())
             })?,
         ])
-        .output()
-        .await
+        .kill_on_drop(true)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|e| GitStorageError::SubprocessError(format!("git subprocess failed: {e}")))?;
+
+    let output = match tokio::time::timeout(GIT_SUBPROCESS_TIMEOUT, child.wait_with_output()).await
+    {
+        Ok(result) => result
+            .map_err(|e| GitStorageError::SubprocessError(format!("git subprocess failed: {e}")))?,
+        Err(_) => {
+            return Err(GitStorageError::SubprocessError(format!(
+                "git {} timed out after {}s",
+                service.command_name(),
+                GIT_SUBPROCESS_TIMEOUT.as_secs()
+            )));
+        }
+    };
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -192,11 +219,64 @@ pub async fn spawn_rpc(repo_path: &Path, service: GitService) -> Result<tokio::p
                 GitStorageError::SubprocessError("repo_path contains invalid UTF-8".into())
             })?,
         ])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+        .kill_on_drop(true)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| GitStorageError::SubprocessError(format!("git subprocess failed: {e}")))?;
 
     Ok(child)
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+
+    use super::*;
+    use std::ffi::OsString;
+    use tokio::sync::Mutex;
+
+    static PATH_LOCK: Mutex<()> = Mutex::const_new(());
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn advertise_refs_times_out_slow_git_process() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let _guard = PATH_LOCK.lock().await;
+        let test_dir =
+            std::env::temp_dir().join(format!("evolith-fake-git-{}", uuid::Uuid::new_v4()));
+        let bin_dir = test_dir.join("bin");
+        std::fs::create_dir_all(&bin_dir).unwrap();
+
+        let fake_git = bin_dir.join("git");
+        std::fs::write(&fake_git, "#!/bin/sh\nsleep 1\n").unwrap();
+        let mut permissions = std::fs::metadata(&fake_git).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&fake_git, permissions).unwrap();
+
+        let original_path = std::env::var_os("PATH");
+        let mut new_path = OsString::from(&bin_dir);
+        new_path.push(":");
+        new_path.push(original_path.clone().unwrap_or_default());
+        std::env::set_var("PATH", new_path);
+
+        let result =
+            advertise_refs(Path::new("/tmp/nonexistent.git"), GitService::UploadPack).await;
+
+        if let Some(path) = original_path {
+            std::env::set_var("PATH", path);
+        } else {
+            std::env::remove_var("PATH");
+        }
+        let _ = std::fs::remove_dir_all(test_dir);
+
+        let err = result.expect_err("slow fake git should time out");
+        assert!(
+            err.to_string().contains("timed out"),
+            "unexpected error: {}",
+            err
+        );
+    }
 }

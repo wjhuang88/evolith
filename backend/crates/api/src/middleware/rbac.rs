@@ -331,6 +331,7 @@ pub async fn rbac_middleware<B>(
         tenant_id: api_key.tenant_id,
         tenant_role: TenantRole::Member,
     };
+    req.extensions_mut().insert(api_key);
     req.extensions_mut().insert(user);
     next.call(req).await
 }

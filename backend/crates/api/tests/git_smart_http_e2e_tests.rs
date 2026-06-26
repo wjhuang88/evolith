@@ -254,13 +254,30 @@ async fn create_test_api_key(
     user_id: Uuid,
     key_value: &str,
 ) {
+    create_test_api_key_with_permissions(
+        repo,
+        tenant_id,
+        user_id,
+        key_value,
+        vec!["repo:read".to_string(), "repo:write".to_string()],
+    )
+    .await;
+}
+
+async fn create_test_api_key_with_permissions(
+    repo: &dyn ApiKeyRepository,
+    tenant_id: Uuid,
+    user_id: Uuid,
+    key_value: &str,
+    permissions: Vec<String>,
+) {
     repo.create(NewApiKey {
         tenant_id,
         user_id,
         name: "test-git-key".to_string(),
         key_hash: hash_api_key(key_value),
         key_prefix: "evo_sk".to_string(),
-        permissions: vec!["repo:read".to_string(), "repo:write".to_string()],
+        permissions,
         rate_limit: Some(1000),
         expires_at: None,
     })
@@ -312,6 +329,39 @@ async fn register_and_create_api_key(
     create_test_api_key(&*api_key_repo, tenant_id, user_id, api_key_value).await;
 
     (token, tenant_id.to_string(), user_id.to_string())
+}
+
+async fn register_and_create_api_key_with_permissions(
+    pool: SqlitePool,
+    base_path: String,
+    email: &str,
+    username: &str,
+    api_key_value: &str,
+    permissions: Vec<String>,
+) -> (String, String, String) {
+    let (token, tenant_id, user_id) = register_and_create_api_key(
+        pool.clone(),
+        base_path,
+        email,
+        username,
+        "evo_sk_throwaway_key_not_used",
+    )
+    .await;
+
+    let api_key_repo: Arc<dyn ApiKeyRepository> =
+        Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+    let tenant_uuid = Uuid::parse_str(&tenant_id).expect("Invalid tenant UUID");
+    let user_uuid = Uuid::parse_str(&user_id).expect("Invalid user UUID");
+    create_test_api_key_with_permissions(
+        &*api_key_repo,
+        tenant_uuid,
+        user_uuid,
+        api_key_value,
+        permissions,
+    )
+    .await;
+
+    (token, tenant_id, user_id)
 }
 
 async fn create_repo_via_api(
@@ -456,6 +506,62 @@ async fn test_info_refs_with_basic_auth_returns_advertisement() {
         "unexpected content-type: {}",
         ct
     );
+}
+
+#[actix_rt::test]
+async fn test_receive_pack_with_read_only_api_key_is_forbidden() {
+    let (pool, _db_dir) = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+
+    let api_key_value = "evo_sk_read_only_git_key_99";
+    let (token, tenant_id, _user_id) = register_and_create_api_key_with_permissions(
+        pool.clone(),
+        base_path.clone(),
+        "readonly-git@example.com",
+        "readonlygit",
+        api_key_value,
+        vec!["repo:read".to_string()],
+    )
+    .await;
+    let repo_id = create_repo_via_api(
+        pool.clone(),
+        base_path.clone(),
+        &token,
+        &tenant_id,
+        "read-only-receive-pack-repo",
+    )
+    .await;
+
+    let app_state = build_app_state(pool, base_path);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let basic = base64::engine::general_purpose::STANDARD.encode(format!("user:{}", api_key_value));
+    let read_req = test::TestRequest::get()
+        .uri(&format!(
+            "/repos/{}/info/refs?service=git-upload-pack",
+            repo_id
+        ))
+        .insert_header(("Authorization", format!("Basic {}", basic)))
+        .to_request();
+    let read_resp = test::call_service(&app, read_req).await;
+    assert_eq!(read_resp.status(), actix_web::http::StatusCode::OK);
+
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/repos/{}/info/refs?service=git-receive-pack",
+            repo_id
+        ))
+        .insert_header(("Authorization", format!("Basic {}", basic)))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
 }
 
 #[actix_rt::test]
