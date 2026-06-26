@@ -164,7 +164,27 @@
 
 ---
 
-## 8. 验收请求
+## 8. EVO-116 验收返修记录（2026-06-26）
+
+EVO-103 初次验收为 Conditional Accept 后，EVO-116 / Iteration 049 负责关闭发布前阻断项。架构复核发现首轮 EVO-116 完成记录仍存在三类缺口：
+
+1. Context API 资源边界在完整读取或完整收集后才判断，不能证明 DoS 风险已关闭。
+2. file-tree / diff 超过 5000 entry 的行为缺少测试。
+3. `API-CONTRACT.md` 的 `Audit Logs` section 被错误拼入 `Push metadata sync`。
+
+返修完成项：
+
+- `service-git::read_blob` 先用 object header 判断 kind/size，未超限才加载 blob body。
+- `service-git::read_file_tree` 使用 bounded visitor，第 5001 个 entry 取消遍历并返回 `ResourceExceeded`。
+- `service-git::read_diff` 使用 `Tree::changes().for_each_to_obtain_tree`，第 5001 条 change 取消 diff 并返回 `ResourceExceeded`。
+- `repo_context_bounds_e2e_tests.rs` 增至 6 个 E2E，覆盖 invalid ref、invalid sha、oversized blob、large file-tree、large diff 和 push metadata。
+- `API-CONTRACT.md` 恢复独立 `Audit Logs` section，并修正 blob/diff 资源边界描述。
+
+返修后本验收可重新按 **Accept** 处理；验证证据以 [Iteration 049 Review](../iterations/ITERATION-049.md#10-review) 为准。
+
+---
+
+## 9. 验收请求
 
 请架构组基于以下维度进行验收：
 

@@ -70,13 +70,14 @@ pub fn api_key_allows_api_key_management(api_key: &ApiKey) -> bool {
 }
 
 fn is_repo_read_permission(p: &str) -> bool {
-    matches!(p, "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit")
-        || p.starts_with("commit:")
+    matches!(
+        p,
+        "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit"
+    ) || p.starts_with("commit:")
 }
 
 fn is_repo_write_permission(p: &str) -> bool {
-    matches!(p, "write" | "repo:write" | "admin" | "commit")
-        || p.starts_with("commit:")
+    matches!(p, "write" | "repo:write" | "admin" | "commit") || p.starts_with("commit:")
 }
 
 #[cfg(test)]

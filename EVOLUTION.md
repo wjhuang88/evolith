@@ -22,12 +22,20 @@
 | 11 | SQLite FK 约束失败（code 787） | 新表 FK 引用 `tenants(id)` 但 `tenant_id` 以 Uuid BLOB 绑定，而 `tenants.id` 以 TEXT 存储 | SQLite repository 中所有 UUID 绑定使用 `.to_string()`，与 tenant_repo 既有模式一致 |
 | 12 | 新建 repo 缺失 policy 时默认自动合并 | DB / repository / UI 默认值没有同步方向文档的 `require_review=true` 安全策略 | Git-Centric policy 默认必须在 migration、repository、UI 和 evaluator 中同时验证；缺失 policy 时默认 require review |
 | 13 | `cargo test --workspace` 在有 Docker 的机器失败 sandbox 测试 | 测试假设运行环境一定没有 Docker daemon | legacy sandbox 测试不能依赖宿主 Docker 是否存在；按实际初始化结果校验错误语义或功能语义 |
+| 14 | 资源上限声明通过但仍有 DoS 风险 | 上限在完整读取/完整收集后才判断 | blob 先读 object header；tree/diff 在迭代 callback 中达到上限即取消；测试覆盖超限路径 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-06-26 - 资源边界必须在读取前或迭代中生效（EVO-116 验收返修）
+**现象**: EVO-116 首轮实现声明 Context API 已有 `BLOB_MAX_BYTES` / `FILE_TREE_MAX_ENTRIES` / `DIFF_MAX_ENTRIES`，测试也能看到超大 blob 返回 413；但验收复核发现 `read_blob` 先 `find_blob` + `to_vec()` 再判断大小，file-tree / diff 也是先完整遍历或完整 `Vec` 收集后再判断上限。
+**根因**: 把“响应不返回完整内容”误当成“服务端没有完整读取/收集”。验收测试只断言 HTTP 413，没有覆盖 large tree / large diff，也没有检查上限判断位于读取前或迭代过程中。
+**方案**: `read_blob` 改为先 `find_header` 检查 object kind 和 size，未超限才 `find_blob`；`read_file_tree` 改为自定义 bounded visitor，第 5001 个 entry 通过 `ControlFlow::Break` 取消遍历；`read_diff` 改用 `Tree::changes().for_each_to_obtain_tree`，第 5001 条 change 取消 diff iteration。`repo_context_bounds_e2e_tests` 增加 large file-tree / large diff 413 覆盖。
+**教训**: 资源上限的验收不能只看最终 HTTP code；必须检查上限是在读取前或迭代 callback 中触发，而不是完整分配后再拒绝响应。新增资源边界故事必须同时覆盖 oversized object、large collection、large diff 和错误映射。
+**Promoted to rule/check**: `api/tests/repo_context_bounds_e2e_tests::{test_large_file_tree_returns_413,test_large_diff_returns_413}`；`service-git::read_blob/read_file_tree/read_diff` 中的 header/visitor/callback 级边界。
 
 ### 2026-06-26 - API key 权限矩阵必须单文件归口（EVO-116）
 **现象**: EVO-103 架构组 Conditional Accept 指出 read-only API key 仍可触发 Repo CRUD 写接口（之前只在 Smart HTTP handler 内部硬编码 `permissions.iter().any(|p| matches!(p.as_str(), "write" | ...))`，未覆盖 REST handler）。

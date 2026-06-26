@@ -295,16 +295,11 @@ async fn register_user(
     let result: ApiResponse<AuthResponseData> =
         serde_json::from_slice(&body).expect("Failed to parse register response");
     let auth_data = result.data.expect("Expected auth data");
-    (
-        auth_data.token,
-        auth_data.tenant.id,
-        auth_data.user.id,
-    )
+    (auth_data.token, auth_data.tenant.id, auth_data.user.id)
 }
 
 fn basic_auth_header(api_key: &str) -> String {
-    let encoded =
-        base64::engine::general_purpose::STANDARD.encode(format!("user:{}", api_key));
+    let encoded = base64::engine::general_purpose::STANDARD.encode(format!("user:{}", api_key));
     format!("Basic {}", encoded)
 }
 
@@ -343,8 +338,13 @@ async fn test_read_only_api_key_can_list_repos_but_cannot_create() {
     let temp_dir = TempDir::new().expect("temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
 
-    let (_token, tenant_id, user_id) =
-        register_user(pool.clone(), base_path.clone(), "read-only@example.com", "readonly").await;
+    let (_token, tenant_id, user_id) = register_user(
+        pool.clone(),
+        base_path.clone(),
+        "read-only@example.com",
+        "readonly",
+    )
+    .await;
 
     let tenant_uuid = Uuid::parse_str(&tenant_id).unwrap();
     let user_uuid = Uuid::parse_str(&user_id).unwrap();
@@ -397,8 +397,13 @@ async fn test_execute_only_api_key_cannot_read_repo_context() {
     let temp_dir = TempDir::new().expect("temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
 
-    let (token, tenant_id, user_id) =
-        register_user(pool.clone(), base_path.clone(), "exec-only@example.com", "exconly").await;
+    let (token, tenant_id, user_id) = register_user(
+        pool.clone(),
+        base_path.clone(),
+        "exec-only@example.com",
+        "exconly",
+    )
+    .await;
 
     let tenant_uuid = Uuid::parse_str(&tenant_id).unwrap();
     let user_uuid = Uuid::parse_str(&user_id).unwrap();
@@ -451,8 +456,13 @@ async fn test_api_key_cannot_manage_other_api_keys() {
     let temp_dir = TempDir::new().expect("temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
 
-    let (_token, tenant_id, user_id) =
-        register_user(pool.clone(), base_path.clone(), "admin-key@example.com", "adminkey").await;
+    let (_token, tenant_id, user_id) = register_user(
+        pool.clone(),
+        base_path.clone(),
+        "admin-key@example.com",
+        "adminkey",
+    )
+    .await;
 
     let tenant_uuid = Uuid::parse_str(&tenant_id).unwrap();
     let user_uuid = Uuid::parse_str(&user_id).unwrap();
@@ -505,8 +515,13 @@ async fn test_jwt_user_original_behavior_preserved() {
     let temp_dir = TempDir::new().expect("temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
 
-    let (token, tenant_id, _user_id) =
-        register_user(pool.clone(), base_path.clone(), "jwt-user@example.com", "jwtuser").await;
+    let (token, tenant_id, _user_id) = register_user(
+        pool.clone(),
+        base_path.clone(),
+        "jwt-user@example.com",
+        "jwtuser",
+    )
+    .await;
 
     let app_state = build_app_state(pool.clone(), base_path.clone());
     let app = test::init_service(
@@ -539,8 +554,13 @@ async fn test_write_api_key_can_create_and_update_repo() {
     let temp_dir = TempDir::new().expect("temp dir");
     let base_path = temp_dir.path().to_string_lossy().to_string();
 
-    let (_token, tenant_id, user_id) =
-        register_user(pool.clone(), base_path.clone(), "write-key@example.com", "writekey").await;
+    let (_token, tenant_id, user_id) = register_user(
+        pool.clone(),
+        base_path.clone(),
+        "write-key@example.com",
+        "writekey",
+    )
+    .await;
     let tenant_uuid = Uuid::parse_str(&tenant_id).unwrap();
     let user_uuid = Uuid::parse_str(&user_id).unwrap();
     let api_key_value = "evo_sk_write_scope_99";

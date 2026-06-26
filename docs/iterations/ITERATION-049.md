@@ -97,6 +97,7 @@ git diff --check
 | 2026-06-26 | activation | Iteration inventory 完成：无 Active/In Progress/Review；Iterations 025/026 维持 Planned/Blocked（Phase F refinement，与本轮独立）；Iterations 018-020/027 Superseded；Iterations 046-048 Closed。EVO-116 为 EVO-103 验收后发布前安全/架构修复，允许插队。 |
 | 2026-06-26 | progress | 建立 EVO-116 item file 和 ITERATION-049，明确权限、性能、合约、metadata 同步验收与验证命令；状态设为 In Progress，等待相关人员实现。 |
 | 2026-06-26 | done | EVO-116 全部 5 个验收面（API key scope / Context API 边界 / push metadata / API contract / 性能证据）实现并验证完成；`cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings` + `git diff --check` + 文档断链全绿；EVO-116 status 置 Done，ITERATION-049 闭环 Complete。 |
+| 2026-06-26 | acceptance-remediation | 架构验收复核发现三类阻断：Context API 资源上限在完整读取/收集后才判断、file-tree/diff 超限缺测试、API contract Audit Logs section 被拼入 Push metadata。返修后：blob 先 `find_header` 再按大小决定是否 `find_blob`；file-tree 使用 bounded visitor 第 5001 个 entry 取消遍历；diff 使用 `Tree::changes().for_each_to_obtain_tree` 第 5001 条 change 取消；补 large file-tree / large diff 413 E2E；修复 API contract 与完成证据。 |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 
@@ -123,9 +124,9 @@ git diff --check
 
 - 完成：
   - **API key scope 统一门禁**：新增 `api_key_scope.rs` 共享 helper；`repo_handlers`（list/get 创建/更新/删除）/ `repo_context_handlers`（file-tree / blobs / commits / diff）/ `api_key_handlers`（list / create / revoke）/ `git_smart_http_handlers`（info-refs / upload-pack / receive-pack）全部走 `forbid_if_api_key_lacks` 或共享 helper。read-only key 写 Repo 返 403；execute-only / unrelated key 读 Repo Context 返 403；API key 调用 `/api-keys` 路由必返 403（管理仅 JWT）。
-  - **Context API 资源边界**：`BLOB_MAX_BYTES = 1 MiB` / `FILE_TREE_MAX_ENTRIES = 5000` / `DIFF_MAX_ENTRIES = 5000` / `CONTEXT_BLOCKING_TIMEOUT = 5s`；超限分别映射到 413 / 504；无效 ref / sha 映射 400 / 404（不再统一 500）；handler 全部用 `web::block + tokio::time::timeout` 双重保护。
+  - **Context API 资源边界**：`BLOB_MAX_BYTES = 1 MiB` / `FILE_TREE_MAX_ENTRIES = 5000` / `DIFF_MAX_ENTRIES = 5000` / `CONTEXT_BLOCKING_TIMEOUT = 5s`；blob 先读 object header 再决定是否加载 body；file-tree / diff 在第 5001 个 entry/change 处取消遍历；超限分别映射到 413 / 504；无效 ref / sha 映射 400 / 404（不再统一 500）；handler 全部用 `web::block + tokio::time::timeout` 双重保护。
   - **Smart HTTP push metadata**：成功 push 后 `update_repo_metadata_after_push` 在 detached 任务中解析 `refs/heads/{default_branch}` → 写 `git_repos.last_commit_sha` / `last_committed_at`；失败仅 WARN。push 到非默认分支不更新 default branch metadata。
-  - **API contract**：`docs/reference/API-CONTRACT.md` 新增 Repos / Smart HTTP / Repo Context API / API key scope / Push metadata sync 五个 section；CSRF 豁免路径加上 Smart HTTP POST；错误码新增 `INVALID_INPUT` / `RESOURCE_EXCEEDED` / `TIMEOUT` / `REPO_EXISTS`。
+  - **API contract**：`docs/reference/API-CONTRACT.md` 新增 Repos / Smart HTTP / Repo Context API / API key scope / Push metadata sync 五个 section；CSRF 豁免路径加上 Smart HTTP POST；错误码新增 `INVALID_INPUT` / `RESOURCE_EXCEEDED` / `TIMEOUT` / `REPO_EXISTS`；验收返修中恢复独立 Audit Logs section，修正 blob/diff 边界描述。
   - **性能证据**（运行命令 `cargo test -p api --test repo_perf_benchmarks -- --nocapture --test-threads=1`，50 样本丢弃前 5 个 warmup）：
 
     | Scenario | Iterations | Sample size | P95 (ms) | env |
@@ -140,7 +141,8 @@ git diff --check
   - `cargo test -p api --test repo_context_e2e_tests` → 6 passed
   - `cargo test -p api --test repo_e2e_tests` → 7 passed
   - `cargo test -p api --test api_key_scope_e2e_tests` → 5 passed
-  - `cargo test -p api --test repo_context_bounds_e2e_tests` → 4 passed
+  - `cargo test -p service-git` → 1 passed
+  - `cargo test -p api --test repo_context_bounds_e2e_tests -- --test-threads=1` → 6 passed（新增 large file-tree / large diff 413）
   - `cargo test -p api --test repo_perf_benchmarks` → 2 passed
   - `cargo test --workspace` → 全部 test binary 全 ok（44 + 5 + 22 + 3 + 7 + 4 + 6 + 7 + 2 + 23 + 46 + 4 + 16 + 11 + 12 + 15 + 7 + 22 + 20 + 8 + 22 + 13 + 17 + 1 + 14 + 17 + 4 + 13 = 大量 passed；0 failed）
   - `cargo clippy --workspace --all-targets -- -D warnings` → 0 errors

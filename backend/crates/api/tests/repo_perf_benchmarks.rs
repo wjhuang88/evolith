@@ -222,16 +222,15 @@ fn push_n_files_to_bare_repo(bare_path: &Path, count: usize) {
             .expect("git failed")
     };
     assert!(run(&["init", "-b", "main"]).status.success());
-    assert!(run(&["config", "user.email", "perf@example.com"]).status.success());
+    assert!(run(&["config", "user.email", "perf@example.com"])
+        .status
+        .success());
     assert!(run(&["config", "user.name", "Perf"]).status.success());
-    assert!(run(&[
-        "remote",
-        "add",
-        "origin",
-        bare_path.to_str().unwrap()
-    ])
-    .status
-    .success());
+    assert!(
+        run(&["remote", "add", "origin", bare_path.to_str().unwrap()])
+            .status
+            .success()
+    );
     for i in 0..count {
         let name = format!("file_{:04}.txt", i);
         std::fs::write(work_path.join(&name), format!("content {}\n", i)).unwrap();

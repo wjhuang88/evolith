@@ -26,8 +26,9 @@ fn forbid_if_api_key_lacks(req: &actix_web::HttpRequest) -> Option<HttpResponse>
 fn map_context_error(e: service_git::GitStorageError) -> HttpResponse {
     use service_git::GitStorageError;
     match e {
-        GitStorageError::InvalidInput(msg) => HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("INVALID_INPUT", &msg)),
+        GitStorageError::InvalidInput(msg) => {
+            HttpResponse::BadRequest().json(ApiResponse::<()>::error("INVALID_INPUT", &msg))
+        }
         GitStorageError::NotFound(msg) => {
             HttpResponse::NotFound().json(ApiResponse::<()>::error("NOT_FOUND", &msg))
         }
@@ -41,8 +42,10 @@ fn map_context_error(e: service_git::GitStorageError) -> HttpResponse {
             HttpResponse::InternalServerError()
                 .json(ApiResponse::<()>::error("INTERNAL_ERROR", &msg))
         }
-        other => HttpResponse::InternalServerError()
-            .json(ApiResponse::<()>::error("INTERNAL_ERROR", &other.to_string())),
+        other => HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+            "INTERNAL_ERROR",
+            &other.to_string(),
+        )),
     }
 }
 
@@ -50,7 +53,9 @@ async fn run_with_timeout<F, T>(
     fut: F,
 ) -> Result<Result<T, service_git::GitStorageError>, actix_web::Error>
 where
-    F: std::future::Future<Output = Result<Result<T, service_git::GitStorageError>, actix_web::error::BlockingError>>,
+    F: std::future::Future<
+        Output = Result<Result<T, service_git::GitStorageError>, actix_web::error::BlockingError>,
+    >,
 {
     match tokio::time::timeout(service_git::CONTEXT_BLOCKING_TIMEOUT, fut).await {
         Ok(Ok(result)) => Ok(result),
@@ -274,7 +279,8 @@ pub async fn get_commits(
     let limit = query.limit.unwrap_or(50);
     let git_ref_for_blocking = git_ref.clone();
 
-    let blocking = web::block(move || service_git::read_commits(&abs, &git_ref_for_blocking, limit));
+    let blocking =
+        web::block(move || service_git::read_commits(&abs, &git_ref_for_blocking, limit));
     let timed = run_with_timeout(blocking).await;
     let result = match timed {
         Ok(inner) => inner,

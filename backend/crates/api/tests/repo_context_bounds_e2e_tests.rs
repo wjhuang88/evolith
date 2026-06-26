@@ -348,20 +348,98 @@ fn push_git_file(bare_path: &Path, file_name: &str, content: &str) {
             .expect("Failed to execute git")
     };
     assert!(run(&["init"]).status.success());
-    assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+    assert!(run(&["config", "user.email", "test@example.com"])
+        .status
+        .success());
     assert!(run(&["config", "user.name", "Test"]).status.success());
-    assert!(run(&[
-        "remote",
-        "add",
-        "origin",
-        bare_path.to_str().unwrap()
-    ])
-    .status
-    .success());
+    assert!(
+        run(&["remote", "add", "origin", bare_path.to_str().unwrap()])
+            .status
+            .success()
+    );
     std::fs::write(work_path.join(file_name), content).expect("Failed to write file");
     assert!(run(&["add", file_name]).status.success());
     assert!(run(&["commit", "-m", "initial"]).status.success());
     assert!(run(&["push", "origin", "HEAD:main"]).status.success());
+}
+
+fn create_many_files_repo(bare_path: &Path, count: usize) {
+    let work_dir = TempDir::new().expect("Failed to create work dir");
+    let work_path = work_dir.path();
+    let run = |args: &[&str]| {
+        Command::new("git")
+            .args(args)
+            .current_dir(work_path)
+            .env("GIT_TERMINAL_PROMPT", "0")
+            .env("HOME", work_path)
+            .output()
+            .expect("Failed to execute git")
+    };
+    assert!(run(&["init"]).status.success());
+    assert!(run(&["config", "user.email", "test@example.com"])
+        .status
+        .success());
+    assert!(run(&["config", "user.name", "Test"]).status.success());
+    assert!(
+        run(&["remote", "add", "origin", bare_path.to_str().unwrap()])
+            .status
+            .success()
+    );
+
+    for i in 0..count {
+        let file_name = format!("file_{:04}.txt", i);
+        std::fs::write(work_path.join(file_name), format!("content {}\n", i))
+            .expect("Failed to write test file");
+    }
+
+    assert!(run(&["add", "."]).status.success());
+    assert!(run(&["commit", "-m", "many files"]).status.success());
+    assert!(run(&["push", "origin", "HEAD:main"]).status.success());
+}
+
+fn create_large_diff_repo(bare_path: &Path, count: usize) -> (String, String) {
+    let work_dir = TempDir::new().expect("Failed to create work dir");
+    let work_path = work_dir.path();
+    let run = |args: &[&str]| {
+        Command::new("git")
+            .args(args)
+            .current_dir(work_path)
+            .env("GIT_TERMINAL_PROMPT", "0")
+            .env("HOME", work_path)
+            .output()
+            .expect("Failed to execute git")
+    };
+    assert!(run(&["init"]).status.success());
+    assert!(run(&["config", "user.email", "test@example.com"])
+        .status
+        .success());
+    assert!(run(&["config", "user.name", "Test"]).status.success());
+    assert!(
+        run(&["remote", "add", "origin", bare_path.to_str().unwrap()])
+            .status
+            .success()
+    );
+
+    std::fs::write(work_path.join("base.txt"), "base\n").expect("Failed to write base file");
+    assert!(run(&["add", "base.txt"]).status.success());
+    assert!(run(&["commit", "-m", "base"]).status.success());
+    let base_out = run(&["rev-parse", "HEAD"]);
+    assert!(base_out.status.success());
+    let base_sha = String::from_utf8_lossy(&base_out.stdout).trim().to_string();
+
+    for i in 0..count {
+        let file_name = format!("diff_{:04}.txt", i);
+        std::fs::write(work_path.join(file_name), format!("content {}\n", i))
+            .expect("Failed to write diff file");
+    }
+    assert!(run(&["add", "."]).status.success());
+    assert!(run(&["commit", "-m", "large diff"]).status.success());
+    let head_out = run(&["rev-parse", "HEAD"]);
+    assert!(head_out.status.success());
+    let head_sha = String::from_utf8_lossy(&head_out.stdout).trim().to_string();
+
+    assert!(run(&["push", "origin", "HEAD:main"]).status.success());
+    (base_sha, head_sha)
 }
 
 #[actix_rt::test]
@@ -544,16 +622,15 @@ async fn test_oversized_blob_returns_413_not_500() {
             .expect("git failed")
     };
     assert!(run(&["init"]).status.success());
-    assert!(run(&["config", "user.email", "test@example.com"]).status.success());
+    assert!(run(&["config", "user.email", "test@example.com"])
+        .status
+        .success());
     assert!(run(&["config", "user.name", "Test"]).status.success());
-    assert!(run(&[
-        "remote",
-        "add",
-        "origin",
-        bare_path.to_str().unwrap()
-    ])
-    .status
-    .success());
+    assert!(
+        run(&["remote", "add", "origin", bare_path.to_str().unwrap()])
+            .status
+            .success()
+    );
 
     let oversize_bytes = vec![0u8; service_git::BLOB_MAX_BYTES + 1];
     std::fs::write(work_path.join("big.bin"), &oversize_bytes).expect("Failed to write big file");
@@ -607,6 +684,131 @@ async fn test_oversized_blob_returns_413_not_500() {
         resp.status(),
         actix_web::http::StatusCode::PAYLOAD_TOO_LARGE,
         "oversized blob must map to 413"
+    );
+    let body = test::read_body(resp).await;
+    let result: ApiResponse<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(
+        result.error.expect("Expected error").code,
+        "RESOURCE_EXCEEDED"
+    );
+}
+
+#[actix_rt::test]
+async fn test_large_file_tree_returns_413() {
+    let (pool, _db_dir) = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+    let api_key_value = "evo_sk_large_tree_test_99";
+
+    let (token, tenant_id) = register_user_with_write_api_key(
+        pool.clone(),
+        base_path.clone(),
+        "large-tree@example.com",
+        "largetree",
+        api_key_value,
+    )
+    .await;
+
+    let repo_id = create_repo_via_api(
+        pool.clone(),
+        base_path.clone(),
+        &token,
+        &tenant_id,
+        "large-tree-repo",
+    )
+    .await;
+
+    let repo_uuid = Uuid::parse_str(&repo_id).unwrap();
+    let tenant_uuid = Uuid::parse_str(&tenant_id).unwrap();
+    let bare_path = temp_dir
+        .path()
+        .join(tenant_uuid.to_string())
+        .join(format!("{}.git", repo_uuid));
+    create_many_files_repo(&bare_path, service_git::FILE_TREE_MAX_ENTRIES + 1);
+
+    let app_state = build_app_state(pool, base_path);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/file-tree?ref=main",
+            tenant_id, repo_id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(
+        resp.status(),
+        actix_web::http::StatusCode::PAYLOAD_TOO_LARGE
+    );
+    let body = test::read_body(resp).await;
+    let result: ApiResponse<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(
+        result.error.expect("Expected error").code,
+        "RESOURCE_EXCEEDED"
+    );
+}
+
+#[actix_rt::test]
+async fn test_large_diff_returns_413() {
+    let (pool, _db_dir) = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+    let api_key_value = "evo_sk_large_diff_test_99";
+
+    let (token, tenant_id) = register_user_with_write_api_key(
+        pool.clone(),
+        base_path.clone(),
+        "large-diff@example.com",
+        "largediff",
+        api_key_value,
+    )
+    .await;
+
+    let repo_id = create_repo_via_api(
+        pool.clone(),
+        base_path.clone(),
+        &token,
+        &tenant_id,
+        "large-diff-repo",
+    )
+    .await;
+
+    let repo_uuid = Uuid::parse_str(&repo_id).unwrap();
+    let tenant_uuid = Uuid::parse_str(&tenant_id).unwrap();
+    let bare_path = temp_dir
+        .path()
+        .join(tenant_uuid.to_string())
+        .join(format!("{}.git", repo_uuid));
+    let (base_sha, head_sha) =
+        create_large_diff_repo(&bare_path, service_git::DIFF_MAX_ENTRIES + 1);
+
+    let app_state = build_app_state(pool, base_path);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/diff?base={}&head={}",
+            tenant_id, repo_id, base_sha, head_sha
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(
+        resp.status(),
+        actix_web::http::StatusCode::PAYLOAD_TOO_LARGE
     );
     let body = test::read_body(resp).await;
     let result: ApiResponse<serde_json::Value> = serde_json::from_slice(&body).unwrap();
@@ -687,14 +889,18 @@ async fn test_push_updates_repo_default_branch_metadata() {
         api_key_value, port, repo_id
     );
     let out = run(&["clone", &clone_url, "."], &[]);
-    assert!(out.status.success(), "clone failed: {}", String::from_utf8_lossy(&out.stderr));
-    assert!(run(&["config", "user.email", "test@example.com"], &[]).status.success());
-    assert!(run(&["config", "user.name", "Test"], &[]).status.success());
     assert!(
-        run(&["config", "init.defaultBranch", "main"], &[])
-            .status
-            .success()
+        out.status.success(),
+        "clone failed: {}",
+        String::from_utf8_lossy(&out.stderr)
     );
+    assert!(run(&["config", "user.email", "test@example.com"], &[])
+        .status
+        .success());
+    assert!(run(&["config", "user.name", "Test"], &[]).status.success());
+    assert!(run(&["config", "init.defaultBranch", "main"], &[])
+        .status
+        .success());
     let _ = run(&["symbolic-ref", "HEAD", "refs/heads/main"], &[]);
     std::fs::write(work_path.join("pushed.txt"), "pushed\n").unwrap();
     assert!(run(&["add", "pushed.txt"], &[]).status.success());

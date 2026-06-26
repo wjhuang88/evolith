@@ -23,12 +23,12 @@ This document describes the complete REST API contract for Evolith, matching the
 13. [Members](#members)
 14. [API Keys](#api-keys)
 15. [Billing](#billing)
-16. [Audit Logs](#audit-logs)
-17. [Repos](#repos)
-18. [Smart HTTP (Git Protocol)](#smart-http-eVO-103)
-19. [Repo Context API](#repo-context-eVO-103-c)
-20. [API key scope](#api-key-scope-eVO-116)
-21. [Push metadata sync](#push-metadata-sync-eVO-116)
+16. [Repos](#repos)
+17. [Smart HTTP (Git Protocol)](#smart-http-eVO-103)
+18. [Repo Context API](#repo-context-eVO-103-c)
+19. [API key scope](#api-key-scope-eVO-116)
+20. [Push metadata sync](#push-metadata-sync-eVO-116)
+21. [Audit Logs](#audit-logs)
 22. [Version History](#version-history)
 
 ---
@@ -1797,7 +1797,7 @@ the git subprocess being spawned.
 
 | Resource                | Limit                        | On exceed |
 |-------------------------|------------------------------|-----------|
-| Blob response size      | `BLOB_MAX_BYTES` = 1 MiB     | `413 RESOURCE_EXCEEDED` (body never read past limit) |
+| Blob response size      | `BLOB_MAX_BYTES` = 1 MiB     | `413 RESOURCE_EXCEEDED` (object header checked before blob body load) |
 | File-tree entries       | `FILE_TREE_MAX_ENTRIES` = 5000 | `413 RESOURCE_EXCEEDED` |
 | Diff entries            | `DIFF_MAX_ENTRIES` = 5000     | `413 RESOURCE_EXCEEDED` |
 | Blocking gix read       | `CONTEXT_BLOCKING_TIMEOUT` = 5s | `504 TIMEOUT` (returns control to client) |
@@ -1842,9 +1842,9 @@ interface FileTreeEntryDto {
 
 - **Auth:** JWT or API key with `repo:read`
 - **CSRF:** not required (GET)
-- **Description:** Return blob content at `sha`. The blob is loaded
-  via `gix::find_blob`; if its size exceeds `BLOB_MAX_BYTES` the server
-  returns `413` without sending the body.
+- **Description:** Return blob content at `sha`. The server checks the
+  object header first; if its size exceeds `BLOB_MAX_BYTES`, it returns
+  `413` before loading the blob body via `gix::find_blob`.
 
 **Response:**
 ```typescript
@@ -1895,7 +1895,8 @@ interface CommitDto {
 - **CSRF:** not required (GET)
 - **Description:** Tree diff between `base` and `head`. Refs may be
   branch shorthand (`main`) or fully-qualified (`refs/heads/main`)
-  or commit SHAs. `gix::diff_tree_to_tree` is used.
+  or commit SHAs. `gix` tree change iteration is bounded by
+  `DIFF_MAX_ENTRIES`.
 
 **Response:**
 ```typescript
@@ -1944,8 +1945,10 @@ interface DiffEntryDto {
 > `refs/heads/{default_branch}` via gix and updates
 > `git_repos.last_commit_sha` and `last_committed_at`.
 
-- This runs in the same detached task that streams the Smart HTTP
-  response; it does not delay the push response.
+- This runs after the git subprocess reports a successful receive-pack
+  result in the same detached streaming task. The metadata write is
+  bounded by `CONTEXT_BLOCKING_TIMEOUT`; failure is logged and not sent
+  as a git protocol failure.
 - Pushes to a non-default branch do NOT update default-branch metadata
   (per-branch metadata is future work).
 - If the metadata update fails (e.g. resolve error, DB write error,
@@ -1953,6 +1956,12 @@ interface DiffEntryDto {
   is NOT affected. The repo continues to function; the next successful
   push to the default branch will reconcile.
 - Implementation: `git_smart_http_handlers::update_repo_metadata_after_push`.
+
+---
+
+## Audit Logs
+
+### `GET /api/v1/tenant/{tenant_id}/audit-logs`
 
 - **Auth:** JWT (admin only)
 - **Description:** List audit logs
@@ -1999,7 +2008,7 @@ interface AuditLogResponse {
 
 ## Version History
 
-- **2026-06-26:** EVO-116 / Iteration 049 — added Repos, Smart HTTP, Repo Context API, API key scope, and Push metadata sync sections; documented `INVALID_INPUT`, `RESOURCE_EXCEEDED`, `TIMEOUT`, `REPO_EXISTS` error codes; added `/repos/{id}/git-upload-pack` and `/repos/{id}/git-receive-pack` to CSRF-exempt paths. `cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings` green.
+- **2026-06-26:** EVO-116 / Iteration 049 — added Repos, Smart HTTP, Repo Context API, API key scope, and Push metadata sync sections; documented `INVALID_INPUT`, `RESOURCE_EXCEEDED`, `TIMEOUT`, `REPO_EXISTS` error codes; added `/repos/{id}/git-upload-pack` and `/repos/{id}/git-receive-pack` to CSRF-exempt paths; fixed Audit Logs section placement during acceptance remediation. `cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings` green.
 - **2026-05-27:** Removed ⚠️ markers from `send-verify`, `verify-email` (implemented in Iteration 009) and `PUT /skills/{id}` (implemented in Iteration 010). Added response shapes and error codes. Synced with EVO-040 / Iteration 021.
 - **2026-03-15:** Phase 6 updates — Added Authentication section documenting cookie-based auth (httpOnly `evolith_token` + `csrf_token`), CSRF protection (double-submit cookie pattern), `X-CSRF-Token` header requirement. Added `CSRF_ERROR` to error codes. Updated login/register/logout/refresh descriptions to mention cookie behavior. Updated Table of Contents.
 - **2026-03-15:** Phase 3 updates — Added `/health/live` and `/health/ready` endpoints. Added Common Headers section (`X-Request-ID`). Added Rate Limiting section (429 responses). Updated Table of Contents. Health endpoint now returns `status`+`version` directly (not wrapped in `ApiResponse`).

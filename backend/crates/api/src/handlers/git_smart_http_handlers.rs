@@ -298,12 +298,9 @@ async fn update_repo_metadata_after_push(
     let ref_name = format!("refs/heads/{}", default_branch);
     let path_for_blocking = abs_path.to_path_buf();
     let ref_name_for_blocking = ref_name.clone();
-    let resolve = web::block(move || service_git::resolve_ref(&path_for_blocking, &ref_name_for_blocking));
-    let resolved = match tokio::time::timeout(
-        service_git::CONTEXT_BLOCKING_TIMEOUT,
-        resolve,
-    )
-    .await
+    let resolve =
+        web::block(move || service_git::resolve_ref(&path_for_blocking, &ref_name_for_blocking));
+    let resolved = match tokio::time::timeout(service_git::CONTEXT_BLOCKING_TIMEOUT, resolve).await
     {
         Ok(Ok(resolved)) => resolved,
         Ok(Err(e)) => {
@@ -337,7 +334,10 @@ async fn update_repo_metadata_after_push(
         }
     };
 
-    let committed_at = Utc.timestamp_opt(timestamp, 0).single().unwrap_or_else(Utc::now);
+    let committed_at = Utc
+        .timestamp_opt(timestamp, 0)
+        .single()
+        .unwrap_or_else(Utc::now);
     if let Err(e) = state
         .git_repo_repo
         .update_last_commit(repo_id, &sha, committed_at)

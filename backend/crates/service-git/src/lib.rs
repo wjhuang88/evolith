@@ -1,8 +1,10 @@
+use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
 use gix::bstr::BStr;
+use gix::objs::Kind;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -90,6 +92,101 @@ pub struct DiffEntry {
 }
 
 pub type Result<T> = std::result::Result<T, GitStorageError>;
+
+struct BoundedTreeVisitor {
+    path_deque: VecDeque<Vec<u8>>,
+    path: Vec<u8>,
+    entries: Vec<FileTreeEntry>,
+    max_entries: usize,
+    exceeded: bool,
+}
+
+impl BoundedTreeVisitor {
+    fn new(max_entries: usize) -> Self {
+        Self {
+            path_deque: VecDeque::new(),
+            path: Vec::new(),
+            entries: Vec::new(),
+            max_entries,
+            exceeded: false,
+        }
+    }
+
+    fn push_element(&mut self, name: &BStr) {
+        if name.is_empty() {
+            return;
+        }
+        if !self.path.is_empty() {
+            self.path.push(b'/');
+        }
+        self.path.extend_from_slice(name);
+    }
+
+    fn pop_element(&mut self) {
+        if let Some(pos) = self.path.iter().rposition(|b| *b == b'/') {
+            self.path.truncate(pos);
+        } else {
+            self.path.clear();
+        }
+    }
+
+    fn record(&mut self, entry: &gix::objs::tree::EntryRef<'_>) -> std::ops::ControlFlow<(), bool> {
+        if self.entries.len() >= self.max_entries {
+            self.exceeded = true;
+            return std::ops::ControlFlow::Break(());
+        }
+
+        let is_tree = entry.mode.is_tree();
+        self.entries.push(FileTreeEntry {
+            name: String::from_utf8_lossy(&self.path).to_string(),
+            kind: if is_tree {
+                "tree".to_string()
+            } else {
+                "blob".to_string()
+            },
+            oid: entry.oid.to_string(),
+            is_tree,
+        });
+        std::ops::ControlFlow::Continue(true)
+    }
+}
+
+impl gix::traverse::tree::Visit for BoundedTreeVisitor {
+    fn pop_back_tracked_path_and_set_current(&mut self) {
+        self.path = self.path_deque.pop_back().unwrap_or_default();
+    }
+
+    fn pop_front_tracked_path_and_set_current(&mut self) {
+        self.path = self.path_deque.pop_front().unwrap_or_default();
+    }
+
+    fn push_back_tracked_path_component(&mut self, component: &BStr) {
+        self.push_element(component);
+        self.path_deque.push_back(self.path.clone());
+    }
+
+    fn push_path_component(&mut self, component: &BStr) {
+        self.push_element(component);
+    }
+
+    fn pop_path_component(&mut self) {
+        self.pop_element();
+    }
+
+    fn visit_tree(
+        &mut self,
+        entry: &gix::objs::tree::EntryRef<'_>,
+    ) -> gix::traverse::tree::visit::Action {
+        self.record(entry)
+    }
+
+    fn visit_nontree(
+        &mut self,
+        entry: &gix::objs::tree::EntryRef<'_>,
+    ) -> gix::traverse::tree::visit::Action {
+        self.record(entry)
+    }
+}
 
 /// Upper bound for a single git subprocess operation.
 ///
@@ -301,9 +398,9 @@ pub fn read_file_tree(repo_path: &Path, git_ref: &str) -> Result<Vec<FileTreeEnt
         ))
     })?;
 
-    let id = repo.rev_parse_single(BStr::new(git_ref)).map_err(|e| {
-        GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e))
-    })?;
+    let id = repo
+        .rev_parse_single(BStr::new(git_ref))
+        .map_err(|e| GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e)))?;
 
     let commit = id
         .object()
@@ -317,36 +414,20 @@ pub fn read_file_tree(repo_path: &Path, git_ref: &str) -> Result<Vec<FileTreeEnt
         .find_tree(tree_id)
         .map_err(|e| GitStorageError::ReadError(format!("failed to find tree: {}", e)))?;
 
-    let entries: Vec<FileTreeEntry> = tree
-        .traverse()
-        .breadthfirst
-        .files()
-        .map_err(|e| GitStorageError::ReadError(format!("failed to traverse tree: {}", e)))?
-        .into_iter()
-        .map(|entry| {
-            let is_tree = entry.mode.is_tree();
-            FileTreeEntry {
-                name: String::from_utf8_lossy(&entry.filepath).to_string(),
-                kind: if is_tree {
-                    "tree".to_string()
-                } else {
-                    "blob".to_string()
-                },
-                oid: entry.oid.to_string(),
-                is_tree,
-            }
-        })
-        .collect();
-
-    if entries.len() > FILE_TREE_MAX_ENTRIES {
-        return Err(GitStorageError::ResourceExceeded(format!(
-            "file-tree has {} entries (max {})",
-            entries.len(),
-            FILE_TREE_MAX_ENTRIES
-        )));
+    let mut visitor = BoundedTreeVisitor::new(FILE_TREE_MAX_ENTRIES);
+    match tree.traverse().breadthfirst(&mut visitor) {
+        Ok(()) => Ok(visitor.entries),
+        Err(gix::traverse::tree::breadthfirst::Error::Cancelled) if visitor.exceeded => {
+            Err(GitStorageError::ResourceExceeded(format!(
+                "file-tree exceeds max {} entries",
+                FILE_TREE_MAX_ENTRIES
+            )))
+        }
+        Err(e) => Err(GitStorageError::ReadError(format!(
+            "failed to traverse tree: {}",
+            e
+        ))),
     }
-
-    Ok(entries)
 }
 
 /// Read a blob by its SHA (hex string).
@@ -366,20 +447,28 @@ pub fn read_blob(repo_path: &Path, sha: &str) -> Result<Vec<u8>> {
     let oid = gix::ObjectId::from_hex(sha.as_bytes())
         .map_err(|e| GitStorageError::InvalidInput(format!("invalid sha '{}': {}", sha, e)))?;
 
-    let blob = repo
-        .find_blob(oid)
+    let header = repo
+        .find_header(oid)
         .map_err(|e| GitStorageError::NotFound(format!("blob '{}' not found: {}", sha, e)))?;
-
-    let data = blob.data.to_vec();
-    if data.len() > BLOB_MAX_BYTES {
+    if header.kind() != Kind::Blob {
+        return Err(GitStorageError::NotFound(format!(
+            "object '{}' is not a blob",
+            sha
+        )));
+    }
+    if header.size() as usize > BLOB_MAX_BYTES {
         return Err(GitStorageError::ResourceExceeded(format!(
             "blob size {} exceeds max {} bytes",
-            data.len(),
+            header.size(),
             BLOB_MAX_BYTES
         )));
     }
 
-    Ok(data)
+    let blob = repo
+        .find_blob(oid)
+        .map_err(|e| GitStorageError::NotFound(format!("blob '{}' not found: {}", sha, e)))?;
+
+    Ok(blob.data.clone())
 }
 
 /// Read commit history starting from a ref, limited to `limit` entries (default 50, max 100).
@@ -394,9 +483,9 @@ pub fn read_commits(repo_path: &Path, git_ref: &str, limit: usize) -> Result<Vec
         ))
     })?;
 
-    let id = repo.rev_parse_single(BStr::new(git_ref)).map_err(|e| {
-        GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e))
-    })?;
+    let id = repo
+        .rev_parse_single(BStr::new(git_ref))
+        .map_err(|e| GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e)))?;
 
     let commit_id = id
         .object()
@@ -486,28 +575,33 @@ pub fn read_diff(repo_path: &Path, base_ref: &str, head_ref: &str) -> Result<Vec
         .find_tree(head_tree_id)
         .map_err(|e| GitStorageError::ReadError(format!("failed to find head tree: {}", e)))?;
 
-    let changes = repo
-        .diff_tree_to_tree(Some(&base_tree), Some(&head_tree), None)
-        .map_err(|e| GitStorageError::ReadError(format!("failed to compute diff: {}", e)))?;
+    let mut entries = Vec::new();
+    let mut exceeded = false;
+    let mut changes = base_tree
+        .changes()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to configure diff: {}", e)))?;
+    changes
+        .for_each_to_obtain_tree(&head_tree, |change| {
+            use gix::object::tree::diff::Change;
 
-    let entries: Vec<DiffEntry> = changes
-        .into_iter()
-        .map(|change| {
+            if entries.len() >= DIFF_MAX_ENTRIES {
+                exceeded = true;
+                return Ok::<_, std::convert::Infallible>(std::ops::ControlFlow::Break(()));
+            }
+
             let (change_type, old_oid, new_oid) = match change {
-                gix::object::tree::diff::ChangeDetached::Addition { id, .. } => {
-                    ("added".to_string(), String::new(), id.to_string())
-                }
-                gix::object::tree::diff::ChangeDetached::Deletion { id, .. } => {
+                Change::Addition { id, .. } => ("added".to_string(), String::new(), id.to_string()),
+                Change::Deletion { id, .. } => {
                     ("deleted".to_string(), id.to_string(), String::new())
                 }
-                gix::object::tree::diff::ChangeDetached::Modification {
+                Change::Modification {
                     previous_id, id, ..
                 } => (
                     "modified".to_string(),
                     previous_id.to_string(),
                     id.to_string(),
                 ),
-                gix::object::tree::diff::ChangeDetached::Rewrite { source_id, id, .. } => (
+                Change::Rewrite { source_id, id, .. } => (
                     "modified".to_string(),
                     source_id.to_string(),
                     id.to_string(),
@@ -515,20 +609,19 @@ pub fn read_diff(repo_path: &Path, base_ref: &str, head_ref: &str) -> Result<Vec
             };
 
             let path = change.location().to_string();
-
-            DiffEntry {
+            entries.push(DiffEntry {
                 path,
                 change_type,
                 old_oid,
                 new_oid,
-            }
+            });
+            Ok(std::ops::ControlFlow::Continue(()))
         })
-        .collect();
+        .map_err(|e| GitStorageError::ReadError(format!("failed to compute diff: {}", e)))?;
 
-    if entries.len() > DIFF_MAX_ENTRIES {
+    if exceeded {
         return Err(GitStorageError::ResourceExceeded(format!(
-            "diff has {} entries (max {})",
-            entries.len(),
+            "diff exceeds max {} entries",
             DIFF_MAX_ENTRIES
         )));
     }
