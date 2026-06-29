@@ -72,6 +72,7 @@
 
 - [工程化路线图](roadmap/ENGINEERING-ROADMAP.md) — 文档治理、流程治理和待补齐能力。
 - [实施路线图](roadmap/IMPLEMENTATION-ROADMAP.md) — 阶段顺序、差距盘点和 Backlog / Proposals 归口映射。
+- [两个月执行规划](roadmap/TWO-MONTH-PLAN-2026-07.md) — 2026-07 至 2026-08 的 Phase E' 长任务规划、迭代顺序和验收门禁。
 - [提案目录](proposals/README.md) — 尚未进入实施的候选方案。
 - [Evolith Rust CLI](proposals/RUST-CLI.md) — 本地智能体、skill、tool、CLI interface 管理 CLI。
 - [前端嵌入后端](proposals/EMBEDDED-FRONTEND.md) — 前端静态产物打包进后端交付物。

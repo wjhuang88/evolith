@@ -150,8 +150,8 @@
 5. **ITERATION-046 已 Closed**（Phase E'-1b）：EVO-103-B-2 Smart HTTP Endpoints Done（真实 git clone/push/pull E2E 通过）。
 6. **ITERATION-047 已 Closed**（Phase E'-1b）：EVO-115 git WWW-Authenticate + 真实 git-client E2E Done。
 7. **ITERATION-048 已 Closed**（Phase E'-1c）：EVO-103-C Repo Context API Done（4 gix 读取端点：file-tree/blobs/commits/diff）。
-8. **ITERATION-049 Active**：EVO-116 处理 EVO-103 Conditional Accept 发布前硬化项；完成前不要启动依赖 EVO-103 稳定性的后续 UI / agent / indexer 工作。
-9. **EVO-103 功能完成但验收硬化中**（A+B+C Done，EVO-116 In Progress）→ EVO-112 Repo Management UI 可继续 refinement，但实现应等 EVO-116 关闭或明确接受残余。
+8. **ITERATION-049 已 Closed**：EVO-116 处理 EVO-103 Conditional Accept 发布前硬化项；EVO-103 现可按正式 Accept 进入后续 UI / agent / indexer 工作。
+9. **下一条主线建议**：EVO-112 Repo Management UI，先做仓库列表 / 创建 / repo-centric 导航与 Dashboard，再做详情 Files / Commits / Settings。
 10. **新进 Ready 待评估**（独立微迭代候选）：
    - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
    - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）

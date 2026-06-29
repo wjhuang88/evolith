@@ -10,17 +10,14 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-112 Repo Management UI | Proposed | [Item file](backlog/active/EVO-112-repo-management-ui.md) | Can refine while EVO-116 has been closed; implementation can start since EVO-103/EVO-116 are now stable. |
-| EVO-105 Commit API + Promote | Proposed | [Item file](backlog/active/EVO-105-commit-and-promote-api.md) | Depends on EVO-103/EVO-116 (Done); can start refinement / implementation now that API contract has EVO-103 stable. |
-| EVO-106 Agent Session + Scoped Token | Proposed | [Item file](backlog/active/EVO-106-agent-session-and-scoped-token.md) | Depends on EVO-103/EVO-116 (Done); api_key_scope helper from EVO-116 is the single source of truth for the new token model. |
-| EVO-107 Webhook Out | Proposed | [Item file](backlog/active/EVO-107-webhook-out.md) | Depends on EVO-105/EVO-106. |
-| EVO-108 Indexer | Proposed | [Item file](backlog/active/EVO-108-skill-cli-mcp-indexer.md) | Depends on EVO-103 (Done) and Smart HTTP push metadata sync (EVO-116) — indexer can now trigger on the metadata event. |
+| EVO-112 Repo Management UI | Proposed | [Item file](backlog/active/EVO-112-repo-management-ui.md) | Recommended next mainline slice. EVO-103/EVO-116 are stable enough to expose repo workflows in the UI. |
+| Two-month Phase E' execution plan | Drafted | [Two-Month Plan](roadmap/TWO-MONTH-PLAN-2026-07.md) | Planning artifact only; actual work must still enter backlog/iteration through SOP. |
 
 ## Review
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-116 EVO-103 验收硬化 | Complete (2026-06-26) | [Iteration 049](iterations/ITERATION-049.md)<br>[Item file](backlog/active/EVO-116-evo-103-acceptance-hardening.md) | Architecture group can now accept EVO-103. Iteration 049 Review recorded. |
+| _暂无_ | | | |
 
 ## Blocked Or Paused
 
@@ -37,7 +34,10 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-112 Repo Management UI | Proposed | [Item file](backlog/active/EVO-112-repo-management-ui.md) | Can refine while EVO-116 is active; implementation should wait for API key scope, Context API bounds and API contract to settle. |
+| EVO-105 Commit API + Promote | Proposed | [Item file](backlog/active/EVO-105-commit-and-promote-api.md) | Start after Repo UI foundation; requires tighter policy evaluator and audit scope refinement before implementation. |
+| EVO-106 Agent Session + Scoped Token | Proposed | [Item file](backlog/active/EVO-106-agent-session-and-scoped-token.md) | Start with or after EVO-105 refinement; token model must reuse the EVO-116 api key scope helper boundary. |
+| EVO-107 Webhook Out | Proposed | [Item file](backlog/active/EVO-107-webhook-out.md) | Depends on EVO-105/EVO-106. |
+| EVO-108 Indexer | Proposed | [Item file](backlog/active/EVO-108-skill-cli-mcp-indexer.md) | Depends on stable push/commit event semantics from EVO-105/EVO-107. |
 | EVO-057 生产 CORS Origin 可配置化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate deploy/config micro-iteration if production custom-domain support should be hardened before product-mainline work. |
 | EVO-080 Wasmer/WASI 替代 Docker sandbox 可行性 Spike | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Run after Phase E'-4 (EVO-111) if a non-Docker runtime candidate is still needed. |
 | EVO-081 内部文档页面基于独立 Markdown 目录渲染 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a focused frontend/content story when internal docs should become visible in-app. |
@@ -57,8 +57,8 @@ Current iteration ordering after 2026-06-23 direction pivot:
 
 - 主线切换：从 Phase E（Skill/CLI/MEP Lifecycle）切换为 Phase E'（Git 托管 + Vibe Coding）。
 - `EVO-100` 是 Epic，已进入 In Progress；EVO-101/102 已由 Iteration 042 完成，EVO-113 已完成方向变更评审缺口修复。
-- EVO-103 A/B/C 功能已完成，但 2026-06-26 架构验收为 Conditional Accept；当前 Now 是 EVO-116 发布前硬化。
-- 后续启动顺序建议 EVO-116（验收硬化）→ EVO-112（仓库管理 UI）→ Phase E'-2（EVO-104/105/106/107，UX gate 已解除）→ Phase E'-3 → Phase E'-4。
+- EVO-103 A/B/C 功能已完成；EVO-116 发布前硬化已关闭，EVO-103 可视为后续 UI / agent / indexer 的稳定基础。
+- 后续启动顺序建议 EVO-112（仓库管理 UI）→ EVO-105/EVO-106（commit + agent session）→ EVO-107（webhook）→ EVO-104（Vibe Coding UI MVP）→ EVO-108/EVO-109/EVO-110（indexer/discovery/compat）→ EVO-111（sandbox 删除）。
 - 旧 Phase E 相关 Iterations 018-020、027 因方向调整标 superseded；Iterations 025/026 保持独立（与方向调整无关）。
 - 旧 backlog 项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）已在 PRODUCT-BACKLOG.md Archived Index 标注 Superseded/Dropped。
 - `EVO-061` 至 `EVO-076` 已由 `EVO-086` 一次性 latest 迁移收口。

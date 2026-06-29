@@ -1,6 +1,6 @@
 # Iteration 049: EVO-103 Acceptance Hardening（EVO-116）
 
-> 文档状态：Active
+> 文档状态：Closed（2026-06-26）
 > 计划发布日期：2026-06-26
 > 计划目标：处理 EVO-103 架构验收 Conditional Accept 的发布前阻断项：API key scope、Context API 资源边界、Smart HTTP push 后 repo metadata、EVO-103 API contract 与性能验收证据。
 >
@@ -98,6 +98,7 @@ git diff --check
 | 2026-06-26 | progress | 建立 EVO-116 item file 和 ITERATION-049，明确权限、性能、合约、metadata 同步验收与验证命令；状态设为 In Progress，等待相关人员实现。 |
 | 2026-06-26 | done | EVO-116 全部 5 个验收面（API key scope / Context API 边界 / push metadata / API contract / 性能证据）实现并验证完成；`cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings` + `git diff --check` + 文档断链全绿；EVO-116 status 置 Done，ITERATION-049 闭环 Complete。 |
 | 2026-06-26 | acceptance-remediation | 架构验收复核发现三类阻断：Context API 资源上限在完整读取/收集后才判断、file-tree/diff 超限缺测试、API contract Audit Logs section 被拼入 Push metadata。返修后：blob 先 `find_header` 再按大小决定是否 `find_blob`；file-tree 使用 bounded visitor 第 5001 个 entry 取消遍历；diff 使用 `Tree::changes().for_each_to_obtain_tree` 第 5001 条 change 取消；补 large file-tree / large diff 413 E2E；修复 API contract 与完成证据。 |
+| 2026-06-29 | governance-sync | 收口状态漂移：页头从 Active 修正为 Closed，与 `docs/iterations/README.md`、`docs/BOARD.md` 和 EVO-116 backlog 状态一致；后续规划转入 Phase E'-1.5 / Phase E'-2。 |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 

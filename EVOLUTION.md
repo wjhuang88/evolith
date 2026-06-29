@@ -23,12 +23,20 @@
 | 12 | 新建 repo 缺失 policy 时默认自动合并 | DB / repository / UI 默认值没有同步方向文档的 `require_review=true` 安全策略 | Git-Centric policy 默认必须在 migration、repository、UI 和 evaluator 中同时验证；缺失 policy 时默认 require review |
 | 13 | `cargo test --workspace` 在有 Docker 的机器失败 sandbox 测试 | 测试假设运行环境一定没有 Docker daemon | legacy sandbox 测试不能依赖宿主 Docker 是否存在；按实际初始化结果校验错误语义或功能语义 |
 | 14 | 资源上限声明通过但仍有 DoS 风险 | 上限在完整读取/完整收集后才判断 | blob 先读 object header；tree/diff 在迭代 callback 中达到上限即取消；测试覆盖超限路径 |
+| 15 | iteration README / Board 显示 Closed，但单个 iteration 页头仍是 Active | 只同步派生视图和总目录，漏改 owner 文档页头 | 收口时同时检查 iteration 文件页头、执行记录、README、Board、backlog item；owner 页头优先 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-06-29 - 关闭迭代时必须同步 owner 页头状态
+**现象**: EVO-116 / Iteration 049 已在 backlog、iterations README 和 Board 中记录为 Complete/Closed，但 `docs/iterations/ITERATION-049.md` 页头仍写 `Active`，会在下一次 START-ITERATION 库存盘点时误导 Agent 判断仍有在途迭代。
+**根因**: 收口时同步了派生视图和目录，却漏改 iteration owner 文档最顶部的状态字段；目录状态不能替代 owner 文档状态。
+**方案**: 将 Iteration 049 页头修正为 `Closed（2026-06-26）`，并在执行记录追加 2026-06-29 `governance-sync`；同步刷新 Board、iterations README、Product Backlog 和 roadmap 的后续主线口径。
+**教训**: iteration 收口检查必须从 owner 文档页头开始，再同步 README / Board / backlog。派生视图显示 Closed 不代表 owner 文档已关闭。
+**Promoted to rule/check**: `docs/sop/TASK-CLOSURE.md` 和 `docs/sop/DOC-CHECK.md` 已要求 owner docs 状态同步；本次不新增规则，只把具体陷阱写入速查表。
 
 ### 2026-06-26 - 资源边界必须在读取前或迭代中生效（EVO-116 验收返修）
 **现象**: EVO-116 首轮实现声明 Context API 已有 `BLOB_MAX_BYTES` / `FILE_TREE_MAX_ENTRIES` / `DIFF_MAX_ENTRIES`，测试也能看到超大 blob 返回 413；但验收复核发现 `read_blob` 先 `find_blob` + `to_vec()` 再判断大小，file-tree / diff 也是先完整遍历或完整 `Vec` 收集后再判断上限。
