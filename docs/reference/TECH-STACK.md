@@ -1,484 +1,273 @@
 # 技术栈说明
 
-## 1. 概述
+> 本文档记录 Evolith 当前可验证的技术与版本基线。版本事实以 Manifest 和 Lockfile 为准，历史迭代记录只用于追溯，不作为当前依赖来源。
 
-本文档详细说明Evolith项目的技术选型和设计决策。
+## 1. 权威来源
 
-## 2. 后端技术栈
+| 范围 | 权威文件 |
+|------|----------|
+| Rust 工具链最低版本 | `backend/Cargo.toml` 的 `workspace.package.rust-version` |
+| Rust 依赖解析结果 | `backend/Cargo.lock` |
+| Rust 直接依赖声明 | `backend/Cargo.toml` 与各 crate `Cargo.toml` |
+| 前端直接依赖声明 | `frontend/package.json` |
+| 前端解析结果 | `frontend/bun.lock` |
+| 容器 Builder 版本 | `backend/Dockerfile` |
+| CI 实际命令 | `.github/workflows/ci.yml` |
 
-### 2.1 核心框架
+版本升级后必须同步本文件、README 和受影响的开发/发布文档。
 
-| 技术 | 版本 | 用途 | 选择理由 |
-|------|------|------|----------|
-| Rust | 1.88+ | 核心语言 | 高性能、内存安全、并发友好、零成本抽象；依赖 latest 迁移后由 `jsonwebtoken 10.4` MSRV 约束 |
-| Actix-web | 4.x | Web框架 | 高性能、功能完善、生态成熟、异步支持 |
-| Tokio | 1.x | 异步运行时 | Rust事实标准的异步运行时 |
+## 2. 后端基线
 
-### 2.2 数据层
+### 2.1 工具链与交付
 
-#### 数据库抽象层设计
+| 技术 | 当前基线 | 用途 |
+|------|----------|------|
+| Rust | 1.88 | Workspace MSRV；与生产 Builder 镜像一致 |
+| Edition | 2021 | Workspace edition |
+| Cargo resolver | 2 | Workspace 依赖解析 |
+| Debian | bookworm-slim | 生产运行镜像 |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Application Layer                         │
-│  (Service Layer - 只依赖 Repository Trait)                  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Repository Trait                          │
-│  trait Repository { ... }                                   │
-│  - 统一的数据访问接口                                        │
-│  - 与具体数据库实现解耦                                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ SQLite/内存模式  │ │   PostgreSQL    │ │     MySQL       │
-│ (开发/测试)     │ │   (生产推荐)    │ │    (生产备选)   │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
-```
-
-MySQL 当前只保留 pool/config 入口，缺少 repository 实现，主服务会拒绝以 MySQL 启动。生产主路径是 PostgreSQL。
-
-#### 数据库配置
-
-当前配置由 `backend/crates/infra/src/config.rs` 读取，嵌套配置统一使用双下划线环境变量。
-完整配置清单见 [配置参考](./CONFIG.md)，数据库迁移执行流程见 [数据库迁移 SOP](../sop/DATABASE-MIGRATION.md)。
-
-```bash
-# 开发环境 - SQLite 内存数据库
-DATABASE__DATABASE_TYPE=sqlite
-DATABASE__URL=":memory:"
-
-# 开发环境 - SQLite 文件数据库
-DATABASE__DATABASE_TYPE=sqlite
-DATABASE__URL="sqlite:dev.db?mode=rwc"
-
-# 生产环境 - PostgreSQL
-DATABASE__DATABASE_TYPE=postgres
-DATABASE__URL="postgres://user:pass@localhost:5432/evolith"
-```
-
-#### Repository Trait 设计
-
-```rust
-// domain/repository.rs
-use async_trait::async_trait;
-
-#[async_trait]
-pub trait ToolRepository: Send + Sync {
-    async fn create(&self, tool: NewTool) -> Result<Tool, RepositoryError>;
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Tool>, RepositoryError>;
-    async fn find_all(&self, filter: ToolFilter) -> Result<Vec<Tool>, RepositoryError>;
-    async fn update(&self, id: Uuid, tool: UpdateTool) -> Result<Tool, RepositoryError>;
-    async fn delete(&self, id: Uuid) -> Result<(), RepositoryError>;
-}
-
-// 不同数据库的实现
-pub struct SqliteToolRepository { /* ... */ }
-pub struct PostgresToolRepository { /* ... */ }
-pub struct MySqlToolRepository { /* ... */ }
-
-#[async_trait]
-impl ToolRepository for SqliteToolRepository { /* ... */ }
-#[async_trait]
-impl ToolRepository for PostgresToolRepository { /* ... */ }
-#[async_trait]
-impl ToolRepository for MySqlToolRepository { /* ... */ }
-```
-
-#### 数据库切换配置
+Release Profile：
 
 ```toml
-# Cargo.toml
-[dependencies]
-# SQL工具包 - 支持多数据库
-sqlx = { version = "0.7", features = [
-    "runtime-tokio",
-    "tls-rustls",
-    "uuid",
-    "chrono",
-    "json",
-] }
-
-# 可选的数据库驱动
-sqlx-sqlite = { version = "0.7", optional = true }
-sqlx-postgres = { version = "0.7", optional = true }
-sqlx-mysql = { version = "0.7", optional = true }
-
-[features]
-default = ["sqlite"]
-sqlite = ["sqlx/sqlite", "sqlx-sqlite"]
-postgres = ["sqlx/postgres", "sqlx-postgres"]
-mysql = ["sqlx/mysql", "sqlx-mysql"]
-all-databases = ["sqlite", "postgres", "mysql"]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
 ```
 
-> 不要使用 `DATABASE_TYPE` / `DATABASE_URL` 表达嵌套配置；这类旧写法不会按当前 `AppConfig` 规则读取。
+后端默认产出单个 `evolith` 可执行文件。前端静态资源在构建时嵌入该发布物。
 
-#### 初始化数据
+### 2.2 核心运行时
 
-```rust
-// infra/db/seed.rs
-pub async fn seed_database(pool: &SqlitePool) -> Result<(), Error> {
-    // 仅在开发/测试环境执行
-    if std::env::var("ENVIRONMENT").unwrap_or_default() != "production" {
-        // 创建测试用户
-        sqlx::query!(
-            r#"
-            INSERT INTO users (id, username, email, password_hash, role)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT DO NOTHING
-            "#,
-            Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
-            "testuser",
-            "test@example.com",
-            "hashed_password",
-            "user"
-        )
-        .execute(pool)
-        .await?;
+| Crate | 当前声明 | 用途 |
+|-------|----------|------|
+| `actix-web` | 4.13.0 | HTTP 服务 |
+| `tokio` | 1.49.0 | 异步运行时 |
+| `futures-util` | 0.3 | 异步流工具 |
+| `serde` / `serde_json` | 1.x | 序列化 |
+| `thiserror` | 2.0.18 | 类型化错误 |
+| `anyhow` | 1.x | 应用级错误上下文 |
+| `tracing` | 0.1 | 结构化日志 |
+| `tracing-subscriber` | 0.3 | 日志订阅和 JSON 输出 |
 
-        // 创建示例工具
-        // ...
-    }
-    Ok(())
+### 2.3 Git
+
+| 技术 | 当前声明 | 用途 |
+|------|----------|------|
+| Git CLI | 系统包 | Smart HTTP 服务 subprocess |
+| `gix` | 0.78.0 | Repo Context：revision、tree、blob 和 diff |
+
+实现边界：
+
+- Smart HTTP 使用 Git subprocess 处理标准协议流。
+- Repository Context 使用 `gix` 读取对象和历史。
+- Git 仓库当前存储在服务端文件系统，不在 PostgreSQL 或 MinIO 中。
+
+### 2.4 数据与基础设施
+
+| 技术 | 当前声明或镜像 | 用途 | 当前状态 |
+|------|----------------|------|----------|
+| SQLx | 0.9.0 | 异步数据库访问与 migration | SQLite / PostgreSQL 主路径 |
+| SQLite | SQLx feature | Lite 开发和测试 | 支持 |
+| PostgreSQL | 16-alpine | 生产数据库 | 支持 |
+| MySQL | SQLx feature 保留 | 非主路径 | Repository 未实现，启动时拒绝 |
+| Redis | crate 1.2.2 / image 7-alpine | 缓存 | 可选 |
+| MinIO | Compose image | 早期对象存储基础设施 | 非 Git 主存储路径 |
+
+SQLx 当前启用了 `sqlite`、`postgres` 和 `mysql` feature，但 feature 存在不等于业务支持。生产主服务只支持 SQLite 和 PostgreSQL 分支。
+
+数据库变更必须同时考虑：
+
+1. `backend/migrations/sqlite/`
+2. `backend/migrations/postgres/`
+3. `Sqlite*Repository`
+4. `Pg*Repository`
+5. 双路径测试
+
+### 2.5 认证、安全与治理
+
+| Crate | 当前声明 | 用途 |
+|-------|----------|------|
+| `jsonwebtoken` | 10.4.0 | JWT |
+| `argon2` | 0.5 | Argon2id 密码哈希 |
+| `validator` | 0.20.0 | DTO / Domain 校验 |
+| `jsonschema` | 0.46.5 | Tool Schema 校验 |
+| `actix-governor` | 0.10.0 | 请求限流 |
+| `hmac` | 0.13.0 | Webhook 签名 |
+| `sha2` | 0.11.0 | SHA-2 |
+| `regex` | 1.12.3 | 输入与格式校验 |
+
+当前认证面包括：
+
+- 浏览器：httpOnly Cookie JWT + double-submit Cookie CSRF。
+- API Client：API Key + scope / RBAC。
+- Git Client：Basic challenge 后映射到凭证和仓库授权。
+
+### 2.6 网络、邮件、计费和可观测性
+
+| Crate | 当前声明 | 用途 |
+|-------|----------|------|
+| `reqwest` | 0.13.4 | HTTP Tool、Webhook 和外部请求 |
+| `lettre` | 0.11.22 | SMTP 邮件 |
+| `async-stripe` | 1.0.0-rc.6 | Stripe 集成 |
+| `actix-web-prom` | 0.10.0 | Actix 指标 |
+| `prometheus` | 0.14.0 | Prometheus 指标 |
+| `redis` | 1.2.2 | 异步缓存连接 |
+
+### 2.7 Embedded Frontend
+
+| Crate | 当前声明 | 用途 |
+|-------|----------|------|
+| `rust-embed-for-web` | 11.3 | 嵌入 Vite 静态产物 |
+| `actix-web-rust-embed-responder` | 2.4.0 | Actix 静态资源响应与协商 |
+
+构建顺序：
+
+```text
+bun install --frozen-lockfile
+bun run build
+cargo build --release
+```
+
+后端编译依赖 `frontend/dist/` 已存在。
+
+### 2.8 Legacy Sandbox
+
+| 技术 | 当前声明 | 状态 |
+|------|----------|------|
+| `bollard` | 0.21.0 | legacy Docker Sandbox 客户端 |
+| Python image | 3.11 | legacy |
+| Node image | 20 | legacy |
+
+`SANDBOX__ENABLED` 默认 `false`。ADR-0005 已决定废弃服务端 Sandbox，EVO-111 负责删除执行层、`bollard` 和镜像。新 Git-centric 功能不得新增对 Sandbox 的依赖。
+
+## 3. 前端基线
+
+### 3.1 工具链
+
+| 技术 | 当前声明 | 用途 |
+|------|----------|------|
+| Bun | 1.3.14 | 包管理、锁文件和脚本运行 |
+| Vite | 8.0.16 | 开发服务器和静态 SPA 构建 |
+| TypeScript | 6.0.3 | 类型检查 |
+| ESLint | 10.4.1 | 静态检查 |
+| Prettier | 3.8.3 | 格式化 |
+| `@vitejs/plugin-react` | 6.0.2 | React 构建插件 |
+
+使用 Bun 时，Node.js 不是 Lite 模式的独立必需依赖。不要同时维护 npm/yarn/pnpm 锁文件。
+
+### 3.2 UI 与应用框架
+
+| Package | 当前声明 | 用途 |
+|---------|----------|------|
+| React | 19.2.7 | UI |
+| React DOM | 19.2.7 | 浏览器渲染 |
+| React Router DOM | 7.17.0 | SPA 路由 |
+| Tailwind CSS | 4.3.0 | 样式系统 |
+| Radix UI | 多包 | 无样式可访问组件 |
+| Lucide React | 1.17.0 | 图标 |
+| `class-variance-authority` | 0.7.1 | 组件 Variant |
+| `tailwind-merge` | 3.6.0 | Tailwind 类合并 |
+
+旧文档中的 React 18、TypeScript 5、Tailwind 3 和 ESLint 8 已不是当前版本。
+
+### 3.3 状态、数据和国际化
+
+| Package | 当前声明 | 用途 |
+|---------|----------|------|
+| TanStack Query | 5.101.0 | 服务端状态和缓存 |
+| Zustand | 5.0.14 | 客户端状态 |
+| Axios | 1.17.0 | API Client |
+| i18next | 26.3.1 | 国际化核心 |
+| react-i18next | 17.0.8 | React 集成 |
+| i18next-browser-languagedetector | 8.2.1 | 语言检测 |
+
+### 3.4 当前脚本
+
+```json
+{
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "lint": "eslint src/",
+  "format": "prettier --write .",
+  "type-check": "tsc --noEmit"
 }
 ```
 
-### 2.3 缓存层
+`frontend/package.json` 当前没有 Vitest 或 Playwright 直接依赖，因此不能把它们描述为已建立的前端测试基线。需要引入时应先进入 Backlog 并更新 Manifest。
 
-| 技术 | 版本 | 用途 | 选择理由 |
-|------|------|------|----------|
-| Redis | 7.x | 缓存/会话 | 高性能、支持多种数据结构、持久化 |
+## 4. 部署基线
 
-### 2.4 对象存储
+### 4.1 Lite
 
-| 技术 | 版本 | 用途 | 选择理由 |
-|------|------|------|----------|
-| MinIO | 最新 | 对象存储 | S3兼容、可自托管、高性能 |
+- Rust 1.88。
+- Bun 1.3.14。
+- SQLite 内存数据库。
+- legacy Sandbox 关闭。
+- 不要求 Docker。
 
-### 2.5 代码执行
+### 4.2 Full / Production
 
-| 运行时 | 版本 | 用途 |
-|--------|------|------|
-| Python | 3.11 | 技能执行 |
-| Node.js | 20 LTS | 技能执行 |
-| WASM | - | 高性能执行 |
+- Rust 后端单进程。
+- 嵌入式 React SPA。
+- PostgreSQL 16。
+- Redis 可选。
+- Git 仓库持久卷。
+- Nginx / Platform LB 可选。
 
-## 3. 前端技术栈
+MinIO 仍可由开发 Compose 启动，但当前 Git-centric 主线使用 Git 文件系统，不应把 MinIO 视为仓库数据层。
 
-> 当前实现是 `React + Vite + Bun` 静态 SPA，见
-> [ADR-0001](../decisions/ADR-0001-react-vite-bun-frontend.md) 和
-> [实施路线图 Phase B](../roadmap/IMPLEMENTATION-ROADMAP.md#phase-b--前端迁移到-react--vite--bunp0)。
+### 4.3 容器
 
-### 3.1 核心框架
+`backend/Dockerfile` 当前：
 
-| 技术 | 版本 | 用途 | 选择理由 |
-|------|------|------|----------|
-| Vite | 8.x | 构建工具 | 静态 SPA 构建、开发启动快 |
-| React | 18.x | UI库 | 组件化、生态成熟、类型支持 |
-| TypeScript | 5.x | 语言 | 类型安全、开发体验好 |
-| React Router | 7.x | 路由 | SPA 路由和 history fallback |
+- Builder：`rust:1.88-slim-bookworm`
+- Runtime：`debian:bookworm-slim`
+- Runtime 包含 `git`、`curl`、CA 和 OpenSSL 运行库
+- 非 root 用户 `evolith`
+- Health Check：`/health`
 
-### 3.2 UI组件
+## 5. CI 基线
 
-| 技术 | 版本 | 用途 | 选择理由 |
-|------|------|------|----------|
-| Tailwind CSS | 3.x | 样式 | 快速开发、一致性高、可定制 |
-| Radix UI | 最新 | 无样式组件 | 可访问性、键盘导航、无样式设计 |
-| Lucide | 最新 | 图标 | 轻量、图标丰富 |
+`.github/workflows/ci.yml` 当前只在 `v*.*.*` Tag push 时运行。
 
-### 3.3 状态管理
+实际门禁：
 
-| 技术 | 版本 | 用途 | 选择理由 |
-|------|------|------|----------|
-| Zustand | 4.x | 全局状态 | 轻量、简单易用、TypeScript友好 |
-| TanStack Query | 5.x | 服务端状态 | 缓存、自动刷新、乐观更新 |
+```text
+Frontend:
+  bun install --frozen-lockfile
+  bun run type-check
+  bun run build
+  bun run lint
 
-### 3.4 工具链
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| ESLint | 8.x | 代码检查 |
-| Prettier | 3.x | 代码格式化 |
-| Bun | 1.x | 包管理和脚本运行 |
-| Vitest | 1.x | 单元测试 |
-| Playwright | 1.x | E2E测试 |
-
-## 4. DevOps
-
-### 4.1 容器化
-
-| 技术 | 用途 |
-|------|------|
-| Docker | 容器化 |
-| Docker Compose | 本地开发编排 |
-| Kubernetes | 生产部署（可选） |
-
-### 4.2 CI/CD
-
-GitHub Actions workflow 由 Iteration 029（EVO-030）建立，文件在
-`.github/workflows/ci.yml`。
-
-#### 触发策略
-
-- **Tag-only**：`on: push: tags: ['v*.*.*']`（semver 模式）
-- 每次 push 不自动跑 CI；只在打 `vX.Y.Z` tag 时触发
-- 契合 release-driven 发布模型；节省 CI 配额
-- 切割 release：`git tag v0.1.0 && git push origin v0.1.0`
-
-#### 工作流内容
-
-| 阶段 | 命令 | 用途 |
-|------|------|------|
-| Frontend install | `bun install --frozen-lockfile` | 锁定依赖版本 |
-| Frontend type-check | `bun run type-check` | TypeScript 类型检查 |
-| Frontend build | `bun run build` | 产出 `frontend/dist/`（被后端 embed） |
-| Frontend lint | `bun run lint` | ESLint |
-| Backend format | `cargo fmt --all -- --check` | Rust 格式门禁 |
-| Backend check | `cargo check --workspace --all-targets` | 全量编译 |
-| Backend clippy | `cargo clippy --workspace --all-targets -- -D warnings` | Lint 严格门禁 |
-| Backend test (SQLite) | `cargo test --workspace` | 274 个集成测试（in-memory SQLite） |
-| Backend test (PostgreSQL) | `cargo test --workspace` | 同一组测试，PG service 准备给 EVO-053 用 |
-
-#### Service 容器
-
-- `postgres:16-alpine` — 启动 PG 16 服务，供未来 PG 集成测试使用（EVO-053）
-- 当前 integration tests 用 SQLite in-memory；PG env 变量已配置但 tests 不读
-
-#### 缓存
-
-- Rust: `Swatinem/rust-cache@v2`，`workspaces: backend -> target`，`shared-key: evolith-rust`
-- Bun: `oven-sh/setup-bun@v1` 内置缓存
-
-#### 不做（Deferred）
-
-- **deploy workflow**：部署形态仍可能演化（嵌入式 + 可选 Nginx），不在 Iteration 029 范围
-- **PR trigger**：trunk-based 模型，无 PR review 流程
-- **PR-only 检查**：tag-only 模型下不区分 PR
-
-## 5. 监控与日志
-
-### 5.1 监控
-
-| 技术 | 用途 |
-|------|------|
-| Prometheus | 指标收集 |
-| Grafana | 可视化仪表盘 |
-| AlertManager | 告警管理 |
-
-### 5.2 日志
-
-| 技术 | 用途 |
-|------|------|
-| tracing | Rust日志框架 |
-| OpenTelemetry | 分布式追踪 |
-| ELK Stack | 日志聚合（可选） |
-
-## 6. 开发工具
-
-### 6.1 后端
-
-| 工具 | 用途 |
-|------|------|
-| cargo | 包管理、构建 |
-| cargo-watch | 热重载 |
-| cargo-nextest | 测试运行器 |
-| sqlx-cli | 数据库迁移 |
-
-### 6.2 前端
-
-| 工具 | 用途 |
-|------|------|
-| Bun | 包管理和脚本运行 |
-| Vite | 构建工具和开发服务器 |
-
-## 7. 环境配置
-
-稳定环境变量清单以 [配置参考](./CONFIG.md) 为准。本节只保留技术栈视角下的依赖服务示例。
-
-### 7.1 开发环境
-
-```yaml
-# docker-compose.dev.yml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: evolith
-      POSTGRES_USER: evolith
-      POSTGRES_PASSWORD: dev_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-
-volumes:
-  postgres_data:
-  minio_data:
+Backend:
+  cargo fmt --all -- --check
+  cargo check --workspace --all-targets
+  cargo clippy --workspace --all-targets -- -D warnings
+  cargo test --workspace                  # SQLite
+  cargo test --workspace                  # PostgreSQL env
 ```
 
-### 7.2 环境变量
+CI 启动 PostgreSQL 16 Service。Tag-only 是当前发布驱动策略，不要在文档中描述为每次 Push 或 PR 自动执行。
 
-```bash
-# .env.development
-DATABASE__DATABASE_TYPE=sqlite
-DATABASE__URL=":memory:"
+## 6. 版本升级规则
 
-# 或者使用文件持久化的 SQLite
-# DATABASE__URL="sqlite:dev.db?mode=rwc"
+1. 先修改 Manifest 和 Lockfile，并完成 breaking migration。
+2. Rust 依赖升级后检查实际 MSRV，统一更新 Workspace、Dockerfile 和 README。
+3. 前端升级后以 `package.json` + `bun.lock` 为事实源。
+4. 不把“latest”当作固定版本号写入稳定 Reference。
+5. 依赖 feature 存在不等于产品能力完整支持。
+6. 完成后执行与风险匹配的 fmt、check、clippy、test、type-check、build 和 lint。
 
-# 使用 PostgreSQL（如果需要）
-# DATABASE__DATABASE_TYPE=postgres
-# DATABASE__URL="postgres://evolith:dev_password@localhost:5432/evolith"
+## 7. 相关文档
 
-# Redis
-REDIS__URL="redis://localhost:6379"
-
-# Object storage / MinIO
-STORAGE__ENDPOINT="localhost:9000"
-STORAGE__ACCESS_KEY="minioadmin"
-STORAGE__SECRET_KEY="minioadmin"
-STORAGE__USE_SSL="false"
-STORAGE__BUCKET="evolith"
-
-# JWT
-JWT__SECRET="dev_secret_key_change_in_production"
-JWT__EXPIRATION="24h"
-
-# legacy 执行沙箱（ADR-0005 / EVO-111 待删除；不要在新主线中继续依赖）
-SANDBOX__ENABLED="false"
-SANDBOX__TIMEOUT_SECONDS="30"
-SANDBOX__MEMORY_MB="256"
-
-# 环境
-ENVIRONMENT="development"
-LOG__LEVEL="debug"
-```
-
-```bash
-# .env.production
-DATABASE__DATABASE_TYPE=postgres
-DATABASE__URL="postgres://user:password@postgres:5432/evolith"
-
-# Redis (集群)
-REDIS__URL="redis://redis-cluster:6379"
-
-# Object storage / MinIO
-STORAGE__ENDPOINT="minio:9000"
-STORAGE__ACCESS_KEY="${STORAGE_ACCESS_KEY}"
-STORAGE__SECRET_KEY="${STORAGE_SECRET_KEY}"
-STORAGE__USE_SSL="true"
-STORAGE__BUCKET="evolith"
-
-# JWT
-JWT__SECRET="${JWT_SECRET}"
-JWT__EXPIRATION="24h"
-
-# legacy 执行沙箱（ADR-0005 / EVO-111 待删除；不要在新主线中继续依赖）
-SANDBOX__ENABLED="false"
-SANDBOX__TIMEOUT_SECONDS="30"
-SANDBOX__MEMORY_MB="256"
-
-# 环境
-ENVIRONMENT="production"
-LOG__LEVEL="info"
-```
-
-## 8. 项目结构
-
-### 8.1 整体结构
-
-```
-evolith/
-├── backend/                  # Rust后端
-│   ├── crates/
-│   │   ├── api/             # API层
-│   │   ├── service-tool/    # 工具服务
-│   │   ├── service-skill/   # 技能服务 (Docker 沙箱)
-│   │   ├── service-snippet/ # 片段服务
-│   │   ├── service-auth/    # 认证服务
-│   │   ├── service-audit/   # 审计日志
-│   │   ├── service-payment/ # Stripe 计费
-│   │   ├── domain/          # 领域模型
-│   │   ├── infra/           # 基础设施
-│   │   └── common/          # 公共模块
-│   ├── migrations/
-│   │   ├── sqlite/          # SQLite 迁移 (开发)
-│   │   └── postgres/        # PostgreSQL 迁移 (生产)
-│   ├── sandbox/             # 沙箱 Dockerfile (Python, Node.js)
-│   ├── Cargo.toml
-│   └── Cargo.lock
-│
-├── frontend/                 # React + Vite + Bun 前端
-│   ├── src/
-│   │   ├── app/             # 页面 (22 路由)
-│   │   ├── components/      # 组件
-│   │   ├── lib/             # 工具库 (API client, i18n)
-│   │   ├── locales/         # 翻译文件 (zh-CN, en)
-│   │   ├── stores/          # 状态 (Zustand)
-│   │   ├── types/           # 类型
-│   │   └── styles/          # 样式
-│   ├── package.json
-│   ├── bun.lock
-│   └── vite.config.ts
-│
-├── deploy/                   # Nginx 配置
-├── scripts/                  # dev.sh, backup.sh, deploy.sh
-├── .github/workflows/        # CI/CD workflow（EVO-030 重建）
-├── docs/                     # 文档
-├── docker-compose.prod.yml   # 生产 Docker 编排
-└── README.md
-```
-
-## 9. 数据库切换最佳实践
-
-### 9.1 切换流程
-
-```
-开发阶段                          生产阶段
-┌──────────────┐               ┌──────────────┐
-│ SQLite内存   │               │ PostgreSQL   │
-│ DATABASE__URL│               │ DATABASE__URL│
-│ =":memory:"  │               │ ="postgres:..│
-└──────────────┘               └──────────────┘
-       │                              │
-       │ 相同的Repository Trait       │
-       │ 相同的SQL(通过sqlx抽象)      │
-       │                              │
-       ▼                              ▼
-┌────────────────────────────────────────────┐
-│              无缝切换                       │
-│  - 代码无需修改                             │
-│  - 配置驱动切换                             │
-│  - 迁移脚本统一                             │
-└────────────────────────────────────────────┘
-```
-
-### 9.2 注意事项
-
-1. **SQL兼容性**：SQLite 和 PostgreSQL 使用各自专用的迁移文件（`migrations/sqlite/` 和 `migrations/postgres/`），语法不同（如 `TEXT` vs `UUID`、`datetime('now')` vs `NOW()`）
-2. **迁移脚本**：双轨迁移，启动时根据 `DATABASE__DATABASE_TYPE` 选择对应目录
-3. **测试覆盖**：在SQLite和目标生产数据库上都运行测试
-4. **性能差异**：生产环境需要针对目标数据库进行性能测试
+- [架构设计](./ARCHITECTURE.md)
+- [项目地图](./PROJECT-MAP.md)
+- [配置参考](./CONFIG.md)
+- [测试](./TESTING.md)
+- [本地开发](../sop/LOCAL-DEV.md)
+- [发布](../sop/RELEASE.md)
+- [全量依赖 latest 迁移记录](../backlog/archive/2026-Q2/EVO-086-全量依赖-latest-迁移.md)
+- [ADR-0005 废弃 Sandbox Runtime](../decisions/ADR-0005-deprecate-sandbox-runtime.md)
