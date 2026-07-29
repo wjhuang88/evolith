@@ -1,759 +1,293 @@
 # 架构设计
 
-## 1. 系统概述
+> 本文档描述 Evolith 当前代码与运行边界。历史方案、待实施能力和重大取舍分别归口到 `docs/archive/`、`docs/roadmap/`、`docs/proposals/` 和 `docs/decisions/`。
 
-Evolith 采用前后端分离的微服务架构，后端使用 Rust 构建高性能 API 服务，前端当前使用 React + Vite + Bun 构建静态 SPA，并通过 `rust-embed-for-web` 嵌入后端发布物。Nginx 只作为可选网关、SSL 终止和反向代理层。
+## 1. 架构定位
 
-## 2. 整体架构
+Evolith 当前采用**前后端分离开发、单进程交付的模块化单体架构**：
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Client Layer                             │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │   Web App   │  │  MCP Client │  │   Agent SDK (Future)    │  │
-│  │React+Vite SPA│ │  (Claude)   │  │   (Multi-language)      │  │
-│  └──────┬──────┘  └──────┬──────┘  └────────────┬────────────┘  │
-└─────────┼────────────────┼──────────────────────┼────────────────┘
-          │                │                      │
-          ▼                ▼                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         Gateway Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │            Optional Gateway (Nginx / Platform LB)           │ │
-│  │  - SSL Termination                                         │ │
-│  │  - Reverse Proxy / SSL termination                         │ │
-│  │  - Load Balancing                                          │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       Service Layer                              │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │  Tool Service │  │ Skill Service │  │  Snippet Service    │   │
-│  │              │  │              │  │                      │   │
-│  │ - MCP Server │  │ - Execution  │  │ - Search             │   │
-│  │ - Registry   │  │ - Registry   │  │ - Versioning         │   │
-│  │ - Discovery  │  │ - Versioning │  │ - Reference          │   │
-│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘   │
-│         │                 │                      │               │
-│         └─────────────────┼──────────────────────┘               │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    Core Services                            │ │
-│  │  - Auth Service (JWT)                                      │ │
-│  │  - User Service                                            │ │
-│  │  - Notification Service                                    │ │
-│  │  - Audit Service                                           │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Execution Layer                             │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │              Code Execution Engine                          │ │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │ │
-│  │  │  Sandbox     │  │  Sandbox     │  │  Sandbox     │      │ │
-│  │  │  (Python)    │  │  (Node.js)   │  │  (Rust/WASM) │      │ │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘      │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       Data Layer                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
-│  │PostgreSQL│  │  Redis   │  │  MinIO   │  │ Elasticsearch    │ │
-│  │          │  │          │  │          │  │  (Future)        │ │
-│  │- Users   │  │- Cache   │  │- Files   │  │- Full-text       │ │
-│  │- Tools   │  │- Session │  │- Skills  │  │  Search          │ │
-│  │- Skills  │  │- Queue   │  │- Snippets│  │                  │ │
-│  │- Snippets│  │          │  │          │  │                  │ │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+- 后端是 Rust Workspace，通过多个 crate 划分 API、领域、基础设施和业务模块。
+- 默认发布物是一个 `evolith` Actix-web 进程。
+- React + Vite 静态 SPA 通过 `rust-embed-for-web` 嵌入后端发布物。
+- Nginx 或平台负载均衡仅作为可选网关、SSL 终止和反向代理层。
+- SQLite 用于 Lite 开发；PostgreSQL 是生产主数据库。
+- Git 仓库位于服务端文件系统，业务元数据位于数据库。
+
+内部存在多个 `service-*` crate 不代表它们是独立部署的微服务。只有在未来明确拆分进程、网络协议、部署生命周期和故障边界后，才应使用“微服务”描述。
+
+## 2. 当前整体架构
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Clients                                                      │
+│ Web SPA | Git Client | MCP Client | External Agent (future) │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────┐
+│ Optional Gateway                                             │
+│ TLS termination | reverse proxy | load balancing            │
+└──────────────────────────────┬───────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────┐
+│ Evolith Rust Application                                     │
+│                                                              │
+│ API / Middleware                                             │
+│ - Cookie JWT / API Key / Git Basic challenge                │
+│ - RBAC / tenant boundary / CSRF / rate limit / audit         │
+│                                                              │
+│ Git Platform                                                 │
+│ - Repo CRUD and filesystem lifecycle                         │
+│ - Git Smart HTTP via git subprocess                          │
+│ - Repo Context via gix: tree / blob / commit / diff          │
+│ - .evolith/policy.yaml parsing                               │
+│                                                              │
+│ Compatibility Modules                                        │
+│ - Tool / Skill / CLI legacy APIs                             │
+│ - Docker Sandbox disabled by default, pending EVO-111        │
+│                                                              │
+│ Embedded Frontend                                             │
+│ - React + Vite static assets                                 │
+│ - SPA fallback                                                │
+└───────────────┬────────────────────┬─────────────────────────┘
+                │                    │
+       ┌────────▼────────┐   ┌───────▼─────────────────────┐
+       │ Metadata Stores │   │ Repository Storage          │
+       │ SQLite / PG     │   │ Git repositories on disk   │
+       │ Redis optional  │   │                             │
+       └─────────────────┘   └─────────────────────────────┘
 ```
 
-## 3. 模块设计
+## 3. 事实源与数据边界
 
-### 3.1 后端模块划分
+### 3.1 Git 仓库
 
-```
+Git 仓库是代码、版本历史和仓库内 Agent 能力描述的事实源。
+
+当前 Git 路径包括：
+
+- Repository 创建、查询、更新和删除。
+- Smart HTTP `info/refs`、`git-upload-pack`、`git-receive-pack`。
+- 真实 Git 客户端认证挑战与 `clone` / `pull` / `push`。
+- Repo Context：文件树、Blob、Commit 和 Diff。
+- Push 后元数据同步。
+
+Smart HTTP 使用 Git subprocess 处理协议流；Repo Context 使用 `gix` 读取对象和历史。两者承担不同职责，不应混写为同一实现。
+
+### 3.2 数据库
+
+数据库存储用户、租户、权限、API Key、审计、仓库元数据以及仍处于兼容期的 Tool / Skill / CLI 数据。
+
+- SQLite：Lite 开发和多数本地测试。
+- PostgreSQL：生产主路径。
+- 数据库结构或 Repository 行为变化必须同时覆盖两套 migration、实现和测试。
+- MySQL 只有部分依赖入口，没有完整 Repository 实现，主服务不支持以 MySQL 启动。
+
+### 3.3 文件系统
+
+当前 Git 仓库存储在服务端文件系统。由此产生以下部署边界：
+
+- 单实例部署可直接使用本地持久卷。
+- 多实例部署必须提供共享或一致的仓库存储，或采用明确的请求路由与副本策略。
+- 仅共享 PostgreSQL 不能让多个实例自动共享 Git 对象。
+
+当前代码不应被描述为已经具备无状态水平扩展能力。
+
+### 3.4 Redis 与 MinIO
+
+- Redis 是可配置的缓存基础设施，不是核心事实源。
+- MinIO 仍出现在部分 Compose 和早期对象存储设计中，但不是当前 Git 仓库主存储路径。
+- 新的 Git-centric 能力不要默认依赖 MinIO；确需对象制品或 LFS 时应通过独立设计和 Backlog 进入。
+
+## 4. 后端模块
+
+```text
 backend/
-├── Cargo.toml                    # Workspace配置
+├── src/main.rs                 # 启动、配置、数据库分支、中间件和路由装配
 ├── crates/
-│   ├── api/                      # API层
-│   │   ├── src/
-│   │   │   ├── routes/          # 路由定义
-│   │   │   ├── handlers/        # 请求处理
-│   │   │   ├── middleware/      # 中间件
-│   │   │   └── dto/             # 数据传输对象
-│   │   └── Cargo.toml
-│   │
-│   ├── service-tool/             # 工具服务
-│   │   ├── src/
-│   │   │   ├── registry.rs      # 工具注册
-│   │   │   ├── discovery.rs     # 工具发现
-│   │   │   ├── executor.rs      # 工具执行
-│   │   │   └── mcp.rs           # MCP协议实现
-│   │   └── Cargo.toml
-│   │
-│   ├── service-skill/            # 技能服务
-│   │   ├── src/
-│   │   │   ├── registry.rs      # 技能注册
-│   │   │   ├── parser.rs        # SKILL.md解析
-│   │   │   ├── executor.rs      # legacy 代码执行（ADR-0005 / EVO-111 待删除）
-│   │   │   └── sandbox.rs       # legacy 沙箱管理（ADR-0005 / EVO-111 待删除）
-│   │   └── Cargo.toml
-│   │
-│   ├── service-snippet/          # 代码片段服务
-│   │   ├── src/
-│   │   │   ├── repository.rs    # 片段仓库
-│   │   │   ├── search.rs        # 搜索功能
-│   │   │   ├── parser.rs        # 格式解析
-│   │   │   └── reference.rs     # 引用生成
-│   │   └── Cargo.toml
-│   │
-│   ├── service-auth/             # 认证服务
-│   │   ├── src/
-│   │   │   ├── jwt.rs           # JWT处理
-│   │   │   ├── rbac.rs          # 权限控制
-│   │   │   └── session.rs       # 会话管理
-│   │   └── Cargo.toml
-│   │
-│   ├── domain/                   # 领域模型
-│   │   ├── src/
-│   │   │   ├── tool.rs
-│   │   │   ├── skill.rs
-│   │   │   ├── snippet.rs
-│   │   │   └── user.rs
-│   │   └── Cargo.toml
-│   │
-│   ├── infra/                    # 基础设施
-│   │   ├── src/
-│   │   │   ├── db/              # 数据库
-│   │   │   ├── cache/           # 缓存
-│   │   │   ├── storage/         # 对象存储
-│   │   │   └── queue/           # 消息队列
-│   │   └── Cargo.toml
-│   │
-│   └── common/                   # 公共模块
-│       ├── src/
-│       │   ├── error.rs         # 错误处理
-│       │   ├── config.rs        # 配置管理
-│       │   └── utils.rs         # 工具函数
-│       └── Cargo.toml
+│   ├── api/                    # HTTP 路由、handler、DTO、中间件、AppState
+│   ├── domain/                 # 领域模型和 Repository trait
+│   ├── infra/                  # 配置、SQLite/PG、缓存、邮件、存储适配
+│   ├── common/                 # 错误、日志、清洗和通用工具
+│   ├── service-git/            # gix 仓库上下文与 Git 领域能力
+│   ├── service-auth/           # 认证相关服务
+│   ├── service-audit/          # 审计服务
+│   ├── service-tool/           # MCP Tool 兼容与执行能力
+│   ├── service-skill/          # Skill parser + legacy Sandbox 执行层
+│   ├── service-snippet/        # legacy Snippet / CLI Interface 兼容模块
+│   └── service-payment/        # Stripe 计费集成
+├── migrations/
+│   ├── sqlite/
+│   └── postgres/
+└── sandbox/                    # legacy 镜像，待 EVO-111 删除
 ```
 
-### 3.2 前端模块划分
+依赖方向遵循：
 
-```
-frontend/
-├── package.json
-├── bun.lock
-├── vite.config.ts
-├── index.html
-├── src/
-│   ├── main-spa.tsx             # Vite SPA 入口
-│   ├── app/                     # 页面组件，路由由 React Router 装配
-│   │   ├── login/
-│   │   ├── register/
-│   │   ├── join/
-│   │   ├── dashboard/
-│   │   ├── tools/
-│   │   ├── skills/
-│   │   └── snippets/
-│   │
-│   ├── components/               # 组件
-│   │   ├── ui/                  # 基础UI组件
-│   │   │   ├── Button/
-│   │   │   ├── Input/
-│   │   │   ├── Card/
-│   │   │   └── ...
-│   │   ├── layout/              # 布局组件
-│   │   │   ├── Header/
-│   │   │   ├── Sidebar/
-│   │   │   └── Footer/
-│   │   ├── features/            # 功能组件
-│   │   │   ├── ToolCard/
-│   │   │   ├── SkillEditor/
-│   │   │   ├── SnippetViewer/
-│   │   │   └── ...
-│   │   └── common/              # 通用组件
-│   │
-│   ├── lib/                      # 工具库
-│   │   ├── api/                 # API客户端
-│   │   ├── auth/                # 认证相关
-│   │   └── utils/               # 工具函数
-│   │
-│   ├── hooks/                    # 自定义Hooks
-│   │   ├── useAuth.ts
-│   │   ├── useTools.ts
-│   │   ├── useSkills.ts
-│   │   └── ...
-│   │
-│   ├── stores/                   # 状态管理 (Zustand)
-│   │   ├── authStore.ts
-│   │   ├── uiStore.ts
-│   │   └── ...
-│   │
-│   ├── types/                    # 类型定义
-│   │   ├── tool.ts
-│   │   ├── skill.ts
-│   │   ├── snippet.ts
-│   │   └── ...
-│   │
-│   └── styles/                   # 样式
-│       ├── globals.css
-│       └── themes/
+```text
+api -> service/domain traits -> infra implementations
 ```
 
-## 4. 核心流程
+API 层通过 `AppState` 持有共享依赖。领域层定义 Repository trait，基础设施层分别提供 SQLite 和 PostgreSQL 实现。
 
-### 4.1 MCP工具调用流程
+## 5. 前端架构
 
-```
-┌─────────┐    ┌─────────┐    ┌─────────────┐    ┌──────────────┐
-│  Agent  │───▶│   MCP   │───▶│ Tool Service │───▶│   Executor   │
-│  Client │    │ Protocol│    │             │    │              │
-└─────────┘    └─────────┘    └─────────────┘    └──────────────┘
-     │              │                 │                  │
-     │ 1.调用请求   │                 │                  │
-     │─────────────▶│                 │                  │
-     │              │ 2.解析MCP消息   │                  │
-     │              │────────────────▶│                  │
-     │              │                 │ 3.查找工具      │
-     │              │                 │─────────────────▶│
-     │              │                 │                  │
-     │              │                 │ 4.执行工具      │
-     │              │                 │─────────────────▶│
-     │              │                 │                  │
-     │              │                 │ 5.返回结果      │
-     │              │                 │◀─────────────────│
-     │              │ 6.封装响应      │                  │
-     │              │◀────────────────│                  │
-     │ 7.返回结果   │                 │                  │
-     │◀─────────────│                 │                  │
+前端当前技术路线：
+
+```text
+React + Vite + TypeScript + Tailwind
+React Router + Zustand + TanStack Query + Axios + i18next
+Bun package manager and script runtime
 ```
 
-### 4.2 技能执行流程
+关键入口：
 
-```
-┌─────────┐    ┌─────────────┐    ┌──────────────┐    ┌──────────┐
-│  Agent  │───▶│Skill Service│───▶│ Code Sandbox │───▶│  Result  │
-│  Client │    │             │    │              │    │ Processor│
-└─────────┘    └─────────────┘    └──────────────┘    └──────────┘
-     │               │                    │                 │
-     │ 1.加载技能    │                    │                 │
-     │──────────────▶│                    │                 │
-     │               │ 2.解析SKILL.md     │                 │
-     │               │───────────────────▶│                 │
-     │               │                    │                 │
-     │               │ 3.准备执行环境     │                 │
-     │               │───────────────────▶│                 │
-     │               │                    │                 │
-     │ 4.执行请求    │                    │                 │
-     │──────────────▶│                    │                 │
-     │               │ 5.在沙箱执行代码   │                 │
-     │               │───────────────────▶│                 │
-     │               │                    │ 6.输出结果      │
-     │               │                    │────────────────▶│
-     │               │                    │                 │
-     │               │ 7.处理和格式化     │                 │
-     │               │◀───────────────────│─────────────────│
-     │ 8.返回结果    │                    │                 │
-     │◀──────────────│                    │                 │
-```
+| 路径 | 职责 |
+|------|------|
+| `frontend/src/main-spa.tsx` | SPA 入口与路由树 |
+| `frontend/src/app/` | 页面 |
+| `frontend/src/components/` | UI 和功能组件 |
+| `frontend/src/lib/api/client.ts` | Axios、CSRF、刷新和错误处理 |
+| `frontend/src/stores/authStore.ts` | 认证状态 |
+| `frontend/src/locales/` | `zh-CN` / `en` 资源 |
 
-### 4.3 代码片段引用流程
+生产构建先生成 `frontend/dist/`，再由 Rust 构建过程嵌入。后端同时提供 API、健康检查和静态资源，需要保持以下路径互不截获：
 
-```
-┌─────────┐    ┌────────────────┐    ┌───────────────┐
-│  Agent  │───▶│Snippet Service │───▶│ Code Generator│
-│  Client │    │                │    │               │
-└─────────┘    └────────────────┘    └───────────────┘
-     │                 │                     │
-     │ 1.搜索片段      │                     │
-     │────────────────▶│                     │
-     │                 │ 2.匹配和排序        │
-     │                 │                     │
-     │ 3.返回列表      │                     │
-     │◀────────────────│                     │
-     │                 │                     │
-     │ 4.请求引用      │                     │
-     │────────────────▶│                     │
-     │                 │ 5.生成可引用代码    │
-     │                 │────────────────────▶│
-     │                 │                     │
-     │                 │ 6.包含依赖声明      │
-     │                 │◀────────────────────│
-     │ 7.返回完整代码  │                     │
-     │◀────────────────│                     │
+- `/api/v1`
+- `/repos/` Git Smart HTTP
+- `/mcp`
+- `/health`
+- `/assets/`
+- SPA 深层路由 fallback
+
+## 6. 关键请求流程
+
+### 6.1 Web API
+
+```text
+Browser
+  -> optional gateway
+  -> Actix middleware
+  -> auth / tenant / RBAC / CSRF / rate limit
+  -> handler
+  -> Repository trait
+  -> SQLite or PostgreSQL implementation
 ```
 
-## 5. 数据模型
+浏览器认证主要使用 httpOnly Cookie JWT；状态变更请求受 double-submit Cookie CSRF 保护。
 
-### 5.1 多租户架构
+### 6.2 Git Smart HTTP
 
-Evolith 采用**共享数据库 + 租户ID**的多租户架构，详见 [多租户设计](./MULTI-TENANT.md)。
-
-**租户识别方式**：
-- 子域名：`{tenant}.evolith.io`
-- 请求头：`X-Tenant-ID`
-- JWT Token 中的 `tenant_id`
-
-### 5.2 核心实体
-
-```rust
-// Tenant (租户)
-struct Tenant {
-    id: Uuid,
-    name: String,
-    slug: String,              // URL友好标识
-    plan: Plan,                 // free, pro, enterprise
-    owner_id: Uuid,
-    settings: TenantSettings,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// Tool (工具)
-struct Tool {
-    id: Uuid,
-    tenant_id: Uuid,            // 租户ID
-    name: String,
-    description: String,
-    input_schema: JsonValue,      // JSON Schema
-    output_schema: JsonValue,
-    handler: HandlerConfig,
-    owner_id: Uuid,
-    visibility: Visibility,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// Skill (技能)
-struct Skill {
-    id: Uuid,
-    tenant_id: Uuid,            // 租户ID
-    name: String,
-    version: String,
-    description: String,
-    skill_md: String,             // SKILL.md内容
-    code_package: Option<String>, // 代码包路径
-    runtime: Runtime,
-    dependencies: Vec<Dependency>,
-    owner_id: Uuid,
-    visibility: Visibility,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// Snippet (代码片段)
-struct Snippet {
-    id: Uuid,
-    tenant_id: Uuid,            // 租户ID
-    name: String,
-    language: String,
-    framework: Option<String>,
-    tags: Vec<String>,
-    content: String,              // Markdown内容
-    code: String,                 // 实际代码
-    dependencies: Vec<Dependency>,
-    estimated_tokens: u32,
-    owner_id: Uuid,
-    visibility: Visibility,
-    created_at: DateTime,
-    updated_at: DateTime,
-}
-
-// User (用户)
-struct User {
-    id: Uuid,
-    tenant_id: Uuid,            // 租户ID
-    username: String,
-    email: String,
-    password_hash: String,
-    role: Role,                  // owner, admin, member
-    created_at: DateTime,
-    updated_at: DateTime,
-}
+```text
+Git Client
+  -> /repos/{repo}/info/refs or service endpoint
+  -> Basic challenge / credential extraction
+  -> tenant and repository authorization
+  -> bounded git subprocess streaming
+  -> repository filesystem
+  -> push metadata synchronization and audit
 ```
 
-### 5.3 数据库Schema（多租户）
+Git 客户端路径不使用浏览器 CSRF 模式，但必须执行独立认证和仓库授权。
 
-```sql
--- 租户表
-CREATE TABLE tenants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(128) NOT NULL,
-    slug VARCHAR(64) UNIQUE NOT NULL,         -- URL友好标识
-    plan VARCHAR(32) NOT NULL DEFAULT 'free',  -- free, pro, enterprise
-    max_tools INTEGER DEFAULT 10,
-    max_skills INTEGER DEFAULT 5,
-    max_snippets INTEGER DEFAULT 50,
-    max_api_calls_per_day INTEGER DEFAULT 1000,
-    owner_id UUID NOT NULL,
-    settings JSONB DEFAULT '{}',
-    status VARCHAR(32) NOT NULL DEFAULT 'active',  -- active, suspended, deleted
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+### 6.3 Repo Context
 
--- 用户表
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    username VARCHAR(64) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(32) NOT NULL DEFAULT 'member',  -- owner, admin, member
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(tenant_id, username),
-    UNIQUE(tenant_id, email)
-);
-
--- 工具表
-CREATE TABLE tools (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    name VARCHAR(128) NOT NULL,
-    description TEXT NOT NULL,
-    input_schema JSONB NOT NULL,
-    output_schema JSONB,
-    handler_config JSONB NOT NULL,
-    owner_id UUID NOT NULL REFERENCES users(id),
-    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(tenant_id, name)
-);
-
--- 技能表
-CREATE TABLE skills (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    name VARCHAR(128) NOT NULL,
-    version VARCHAR(32) NOT NULL,
-    description TEXT NOT NULL,
-    skill_md TEXT NOT NULL,
-    code_package_path TEXT,
-    runtime VARCHAR(32) NOT NULL,
-    dependencies JSONB DEFAULT '[]',
-    owner_id UUID NOT NULL REFERENCES users(id),
-    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(tenant_id, name, version)
-);
-
--- 代码片段表
-CREATE TABLE snippets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    name VARCHAR(128) NOT NULL,
-    language VARCHAR(32) NOT NULL,
-    framework VARCHAR(64),
-    tags TEXT[] DEFAULT '{}',
-    content TEXT NOT NULL,
-    code TEXT NOT NULL,
-    dependencies JSONB DEFAULT '[]',
-    estimated_tokens INTEGER NOT NULL DEFAULT 0,
-    owner_id UUID NOT NULL REFERENCES users(id),
-    visibility VARCHAR(32) NOT NULL DEFAULT 'private',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 使用统计表
-CREATE TABLE usage_stats (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    date DATE NOT NULL,
-    api_calls INTEGER DEFAULT 0,
-    tool_executions INTEGER DEFAULT 0,
-    skill_executions INTEGER DEFAULT 0,
-    storage_used_bytes BIGINT DEFAULT 0,
-    UNIQUE(tenant_id, date)
-);
-
--- 索引（包含 tenant_id）
-CREATE INDEX idx_users_tenant ON users(tenant_id);
-CREATE INDEX idx_tools_tenant ON tools(tenant_id);
-CREATE INDEX idx_skills_tenant ON skills(tenant_id);
-CREATE INDEX idx_snippets_tenant ON snippets(tenant_id);
-CREATE INDEX idx_tools_owner ON tools(owner_id);
-CREATE INDEX idx_skills_owner ON skills(owner_id);
-CREATE INDEX idx_snippets_owner ON snippets(owner_id);
-CREATE INDEX idx_snippets_tags ON snippets USING GIN(tags);
-CREATE INDEX idx_snippets_language ON snippets(language);
-CREATE INDEX idx_usage_stats_tenant_date ON usage_stats(tenant_id, date);
+```text
+Authorized Client
+  -> Repo Context API
+  -> repository metadata and scope check
+  -> gix object access
+  -> tree/blob/commit/diff response
 ```
 
-## 6. 安全设计
+资源上限必须在读取前或迭代过程中生效，不能先完整读取或完整收集后才判断超限。
 
-### 6.1 代码执行沙箱
+### 6.4 MCP Tool
 
-```
-┌─────────────────────────────────────────────────────┐
-│                   Sandbox Architecture               │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │           Resource Limits                     │  │
-│  │  - CPU: 0.5 cores                            │  │
-│  │  - Memory: 256MB                              │  │
-│  │  - Time: 30s                                  │  │
-│  │  - Network: Disabled                          │  │
-│  │  - Filesystem: Read-only + /tmp              │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │           Isolation                           │  │
-│  │  - Namespace isolation (PID, NET, MNT)       │  │
-│  │  - Seccomp filters                           │  │
-│  │  - Capability dropping                       │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐  │
-│  │           Monitoring                          │  │
-│  │  - Resource usage tracking                    │  │
-│  │  - Timeout enforcement                       │  │
-│  │  - OOM detection                             │  │
-│  └──────────────────────────────────────────────┘  │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-```
+MCP `tools/call` 当前可以触发真实 HTTP 出站请求，必须要求有效 API Key，并遵守租户和 Tool 可见性边界。Function executor 尚不是完整主路径。
 
-### 6.2 认证授权
+## 7. 安全边界
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Authentication Flow                   │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  ┌──────────┐     ┌──────────┐     ┌──────────────────┐ │
-│  │  Client  │────▶│  Login   │────▶│  JWT Generation  │ │
-│  └──────────┘     └──────────┘     └──────────────────┘ │
-│                                           │              │
-│                                           ▼              │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │              JWT Payload                            │ │
-│  │  {                                                 │ │
-│  │    "sub": "user_id",                              │ │
-│  │    "tenant_id": "tenant_uuid",                    │ │
-│  │    "role": "admin",                               │ │
-│  │    "exp": 1234567890,                             │ │
-│  │    "iat": 1234560000                              │ │
-│  │  }                                                 │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                           │              │
-│  **Token 传递方式**: httpOnly cookie (`evolith_token`)    │
-│  **CSRF 防护**: double-submit cookie (`csrf_token`)      │
-│                                           │              │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │              Authorization                          │ │
-│  │  - RBAC: role-based access control                │ │
-│  │  - Resource ownership: user can modify own items  │ │
-│  │  - Public/Private visibility                      │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+当前安全基线包括：
 
-## 7. 部署架构
+- Argon2id 密码哈希。
+- httpOnly Cookie JWT。
+- double-submit Cookie CSRF。
+- API Key 与 scope 检查。
+- Git Basic 认证挑战和仓库级授权。
+- RBAC、资源所有权与多租户隔离。
+- 审计日志、请求 ID、结构化日志和敏感字段清洗。
+- 认证与未认证请求分级限流。
+- Repo Context 的 Blob、Tree 和 Diff 资源边界。
+- 安全响应头。
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Production Environment                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Load Balancer                          │  │
-│  │                    (Nginx / Cloud LB)                     │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                            │                                     │
-│            ┌───────────────┼───────────────┐                   │
-│            ▼               ▼               ▼                   │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐           │
-│  │   Backend    │ │   Backend    │ │   Backend    │           │
-│  │  Instance 1  │ │  Instance 2  │ │  Instance N  │           │
-│  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘           │
-│         │                │                │                    │
-│         └────────────────┼────────────────┘                    │
-│                          │                                      │
-│  ┌───────────────────────┼───────────────────────────────────┐│
-│  │                       │         Shared Services            ││
-│  │  ┌──────────┐  ┌──────┴─────┐  ┌──────────┐  ┌─────────┐ ││
-│  │  │PostgreSQL│  │   Redis    │  │  MinIO   │  │ Sandbox │ ││
-│  │  │(Primary) │  │  Cluster   │  │ Cluster  │  │ Workers │ ││
-│  │  └──────────┘  └────────────┘  └──────────┘  └─────────┘ ││
-│  │       │                                                    ││
-│  │  ┌──────────┐                                             ││
-│  │  │PostgreSQL│                                             ││
-│  │  │(Replica) │                                             ││
-│  │  └──────────┘                                             ││
-│  └───────────────────────────────────────────────────────────┘│
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Frontend Assets                        │  │
-│  │  - Static SPA assets embedded into backend release         │  │
-│  │  - Served by rust-embed-for-web with SPA fallback          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+生产环境必须显式设置强 `JWT__SECRET`、公开 URL、CORS Origin、持久化数据库和仓库存储。
 
-## 8. 技术选型说明
+## 8. Legacy 与迁移边界
 
-### 8.1 后端技术栈
+2026-06-23 后，产品主线从 DB-centric Skill / CLI / MCP Registry 转向 Git-centric Platform。
 
-| 技术 | 用途 | 选择理由 |
-|------|------|----------|
-| Rust | 核心语言 | 高性能、内存安全、并发友好 |
-| Actix-web | Web框架 | 高性能、功能完善、生态成熟 |
-| SQLx | 数据库访问 | 编译时SQL检查、异步支持 |
-| Redis | 缓存 | 高性能、支持多种数据结构 |
-| MinIO | 对象存储 | S3兼容、可自托管 |
+| 能力 | 当前判断 |
+|------|----------|
+| Git Repo / Smart HTTP / Context | 当前主线，已具备基础能力 |
+| Repo UI / Commit / Agent Session / Vibe Coding | Phase E' 在建 |
+| Skill / MCP / CLI Indexer | 计划从 Git 仓库派生，EVO-108/109 |
+| DB-centric Registry | 兼容期数据和 API，不是新功能主线 |
+| Docker Skill Sandbox | 默认关闭，ADR-0005 已决定废弃，EVO-111 删除 |
+| Snippet 模型 | legacy 迁移参考，不应作为新产品概念 |
 
-### 8.2 前端技术栈
+新功能不得以 legacy Sandbox 或旧 Registry 为硬依赖。历史实现可以保留在文档中，但必须标注 `legacy`、`compatibility` 或 `historical`。
 
-| 技术 | 用途 | 选择理由 |
-|------|------|----------|
-| React | UI 框架 | 生态成熟、组件模型稳定 |
-| Vite | 构建工具 | 静态 SPA 构建快，部署产物简单 |
-| Bun | 包管理与脚本运行 | 与当前前端迁移目标一致，锁文件为 `bun.lock` |
-| TypeScript | 语言 | 类型安全、开发体验好 |
-| Tailwind CSS | 样式 | 快速开发、一致性高 |
-| Zustand | 状态管理 | 轻量、简单易用 |
-| TanStack Query | 数据获取 | 缓存、自动刷新 |
+## 9. 配置边界
 
-### 8.3 代码执行
-
-| 运行时 | 支持语言 | 隔离方式 |
-|--------|----------|----------|
-| Python 3.11 | Python | Container |
-| Node.js 20 | JavaScript/TypeScript | Container |
-| WASM | Rust/Go/etc. | Native Sandbox |
-## 9. API契约优先开发
-
-Evolith采用契约优先(Contract-First)的API开发模式，确保前后端接口的一致性。
-
-执行步骤、DoD 和变更记录要求见 [API 契约优先 SOP](../sop/CONTRACT-FIRST.md)。本节保留架构层面的契约边界说明。
-
-### 9.1 契约文件
-
-API契约定义在 `docs/reference/API-CONTRACT.md` 中，包含：
-- 所有API端点的请求/响应格式
-- 数据类型定义
-- 错误码说明
-- 认证方式
-
-### 9.2 开发流程
-
-```
-1. 编写API契约 (API-CONTRACT.md)
-   ↓
-2. 前端根据契约生成TypeScript类型
-   ↓
-3. 后端实现API端点
-   ↓
-4. 前后端独立测试
-   ↓
-5. 集成测试验证
-```
-
-### 9.3 前端类型生成
-
-后端API契约可使用工具自动生成前端TypeScript类型：
-
-```typescript
-// 从API契约生成 types/api.ts
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  meta?: PaginationMeta;
-  error?: ErrorInfo;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  expires_at: number;
-  user: UserInfo;
-}
-```
-
-### 9.4 契约版本管理
-
-- 契约文件使用语义化版本
-- 重大变更需要更新主版本号
-- 向前兼容的变更可更新次版本号
-- 保持契约文档与实际实现同步
-
-## 10. 环境配置
-
-完整环境变量清单和常见误用见 [配置参考](./CONFIG.md)。本节只保留架构部署视角下的最小示例。
-
-### 10.1 开发环境
-
-使用内存数据库(SQLite)进行本地开发：
+嵌套配置统一使用双下划线：
 
 ```bash
 DATABASE__DATABASE_TYPE=sqlite
 DATABASE__URL=:memory:
-ENVIRONMENT=development
+JWT__SECRET=replace-in-production
+SANDBOX__ENABLED=false
+RATE_LIMIT__UNAUTHENTICATED_RPM=30
 ```
 
-### 10.2 生产环境
+不要使用 `DATABASE_TYPE` / `DATABASE_URL` 代替嵌套键。
 
-切换到PostgreSQL：
+前端 API 默认前缀：
 
-```bash
-DATABASE__DATABASE_TYPE=postgres
-DATABASE__URL=postgresql://user:pass@host:5432/evolith
-ENVIRONMENT=production
+```text
+VITE_API_URL || /api/v1
 ```
 
-### 10.3 环境变量
+除非网关明确重写路径，配置中应保留 `/api/v1`。
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `DATABASE__URL` | 数据库连接串 | `:memory:` |
-| `DATABASE__DATABASE_TYPE` | 数据库类型 | `sqlite` |
-| `JWT__SECRET` | JWT密钥 | (开发专用) |
-| `JWT__EXPIRATION` | Token过期时间 | `24h` |
-| `LOG__LEVEL` | 日志级别 | `info` |
-| `ENVIRONMENT` | 环境 | `development` |
-| `APP__PUBLIC_URL` | 对外访问入口，用于邮件链接等绝对 URL | `http://localhost:3001` |
-| `CORS__ALLOWED_ORIGIN` | 允许的前端域名 | `http://localhost:3001` |
-| `CSRF__ENABLED` | CSRF 保护开关 | `true` |
-| `SANDBOX__ENABLED` | legacy 沙箱执行器开关；ADR-0005 已接受删除，EVO-111 收口前仅作兼容保留 | `false` |
-| `SANDBOX__TIMEOUT_SECONDS` | legacy 沙箱执行超时 | `30` |
-| `SANDBOX__MEMORY_MB` | legacy 沙箱内存限制 | `256` |
-| `RATE_LIMIT__UNAUTHENTICATED_RPM` | 未认证请求限流 | `30` |
-| `RATE_LIMIT__AUTHENTICATED_RPM` | 已认证请求限流 | `300` |
-| `RATE_LIMIT__API_KEY_RPM` | API key 请求限流 | `1000` |
-| `SMTP__HOST` | SMTP 邮件服务器 | (无) |
-| `SMTP__PORT` | SMTP 端口 | `587` |
-| `SMTP__FROM_ADDRESS` | 发件人地址 | (无) |
-| `SMTP__FROM_NAME` | 发件人名称 | `Evolith` |
+## 10. 交付形态
+
+### Lite
+
+- Rust 1.88 + Bun 1.3.14。
+- SQLite 内存数据库。
+- legacy Sandbox 默认关闭。
+- 不依赖 Docker。
+
+### Full / Production
+
+- PostgreSQL 16。
+- 可选 Redis。
+- 持久化 Git 仓库存储。
+- 可选 Nginx / Platform LB。
+- React 静态资源嵌入后端发布物。
+
+生产部署的水平扩展必须首先解决 Git 仓库文件系统一致性，不能只扩展无共享存储的后端副本。
 
 ## 11. 相关文档
 
-- [多租户设计](./MULTI-TENANT.md) - **多租户架构详细设计**
-- [API契约](./API-CONTRACT.md) - 前后端接口详细定义
-- [Skill格式](./formats/SKILL-FORMAT.md) - 技能定义规范
-- [代码片段格式](./formats/SNIPPET-FORMAT.md) - 片段定义规范
-- [技术栈](./TECH-STACK.md) - 技术选型详情
+- [项目地图](./PROJECT-MAP.md)
+- [技术栈说明](./TECH-STACK.md)
+- [API 合约](./API-CONTRACT.md)
+- [配置参考](./CONFIG.md)
+- [权限](./PERMISSIONS.md)
+- [多租户设计](./MULTI-TENANT.md)
+- [测试](./TESTING.md)
+- [ADR-0004 Git-centric storage](../decisions/ADR-0004-git-centric-storage.md)
+- [ADR-0005 废弃 Sandbox Runtime](../decisions/ADR-0005-deprecate-sandbox-runtime.md)
+- [ADR-0006 Smart HTTP via Git subprocess](../decisions/ADR-0006-smart-http-via-git-subprocess.md)
+- [实施路线图](../roadmap/IMPLEMENTATION-ROADMAP.md)
