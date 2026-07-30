@@ -909,8 +909,11 @@ async fn revoked_and_expired_keys_are_rejected_for_repo_and_mcp() {
             .uri(&format!("/api/v1/tenant/{tenant_id}/repos"))
             .insert_header(("X-API-Key", key))
             .to_request();
+        let repo_error = test::try_call_service(&app, repo_request)
+            .await
+            .expect_err("inactive API key must be rejected");
         assert_eq!(
-            test::call_service(&app, repo_request).await.status(),
+            repo_error.as_response_error().status_code(),
             actix_web::http::StatusCode::UNAUTHORIZED
         );
 
