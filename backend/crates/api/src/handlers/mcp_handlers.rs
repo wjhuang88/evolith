@@ -5,6 +5,7 @@
 //! - MCP Server endpoint: /mcp
 //! - Authentication: API Key via Authorization header
 //! - Each API Key is associated with a tenant, returns that tenant's tools
+//! - `tools/call` additionally requires the `execute` capability
 //! - Supports streamable HTTP mode
 
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
@@ -13,7 +14,9 @@ use uuid::Uuid;
 
 use crate::dto::common::ApiResponse;
 use crate::handlers::api_key_handlers::validate_api_key;
+use crate::middleware::api_key_scope::api_key_allows_tool_execute;
 use crate::state::AppState;
+use domain::api_key::ApiKey;
 use domain::tool::{HandlerType, Visibility};
 use domain::ToolFilter;
 use service_tool::executor::ExecuteRequest;
@@ -30,16 +33,11 @@ pub async fn handle_mcp_request(
     let request = body.into_inner();
     let id = request.id;
 
-    // Extract API Key from header for authentication
-    let api_key = extract_api_key(&req);
-
-    // If API Key is provided, validate and get tenant info
-    let tenant_id = if let Some(key) = api_key {
+    let validated_api_key = if let Some(key) = extract_api_key(&req) {
         match validate_api_key(&key, &state).await {
             Ok(key_data) => {
-                // Update last_used_at for the API key
                 let _ = state.api_key_repo.update_last_used(key_data.id).await;
-                Some(key_data.tenant_id)
+                Some(key_data)
             }
             Err(_) => {
                 return HttpResponse::Ok().json(McpResponse::error(
@@ -54,10 +52,14 @@ pub async fn handle_mcp_request(
         None
     };
 
+    let tenant_id = validated_api_key.as_ref().map(|key| key.tenant_id);
+
     match request.method.as_str() {
         "initialize" => handle_initialize(id).await,
         "tools/list" => handle_tools_list(id, &state, tenant_id).await,
-        "tools/call" => handle_tools_call(id, &state, tenant_id, request.params).await,
+        "tools/call" => {
+            handle_tools_call(id, &state, validated_api_key.as_ref(), request.params).await
+        }
         "resources/list" => handle_resources_list(id).await,
         "resources/read" => handle_resources_read(id).await,
         "prompts/list" => handle_prompts_list(id).await,
@@ -68,7 +70,6 @@ pub async fn handle_mcp_request(
 
 /// List available tools (public endpoint for discovery)
 pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) -> impl Responder {
-    // Extract API Key from header
     let api_key = extract_api_key(&req);
 
     let tenant_id = if let Some(key) = api_key {
@@ -85,7 +86,6 @@ pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) 
         None
     };
 
-    // Build filter based on tenant
     let filter = ToolFilter {
         tenant_id,
         visibility: if tenant_id.is_none() {
@@ -111,8 +111,8 @@ pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) 
                 tools: mcp_tools,
             }))
         }
-        Err(e) => {
-            tracing::error!("Failed to list tools: {}", e);
+        Err(error) => {
+            tracing::error!("Failed to list tools: {}", error);
             HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
                 "INTERNAL_ERROR",
                 "Failed to list tools",
@@ -123,7 +123,6 @@ pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) 
 
 /// Extract API Key from request headers
 fn extract_api_key(req: &HttpRequest) -> Option<String> {
-    // Try Authorization header (Bearer token)
     if let Some(auth) = req.headers().get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
             if let Some(stripped) = auth_str.strip_prefix("Bearer ") {
@@ -133,7 +132,6 @@ fn extract_api_key(req: &HttpRequest) -> Option<String> {
         }
     }
 
-    // Try X-API-Key header
     if let Some(key) = req.headers().get("x-api-key") {
         if let Ok(key_str) = key.to_str() {
             return Some(key_str.to_string());
@@ -152,7 +150,6 @@ async fn handle_initialize(id: Value) -> HttpResponse {
 }
 
 async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>) -> HttpResponse {
-    // Build filter based on tenant
     let filter = ToolFilter {
         tenant_id,
         visibility: if tenant_id.is_none() {
@@ -180,8 +177,8 @@ async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>)
                 serde_json::to_value(result).unwrap_or_default(),
             ))
         }
-        Err(e) => {
-            tracing::error!("Failed to list tools: {}", e);
+        Err(error) => {
+            tracing::error!("Failed to list tools: {}", error);
             HttpResponse::Ok().json(McpResponse::error(
                 id,
                 -32603,
@@ -195,11 +192,11 @@ async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>)
 async fn handle_tools_call(
     id: Value,
     state: &AppState,
-    tenant_id: Option<Uuid>,
+    api_key: Option<&ApiKey>,
     params: Option<Value>,
 ) -> HttpResponse {
-    let tenant_id = match tenant_id {
-        Some(tenant_id) => tenant_id,
+    let api_key = match api_key {
+        Some(api_key) => api_key,
         None => {
             return HttpResponse::Ok().json(McpResponse::error(
                 id,
@@ -210,19 +207,28 @@ async fn handle_tools_call(
         }
     };
 
+    if !api_key_allows_tool_execute(api_key) {
+        return HttpResponse::Ok().json(McpResponse::error(
+            id,
+            -32003,
+            "API key lacks the execute capability".to_string(),
+            None,
+        ));
+    }
+
     let params = match params {
-        Some(p) => p,
+        Some(params) => params,
         None => {
             return HttpResponse::Ok().json(McpResponse::invalid_params(id, "Missing params"));
         }
     };
 
     let call_params: ToolCallParams = match serde_json::from_value(params) {
-        Ok(p) => p,
-        Err(e) => {
+        Ok(params) => params,
+        Err(error) => {
             return HttpResponse::Ok().json(McpResponse::invalid_params(
                 id,
-                &format!("Invalid params: {}", e),
+                &format!("Invalid params: {}", error),
             ));
         }
     };
@@ -230,11 +236,9 @@ async fn handle_tools_call(
     let tool_name = call_params.name;
     let arguments = call_params.arguments;
 
-    // Find tool by name
     match state.tool_repo.find_by_name(&tool_name).await {
         Ok(Some(tool)) => {
-            // Check access permissions
-            if tool.tenant_id != tenant_id {
+            if tool.tenant_id != api_key.tenant_id {
                 return HttpResponse::Ok().json(McpResponse::error(
                     id,
                     -32001,
@@ -243,17 +247,15 @@ async fn handle_tools_call(
                 ));
             }
 
-            // Validate arguments against schema
             let schema: Value = tool.input_schema.clone();
-            if let Err(e) = mcp::validate_arguments(&schema, &arguments) {
-                return HttpResponse::Ok().json(McpResponse::error(id, -32602, e, None));
+            if let Err(error) = mcp::validate_arguments(&schema, &arguments) {
+                return HttpResponse::Ok().json(McpResponse::error(id, -32602, error, None));
             }
 
-            // Dispatch to appropriate executor based on handler type
             match tool.handler.handler_type {
                 HandlerType::Http => {
                     let url = match &tool.handler.url {
-                        Some(u) => u.clone(),
+                        Some(url) => url.clone(),
                         None => {
                             return HttpResponse::Ok().json(McpResponse::error(
                                 id,
@@ -297,7 +299,6 @@ async fn handle_tools_call(
                                 Value::String(text) => text,
                                 value => serde_json::to_string_pretty(&value).unwrap_or_default(),
                             };
-
                             let result = service_tool::mcp::ToolCallResult {
                                 content: vec![service_tool::mcp::ToolContent {
                                     content_type: "text".to_string(),
@@ -310,12 +311,12 @@ async fn handle_tools_call(
                                 serde_json::to_value(result).unwrap_or_default(),
                             ))
                         }
-                        Err(e) => {
-                            tracing::error!("Tool execution failed: {}", e);
+                        Err(error) => {
+                            tracing::error!("Tool execution failed: {}", error);
                             HttpResponse::Ok().json(McpResponse::error(
                                 id,
                                 -32603,
-                                format!("Tool execution failed: {}", e),
+                                format!("Tool execution failed: {}", error),
                                 None,
                             ))
                         }
@@ -338,8 +339,8 @@ async fn handle_tools_call(
             format!("Tool '{}' not found", tool_name),
             None,
         )),
-        Err(e) => {
-            tracing::error!("Failed to find tool: {}", e);
+        Err(error) => {
+            tracing::error!("Failed to find tool: {}", error);
             HttpResponse::Ok().json(McpResponse::error(
                 id,
                 -32603,
@@ -360,8 +361,7 @@ async fn handle_resources_read(id: Value) -> HttpResponse {
 }
 
 async fn handle_prompts_list(id: Value) -> HttpResponse {
-    let result = serde_json::json!({ "prompts": [] });
-    HttpResponse::Ok().json(McpResponse::success(id, result))
+    HttpResponse::Ok().json(McpResponse::success(id, serde_json::json!({})))
 }
 
 async fn handle_ping(id: Value) -> HttpResponse {
