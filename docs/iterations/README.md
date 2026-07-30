@@ -8,7 +8,7 @@
 
 | Iteration | 状态 | 目标/处置 |
 |-----------|------|-----------|
-| [Iteration 051](ITERATION-051.md) | Active | EVO-118-B：API Key Owner/Admin 管理、Typed Capability、MCP `execute` scope 与负向测试 |
+| [Iteration 051](ITERATION-051.md) | Review / Partial | EVO-118-B 已提交 Draft PR #3；等待 Rust/前端 hard-required 门禁，未关闭前不启动新 Story |
 | [Iteration 018](ITERATION-018.md) | Blocked for activation / Superseded direction | 旧 Skill 导入计划，被 Git-centric EVO-100/108 替代 |
 | [Iteration 019](ITERATION-019.md) | Blocked for activation / Superseded direction | 旧 Skill 多来源计划，不 deliberate replan 则不激活 |
 | [Iteration 020](ITERATION-020.md) | Blocked for activation / Superseded direction | 旧 Skill 版本计划，被 Git 原生历史与 Indexer 替代 |
@@ -19,8 +19,8 @@
 ### 当前启动结论
 
 - Iteration 050 已 Closed / Complete，PR #2 已 merge。
-- Iteration 051 是唯一 Active Story；WIP 只推进 EVO-118-B。
-- 051 关闭后默认进入 EVO-118-C，不直接激活 Repo UI。
+- Iteration 051 是唯一非终态 Story；WIP 只处理 PR #3 验证和审查，不并行启动 EVO-118-C。
+- 051 全部门禁通过、PR 合并并关闭后，默认进入 EVO-118-C，不直接激活 Repo UI。
 - 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 - 安全、数据损坏或生产构建 P0 可显式插队；普通产品工作不得绕过 EVO-118 S1。
 
