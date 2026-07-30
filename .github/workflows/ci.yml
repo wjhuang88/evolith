@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -59,8 +59,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -92,37 +90,6 @@ jobs:
         if: github.event_name != 'pull_request'
         working-directory: frontend
         run: bun run lint
-
-      - name: Update hidden-tool contract test
-        if: github.event_name == 'pull_request' && github.head_ref == 'agent/harden-api-key-mcp-auth'
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("backend/crates/api/tests/mcp_tool_execution_tests.rs")
-          text = path.read_text()
-          old = '    assert_eq!(response["error"]["code"], -32601);'
-          new = '''    assert_eq!(response["error"]["code"], -32001);
-              assert_eq!(
-                  response["error"]["message"],
-                  "Tool not found or access denied"
-              );'''
-          assert old in text, "legacy nonexistent-tool assertion not found"
-          path.write_text(text.replace(old, new, 1))
-          PY
-
-          cargo fmt --manifest-path backend/Cargo.toml --all
-          changed="$(git diff --name-only)"
-          if [ "$changed" != "backend/crates/api/tests/mcp_tool_execution_tests.rs" ]; then
-            echo "contract test update changed unexpected files:"
-            printf '%s\n' "$changed"
-            exit 1
-          fi
-          git config user.name "evolith-ci"
-          git config user.email "actions@users.noreply.github.com"
-          git add backend/crates/api/tests/mcp_tool_execution_tests.rs
-          git commit -m "test: align hidden MCP tool contract (#EVO-118-B) [model: gpt-5.6]"
-          git push origin "HEAD:${{ github.head_ref }}"
 
       - name: Backend format check
         working-directory: backend
