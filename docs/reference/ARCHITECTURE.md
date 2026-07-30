@@ -1,19 +1,19 @@
 # 架构设计
 
-> 本文档描述 Evolith 当前代码与运行边界。历史方案、待实施能力和重大取舍分别归口到 `docs/archive/`、`docs/roadmap/`、`docs/proposals/` 和 `docs/decisions/`。
+> 本文档描述 Evolith 当前代码、运行边界和已接受的演进方向。当前完成度与发布 Gate 见 [生产就绪与项目完成度基线](PRODUCTION-READINESS-BASELINE.md)；临时执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 
 ## 1. 架构定位
 
 Evolith 当前采用**前后端分离开发、单进程交付的模块化单体架构**：
 
 - 后端是 Rust Workspace，通过多个 crate 划分 API、领域、基础设施和业务模块。
-- 默认发布物是一个 `evolith` Actix-web 进程。
+- 默认发布物是一个 `evolith` Actix-web 进程；未来可增加同仓库 Worker 运行模式。
 - React + Vite 静态 SPA 通过 `rust-embed-for-web` 嵌入后端发布物。
-- Nginx 或平台负载均衡仅作为可选网关、SSL 终止和反向代理层。
+- Nginx 或平台负载均衡只作为可选 Gateway、TLS 终止和反向代理层。
 - SQLite 用于 Lite 开发；PostgreSQL 是生产主数据库。
-- Git 仓库位于服务端文件系统，业务元数据位于数据库。
+- Git 仓库位于服务端文件系统；生产必须使用持久存储。
 
-内部存在多个 `service-*` crate 不代表它们是独立部署的微服务。只有在未来明确拆分进程、网络协议、部署生命周期和故障边界后，才应使用“微服务”描述。
+内部多个 `service-*` crate 不代表独立微服务。当前主要问题是权限、数据一致性、事件可靠性和产品闭环，不是服务数量；不得以“架构升级”为名提前拆微服务。
 
 ## 2. 当前整体架构
 
@@ -29,109 +29,162 @@ Evolith 当前采用**前后端分离开发、单进程交付的模块化单体�
 └──────────────────────────────┬───────────────────────────────┘
                                │
 ┌──────────────────────────────▼───────────────────────────────┐
-│ Evolith Rust Application                                     │
+│ Evolith Modular Monolith                                     │
 │                                                              │
 │ API / Middleware                                             │
 │ - Cookie JWT / API Key / Git Basic challenge                │
-│ - RBAC / tenant boundary / CSRF / rate limit / audit         │
+│ - tenant boundary / CSRF / request ID / current rate limit  │
 │                                                              │
 │ Git Platform                                                 │
-│ - Repo CRUD and filesystem lifecycle                         │
+│ - Repo CRUD                                                   │
 │ - Git Smart HTTP via git subprocess                          │
-│ - Repo Context via gix: tree / blob / commit / diff          │
-│ - .evolith/policy.yaml parsing                               │
+│ - Repo Context via gix                                       │
+│ - policy.yaml parser                                         │
 │                                                              │
 │ Compatibility Modules                                        │
 │ - Tool / Skill / CLI legacy APIs                             │
-│ - Docker Sandbox disabled by default, pending EVO-111        │
+│ - HTTP Tool executor                                         │
+│ - Docker Sandbox disabled by default, pending removal        │
 │                                                              │
 │ Embedded Frontend                                             │
 │ - React + Vite static assets                                 │
-│ - SPA fallback                                                │
+│ - runtime config + SPA fallback                              │
 └───────────────┬────────────────────┬─────────────────────────┘
                 │                    │
        ┌────────▼────────┐   ┌───────▼─────────────────────┐
-       │ Metadata Stores │   │ Repository Storage          │
-       │ SQLite / PG     │   │ Git repositories on disk   │
-       │ Redis optional  │   │                             │
+       │ Metadata Stores │   │ Git Repository Storage      │
+       │ SQLite / PG     │   │ persistent filesystem      │
+       │ Redis optional  │   │ current code: local path   │
        └─────────────────┘   └─────────────────────────────┘
 ```
 
+### 当前成熟度说明
+
+- Repo CRUD、Smart HTTP 和 Context API 是可用的 Git 后端 Alpha 基础。
+- Repo UI、Commit/Promote、Agent Session、Webhook、Vibe Coding 和 Indexer 仍在 Backlog。
+- API Key/MCP 授权、HTTP Tool SSRF、Git 数据持久化和生产构建尚有 P0 Gate。
+- 因此“基础能力已实现”不能等价为“外部 Alpha/生产可用”。
+
 ## 3. 事实源与数据边界
 
-### 3.1 Git 仓库
+### 3.1 Git Repository
 
-Git 仓库是代码、版本历史和仓库内 Agent 能力描述的事实源。
+Git 是以下数据的事实源：
 
-当前 Git 路径包括：
+- 代码和文件内容；
+- Commit、Branch、Tag、Ref 和历史；
+- Repo 内 `.evolith/*`、`SKILL.md`、`interface.yaml`、`tool.yaml` 等能力描述。
 
-- Repository 创建、查询、更新和删除。
-- Smart HTTP `info/refs`、`git-upload-pack`、`git-receive-pack`。
-- 真实 Git 客户端认证挑战与 `clone` / `pull` / `push`。
-- Repo Context：文件树、Blob、Commit 和 Diff。
-- Push 后元数据同步。
+当前已实现：
 
-Smart HTTP 使用 Git subprocess 处理协议流；Repo Context 使用 `gix` 读取对象和历史。两者承担不同职责，不应混写为同一实现。
+- Repo 创建、查询、更新和删除；
+- Smart HTTP `info/refs`、`git-upload-pack`、`git-receive-pack`；
+- 真实 Git 客户端 `clone` / `pull` / `push`；
+- Repo Context：Tree、Blob、Commit、Diff；
+- Push 后默认分支元数据同步。
 
-### 3.2 数据库
+Smart HTTP 使用 Git subprocess；Repo Context 使用 `gix`。两条路径职责不同，不应为“统一库”而强行合并。
 
-数据库存储用户、租户、权限、API Key、审计、仓库元数据以及仍处于兼容期的 Tool / Skill / CLI 数据。
+### 3.2 PostgreSQL / SQLite
 
-- SQLite：Lite 开发和多数本地测试。
-- PostgreSQL：生产主路径。
-- 数据库结构或 Repository 行为变化必须同时覆盖两套 migration、实现和测试。
-- MySQL 只有部分依赖入口，没有完整 Repository 实现，主服务不支持以 MySQL 启动。
+数据库存储：
 
-### 3.3 文件系统
+- 用户、租户、角色、凭证；
+- Repo 元数据和生命周期状态；
+- 审计、Agent Session、Outbox/Event（目标）；
+- Capability Index；
+- legacy Tool / Skill / CLI 兼容数据。
 
-当前 Git 仓库存储在服务端文件系统。由此产生以下部署边界：
+PostgreSQL 是生产主路径；SQLite 是 Lite 开发和本地测试。Schema、Repository 行为和测试必须双轨考虑，但允许对生产并发语义明确记录 SQLite 限制。
 
-- 单实例部署可直接使用本地持久卷。
-- 多实例部署必须提供共享或一致的仓库存储，或采用明确的请求路由与副本策略。
-- 仅共享 PostgreSQL 不能让多个实例自动共享 Git 对象。
+### 3.3 DB 与 Git 文件系统一致性
 
-当前代码不应被描述为已经具备无状态水平扩展能力。
+当前 Repo 创建/删除仍由 Handler 顺序编排 DB 与文件系统，存在分裂风险。目标不是跨介质 ACID，而是：
 
-### 3.4 Redis 与 MinIO
+```text
+State + Compensation + Reconciler
+```
 
-- Redis 是可配置的缓存基础设施，不是核心事实源。
-- MinIO 仍出现在部分 Compose 和早期对象存储设计中，但不是当前 Git 仓库主存储路径。
-- 新的 Git-centric 能力不要默认依赖 MinIO；确需对象制品或 LFS 时应通过独立设计和 Backlog 进入。
+推荐生命周期：
 
-## 4. 后端模块
+```text
+CREATING -> ACTIVE
+        \-> ERROR -> retry/cleanup
+ACTIVE -> DELETING -> trash -> removed
+                  \-> ERROR -> reconcile
+```
+
+- 创建失败不能返回可用 Repo。
+- 删除失败不能形成数据库不可追踪的磁盘孤儿。
+- Seed Template 必须形成真实 Blob/Tree/Initial Commit，而不是写入 bare repo 根目录。
+- 对账工具必须识别 DB-only、disk-only 和正常 Repo。
+
+归口：EVO-118-F。
+
+### 3.4 Git Storage 部署边界
+
+- 单实例可以使用本地持久卷。
+- 容器可写层不能作为 Git 事实源。
+- 多实例必须采用共享/一致存储、Repo affinity 或明确复制策略。
+- 仅共享 PostgreSQL 不能共享 Git 对象。
+- 备份必须同时覆盖 PostgreSQL 和 Git Repo/Ref/Object。
+- Readiness 应检查 Git Storage 可用性。
+
+当前生产 Compose 和备份尚未满足这些条件，归口 EVO-118-D。
+
+### 3.5 Redis 与对象存储
+
+- Redis 不是核心事实源。
+- 普通缓存可明确降级；Session、限流、分布式锁等安全状态不得静默进程内降级。
+- MinIO 不是当前 Git 主存储；LFS/制品如需对象存储应独立设计。
+
+## 4. 后端模块与依赖方向
 
 ```text
 backend/
-├── src/main.rs                 # 启动、配置、数据库分支、中间件和路由装配
+├── src/main.rs
 ├── crates/
-│   ├── api/                    # HTTP 路由、handler、DTO、中间件、AppState
-│   ├── domain/                 # 领域模型和 Repository trait
-│   ├── infra/                  # 配置、SQLite/PG、缓存、邮件、存储适配
-│   ├── common/                 # 错误、日志、清洗和通用工具
-│   ├── service-git/            # gix 仓库上下文与 Git 领域能力
-│   ├── service-auth/           # 认证相关服务
-│   ├── service-audit/          # 审计服务
-│   ├── service-tool/           # MCP Tool 兼容与执行能力
-│   ├── service-skill/          # Skill parser + legacy Sandbox 执行层
-│   ├── service-snippet/        # legacy Snippet / CLI Interface 兼容模块
-│   └── service-payment/        # Stripe 计费集成
-├── migrations/
-│   ├── sqlite/
-│   └── postgres/
-└── sandbox/                    # legacy 镜像，待 EVO-111 删除
+│   ├── api/             # routes / handlers / DTO / middleware / AppState
+│   ├── domain/          # domain models / repository traits
+│   ├── infra/           # config / DB / cache / mail / storage adapters
+│   ├── common/          # errors / logs / sanitize / shared execution
+│   ├── service-git/     # gix context and git service boundary
+│   ├── service-auth/    # JWT / password / partial auth services
+│   ├── service-audit/
+│   ├── service-tool/    # MCP / HTTP Tool compatibility
+│   ├── service-skill/   # parser + legacy Sandbox facade
+│   ├── service-snippet/ # legacy CLI compatibility
+│   └── service-payment/
+├── migrations/sqlite/
+├── migrations/postgres/
+└── sandbox/             # legacy, pending EVO-111
 ```
 
-依赖方向遵循：
+当前依赖基本方向：
 
 ```text
-api -> service/domain traits -> infra implementations
+api -> domain/service boundaries -> infra implementations
 ```
 
-API 层通过 `AppState` 持有共享依赖。领域层定义 Repository trait，基础设施层分别提供 SQLite 和 PostgreSQL 实现。
+### AppState 边界
 
-## 5. 前端架构
+`AppState` 当前直接持有多个 Repository、Cache、Mailer、Executor 和 Git Storage Path。该模式在早期可接受，但跨层工作流不应继续堆入 Handler。
 
-前端当前技术路线：
+目标 Application Service：
+
+- `RepoApplicationService`
+- `GitWriteService`
+- `CredentialService`
+- `PolicyEvaluator`
+- `AgentSessionService`
+- `CapabilityIndexer`
+- `WebhookDeliveryService`
+
+引入 Application Service 仍属于模块化单体演进，不代表拆微服务。
+
+## 5. 前端架构与产品状态
+
+技术路线：
 
 ```text
 React + Vite + TypeScript + Tailwind
@@ -139,25 +192,21 @@ React Router + Zustand + TanStack Query + Axios + i18next
 Bun package manager and script runtime
 ```
 
-关键入口：
+当前用户路由仍主要是：
 
-| 路径 | 职责 |
-|------|------|
-| `frontend/src/main-spa.tsx` | SPA 入口与路由树 |
-| `frontend/src/app/` | 页面 |
-| `frontend/src/components/` | UI 和功能组件 |
-| `frontend/src/lib/api/client.ts` | Axios、CSRF、刷新和错误处理 |
-| `frontend/src/stores/authStore.ts` | 认证状态 |
-| `frontend/src/locales/` | `zh-CN` / `en` 资源 |
+- Dashboard；
+- Tools / Skills / Interfaces；
+- Tenant settings / members / billing / API keys。
 
-生产构建先生成 `frontend/dist/`，再由 Rust 构建过程嵌入。后端同时提供 API、健康检查和静态资源，需要保持以下路径互不截获：
+Repo-centric 路由和 Vibe Coding Workspace 尚未实现。因此当前前端应描述为 legacy Registry UI + Git-centric migration pending，而不是完整 AI-native Git 产品。
 
-- `/api/v1`
-- `/repos/` Git Smart HTTP
-- `/mcp`
-- `/health`
-- `/assets/`
-- SPA 深层路由 fallback
+目标构建顺序：
+
+```text
+frontend build -> frontend/dist -> Rust embed -> single runtime image
+```
+
+生产 Docker/Compose 仍需收敛为单一事实交付路径，归口 EVO-118-E。
 
 ## 6. 关键请求流程
 
@@ -165,129 +214,183 @@ Bun package manager and script runtime
 
 ```text
 Browser
-  -> optional gateway
+  -> Gateway
   -> Actix middleware
-  -> auth / tenant / RBAC / CSRF / rate limit
-  -> handler
-  -> Repository trait
-  -> SQLite or PostgreSQL implementation
+  -> Authentication
+  -> Authorization / Tenant / CSRF / Rate Limit
+  -> Application Service or Handler
+  -> Repository / GitStorage / Outbox
 ```
 
-浏览器认证主要使用 httpOnly Cookie JWT；状态变更请求受 double-submit Cookie CSRF 保护。
+目标是将授权、资源和副作用编排从 Handler 收敛到单一服务边界。
 
 ### 6.2 Git Smart HTTP
 
 ```text
 Git Client
   -> /repos/{repo}/info/refs or service endpoint
-  -> Basic challenge / credential extraction
-  -> tenant and repository authorization
+  -> Basic challenge / credential resolution
+  -> tenant + repo + operation authorization
   -> bounded git subprocess streaming
-  -> repository filesystem
-  -> push metadata synchronization and audit
+  -> persistent Git Storage
+  -> metadata/outbox/reconcile
 ```
 
-Git 客户端路径不使用浏览器 CSRF 模式，但必须执行独立认证和仓库授权。
+已实现 subprocess timeout、流式响应和 Repo tenant 检查。
+
+待硬化：
+
+- Ref/Branch/Path scope；
+- protected branch / force push / delete ref；
+- Push/body/repository quotas；
+- Agent Token 与人类 Token 分离；
+- Durable post-push event。
+
+建议：人类凭证可在明确策略下使用 Smart HTTP；Agent Scoped Token 默认走 Commit/Promote API，不直接获得通用 `receive-pack`。
 
 ### 6.3 Repo Context
 
 ```text
 Authorized Client
-  -> Repo Context API
-  -> repository metadata and scope check
+  -> Repo metadata + resource scope
+  -> web::block / timeout
   -> gix object access
-  -> tree/blob/commit/diff response
+  -> bounded response
 ```
 
-资源上限必须在读取前或迭代过程中生效，不能先完整读取或完整收集后才判断超限。
+Tree、Blob、Commit、Diff 上限必须继续保留，且在读取/遍历过程中生效。
 
-### 6.4 MCP Tool
+### 6.4 MCP HTTP Tool
 
-MCP `tools/call` 当前可以触发真实 HTTP 出站请求，必须要求有效 API Key，并遵守租户和 Tool 可见性边界。Function executor 尚不是完整主路径。
+当前 MCP `tools/call` 可触发真实出站 HTTP。现有实现的租户归属和响应体上限是有用基础，但生产安全边界尚未闭合。
+
+目标流程：
+
+```text
+MCP Client
+  -> valid credential
+  -> explicit ToolExecute capability
+  -> Tool tenant/resource authorization
+  -> EgressPolicy
+       - scheme
+       - DNS/final IP
+       - private/loopback/metadata block
+       - redirect revalidation
+       - timeout/size/concurrency
+  -> external target
+  -> audit
+```
+
+归口：EVO-118-B/C。
+
+### 6.5 Commit / Promote / Agent Session（目标）
+
+```text
+External Agent
+  -> create Agent Session
+  -> receive scoped/revocable token
+  -> read Repo Context
+  -> Commit API on agent branch
+  -> PolicyEvaluator
+       -> block
+       -> require_review
+       -> auto_merge
+  -> Promote
+  -> durable audit/outbox
+```
+
+`.evolith/policy.yaml` 目前已有 Parser，不代表策略执行已经完成。三态行为需由 EVO-105 的测试证明。
+
+### 6.6 Durable Event（目标）
+
+Webhook、Indexer、Audit 派生和 Agent Event 不应依赖进程内 `spawn`：
+
+```text
+DB transaction
+  -> update metadata
+  -> insert outbox event
+Worker
+  -> claim
+  -> deliver with idempotency
+  -> retry/dead-letter/replay
+```
+
+目标是 at-least-once + 幂等，不追求跨系统 exactly-once。归口 EVO-118-H。
 
 ## 7. 安全边界
 
-当前安全基线包括：
+### 已具备的基础
 
-- Argon2id 密码哈希。
-- httpOnly Cookie JWT。
-- double-submit Cookie CSRF。
-- API Key 与 scope 检查。
-- Git Basic 认证挑战和仓库级授权。
-- RBAC、资源所有权与多租户隔离。
-- 审计日志、请求 ID、结构化日志和敏感字段清洗。
-- 认证与未认证请求分级限流。
-- Repo Context 的 Blob、Tree 和 Diff 资源边界。
+- Argon2id 密码哈希；
+- httpOnly Cookie JWT；
+- double-submit Cookie CSRF；
+- API Key 哈希存储和过期/撤销字段；
+- Git Basic challenge、tenant/repo ownership check；
+- Request ID、结构化日志和部分敏感字段清洗；
+- Repo Context 资源上限；
+- HTTP Tool 响应体上限；
 - 安全响应头。
 
-生产环境必须显式设置强 `JWT__SECRET`、公开 URL、CORS Origin、持久化数据库和仓库存储。
+### 尚未解除的 Gate
 
-## 8. Legacy 与迁移边界
+- API Key 管理角色和任意权限字符串；
+- MCP `execute` capability；
+- HTTP Tool SSRF/DNS/Redirect/Egress；
+- Agent branch/path scope 与 Policy enforcement；
+- JWT Session/revocation/role refresh；
+- 分级限流接线；
+- SMTP/Redis 生产降级语义。
 
-2026-06-23 后，产品主线从 DB-centric Skill / CLI / MCP Registry 转向 Git-centric Platform。
+所有相关变更必须遵守 [Security Review SOP](../sop/SECURITY-REVIEW.md)。
+
+## 8. 可靠性与运行边界
+
+### Health
+
+目标：
+
+- `/health/live`：只表示进程存活，200。
+- `/health/ready`：检查 DB、Git Storage 和适用关键依赖；失败返回 503。
+
+当前 readiness 语义仍需 EVO-118-G 修复。
+
+### Events
+
+- 可丢失的非关键辅助任务可使用进程内异步任务。
+- 影响 Webhook、Indexer、审计或用户可见状态的事件必须持久化。
+
+### Mail
+
+- Development 可以 ConsoleMailer，但不得记录完整 Token/链接。
+- Production SMTP 声明启用但初始化失败时 fail closed。
+- 业务交付建议使用邮件 Outbox/重试，避免假成功。
+
+## 9. Legacy 与迁移边界
 
 | 能力 | 当前判断 |
 |------|----------|
-| Git Repo / Smart HTTP / Context | 当前主线，已具备基础能力 |
-| Repo UI / Commit / Agent Session / Vibe Coding | Phase E' 在建 |
-| Skill / MCP / CLI Indexer | 计划从 Git 仓库派生，EVO-108/109 |
-| DB-centric Registry | 兼容期数据和 API，不是新功能主线 |
-| Docker Skill Sandbox | 默认关闭，ADR-0005 已决定废弃，EVO-111 删除 |
-| Snippet 模型 | legacy 迁移参考，不应作为新产品概念 |
+| Git Repo / Smart HTTP / Context | 当前主线，后端 Alpha 基础已具备 |
+| Repo UI / Commit / Session / Vibe Coding | 产品主线，等待 EVO-118 Gate |
+| Skill / MCP / CLI Indexer | 计划由 Git Repo 派生 |
+| DB-centric Registry | Compatibility，不是新功能事实源 |
+| Docker Skill Sandbox | 默认关闭，ADR-0005 已决定删除 |
+| Snippet 模型 | historical/compatibility，不作为新产品概念 |
 
-新功能不得以 legacy Sandbox 或旧 Registry 为硬依赖。历史实现可以保留在文档中，但必须标注 `legacy`、`compatibility` 或 `historical`。
+新功能不得以 legacy Sandbox 或旧 Registry 为硬依赖。
 
-## 9. 配置边界
+## 10. 发布判断
 
-嵌套配置统一使用双下划线：
+当前阶段：
 
-```bash
-DATABASE__DATABASE_TYPE=sqlite
-DATABASE__URL=:memory:
-JWT__SECRET=replace-in-production
-SANDBOX__ENABLED=false
-RATE_LIMIT__UNAUTHENTICATED_RPM=30
-```
+> **Git backend Alpha foundation / Production release blocked**
 
-不要使用 `DATABASE_TYPE` / `DATABASE_URL` 代替嵌套键。
+环境准入、Gate 和发布验证以 [Production Readiness Baseline](PRODUCTION-READINESS-BASELINE.md) 与 [Release SOP](../sop/RELEASE.md) 为准。
 
-前端 API 默认前缀：
+以下说法在 Gate 关闭前不成立：
 
-```text
-VITE_API_URL || /api/v1
-```
-
-除非网关明确重写路径，配置中应保留 `/api/v1`。
-
-## 10. 交付形态
-
-### Lite
-
-- Rust 1.88 + Bun 1.3.14。
-- SQLite 内存数据库。
-- legacy Sandbox 默认关闭。
-- 不依赖 Docker。
-
-### Full / Production
-
-- PostgreSQL 16。
-- 可选 Redis。
-- 持久化 Git 仓库存储。
-- 可选 Nginx / Platform LB。
-- React 静态资源嵌入后端发布物。
-
-生产部署的水平扩展必须首先解决 Git 仓库文件系统一致性，不能只扩展无共享存储的后端副本。
-
-## 11. 相关文档
-
-- [项目地图](./PROJECT-MAP.md)
-- [技术栈说明](./TECH-STACK.md)
-- [API 合约](./API-CONTRACT.md)
-- [配置参考](./CONFIG.md)
-- [权限](./PERMISSIONS.md)
-- [多租户设计](./MULTI-TENANT.md)
-- [测试](./TESTING.md)
-- [ADR-0004 Git-centric storage](../decisions/ADR-0004-git-centric-storage.md)
-- [ADR-0005 废弃 Sandbox Runtime](../decisions/ADR-0005-deprecate-sandbox-runtime.md)
-- [ADR-0006 Smart HTTP via Git subprocess](../decisions/ADR-0006-smart-http-via-git-subprocess.md)
-- [实施路线图](../roadmap/IMPLEMENTATION-ROADMAP.md)
+- “已经是可生产部署的 Git 平台”；
+- “API Key 权限体系已完整”；
+- “HTTP Tool 已安全支持任意 URL”；
+- “备份脚本可恢复 Evolith 全量数据”；
+- “Policy Parser 完成等于 Agent 策略已经生效”；
+- “文件嵌入代码存在等于生产镜像构建链路已经闭环”。
