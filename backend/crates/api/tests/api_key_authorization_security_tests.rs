@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, dead_code)]
 
 use actix_web::{dev::ServerHandle, middleware::from_fn, test, web, App, HttpResponse, HttpServer};
 use serde::Deserialize;
@@ -216,16 +216,14 @@ async fn seed_tenant_users(
     owner_id: Uuid,
     member_id: Uuid,
 ) {
-    sqlx::query(
-        "INSERT INTO tenants (id, name, slug, owner_id) VALUES (?, ?, ?, ?)",
-    )
-    .bind(tenant_id.to_string())
-    .bind("Authorization Test Tenant")
-    .bind(format!("authz-{tenant_id}"))
-    .bind(owner_id.to_string())
-    .execute(pool)
-    .await
-    .expect("seed tenant");
+    sqlx::query("INSERT INTO tenants (id, name, slug, owner_id) VALUES (?, ?, ?, ?)")
+        .bind(tenant_id.to_string())
+        .bind("Authorization Test Tenant")
+        .bind(format!("authz-{tenant_id}"))
+        .bind(owner_id.to_string())
+        .execute(pool)
+        .await
+        .expect("seed tenant");
 
     for (user_id, username, email, tenant_role) in [
         (owner_id, "authz-owner", "owner@authz.test", "owner"),
