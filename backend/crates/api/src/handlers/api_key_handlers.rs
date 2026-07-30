@@ -35,12 +35,14 @@ impl ApiKeyManagementAction {
 async fn authorize_api_key_management(
     req: &actix_web::HttpRequest,
     user: &AuthenticatedUser,
-    tenant_id: Uuid,
+    target_tenant_id: Uuid,
     action: ApiKeyManagementAction,
     state: &AppState,
 ) -> Result<(), HttpResponse> {
     let authenticated_with_api_key = req.extensions().get::<ApiKey>().is_some();
-    let allowed = !authenticated_with_api_key && user.tenant_id == tenant_id && user.is_admin();
+    let allowed = !authenticated_with_api_key
+        && user.tenant_id == target_tenant_id
+        && user.is_admin();
 
     if allowed {
         return Ok(());
@@ -48,15 +50,18 @@ async fn authorize_api_key_management(
 
     let denial_reason = if authenticated_with_api_key {
         "api_key_authentication"
-    } else if user.tenant_id != tenant_id {
+    } else if user.tenant_id != target_tenant_id {
         "tenant_mismatch"
     } else {
         "insufficient_tenant_role"
     };
 
+    // Denial events belong to the caller's tenant. Writing the caller identity into the target
+    // tenant's audit stream would create a cross-tenant side effect and expose foreign identity
+    // metadata. The attempted target remains available as non-owning event detail.
     let audit_log = AuditLog {
         id: Uuid::new_v4(),
-        tenant_id: Some(tenant_id),
+        tenant_id: Some(user.tenant_id),
         user_id: Some(user.user_id),
         action: "api_key.management.denied".to_string(),
         resource_type: Some("api_key".to_string()),
@@ -65,6 +70,7 @@ async fn authorize_api_key_management(
             "operation": action.as_str(),
             "reason": denial_reason,
             "caller_tenant_id": user.tenant_id,
+            "target_tenant_id": target_tenant_id,
             "tenant_role": &user.tenant_role,
         }),
         ip_address: req
@@ -83,7 +89,8 @@ async fn authorize_api_key_management(
         tracing::error!(
             action = action.as_str(),
             user_id = %user.user_id,
-            tenant_id = %tenant_id,
+            caller_tenant_id = %user.tenant_id,
+            target_tenant_id = %target_tenant_id,
             "Failed to persist API key authorization denial audit: {}",
             error
         );
@@ -181,12 +188,16 @@ pub async fn list_api_keys(
     }
 }
 
-/// Create a new API key
+/// Create a new API key.
+///
+/// The raw body is intentionally accepted as `Bytes`: authorization must happen before typed
+/// capability deserialization so an unauthorized caller cannot turn an invalid capability into a
+/// DTO-level 400 that bypasses the required 403 and denial audit.
 pub async fn create_api_key(
     req: actix_web::HttpRequest,
     tenant_id: web::Path<Uuid>,
     user: AuthenticatedUser,
-    body: web::Json<CreateApiKeyRequest>,
+    body: web::Bytes,
     state: web::Data<AppState>,
 ) -> impl Responder {
     let tenant_id = tenant_id.into_inner();
@@ -201,6 +212,16 @@ pub async fn create_api_key(
     {
         return response;
     }
+
+    let body = match serde_json::from_slice::<CreateApiKeyRequest>(&body) {
+        Ok(body) => body,
+        Err(error) => {
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "VALIDATION_ERROR",
+                &format!("Invalid API key request: {error}"),
+            ));
+        }
+    };
 
     if let Err(errors) = body.validate() {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
@@ -227,7 +248,7 @@ pub async fn create_api_key(
     let new_key = NewApiKey {
         tenant_id,
         user_id: user.user_id,
-        name: body.name.clone(),
+        name: body.name,
         key_hash,
         key_prefix,
         permissions,
