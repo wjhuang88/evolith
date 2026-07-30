@@ -328,10 +328,13 @@ export interface PaginatedResponse<T> {
 // API Key Types
 // ============================================
 
+export type ApiKeyCapability = 'read' | 'repo:read' | 'repo:write' | 'execute' | 'promote';
+
 export interface ApiKey {
   id: string;
   name: string;
   key_prefix: string;
+  // Existing keys may still expose legacy strings until they are rotated.
   permissions: string[];
   expires_at: string | null;
   rate_limit: number;
@@ -347,7 +350,7 @@ export interface ApiKeyWithSecret extends ApiKey {
 
 export interface CreateApiKeyRequest {
   name: string;
-  permissions?: string[];
+  permissions?: ApiKeyCapability[];
   rate_limit?: number;
   expires_in_days?: number;
 }
