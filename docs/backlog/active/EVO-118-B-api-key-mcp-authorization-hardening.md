@@ -1,12 +1,13 @@
 # EVO-118-B API Key 与 MCP 授权边界硬化
 
 - **类型**：Permission / Security
-- **状态**：In Progress
+- **状态**：Review
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
 - **依赖**：EVO-118-A Done
 - **所属迭代**：[Iteration 051](../../iterations/ITERATION-051.md)
 - **影响范围**：backend / frontend / docs / tests
+- **PR**：#3 `security: harden API key and MCP authorization`
 
 ## 用户价值
 
@@ -45,14 +46,17 @@
 - **When** 调用 Repo、MCP 或 Key Management
 - **Then** 统一拒绝且不泄露资源存在性
 
-## 工程要求
+## 工程要求与实施结果
 
-- 在 domain 定义 Typed `ApiKeyCapability`，新签发仅允许 `read`、`repo:read`、`repo:write`、`execute`、`promote`。
-- 在 API 层建立统一 `ApiKeyAction` 授权 helper；Repo、MCP 和未来 Promote 复用同一入口。
-- API Key 管理默认 JWT + Owner/Admin；API Key 自身不得管理其他 Key。
-- 历史 `write/admin/commit:*` 只做运行兼容，不允许通过新 DTO 再签发。
-- 同步 `PERMISSIONS.md`、API Contract、前端 capability 选择。
-- 无 schema 变化；无需 SQLite/PostgreSQL migration。
+- [x] 在 domain 定义 Typed `ApiKeyCapability`，新签发仅允许 `read`、`repo:read`、`repo:write`、`execute`、`promote`。
+- [x] 在 API 层建立统一 `ApiKeyAction` 授权 helper；Repo、MCP 和未来 Promote 复用同一入口。
+- [x] API Key 管理限定为同租户 Owner/Admin JWT；API Key 自身不得管理其他 Key。
+- [x] API Key 管理拒绝写入 `api_key.management.denied` 审计。
+- [x] 历史 `write/admin/commit:*` 只做 Repo 运行兼容，不允许通过新 DTO 再签发。
+- [x] MCP `tools/call` 在 Tool 查询和 executor 调用前强制 `execute`。
+- [x] 前端提供 canonical capability 选择，Member 页面不再发起无权 list 请求。
+- [x] 同步 `PERMISSIONS.md` 与 [API Key Authorization Contract](../../reference/API-KEY-AUTHORIZATION.md)。
+- [x] 无 schema 变化；无需 SQLite/PostgreSQL migration。
 
 ## 不做事项
 
@@ -61,25 +65,35 @@
 - 不实现 Branch/Path scoped Agent Token；归 EVO-105/106。
 - 不删除已有 legacy Key；管理员通过列表识别后自行轮换/吊销。
 
-## 最小验证
+## 验证状态
 
-- API Key 管理角色矩阵 E2E。
-- Typed capability 序列化、白名单和 legacy compatibility 单元测试。
-- MCP execute scope E2E，证明无 `execute` 时 executor 不被调用。
-- 跨租户、撤销、过期负向测试保持通过。
-- `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace`。
-- `bun run type-check`、`bun run build`。
+已完成静态审查：
+
+- `main...agent/harden-api-key-mcp-auth`：分支基于 PR #2 merge commit，0 behind。
+- Compare 只包含 EVO-118-B 的 backend/frontend/tests/docs，无 migration、部署配置或脚本改动。
+- 已对照 `AuditLog`、`AuditRepository`、`AppState`、API Key 路由、JWT role helper 和前端权限 hook。
+- 已建立安全 E2E，覆盖 Member 403+审计、canonical/legacy 签发、MCP executor 命中计数。
+
+尚未执行的 hard-required 门禁：
+
+- `cargo fmt --all -- --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `bun run type-check`
+- `bun run build`
+
+原因：当前环境没有私有仓库本地 checkout，仓库现有 CI 仍为 tag-only，PR 不会自动执行这些命令。在真实运行证据出现前本 Story 保持 `Review / Partial`。
 
 ## 闭环台账
 
 | 项目 | 本轮记录 |
 |------|----------|
 | 请求结果 | 关闭 SEC-01：成员/API Key 不可管理 Key，只读 Key 不可执行 MCP Tool |
-| 产物 | Typed capability、统一授权 helper、handler 门禁、E2E/单元测试、前端和 Reference 同步 |
-| 状态同步归口 | EVO-118/B、Iteration 051、Product Backlog、Board、Permissions/API Contract |
-| 验证证据 | Rust/前端门禁、负向授权测试、PR compare/CI |
-| 残余工作归口 | SSRF 归 EVO-118-C；Agent scoped token 归 EVO-105/106；legacy Key 轮换策略记录在 Reference |
+| 产物 | Typed capability、统一授权 helper、handler 门禁、拒绝审计、E2E/单元测试、前端和 Reference 同步 |
+| 状态同步归口 | EVO-118/B、Iteration 051、Product Backlog、Board、Permissions/API Key Authorization Contract |
+| 验证证据 | GitHub compare、文件级静态核对、新增自动化测试代码；运行门禁待本地/CI |
+| 残余工作归口 | 本 PR 的 Rust/前端门禁；SSRF 归 EVO-118-C；Agent scoped token 归 EVO-105/106；legacy Key 轮换策略记录在 Reference |
 
 ## 解锁内容
 
-解除 SEC-01 Gate；允许继续 Agent Token 和外部 Alpha 权限设计。
+PR #3 的 hard-required 门禁全部通过并合并后，解除 SEC-01 Gate；下一项按计划启动 EVO-118-C。
