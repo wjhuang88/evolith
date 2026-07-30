@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -59,8 +59,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -92,73 +90,6 @@ jobs:
         if: github.event_name != 'pull_request'
         working-directory: frontend
         run: bun run lint
-
-      - name: Apply reviewed corrections and scoped rustfmt output
-        if: github.event_name == 'pull_request' && github.head_ref == 'agent/harden-api-key-mcp-auth'
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          handler = Path("backend/crates/api/src/handlers/mcp_handlers.rs")
-          handler_text = handler.read_text()
-          replacements = [
-              (
-                  "fn hidden_tool_response(id: Value, tool_name: &str) -> HttpResponse",
-                  "fn hidden_tool_response(id: Value) -> HttpResponse",
-              ),
-              (
-                  'format!("Tool \'{}\' not found or access denied", tool_name)',
-                  '"Tool not found or access denied".to_string()',
-              ),
-              ("hidden_tool_response(id, &tool_name)", "hidden_tool_response(id)"),
-          ]
-          for old, new in replacements:
-              assert old in handler_text, f"expected handler fragment not found: {old}"
-              handler_text = handler_text.replace(old, new)
-          handler.write_text(handler_text)
-
-          test_file = Path("backend/crates/api/tests/api_key_authorization_security_tests.rs")
-          test_text = test_file.read_text()
-          pattern = re.compile(
-              r"(?ms)^(?P<indent>\s*)assert_eq!\(\s*"
-              r"test::call_service\(&app, repo_request\)\.await\.status\(\),\s*"
-              r"actix_web::http::StatusCode::UNAUTHORIZED\s*\);"
-          )
-
-          def replace_inactive_key_assertion(match: re.Match[str]) -> str:
-              indent = match.group("indent")
-              inner = indent + "    "
-              return (
-                  f'{indent}let repo_error = test::try_call_service(&app, repo_request)\n'
-                  f'{inner}.await\n'
-                  f'{inner}.expect_err("inactive API key must be rejected");\n'
-                  f'{indent}assert_eq!(\n'
-                  f'{inner}repo_error.as_response_error().status_code(),\n'
-                  f'{inner}actix_web::http::StatusCode::UNAUTHORIZED\n'
-                  f'{indent});'
-              )
-
-          test_text, count = pattern.subn(replace_inactive_key_assertion, test_text, count=1)
-          assert count == 1, f"expected one inactive-key assertion, replaced {count}"
-          test_file.write_text(test_text)
-          PY
-
-          cargo fmt --manifest-path backend/Cargo.toml --all
-          changed="$(git diff --name-only)"
-          unexpected="$(printf '%s\n' "$changed" | grep -Ev '^(backend/crates/api/src/handlers/mcp_handlers.rs|backend/crates/api/tests/api_key_authorization_security_tests.rs)$' || true)"
-          if [ -n "$unexpected" ]; then
-            echo "correction step changed unexpected files:"
-            printf '%s\n' "$unexpected"
-            exit 1
-          fi
-          if [ -n "$changed" ]; then
-            git config user.name "evolith-ci"
-            git config user.email "actions@users.noreply.github.com"
-            git add $changed
-            git commit -m "fix: align inactive-key and hidden-tool tests (#EVO-118-B) [model: gpt-5.6]"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
 
       - name: Backend format check
         working-directory: backend
