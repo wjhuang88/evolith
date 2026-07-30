@@ -189,6 +189,15 @@ async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>)
     }
 }
 
+fn hidden_tool_response(id: Value, tool_name: &str) -> HttpResponse {
+    HttpResponse::Ok().json(McpResponse::error(
+        id,
+        -32001,
+        format!("Tool '{}' not found or access denied", tool_name),
+        None,
+    ))
+}
+
 async fn handle_tools_call(
     id: Value,
     state: &AppState,
@@ -239,12 +248,7 @@ async fn handle_tools_call(
     match state.tool_repo.find_by_name(&tool_name).await {
         Ok(Some(tool)) => {
             if tool.tenant_id != api_key.tenant_id {
-                return HttpResponse::Ok().json(McpResponse::error(
-                    id,
-                    -32001,
-                    format!("Tool '{}' not found or access denied", tool_name),
-                    None,
-                ));
+                return hidden_tool_response(id, &tool_name);
             }
 
             let schema: Value = tool.input_schema.clone();
@@ -333,12 +337,7 @@ async fn handle_tools_call(
                 )),
             }
         }
-        Ok(None) => HttpResponse::Ok().json(McpResponse::error(
-            id,
-            -32601,
-            format!("Tool '{}' not found", tool_name),
-            None,
-        )),
+        Ok(None) => hidden_tool_response(id, &tool_name),
         Err(error) => {
             tracing::error!("Failed to find tool: {}", error);
             HttpResponse::Ok().json(McpResponse::error(
