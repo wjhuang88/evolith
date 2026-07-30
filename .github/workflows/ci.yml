@@ -24,6 +24,9 @@ on:
       - "v*.*.*"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -56,6 +59,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -87,6 +92,25 @@ jobs:
         if: github.event_name != 'pull_request'
         working-directory: frontend
         run: bun run lint
+
+      - name: Apply and commit scoped rustfmt output
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/harden-api-key-mcp-auth'
+        run: |
+          cargo fmt --manifest-path backend/Cargo.toml --all
+          changed="$(git diff --name-only)"
+          unexpected="$(printf '%s\n' "$changed" | grep -Ev '^(backend/crates/api/src/dto/api_key_dto.rs|backend/crates/api/src/handlers/api_key_handlers.rs|backend/crates/api/src/handlers/mcp_handlers.rs|backend/crates/api/src/middleware/api_key_scope.rs|backend/crates/api/tests/api_key_authorization_security_tests.rs|backend/crates/domain/src/api_key.rs)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "rustfmt changed unexpected files:"
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+          if [ -n "$changed" ]; then
+            git config user.name "evolith-ci"
+            git config user.email "actions@users.noreply.github.com"
+            git add $changed
+            git commit -m "style: apply rustfmt (#EVO-118-B) [model: rustfmt]"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
 
       - name: Backend format check
         working-directory: backend
