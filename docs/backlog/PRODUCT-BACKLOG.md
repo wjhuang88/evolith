@@ -9,8 +9,8 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118-B | API Key 与 MCP 授权边界硬化 | In Progress | P0 | Iteration 051；SEC-01 release blocker；Owner/Admin 管理、Typed Capability、MCP execute scope、legacy Key 兼容策略 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
-| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Ready | P0 | SEC-02 release blocker；DNS/IP/Redirect/Metadata/Egress 边界和 Tool 创建角色门禁 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
+| EVO-118-B | API Key 与 MCP 授权边界硬化 | Review | P0 | Iteration 051 / Draft PR #3；实现已形成，等待 Rust/前端 hard-required 门禁，SEC-01 尚未解除 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md)<br>[Authorization Contract](../reference/API-KEY-AUTHORIZATION.md)<br>[Security Review](../sop/SECURITY-REVIEW.md) |
+| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Ready | P0 | SEC-02 release blocker；DNS/IP/Redirect/Metadata/Egress 边界和 Tool 创建角色门禁；仅在 B 关闭后启动 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | DATA-01 release blocker；生产持久卷、PostgreSQL+Git 联合备份、空环境恢复 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | DEPLOY-01 release blocker；clean build、单一交付形态、协议路径 Smoke Test | [Item file](active/EVO-118-E-production-build-deployment-convergence.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
 | EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | Proposed | P0 | 产品主线保持；EVO-118 S1 未关闭前只做 refinement，不抢占实现 WIP | [Item file](active/EVO-112-repo-management-ui.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)<br>[Design System](../reference/DESIGN.md) |
@@ -24,9 +24,9 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A Done，B In Progress，C~E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
+| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A Done，B Review，C~E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
 | EVO-118-A | 项目体检治理基线与优先级重排 | Done | P0 | Governance Story；Iteration 050 Closed；PR #2 merged | [Item file](active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](../iterations/ITERATION-050.md) |
-| EVO-118-B | API Key 与 MCP 授权边界硬化 | In Progress | P0 | Iteration 051；解除 SEC-01 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md) |
+| EVO-118-B | API Key 与 MCP 授权边界硬化 | Review | P0 | Iteration 051 / Draft PR #3；运行门禁待补，解除 SEC-01 尚未完成 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md) |
 | EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Ready | P0 | 解除 SEC-02 | [Item file](active/EVO-118-C-http-tool-egress-security.md) |
 | EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | 解除 DATA-01 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | 解除 DEPLOY-01 | [Item file](active/EVO-118-E-production-build-deployment-convergence.md) |
@@ -88,7 +88,7 @@
 | EVO-017 | Snippet 迁移为 CLI 友好接口 | Done | P0 | ADR-0002 | [2026-Q2](archive/2026-Q2/EVO-017-snippet-迁移为-cli-友好接口.md) |
 | EVO-018 | 邮箱验证发送与确认闭环 | Done | P1 | Iteration 009/021 | [2026-Q2](archive/2026-Q2/EVO-018-邮箱验证发送与确认闭环.md) |
 | EVO-021 | 前端路由适配层 | Done | P0 | Iteration 003 | [2026-Q2](archive/2026-Q2/EVO-021-前端路由适配层.md) |
-| EVO-022 | Vite + Bun 构建骨架 | Done | P0 | Iteration 004 | [2026-Q2](archive/2026-Q2/EVO-022-vite-+-vite-+-bun.md) |
+| EVO-022 | Vite + Bun 构建骨架 | Done | P0 | Iteration 004 | [2026-Q2](archive/2026-Q2/EVO-022-vite-+-bun-构建骨架.md) |
 | EVO-023 | 前端运行时配置迁移 | Done | P0 | Iteration 004 | [2026-Q2](archive/2026-Q2/EVO-023-前端运行时配置迁移.md) |
 | EVO-024 | Docker / Nginx 切换到静态 SPA | Done | P0 | 过渡形态，后续由 Embedded Frontend 取代 | [2026-Q2](archive/2026-Q2/EVO-024-docker-nginx-切换到静态-spa.md) |
 | EVO-025 | 移除 Next.js 依赖和遗留入口 | Done | P0 | Iteration 004 | [2026-Q2](archive/2026-Q2/EVO-025-移除-nextjs-依赖和遗留入口.md) |
