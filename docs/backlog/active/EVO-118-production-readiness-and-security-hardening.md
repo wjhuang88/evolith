@@ -23,14 +23,14 @@
 
 | 子 Story | 独立结果 | 状态 | 优先级 | 依赖 | 所属迭代 |
 |----------|----------|------|--------|------|----------|
-| [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Review | P0 | 无 | Iteration 050 |
-| [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Ready | P0 | EVO-118-A merge | - |
-| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Ready | P0 | EVO-118-A merge | - |
-| [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready | P0 | EVO-118-A merge | - |
-| [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A merge | - |
-| [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Proposed | P1 | EVO-118-D/E |
-| [EVO-118-G](EVO-118-G-runtime-reliability-gates.md) | PR CI、readiness、限流和生产 fail-closed 接线 | Proposed | P1 | EVO-118-B/E |
-| [EVO-118-H](EVO-118-H-durable-outbox-events.md) | Durable Outbox/Worker 为 Webhook/Indexer/Agent Event 提供可靠事件 | Proposed | P1 | EVO-118-E/G |
+| [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Done | P0 | 无 | Iteration 050 |
+| [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | In Progress | P0 | EVO-118-A Done | Iteration 051 |
+| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Ready | P0 | EVO-118-A Done | - |
+| [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready | P0 | EVO-118-A Done | - |
+| [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A Done | - |
+| [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Proposed | P1 | EVO-118-D/E | - |
+| [EVO-118-G](EVO-118-G-runtime-reliability-gates.md) | PR CI、readiness、限流和生产 fail-closed 接线 | Proposed | P1 | EVO-118-B/E | - |
+| [EVO-118-H](EVO-118-H-durable-outbox-events.md) | Durable Outbox/Worker 为 Webhook/Indexer/Agent Event 提供可靠事件 | Proposed | P1 | EVO-118-E/G | - |
 
 ## 阶段 Gate
 
