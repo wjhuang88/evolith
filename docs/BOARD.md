@@ -10,15 +10,15 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-A 项目体检治理基线 | Review | [Item](backlog/active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](iterations/ITERATION-050.md) | Draft PR merge + local DOC-CHECK 后关闭。 |
 | EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | S1 必须按 WIP 逐项关闭，不能整包声称完成。 |
-| EVO-118-B API Key / MCP Authorization | Ready | [Item](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) | SEC-01；建议作为 A 合并后的首个实现 Story。 |
+| EVO-118-B API Key / MCP Authorization | Review / Partial | [Item](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](iterations/ITERATION-051.md) | Draft PR #3 已提交；等待 Rust/前端 hard-required 门禁。 |
 
 ## Review
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| Iteration 050 项目体检治理 | Review / Partial | [Iteration 050](iterations/ITERATION-050.md) | 分支 compare、PR diff、merge；本地可用时补 DOC-CHECK。 |
+| PR #3 API Key 与 MCP 授权硬化 | Draft / Review | [EVO-118-B](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Authorization Contract](reference/API-KEY-AUTHORIZATION.md) | `cargo fmt/clippy/test` 与 `bun type-check/build` 全通过后才可合并并解除 SEC-01。 |
+| Iteration 051 | Review / Partial | [Iteration 051](iterations/ITERATION-051.md) | 未关闭前不启动 EVO-118-C 或 Repo UI。 |
 
 ## Blocked Or Paused
 
@@ -34,7 +34,7 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-C HTTP Tool Egress Security | Ready | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | SEC-02；在 EVO-118-B 后启动。 |
+| EVO-118-C HTTP Tool Egress Security | Ready | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | SEC-02；仅在 EVO-118-B 合并并关闭后启动。 |
 | EVO-118-D Git Durability and Recovery | Ready | [Item](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | DATA-01；持久卷 + DB/Git 恢复演练。 |
 | EVO-118-E Production Build Convergence | Ready | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | DEPLOY-01；clean build + 单一交付 + Smoke Test。 |
 | EVO-118-F Repo Lifecycle | Proposed | [Item](backlog/active/EVO-118-F-repo-lifecycle-consistency.md) | 依赖 D/E；DATA-02。 |
@@ -53,8 +53,9 @@
 
 ## Operating Review
 
+- EVO-118-A/Iteration 050 已由 PR #2 合并并关闭。
 - 当前产品方向仍是 Git hosting + Vibe Coding + capability discovery；EVO-118 是稳定化 Gate，不是产品回退。
-- Git 后端 Alpha 基础可用，但不得由此推导“生产就绪”。
-- 当前启动顺序：EVO-118-A merge → B → C → D → E → F/G/H → EVO-112 → EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
+- EVO-118-B 实现已进入 Draft PR #3，但缺 hard-required 运行验证，SEC-01 尚未解除。
+- 当前启动顺序：完成 PR #3 验证/合并 → EVO-118-C → D → E → F/G/H → EVO-112 → EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
 - 安全、数据损坏或生产构建问题允许显式 P0 插队；普通 UI、视觉、计费或内部文档不得静默绕过 S1。
 - Board 只反映 owner docs；Gate 关闭必须由 Story 验收和实际验证证明。
