@@ -1,201 +1,109 @@
 # Iterations 目录
 
-本目录记录每轮迭代计划、执行和复盘。
+本目录记录每轮迭代的发布计划基线、实际执行、验证、Review 和 Retrospective。
 
-## 文件
+开始新迭代前必须先按 [START-ITERATION](../sop/START-ITERATION.md) 处置所有非终态 Iteration。Backlog Story Done 不自动代表 Iteration Closed。
 
-- [迭代模板](ITERATION-TEMPLATE.md)
-- [Iteration 001](ITERATION-001.md) — 工程化文档体系与流程改造。
-- [Iteration 002](ITERATION-002.md) — CLI 友好接口概念迁移。
-- [Iteration 003](ITERATION-003.md) — 前端路由适配层。
-- [Iteration 004](ITERATION-004.md) — 前端技术栈迁移 React + Vite + Bun（EVO-022~025）。
-- [Iteration 005](ITERATION-005.md) — 认证闭环：忘记密码与邀请接受（EVO-003/004）。
-- [Iteration 006](ITERATION-006.md) — MCP 工具真实执行（EVO-005）。
-- [Iteration 007](ITERATION-007.md) — MCP 工具执行质量修复与流程防呆（EVO-032）。
-- [Iteration 008](ITERATION-008.md) — Epic 与子需求拆分治理规则（EVO-034）。
-- [Iteration 009](ITERATION-009.md) — 邮箱验证闭环（EVO-018；
-  Review：代码/测试记录存在，contract/testing/roadmap reference 收口待修复）。
-- [Iteration 010](ITERATION-010.md) — Skill 更新与 SKILL.md parser（EVO-006 / EVO-009；
-  Review：stories Done，API contract 与迭代收口证据待核对）。
-- [Iteration 011](ITERATION-011.md) — Members 与 API Keys 前端接真实 API
-  （EVO-010 / EVO-011；替换了原 EVO-016 计划，已补偏差记录）。
-- [Iteration 013](ITERATION-013.md) — 已发布迭代计划基线保护与改线防呆（EVO-036）。
-- [Iteration 014](ITERATION-014.md) — 治理 skill 弱模型闭环执行防呆（EVO-037）。
-- [Iteration 015](ITERATION-015.md) — 本项目实施任务闭环 SOP 与完成声明门禁（EVO-038）。
-- [Iteration 016](ITERATION-016.md) — 迭代启动前库存盘点与既有计划优先规则（EVO-039）。
-- [Iteration 021](ITERATION-021.md) — 已实现接口完成声明与参考文档状态修复（EVO-040；
-  Closed：Iteration 009 / 010 收口完成）。
-- [Iteration 022](ITERATION-022.md) — 敏捷实践与 BDD 验收格式适配规则（EVO-041）。
-- [Iteration 023](ITERATION-023.md) — 治理 skill manifest 接入与一致性审计（EVO-035）。
-- [Iteration 024](ITERATION-024.md) — Embedded Frontend 交付形态 refinement（EVO-016-A；Superseded）。
-- [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013）。
-- [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014）。
-- [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029）。
-- [Iteration 028](ITERATION-028.md) — Rustfmt 基线与 CI 命令准备（EVO-033；Closed：fmt baseline 完成，clippy 1 pre-existing error 归口 EVO-059）。
-- [Iteration 029](ITERATION-029.md) — GitHub CI/CD 重建（EVO-030；Closed：EVO-030 + EVO-059 双 Done；`.github/workflows/ci.yml` tag-only `v*.*.*` semver 触发 / 9 门禁全绿 / 274 测试通过）。
-- [Iteration 030](ITERATION-030.md) — ZIP 嵌入前端流式响应与静态索引（Superseded：改线到 Iteration 031）。
-- [Iteration 031](ITERATION-031.md) — 前端静态服务迁移到 rust-embed-for-web（EVO-016-B；Closed）。
-- [Iteration 032](ITERATION-032.md) — 后端依赖全量版本审计与迁移（EVO-043；Closed：审计 39 dep + 3 crate 私有 dep；16 个大版本升级归口 EVO-061~076）。
-- [Iteration 033](ITERATION-033.md) — Serverless 执行架构设计 Spike（EVO-048；Closed：输出 `docs/proposals/SERVERLESS-RUNTIME.md`；Phase 7 部分复用；统一 ExecutionProvider；冷启动方法学；Vercel 演进路径）。
-- [Iteration 034](ITERATION-034.md) — Skill/CLI 规范兼容数据模型基线（EVO-049-A；Closed：migration 006 + domain/DTO/repository 全量更新 + 282 tests passed）。
-- [Iteration 035](ITERATION-035.md) — P1 治理先行：backlog 状态漂移与前后端 API 契约漂移修复（EVO-054 / EVO-055；Closed）。
-- [Iteration 036](ITERATION-036.md) — Governance board operating view（EVO-077；Closed：派生 Board 建立并验证通过）。
-- [Iteration 037](ITERATION-037.md) — 最近开发任务治理漂移修复（EVO-078；Closed：Board / iteration 目录 / DESIGN 归类 / EVO-045-A 补齐）。
-- [Iteration 038](ITERATION-038.md) — 假可用快速失败修复（EVO-052 / EVO-056；Closed：MySQL 快速失败 + sandbox fail-fast）。
-- [Iteration 039](ITERATION-039.md) — 后端死代码与误导性注释清理（EVO-051；Closed：删除 10 个死代码文件 + NewUser.password → password_hash 重命名 + 282 tests passed）。
-- [Iteration 040](ITERATION-040.md) — 前端死代码与类型卫生清理（EVO-058；Closed：删除 7 个死代码文件 + skillsApi.versions 假实现移除 + 重复 User 接口合并 + build/tsc 0 errors）。
-- [Iteration 041](ITERATION-041.md) — ExecutionProvider 统一 trait + Docker 容器池化（EVO-045-A；Closed：创建统一执行抽象 + 容器池化 + HTTP 转发 + 适配器 facade + 309 tests passed）。
-- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；Closed：2026-06-24，git_repos schema + policy.yaml parser + TenantQuotas 适配 + ExecutionProvider deprecated）。
-- [Iteration 043](ITERATION-043.md) — Direction Pivot Review Remediation（EVO-113；Closed：2026-06-25，安全默认策略、状态同步、断链、sandbox legacy reference、manifest risk gates 修复）。
-- [Iteration 044](ITERATION-044.md) — Phase E'-1b Repo CRUD（EVO-103-A；Closed：2026-06-25，EVO-103-A Repo CRUD 完成（cargo test 0 failures / clippy 0 errors））。
-- [Iteration 045](ITERATION-045.md) — Phase E'-1b Git Client Auth Infra（EVO-103-B-1；Closed：2026-06-25，EVO-103-B-1 完成（cargo test 0 failures / clippy 0 errors；from_fn + Next<B> 中间件））。
-- [Iteration 046](ITERATION-046.md) — Phase E'-1b Smart HTTP Endpoints（EVO-103-B-2；Closed：2026-06-26，EVO-103-B-2 Done（真实 git clone/push/pull E2E 通过））.
-- [Iteration 047](ITERATION-047.md) — git Smart HTTP WWW-Authenticate + 真实 git-client E2E（EVO-115；Closed：2026-06-26，EVO-115 Done（WWW-Authenticate + 真实 git E2E））.
-- [Iteration 048](ITERATION-048.md) — Phase E'-1c Repo Context API（EVO-103-C；Closed：2026-06-26，EVO-103-C Done（gix 读取 API））.
-- [Iteration 049](ITERATION-049.md) — EVO-103 Acceptance Hardening（EVO-116；Closed：2026-06-26，API key scope / Context API 资源边界 / push metadata / API contract / 性能证据全部实现并验证，EVO-103 现可由架构组正式 Accept）.
+## 当前非终态库存
 
-## 未来计划
+| Iteration | 状态 | 目标/处置 |
+|-----------|------|-----------|
+| [Iteration 050](ITERATION-050.md) | Review / Partial | 项目体检治理基线与生产就绪重排；等待 Draft PR merge 与本地 DOC-CHECK |
+| [Iteration 018](ITERATION-018.md) | Blocked for activation / Superseded direction | 旧 Skill 导入计划，被 Git-centric EVO-100/108 替代 |
+| [Iteration 019](ITERATION-019.md) | Blocked for activation / Superseded direction | 旧 Skill 多来源计划，不 deliberate replan 则不激活 |
+| [Iteration 020](ITERATION-020.md) | Blocked for activation / Superseded direction | 旧 Skill 版本计划，被 Git 原生历史与 Indexer 替代 |
+| [Iteration 025](ITERATION-025.md) | Blocked for activation | 租户设置与审计详情；需 refinement，不抢占 EVO-118 S1 |
+| [Iteration 026](ITERATION-026.md) | Blocked for activation | Stripe Webhook/计费；需安全与 Mock 验收 refinement |
+| [Iteration 027](ITERATION-027.md) | Blocked for activation / Superseded direction | 旧 Skill 发现质量计划，被 EVO-108/109 替代 |
 
-以下文档仅为仍可能激活的排期草案，未启动实施，也不代表候选事项已进入 `In Progress`。
-已关闭或已被取代的计划仅保留在文件清单和库存记录中，不再列入未来候选：
+### 当前启动结论
 
-- [Iteration 042](ITERATION-042.md) — Phase E'-1 Git Service 基础（EVO-101 + EVO-102；
-  Closed：2026-06-24，314 tests passed）。
-- [Iteration 025](ITERATION-025.md) — 租户设置与审计详情补齐（EVO-012 / EVO-013；
-  Blocked for activation：候选需 Story/BDD refinement）。
-- [Iteration 026](ITERATION-026.md) — Stripe Webhook 与计费闭环恢复（EVO-014；
-  Blocked for activation：候选需 webhook 安全与 mock 验收 refinement）。
-- [Iteration 018](ITERATION-018.md) — Skill 导入基础能力细化与基线（EVO-019 / EVO-020；
-  Superseded by 2026-06-23 方向调整 → EVO-100 Phase E'-3 / EVO-108）。
-- [Iteration 019](ITERATION-019.md) — Skill 多来源导入闭环（EVO-027；
-  Superseded by 2026-06-23 方向调整 → EVO-100 Phase E'-3 / EVO-108）。
-- [Iteration 020](ITERATION-020.md) — Skill 版本与正确性验证（EVO-028；
-  Superseded by 2026-06-23 方向调整 → git 原生版本管理 + EVO-108）。
-- [Iteration 027](ITERATION-027.md) — Skill 发现质量与描述治理（EVO-029；
-  Superseded by 2026-06-23 方向调整 → EVO-109 Discovery API + Pages 式发现 UI）。
+- Iteration 050 在 Review 未关闭前，不新建另一个产品 Iteration。
+- 050 关闭后，默认从 EVO-118-B 开始新的安全微迭代，而不是激活 Repo UI。
+- 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
+- 安全、数据损坏或生产构建 P0 可显式插队；普通产品工作不得绕过 EVO-118 S1。
 
-> **2026-06-24 文档漂移清理**（ITERATION-042 启动前）：
-> Iteration 028（Rustfmt 基线 / EVO-033）与 Iteration 034（Skill/CLI 数据模型基线 / EVO-049-A）**实际已 Closed**（见非终态库存），不应再列入"Ready for activation"。本轮已从未来计划 section 移除。
+## 最近完成的 Git-centric Iterations
 
-## 非终态库存
+| Iteration | 状态 | 结果 |
+|-----------|------|------|
+| [Iteration 042](ITERATION-042.md) | Closed | EVO-101/102 Git schema + policy parser |
+| [Iteration 043](ITERATION-043.md) | Closed | Direction Pivot Review Remediation |
+| [Iteration 044](ITERATION-044.md) | Closed | Repo CRUD |
+| [Iteration 045](ITERATION-045.md) | Closed | Git client auth infrastructure |
+| [Iteration 046](ITERATION-046.md) | Closed | Smart HTTP endpoints，真实 clone/push/pull |
+| [Iteration 047](ITERATION-047.md) | Closed | WWW-Authenticate + real git-client E2E |
+| [Iteration 048](ITERATION-048.md) | Closed | Repo Context API |
+| [Iteration 049](ITERATION-049.md) | Closed | EVO-103 acceptance hardening |
 
-启动任何新的产品迭代前，必须先按启动 SOP 处置：
+这些 Iteration 证明 Git 后端 Alpha 基础存在，但不证明平台生产就绪。后续发布 Gate 归 [EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)。
 
-- [Iteration 049](ITERATION-049.md) — `Closed`：2026-06-26，EVO-103 验收硬化全部完成（API key scope、Context API 资源边界、push metadata、API contract、性能证据 5 个验收面；架构组可基于此批准 EVO-103 Accept）。
-- [Iteration 048](ITERATION-048.md) — `Closed`：2026-06-26，EVO-103-C Done（gix 读取 API）。
-- [Iteration 047](ITERATION-047.md) — `Closed`：2026-06-26，EVO-115 Done（WWW-Authenticate + 真实 git E2E）。
-- [Iteration 046](ITERATION-046.md) — `Closed`：2026-06-26，EVO-103-B-2 Done（真实 git clone/push/pull E2E 通过）。
-- [Iteration 009](ITERATION-009.md) — `Closed`：EVO-040 完成收口。
-- [Iteration 010](ITERATION-010.md) — `Closed`：EVO-040 完成收口。
-- [Iteration 012](ITERATION-012.md) — `Superseded by Iteration 031`：EVO-016-B 已由
-  Iteration 031 完成，本计划不再激活。
-- [Iteration 017](ITERATION-017.md) — `Closed`：EVO-026 前端 CLI Interface 概念收口；
-  前端代码符号 Snippet→CliInterface 重命名 + UI 迁移完成。
-- [Iteration 018](ITERATION-018.md) 至 [Iteration 020](ITERATION-020.md) —
-  `Superseded by 2026-06-23 方向调整 → EVO-100 Phase E'-3 / EVO-108`：原 Phase E Skill 导入 / 多来源 / 版本验证已由 git 原生能力 + indexer 覆盖。
-- [Iteration 024](ITERATION-024.md) — `Superseded by Iteration 031`：EVO-016-A
-  refinement 已被 rust-embed-for-web 实施覆盖。
-- [Iteration 025](ITERATION-025.md) 至 [Iteration 026](ITERATION-026.md) —
-  `Planned / Blocked`：Phase F 候选需 refinement，与 Phase E' 独立。
-- [Iteration 027](ITERATION-027.md) — `Superseded by 2026-06-23 方向调整 → EVO-109 Discovery API + Pages 式发现 UI`。
-- [Iteration 028](ITERATION-028.md) — `Closed`：EVO-033 Rustfmt 基线和 CI 命令准备；fmt/check/test 通过，clippy 1 pre-existing error 归口 EVO-059。
-- [Iteration 029](ITERATION-029.md) — `Closed`：2026-06-01 EVO-030 + EVO-059 双 Done。`.github/workflows/ci.yml` 建立（tag-only `v*.*.*` semver trigger / 单 job 后端+前端串联 / Swatinem/rust-cache + oven-sh/setup-bun 缓存 / postgres:16-alpine service 容器）。9 门禁全绿：fmt / check / clippy / cargo test 274 passed。TECH-STACK §4.2 + TESTING §5 同步。deploy workflow + PR trigger 显式 Deferred。
-- [Iteration 030](ITERATION-030.md) — `Superseded`：ZIP 流式方案改线到
-  rust-embed-for-web（Iteration 031）。
-- [Iteration 031](ITERATION-031.md) — `Closed`：EVO-016-B 前端静态服务迁移到
-  rust-embed-for-web。全部 14 项验收标准通过。Iteration 012 激活条件已解除。
-- [Iteration 032](ITERATION-032.md) — `Closed`：EVO-043 后端依赖审计与迁移。
-  完整审计 39 workspace dep + 3 crate 私有 dep；16 个大版本升级归口
-  EVO-061~076（全部 P3 Proposed）；clippy 18 pre-existing errors 维持 EVO-059
-  P2 Ready；cargo check 0 / cargo test 274 passed / clippy `--all-targets`
-  18 已知错误（仅 059）。
-- [Iteration 033](ITERATION-033.md) — `Closed`：EVO-048 Serverless 架构 Spike。
-  输出 `docs/proposals/SERVERLESS-RUNTIME.md`（Phase 7 部分复用 / 统一
-  ExecutionProvider / 容器池架构 / 冷启动方法学 / Vercel 演进 / EVO-045/047 依赖图）。
-  冷启动实测待 Docker 环境。
-- [Iteration 034](ITERATION-034.md) — `Closed`：EVO-049-A Skill/CLI 规范兼容数据模型基线。
-  Migration 006（skills +13 列 / snippets +8 列）；domain/DTO/repository 全量更新；
-  SnippetRepository 新增 update 方法；282 tests passed（+8 新增）。
-- [Iteration 035](ITERATION-035.md) — `Closed`：EVO-054 / EVO-055 完成。EVO-054 修复 3 处详情块漂移 + 1 处 Dropped 占位（EVO-042）+ 1 处额外漂移（EVO-026）；EVO-055 修复死分支 / billing 闸门 / 501 显式 throw / API-CONTRACT 同步。
-- [Iteration 036](ITERATION-036.md) — `Closed`：EVO-077 治理看板文档；
-  插队治理修复完成；当时未改变 Iteration 033，后续已由 Iteration 033 收口和
-  Iteration 037 同步 Board 状态。
-- [Iteration 037](ITERATION-037.md) — `Closed`：EVO-078 最近开发任务治理漂移修复；
-  Board / iteration README / DESIGN 归类 / EVO-045-A 缺失记录已同步。
-- [Iteration 038](ITERATION-038.md) — `Closed`：EVO-052 / EVO-056 完成。
-  MySQL 不再被配置/连接池当成可用后端；sandbox 启用时 Docker executor 初始化失败
-  不再降级为 `DefaultSkillExecutor` 伪成功。
-- [Iteration 039](ITERATION-039.md) — `Closed`：EVO-051 后端死代码与误导性注释清理。
-  删除 10 个死代码文件 + 6 个 mod 声明清理 + TODO 注释移除 +
-  NewUser.password → password_hash 全量重命名（21 处）；282 tests passed。
-- [Iteration 040](ITERATION-040.md) — `Closed`：EVO-058 前端死代码与类型卫生清理。
-  删除 7 个死代码文件（-139 行）+ uiStore re-export 移除 +
-  skillsApi.versions 假实现移除 + 重复 User 接口合并；
-  bun run build + tsc 0 errors。
-- [Iteration 041](ITERATION-041.md) — `Closed`：EVO-045-A
-  ExecutionProvider 统一 trait + Docker 容器池化。2026-06-05 follow-up 修复 sandbox
-  默认启用导致 lite/local 启动依赖 Docker 的回归。
-- [Iteration 044](ITERATION-044.md) — `Closed`：EVO-103-A Repo CRUD（Phase E'-1b 首切片；2026-06-25 启动，cargo test 0 failures / clippy 0 errors）。
-- [Iteration 045](ITERATION-045.md) — `Closed`：EVO-103-B-1 Git Client Auth Infra（Phase E'-1b 第二切片；2026-06-25，cargo test 0 failures / clippy 0 errors；from_fn + Next<B> 中间件）。
+## 历史 Iteration 索引
 
-## 下一周建议顺序
+| 范围 | 链接与主题 |
+|------|------------|
+| 001 | [工程化文档体系与流程改造](ITERATION-001.md) |
+| 002 | [CLI 友好接口概念迁移](ITERATION-002.md) |
+| 003 | [前端路由适配层](ITERATION-003.md) |
+| 004 | [React + Vite + Bun 迁移](ITERATION-004.md) |
+| 005 | [认证闭环](ITERATION-005.md) |
+| 006 | [MCP 工具真实执行](ITERATION-006.md) |
+| 007 | [MCP 执行质量与流程防呆](ITERATION-007.md) |
+| 008 | [Epic/Story 治理](ITERATION-008.md) |
+| 009 | [邮箱验证闭环](ITERATION-009.md) |
+| 010 | [Skill 更新与 Parser](ITERATION-010.md) |
+| 011 | [Members/API Keys 前端接线](ITERATION-011.md) |
+| 012 | [历史计划，后被 Iteration 031 替代](ITERATION-012.md) |
+| 013 | [计划基线保护](ITERATION-013.md) |
+| 014 | [弱模型闭环防呆](ITERATION-014.md) |
+| 015 | [任务闭环 SOP](ITERATION-015.md) |
+| 016 | [迭代库存盘点](ITERATION-016.md) |
+| 017 | [前端 CLI Interface 概念收口](ITERATION-017.md) |
+| 018 | [Skill 导入计划（Superseded）](ITERATION-018.md) |
+| 019 | [Skill 多来源计划（Superseded）](ITERATION-019.md) |
+| 020 | [Skill 版本计划（Superseded）](ITERATION-020.md) |
+| 021 | [完成声明与 Reference 修复](ITERATION-021.md) |
+| 022 | [敏捷与 BDD 适配](ITERATION-022.md) |
+| 023 | [治理 manifest](ITERATION-023.md) |
+| 024 | [Embedded Frontend refinement（Superseded）](ITERATION-024.md) |
+| 025 | [租户设置与审计计划（Blocked）](ITERATION-025.md) |
+| 026 | [Stripe/计费计划（Blocked）](ITERATION-026.md) |
+| 027 | [Skill 发现计划（Superseded）](ITERATION-027.md) |
+| 028 | [Rustfmt 基线](ITERATION-028.md) |
+| 029 | [GitHub CI/CD 重建](ITERATION-029.md) |
+| 030 | [ZIP 嵌入计划（Superseded）](ITERATION-030.md) |
+| 031 | [rust-embed-for-web](ITERATION-031.md) |
+| 032 | [依赖全量审计](ITERATION-032.md) |
+| 033 | [Serverless Runtime Spike](ITERATION-033.md) |
+| 034 | [Skill/CLI 数据模型基线](ITERATION-034.md) |
+| 035 | [治理/API 契约漂移修复](ITERATION-035.md) |
+| 036 | [Operating Board](ITERATION-036.md) |
+| 037 | [近期治理漂移修复](ITERATION-037.md) |
+| 038 | [假可用快速失败](ITERATION-038.md) |
+| 039 | [后端死代码清理](ITERATION-039.md) |
+| 040 | [前端类型与死代码清理](ITERATION-040.md) |
+| 041 | [ExecutionProvider + Docker Pool](ITERATION-041.md) |
+| 042~049 | 见“最近完成的 Git-centric Iterations” |
+| 050 | [项目体检治理与生产就绪重排](ITERATION-050.md) |
 
-该顺序仅为排期建议，实际启动时仍必须重新执行 [开始一次迭代 SOP](../sop/START-ITERATION.md)
-并记录库存 disposition：
+## 计划基线保护
 
-1. **ITERATION-042 已 Closed**（Phase E'-1）：EVO-101 + EVO-102 完成（2026-06-24）。
-2. **ITERATION-043 已 Closed**：EVO-113 Direction Pivot Review Remediation（方向变更评审缺口修复，2026-06-25）。
-3. **ITERATION-044 已 Closed**（Phase E'-1b）：EVO-103-A Repo CRUD（gix::init + RBAC）Done。
-4. **ITERATION-045 已 Closed**（Phase E'-1b）：EVO-103-B-1 Git Client Auth Infra（Basic-Auth + /repos/ RBAC + CSRF 豁免）Done。
-5. **ITERATION-046 已 Closed**（Phase E'-1b）：EVO-103-B-2 Smart HTTP Endpoints Done（真实 git clone/push/pull E2E 通过）。
-6. **ITERATION-047 已 Closed**（Phase E'-1b）：EVO-115 git WWW-Authenticate + 真实 git-client E2E Done。
-7. **ITERATION-048 已 Closed**（Phase E'-1c）：EVO-103-C Repo Context API Done（4 gix 读取端点：file-tree/blobs/commits/diff）。
-8. **ITERATION-049 已 Closed**：EVO-116 处理 EVO-103 Conditional Accept 发布前硬化项；EVO-103 现可按正式 Accept 进入后续 UI / agent / indexer 工作。
-9. **下一条主线建议**：EVO-112 Repo Management UI，先做仓库列表 / 创建 / repo-centric 导航与 Dashboard，再做详情 Files / Commits / Settings。
-10. **新进 Ready 待评估**（独立微迭代候选）：
-   - EVO-057（生产 CORS Origin 可配置化，可独立启动 deploy/config 微迭代）
-   - EVO-080（Wasmer/WASI 替代 Docker sandbox 可行性 Spike）
-   - EVO-081（内部文档页面基于独立 Markdown 目录渲染）
+- `Planned` 文档一旦提交，目标、候选 Story、不做事项、计划验证和风险不可被不同目标覆写。
+- 同目标执行只追加事实、证据、Review 和偏差。
+- 目标变化时保留原计划，标记 Deferred/Blocked/Superseded，并使用新编号。
+- 原 [Two-Month Phase E' Plan](../roadmap/TWO-MONTH-PLAN-2026-07.md) 是 2026-06-29 历史计划基线；当前激活顺序由 Production Readiness Plan 接管。
 
-## 命名
+## 新 Iteration 要求
 
-```text
-ITERATION-001.md
-ITERATION-002.md
-...
-```
+使用 [Iteration Template](ITERATION-TEMPLATE.md)，至少写清：
 
-## 推荐节奏
+- 目标、Story、父 Epic 和依赖；
+- 不做事项；
+- Story/BDD 适用性；
+- 验收、验证、风险和回滚；
+- 闭环台账；
+- 库存 disposition；
+- 实际执行、Review、Retro；
+- `Complete / Partial / Blocked`。
 
-- 常规迭代：1 周。
-- Agent 微迭代：一次会话只完成一个 backlog story 或一个明确切片。
-- Evolith iteration 借鉴 Sprint 的小批次、目标、验收和复盘，但本质是可审计工作批次；
-  不强制完整 Scrum 仪式或团队容量统计。
-
-## 发布计划基线规则
-
-`Planned` iteration 一旦提交即为计划基线，不是可复用的编号占位符：
-
-1. 实际执行仍属于原目标时，在同一文档追加激活、验证、Review 和复盘，不删除原计划。
-2. 实际要做另一目标或另一组 story 时，原文档追加延期/阻塞说明，新工作创建新的
-   iteration 编号。
-3. 已发布的后续计划依赖被改线计划时，标注 `Blocked for activation`，直至新的前置
-   计划完成。
-
-## 状态同步
-
-迭代开始：
-
-1. 先按 [开始一次迭代 SOP](../sop/START-ITERATION.md) 执行固定检查。
-2. 盘点本目录中的 `Active / In Progress / Review / Planned / Blocked` 文档并记录
-   disposition；在途或待收口迭代优先处理。
-3. 已规划迭代可以按原计划激活时优先激活；继续阻塞、延期或改线时先补记录。
-4. 只有既有 iteration 已处置后，才从 [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
-   选择新的 Ready 项并创建 `ITERATION-<N>.md`。
-5. 明确本轮不做什么。
-
-迭代结束：
-
-1. 更新完成情况和验证结果。
-2. 更新 backlog item 状态。
-3. 新经验写入 `EVOLUTION.md`。
+权限、出站网络、Git 写入、数据耐久性和发布 Story 还必须读取 [Security Review SOP](../sop/SECURITY-REVIEW.md)。
