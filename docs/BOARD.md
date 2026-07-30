@@ -4,63 +4,57 @@
 > validation evidence and lifecycle state. Update owner docs first, then reflect the current
 > operating state here.
 >
-> **2026-06-23 方向调整**：主线从 "Skill/CLI/MEP Registry" 转向 "Git 托管 + Vibe Coding 平台"。详见 [Git-Centric Platform Proposal](proposals/GIT-CENTRIC-PLATFORM.md) + [ADR-0004](decisions/ADR-0004-git-centric-storage.md) + [ADR-0005](decisions/ADR-0005-deprecate-sandbox-runtime.md)。
+> **2026-07-30 生产就绪重排**：Git-centric 产品方向保持不变，但 EVO-118 S1 安全、数据耐久性和生产构建 Gate 已前置到 Repo UI。事实见 [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md)，顺序见 [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 
 ## Now
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-112 Repo Management UI | Proposed | [Item file](backlog/active/EVO-112-repo-management-ui.md) | Recommended next mainline slice. EVO-103/EVO-116 are stable enough to expose repo workflows in the UI. |
-| Two-month Phase E' execution plan | Drafted | [Two-Month Plan](roadmap/TWO-MONTH-PLAN-2026-07.md) | Planning artifact only; actual work must still enter backlog/iteration through SOP. |
+| EVO-118-A 项目体检治理基线 | Review | [Item](backlog/active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](iterations/ITERATION-050.md) | Draft PR merge + local DOC-CHECK 后关闭。 |
+| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | S1 必须按 WIP 逐项关闭，不能整包声称完成。 |
+| EVO-118-B API Key / MCP Authorization | Ready | [Item](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) | SEC-01；建议作为 A 合并后的首个实现 Story。 |
 
 ## Review
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| _暂无_ | | | |
+| Iteration 050 项目体检治理 | Review / Partial | [Iteration 050](iterations/ITERATION-050.md) | 分支 compare、PR diff、merge；本地可用时补 DOC-CHECK。 |
 
 ## Blocked Or Paused
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| Iteration 018 Skill 导入基础能力细化与基线 | Blocked for activation | [Iteration 018](iterations/ITERATION-018.md) | Blocked by 2026-06-23 方向调整（superseded by EVO-100/108）；如不 deliberate replanning 则不再激活。 |
-| Iteration 019 Skill 多来源导入闭环 | Blocked for activation | [Iteration 019](iterations/ITERATION-019.md) | Blocked by 2026-06-23 方向调整（superseded）；如不 deliberate replanning 则不再激活。 |
-| Iteration 020 Skill 版本与正确性验证 | Blocked for activation | [Iteration 020](iterations/ITERATION-020.md) | Blocked by 2026-06-23 方向调整（superseded）；如不 deliberate replanning 则不再激活。 |
-| Iteration 025 租户设置与审计详情补齐 | Blocked for activation | [Iteration 025](iterations/ITERATION-025.md) | Resume only after EVO-012 / EVO-013 are refined with acceptance and validation. |
-| Iteration 026 Stripe Webhook 与计费闭环恢复 | Blocked for activation | [Iteration 026](iterations/ITERATION-026.md) | Resume only after webhook security and mock-validation scope are refined. |
-| Iteration 027 Skill 发现质量与描述治理 | Blocked for activation | [Iteration 027](iterations/ITERATION-027.md) | Blocked by 2026-06-23 方向调整（superseded by EVO-108/109）；如不 deliberate replanning 则不再激活。 |
+| EVO-112 Repo Management UI | Proposed / paused for implementation | [Item](backlog/active/EVO-112-repo-management-ui.md) | EVO-118 S1（B/C/D/E）关闭后恢复；当前可 refinement。 |
+| EVO-105/106/107/104 Agent Write Loop | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖 EVO-118-B/F/H 与 Repo UI 基础；不得绕过 Typed Capability、Policy 和 Durable Event。 |
+| EVO-108/109/110 Index/Discovery | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖稳定 Push/Commit Event 与 EVO-118-H。 |
+| Iterations 018~020、027 | Superseded / Blocked for activation | [Iteration index](iterations/README.md) | 旧 Registry 主线被 Git-centric 方向替代，不 deliberate replan 则不激活。 |
+| Iterations 025/026 | Blocked for activation | [Iteration index](iterations/README.md) | Phase F 独立候选，不抢占 EVO-118 S1。 |
 
 ## Next
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-105 Commit API + Promote | Proposed | [Item file](backlog/active/EVO-105-commit-and-promote-api.md) | Start after Repo UI foundation; requires tighter policy evaluator and audit scope refinement before implementation. |
-| EVO-106 Agent Session + Scoped Token | Proposed | [Item file](backlog/active/EVO-106-agent-session-and-scoped-token.md) | Start with or after EVO-105 refinement; token model must reuse the EVO-116 api key scope helper boundary. |
-| EVO-107 Webhook Out | Proposed | [Item file](backlog/active/EVO-107-webhook-out.md) | Depends on EVO-105/EVO-106. |
-| EVO-108 Indexer | Proposed | [Item file](backlog/active/EVO-108-skill-cli-mcp-indexer.md) | Depends on stable push/commit event semantics from EVO-105/EVO-107. |
-| EVO-057 生产 CORS Origin 可配置化 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a separate deploy/config micro-iteration if production custom-domain support should be hardened before product-mainline work. |
-| EVO-080 Wasmer/WASI 替代 Docker sandbox 可行性 Spike | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Run after Phase E'-4 (EVO-111) if a non-Docker runtime candidate is still needed. |
-| EVO-081 内部文档页面基于独立 Markdown 目录渲染 | Ready | [Product Backlog](backlog/PRODUCT-BACKLOG.md) | Start as a focused frontend/content story when internal docs should become visible in-app. |
+| EVO-118-C HTTP Tool Egress Security | Ready | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | SEC-02；在 EVO-118-B 后启动。 |
+| EVO-118-D Git Durability and Recovery | Ready | [Item](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | DATA-01；持久卷 + DB/Git 恢复演练。 |
+| EVO-118-E Production Build Convergence | Ready | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | DEPLOY-01；clean build + 单一交付 + Smoke Test。 |
+| EVO-118-F Repo Lifecycle | Proposed | [Item](backlog/active/EVO-118-F-repo-lifecycle-consistency.md) | 依赖 D/E；DATA-02。 |
+| EVO-118-G Runtime Reliability Gates | Proposed | [Item](backlog/active/EVO-118-G-runtime-reliability-gates.md) | 依赖 B/E；REL-01。 |
+| EVO-118-H Durable Outbox | Proposed | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | 依赖 E/G；EVENT-01。 |
 
 ## Later
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-100 Phase E'-2 (Agent 集成 + Vibe Coding UI) | Proposed | [EVO-105/106/107/104](backlog/active/EVO-100-git-centric-platform-foundation.md)<br>[UX Decisions](design/vibe-coding-ui-decisions.md) | Refine after Phase E'-1 closes; UX U-01~U-05 gate resolved，仍需 API / agent session 依赖就绪。 |
-| EVO-100 Phase E'-3 (Indexer + Discovery + 旧表双写) | Proposed | [EVO-108/109/110](backlog/active/EVO-100-git-centric-platform-foundation.md) | Refine after Phase E'-2 closes; 与现有 skill/cli/mcp API 兼容是迁移期硬约束。 |
-| EVO-100 Phase E'-4 (Sandbox 废弃收尾) | Proposed | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) | Refine after Phase E'-3 closes; ADR-0005 收口。 |
-| Phase 5+ 扩展（SSH / LFS / 跨仓搜索 / 资源级 ACL） | 待提案 | — | Independent EVOs after Phase E' closes. |
+| Repo-centric Web | Proposed | [EVO-112](backlog/active/EVO-112-repo-management-ui.md) | S1 关闭后恢复。 |
+| Agent Integration + Vibe Coding | Proposed | [EVO-105/106/107/104](backlog/active/EVO-100-git-centric-platform-foundation.md) | S2 与 Repo UI 依赖满足。 |
+| Indexer + Discovery + Compatibility | Proposed | [EVO-108/109/110](backlog/active/EVO-100-git-centric-platform-foundation.md) | Durable Event + Agent write semantics 稳定。 |
+| Sandbox removal | Proposed | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) | Index/compat 迁移稳定后收尾。 |
+| SSH / LFS / Cross-repo search / Resource ACL | Proposal later | — | Phase E' 和 EVO-118 关闭后独立评估。 |
 
 ## Operating Review
 
-Current iteration ordering after 2026-06-23 direction pivot:
-
-- 主线切换：从 Phase E（Skill/CLI/MEP Lifecycle）切换为 Phase E'（Git 托管 + Vibe Coding）。
-- `EVO-100` 是 Epic，已进入 In Progress；EVO-101/102 已由 Iteration 042 完成，EVO-113 已完成方向变更评审缺口修复。
-- EVO-103 A/B/C 功能已完成；EVO-116 发布前硬化已关闭，EVO-103 可视为后续 UI / agent / indexer 的稳定基础。
-- 后续启动顺序建议 EVO-112（仓库管理 UI）→ EVO-105/EVO-106（commit + agent session）→ EVO-107（webhook）→ EVO-104（Vibe Coding UI MVP）→ EVO-108/EVO-109/EVO-110（indexer/discovery/compat）→ EVO-111（sandbox 删除）。
-- 旧 Phase E 相关 Iterations 018-020、027 因方向调整标 superseded；Iterations 025/026 保持独立（与方向调整无关）。
-- 旧 backlog 项（EVO-019/020/027/028/029/045/046/047/049/049-B/050）已在 PRODUCT-BACKLOG.md Archived Index 标注 Superseded/Dropped。
-- `EVO-061` 至 `EVO-076` 已由 `EVO-086` 一次性 latest 迁移收口。
-- UX 调研前置门禁：EVO-104 Vibe Coding Web UI 的 U-01~U-05 已在 `docs/design/vibe-coding-ui-decisions.md` 决策完成；不阻塞 EVO-103 后端基础能力，也不再阻塞 Phase E'-2 refinement。EVO-104 实现仍需等待 EVO-103/105/106/112 依赖。
-- Use P2 Ready items only as explicit micro-iteration interruptions; do not silently bypass the selected product-mainline order.
+- 当前产品方向仍是 Git hosting + Vibe Coding + capability discovery；EVO-118 是稳定化 Gate，不是产品回退。
+- Git 后端 Alpha 基础可用，但不得由此推导“生产就绪”。
+- 当前启动顺序：EVO-118-A merge → B → C → D → E → F/G/H → EVO-112 → EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
+- 安全、数据损坏或生产构建问题允许显式 P0 插队；普通 UI、视觉、计费或内部文档不得静默绕过 S1。
+- Board 只反映 owner docs；Gate 关闭必须由 Story 验收和实际验证证明。
