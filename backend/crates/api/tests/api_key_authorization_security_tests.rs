@@ -1,10 +1,12 @@
 #![allow(clippy::unwrap_used, dead_code)]
 
 use actix_web::{dev::ServerHandle, middleware::from_fn, test, web, App, HttpResponse, HttpServer};
+use chrono::{Duration, Utc};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
+use std::collections::BTreeSet;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -14,7 +16,7 @@ use uuid::Uuid;
 use api::routes;
 use api::state::AppState;
 use common::execution::{CompositeProvider, ExecutionProvider};
-use domain::api_key::NewApiKey;
+use domain::api_key::{ApiKeyStatus, NewApiKey};
 use domain::repository::{
     ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,
     SnippetRepository, TenantRepository, ToolRepository, UserRepository,
@@ -214,20 +216,32 @@ async fn seed_tenant_users(
     pool: &SqlitePool,
     tenant_id: Uuid,
     owner_id: Uuid,
-    member_id: Uuid,
+    secondary_id: Uuid,
+    secondary_role: &str,
+    label: &str,
 ) {
     sqlx::query("INSERT INTO tenants (id, name, slug, owner_id) VALUES (?, ?, ?, ?)")
         .bind(tenant_id.to_string())
-        .bind("Authorization Test Tenant")
-        .bind(format!("authz-{tenant_id}"))
+        .bind(format!("Authorization Test Tenant {label}"))
+        .bind(format!("authz-{label}-{tenant_id}"))
         .bind(owner_id.to_string())
         .execute(pool)
         .await
         .expect("seed tenant");
 
     for (user_id, username, email, tenant_role) in [
-        (owner_id, "authz-owner", "owner@authz.test", "owner"),
-        (member_id, "authz-member", "member@authz.test", "member"),
+        (
+            owner_id,
+            format!("{label}-owner"),
+            format!("owner-{label}@authz.test"),
+            "owner".to_string(),
+        ),
+        (
+            secondary_id,
+            format!("{label}-{secondary_role}"),
+            format!("{secondary_role}-{label}@authz.test"),
+            secondary_role.to_string(),
+        ),
     ] {
         sqlx::query(
             r#"
@@ -261,7 +275,18 @@ async fn seed_api_key(
     user_id: Uuid,
     key: &str,
     permissions: Vec<&str>,
-) {
+) -> Uuid {
+    seed_api_key_with_expiry(pool, tenant_id, user_id, key, permissions, None).await
+}
+
+async fn seed_api_key_with_expiry(
+    pool: &SqlitePool,
+    tenant_id: Uuid,
+    user_id: Uuid,
+    key: &str,
+    permissions: Vec<&str>,
+    expires_at: Option<chrono::DateTime<Utc>>,
+) -> Uuid {
     SqliteApiKeyRepository::new(pool.clone())
         .create(NewApiKey {
             tenant_id,
@@ -271,17 +296,24 @@ async fn seed_api_key(
             key_prefix: "evo_sk_test...".to_string(),
             permissions: permissions.into_iter().map(str::to_string).collect(),
             rate_limit: None,
-            expires_at: None,
+            expires_at,
         })
         .await
-        .expect("seed API key");
+        .expect("seed API key")
+        .id
 }
 
-async fn seed_http_tool(pool: &SqlitePool, tenant_id: Uuid, owner_id: Uuid, url: String) {
+async fn seed_http_tool(
+    pool: &SqlitePool,
+    tenant_id: Uuid,
+    owner_id: Uuid,
+    name: &str,
+    url: String,
+) {
     SqliteToolRepository::new(pool.clone())
         .create(
             NewTool {
-                name: "authorization-echo".to_string(),
+                name: name.to_string(),
                 description: "authorization test tool".to_string(),
                 input_schema: serde_json::json!({"type": "object"}),
                 output_schema: None,
@@ -329,14 +361,40 @@ fn start_counting_server() -> (String, Arc<AtomicUsize>, ServerHandle) {
     (format!("http://{address}"), hits, handle)
 }
 
+fn assert_denial_audit(
+    log: &domain::audit::AuditLog,
+    caller_tenant_id: Uuid,
+    target_tenant_id: Uuid,
+    expected_reason: &str,
+) {
+    assert_eq!(log.tenant_id, Some(caller_tenant_id));
+    assert_eq!(
+        log.details["caller_tenant_id"].as_str(),
+        Some(caller_tenant_id.to_string().as_str())
+    );
+    assert_eq!(
+        log.details["target_tenant_id"].as_str(),
+        Some(target_tenant_id.to_string().as_str())
+    );
+    assert_eq!(log.details["reason"].as_str(), Some(expected_reason));
+}
+
 #[actix_rt::test]
-async fn member_cannot_manage_api_keys_and_denials_are_audited() {
+async fn member_invalid_capability_still_returns_403_and_is_audited() {
     let pool = setup_test_db().await;
     let temp_dir = TempDir::new().expect("temp dir");
     let tenant_id = Uuid::new_v4();
     let owner_id = Uuid::new_v4();
     let member_id = Uuid::new_v4();
-    seed_tenant_users(&pool, tenant_id, owner_id, member_id).await;
+    seed_tenant_users(
+        &pool,
+        tenant_id,
+        owner_id,
+        member_id,
+        "member",
+        "member-boundary",
+    )
+    .await;
 
     let state = build_app_state(pool.clone(), temp_dir.path().display().to_string());
     let audit_repo = state.audit_repo.clone();
@@ -356,19 +414,24 @@ async fn member_cannot_manage_api_keys_and_denials_are_audited() {
         .uri(&format!("/api/v1/tenant/{tenant_id}/api-keys"))
         .insert_header(("Authorization", format!("Bearer {member_token}")))
         .to_request();
-    let list_response = test::call_service(&app, list_request).await;
-    assert_eq!(list_response.status(), actix_web::http::StatusCode::FORBIDDEN);
+    assert_eq!(
+        test::call_service(&app, list_request).await.status(),
+        actix_web::http::StatusCode::FORBIDDEN
+    );
 
     let create_request = test::TestRequest::post()
         .uri(&format!("/api/v1/tenant/{tenant_id}/api-keys"))
         .insert_header(("Authorization", format!("Bearer {member_token}")))
         .set_json(serde_json::json!({
             "name": "member-key",
-            "permissions": ["read"]
+            "permissions": ["admin"]
         }))
         .to_request();
-    let create_response = test::call_service(&app, create_request).await;
-    assert_eq!(create_response.status(), actix_web::http::StatusCode::FORBIDDEN);
+    assert_eq!(
+        test::call_service(&app, create_request).await.status(),
+        actix_web::http::StatusCode::FORBIDDEN,
+        "authorization must run before typed capability deserialization"
+    );
 
     let revoke_request = test::TestRequest::delete()
         .uri(&format!(
@@ -376,19 +439,256 @@ async fn member_cannot_manage_api_keys_and_denials_are_audited() {
             Uuid::new_v4()
         ))
         .insert_header(("Authorization", format!("Bearer {member_token}")))
-        .set_json(serde_json::json!({"reason": "not allowed"}))
         .to_request();
-    let revoke_response = test::call_service(&app, revoke_request).await;
-    assert_eq!(revoke_response.status(), actix_web::http::StatusCode::FORBIDDEN);
+    assert_eq!(
+        test::call_service(&app, revoke_request).await.status(),
+        actix_web::http::StatusCode::FORBIDDEN
+    );
 
     let audit_logs = audit_repo
-        .find_by_action("api_key.management.denied", 10, 0)
+        .find_by_tenant(tenant_id, 10, 0)
         .await
         .expect("read denial audits");
     assert_eq!(audit_logs.len(), 3);
-    assert!(audit_logs
+    let operations: BTreeSet<_> = audit_logs
         .iter()
-        .all(|log| log.user_id == Some(member_id) && log.tenant_id == Some(tenant_id)));
+        .map(|log| log.details["operation"].as_str().expect("operation"))
+        .collect();
+    assert_eq!(operations, BTreeSet::from(["create", "list", "revoke"]));
+    for log in &audit_logs {
+        assert_eq!(log.user_id, Some(member_id));
+        assert_denial_audit(log, tenant_id, tenant_id, "insufficient_tenant_role");
+    }
+}
+
+#[actix_rt::test]
+async fn api_key_authenticated_management_is_always_403_and_audited() {
+    let pool = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("temp dir");
+    let tenant_id = Uuid::new_v4();
+    let owner_id = Uuid::new_v4();
+    let member_id = Uuid::new_v4();
+    seed_tenant_users(
+        &pool,
+        tenant_id,
+        owner_id,
+        member_id,
+        "member",
+        "api-key-caller",
+    )
+    .await;
+
+    let api_key_value = "evo_sk_management_denied_test";
+    let api_key_id = seed_api_key(
+        &pool,
+        tenant_id,
+        owner_id,
+        api_key_value,
+        vec!["admin", "write", "read"],
+    )
+    .await;
+
+    let state = build_app_state(pool.clone(), temp_dir.path().display().to_string());
+    let audit_repo = state.audit_repo.clone();
+    let api_key_repo = state.api_key_repo.clone();
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let list_request = test::TestRequest::get()
+        .uri(&format!("/api/v1/tenant/{tenant_id}/api-keys"))
+        .insert_header(("X-API-Key", api_key_value))
+        .to_request();
+    assert_eq!(
+        test::call_service(&app, list_request).await.status(),
+        actix_web::http::StatusCode::FORBIDDEN
+    );
+
+    let create_request = test::TestRequest::post()
+        .uri(&format!("/api/v1/tenant/{tenant_id}/api-keys"))
+        .insert_header(("X-API-Key", api_key_value))
+        .set_json(serde_json::json!({
+            "name": "should-not-create",
+            "permissions": ["admin"]
+        }))
+        .to_request();
+    assert_eq!(
+        test::call_service(&app, create_request).await.status(),
+        actix_web::http::StatusCode::FORBIDDEN,
+        "API-key authentication must be rejected before request deserialization"
+    );
+
+    let revoke_request = test::TestRequest::delete()
+        .uri(&format!(
+            "/api/v1/tenant/{tenant_id}/api-keys/{api_key_id}"
+        ))
+        .insert_header(("X-API-Key", api_key_value))
+        .to_request();
+    assert_eq!(
+        test::call_service(&app, revoke_request).await.status(),
+        actix_web::http::StatusCode::FORBIDDEN
+    );
+
+    let audit_logs = audit_repo
+        .find_by_tenant(tenant_id, 10, 0)
+        .await
+        .expect("read denial audits");
+    assert_eq!(audit_logs.len(), 3);
+    for log in &audit_logs {
+        assert_eq!(log.user_id, Some(owner_id));
+        assert_denial_audit(log, tenant_id, tenant_id, "api_key_authentication");
+    }
+    assert_eq!(
+        api_key_repo
+            .find_by_tenant(tenant_id)
+            .await
+            .expect("list keys")
+            .len(),
+        1,
+        "denied create must not persist another key"
+    );
+    assert_eq!(
+        api_key_repo
+            .find_by_id(api_key_id)
+            .await
+            .expect("find original key")
+            .expect("original key")
+            .status,
+        ApiKeyStatus::Active,
+        "denied revoke must not revoke the caller key"
+    );
+}
+
+#[actix_rt::test]
+async fn cross_tenant_owner_and_admin_denials_stay_in_caller_audit_stream() {
+    let pool = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("temp dir");
+
+    let caller_tenant_id = Uuid::new_v4();
+    let caller_owner_id = Uuid::new_v4();
+    let caller_admin_id = Uuid::new_v4();
+    seed_tenant_users(
+        &pool,
+        caller_tenant_id,
+        caller_owner_id,
+        caller_admin_id,
+        "admin",
+        "caller",
+    )
+    .await;
+
+    let target_tenant_id = Uuid::new_v4();
+    let target_owner_id = Uuid::new_v4();
+    let target_member_id = Uuid::new_v4();
+    seed_tenant_users(
+        &pool,
+        target_tenant_id,
+        target_owner_id,
+        target_member_id,
+        "member",
+        "target",
+    )
+    .await;
+    let target_key_id = seed_api_key(
+        &pool,
+        target_tenant_id,
+        target_owner_id,
+        "evo_sk_target_tenant_key",
+        vec!["read"],
+    )
+    .await;
+
+    let state = build_app_state(pool.clone(), temp_dir.path().display().to_string());
+    let audit_repo = state.audit_repo.clone();
+    let api_key_repo = state.api_key_repo.clone();
+    let (owner_token, _) = state
+        .jwt
+        .generate_token(caller_owner_id, "user", caller_tenant_id, "owner")
+        .expect("owner token");
+    let (admin_token, _) = state
+        .jwt
+        .generate_token(caller_admin_id, "user", caller_tenant_id, "admin")
+        .expect("admin token");
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    for token in [&owner_token, &admin_token] {
+        let list_request = test::TestRequest::get()
+            .uri(&format!("/api/v1/tenant/{target_tenant_id}/api-keys"))
+            .insert_header(("Authorization", format!("Bearer {token}")))
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, list_request).await.status(),
+            actix_web::http::StatusCode::FORBIDDEN
+        );
+
+        let create_request = test::TestRequest::post()
+            .uri(&format!("/api/v1/tenant/{target_tenant_id}/api-keys"))
+            .insert_header(("Authorization", format!("Bearer {token}")))
+            .set_json(serde_json::json!({
+                "name": "cross-tenant",
+                "permissions": ["admin"]
+            }))
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, create_request).await.status(),
+            actix_web::http::StatusCode::FORBIDDEN
+        );
+
+        let revoke_request = test::TestRequest::delete()
+            .uri(&format!(
+                "/api/v1/tenant/{target_tenant_id}/api-keys/{target_key_id}"
+            ))
+            .insert_header(("Authorization", format!("Bearer {token}")))
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, revoke_request).await.status(),
+            actix_web::http::StatusCode::FORBIDDEN
+        );
+    }
+
+    let caller_logs = audit_repo
+        .find_by_tenant(caller_tenant_id, 20, 0)
+        .await
+        .expect("read caller audits");
+    assert_eq!(caller_logs.len(), 6);
+    assert!(caller_logs.iter().all(|log| {
+        log.user_id == Some(caller_owner_id) || log.user_id == Some(caller_admin_id)
+    }));
+    for log in &caller_logs {
+        assert_denial_audit(
+            log,
+            caller_tenant_id,
+            target_tenant_id,
+            "tenant_mismatch",
+        );
+    }
+    assert!(
+        audit_repo
+            .find_by_tenant(target_tenant_id, 20, 0)
+            .await
+            .expect("read target audits")
+            .is_empty(),
+        "cross-tenant attempts must not write into the target audit stream"
+    );
+    assert_eq!(
+        api_key_repo
+            .find_by_id(target_key_id)
+            .await
+            .expect("find target key")
+            .expect("target key")
+            .status,
+        ApiKeyStatus::Active
+    );
 }
 
 #[actix_rt::test]
@@ -398,7 +698,15 @@ async fn owner_and_admin_issue_only_canonical_capabilities() {
     let tenant_id = Uuid::new_v4();
     let owner_id = Uuid::new_v4();
     let admin_id = Uuid::new_v4();
-    seed_tenant_users(&pool, tenant_id, owner_id, admin_id).await;
+    seed_tenant_users(
+        &pool,
+        tenant_id,
+        owner_id,
+        admin_id,
+        "admin",
+        "canonical",
+    )
+    .await;
 
     let state = build_app_state(pool.clone(), temp_dir.path().display().to_string());
     let api_key_repo = state.api_key_repo.clone();
@@ -476,7 +784,15 @@ async fn mcp_tools_call_requires_execute_and_does_not_invoke_executor_without_it
     let tenant_id = Uuid::new_v4();
     let owner_id = Uuid::new_v4();
     let member_id = Uuid::new_v4();
-    seed_tenant_users(&pool, tenant_id, owner_id, member_id).await;
+    seed_tenant_users(
+        &pool,
+        tenant_id,
+        owner_id,
+        member_id,
+        "member",
+        "execute-scope",
+    )
+    .await;
 
     let read_key = "evo_sk_read_only_security_test";
     let execute_key = "evo_sk_execute_security_test";
@@ -484,7 +800,14 @@ async fn mcp_tools_call_requires_execute_and_does_not_invoke_executor_without_it
     seed_api_key(&pool, tenant_id, owner_id, execute_key, vec!["execute"]).await;
 
     let (base_url, hits, server_handle) = start_counting_server();
-    seed_http_tool(&pool, tenant_id, owner_id, format!("{base_url}/echo")).await;
+    seed_http_tool(
+        &pool,
+        tenant_id,
+        owner_id,
+        "authorization-echo",
+        format!("{base_url}/echo"),
+    )
+    .await;
 
     let state = build_app_state(pool, temp_dir.path().display().to_string());
     let app = test::init_service(
@@ -527,6 +850,193 @@ async fn mcp_tools_call_requires_execute_and_does_not_invoke_executor_without_it
         test::call_and_read_body_json(&app, execute_request).await;
     assert!(execute_response["error"].is_null());
     assert_eq!(hits.load(Ordering::SeqCst), 1);
+
+    server_handle.stop(true).await;
+}
+
+#[actix_rt::test]
+async fn revoked_and_expired_keys_are_rejected_for_repo_and_mcp() {
+    let pool = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("temp dir");
+    let tenant_id = Uuid::new_v4();
+    let owner_id = Uuid::new_v4();
+    let member_id = Uuid::new_v4();
+    seed_tenant_users(
+        &pool,
+        tenant_id,
+        owner_id,
+        member_id,
+        "member",
+        "inactive-keys",
+    )
+    .await;
+
+    let revoked_key = "evo_sk_revoked_security_test";
+    let expired_key = "evo_sk_expired_security_test";
+    let revoked_id = seed_api_key(
+        &pool,
+        tenant_id,
+        owner_id,
+        revoked_key,
+        vec!["repo:read", "execute"],
+    )
+    .await;
+    SqliteApiKeyRepository::new(pool.clone())
+        .revoke(revoked_id)
+        .await
+        .expect("revoke key");
+    seed_api_key_with_expiry(
+        &pool,
+        tenant_id,
+        owner_id,
+        expired_key,
+        vec!["repo:read", "execute"],
+        Some(Utc::now() - Duration::hours(1)),
+    )
+    .await;
+
+    let state = build_app_state(pool, temp_dir.path().display().to_string());
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let mcp_body = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": "irrelevant", "arguments": {}}
+    });
+
+    for key in [revoked_key, expired_key] {
+        let repo_request = test::TestRequest::get()
+            .uri(&format!("/api/v1/tenant/{tenant_id}/repos"))
+            .insert_header(("X-API-Key", key))
+            .to_request();
+        assert_eq!(
+            test::call_service(&app, repo_request).await.status(),
+            actix_web::http::StatusCode::UNAUTHORIZED
+        );
+
+        let mcp_request = test::TestRequest::post()
+            .uri("/mcp")
+            .insert_header(("X-API-Key", key))
+            .set_json(&mcp_body)
+            .to_request();
+        let mcp_response: serde_json::Value =
+            test::call_and_read_body_json(&app, mcp_request).await;
+        assert_eq!(mcp_response["error"]["code"], -32001);
+        assert_eq!(
+            mcp_response["error"]["message"],
+            "Invalid or expired API key"
+        );
+    }
+}
+
+#[actix_rt::test]
+async fn execute_key_cannot_discover_or_distinguish_foreign_tenant_tool() {
+    let pool = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("temp dir");
+
+    let caller_tenant_id = Uuid::new_v4();
+    let caller_owner_id = Uuid::new_v4();
+    let caller_member_id = Uuid::new_v4();
+    seed_tenant_users(
+        &pool,
+        caller_tenant_id,
+        caller_owner_id,
+        caller_member_id,
+        "member",
+        "tool-caller",
+    )
+    .await;
+
+    let target_tenant_id = Uuid::new_v4();
+    let target_owner_id = Uuid::new_v4();
+    let target_member_id = Uuid::new_v4();
+    seed_tenant_users(
+        &pool,
+        target_tenant_id,
+        target_owner_id,
+        target_member_id,
+        "member",
+        "tool-target",
+    )
+    .await;
+
+    let execute_key = "evo_sk_cross_tenant_execute_test";
+    seed_api_key(
+        &pool,
+        caller_tenant_id,
+        caller_owner_id,
+        execute_key,
+        vec!["execute"],
+    )
+    .await;
+
+    let (base_url, hits, server_handle) = start_counting_server();
+    let foreign_tool_name = "foreign-secret-tool";
+    seed_http_tool(
+        &pool,
+        target_tenant_id,
+        target_owner_id,
+        foreign_tool_name,
+        format!("{base_url}/echo"),
+    )
+    .await;
+
+    let state = build_app_state(pool, temp_dir.path().display().to_string());
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let list_request = test::TestRequest::post()
+        .uri("/mcp")
+        .insert_header(("X-API-Key", execute_key))
+        .set_json(serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/list"
+        }))
+        .to_request();
+    let list_response: serde_json::Value =
+        test::call_and_read_body_json(&app, list_request).await;
+    assert_eq!(list_response["result"]["tools"], serde_json::json!([]));
+
+    async fn call_tool(
+        app: &impl actix_web::dev::Service<
+            actix_http::Request,
+            Response = actix_web::dev::ServiceResponse,
+            Error = actix_web::Error,
+        >,
+        key: &str,
+        name: &str,
+    ) -> serde_json::Value {
+        let request = test::TestRequest::post()
+            .uri("/mcp")
+            .insert_header(("X-API-Key", key))
+            .set_json(serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {"name": name, "arguments": {}}
+            }))
+            .to_request();
+        test::call_and_read_body_json(app, request).await
+    }
+
+    let foreign_response = call_tool(&app, execute_key, foreign_tool_name).await;
+    let missing_response = call_tool(&app, execute_key, "definitely-missing-tool").await;
+    assert_eq!(foreign_response["error"], missing_response["error"]);
+    assert_eq!(foreign_response["error"]["code"], -32001);
+    assert_eq!(hits.load(Ordering::SeqCst), 0);
 
     server_handle.stop(true).await;
 }
