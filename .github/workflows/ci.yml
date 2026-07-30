@@ -1,10 +1,9 @@
 # Evolith CI workflow
 #
-# Trigger: tag-only on semver tags (vX.Y.Z). Avoids burning CI on every commit
-# and matches the release-driven publish model. To cut a release:
-#
-#   git tag v0.1.0
-#   git push origin v0.1.0
+# Trigger:
+# - pull requests targeting main, providing merge-gate evidence for security and product changes;
+# - semver tags (vX.Y.Z) for release validation;
+# - manual workflow dispatch for explicit re-runs.
 #
 # Scope: backend fmt/check/clippy/test + frontend install/type-check/build/lint.
 # Frontend builds first (single job, shared filesystem) so backend tests can
@@ -16,9 +15,17 @@
 name: ci
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
