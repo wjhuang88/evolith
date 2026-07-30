@@ -60,6 +60,19 @@ type ApiKeyCapability =
   | "promote";
 ```
 
+安全顺序：
+
+```text
+extract authenticated identity
+→ verify JWT / same tenant / owner-or-admin
+→ on denial: write audit + return 403
+→ deserialize CreateApiKeyRequest
+→ validate typed capability
+→ persist key
+```
+
+创建 handler 接收原始 `Bytes`，而不是先使用 `web::Json<CreateApiKeyRequest>`。因此 Member、API Key caller 或跨租户 Owner/Admin 即使提交 `permissions: ["admin"]`、未知 capability 或非法 JSON，也会先得到约定的 `403 + denial audit`，不会通过 DTO 解析提前返回 400。
+
 Example：
 
 ```json
@@ -93,12 +106,12 @@ Example：
 
 | 场景 | HTTP | Code | 数据副作用 |
 |------|------|------|------------|
-| 空 capability | 400 | `VALIDATION_ERROR` | 不创建 Key |
-| `admin` / `manage_keys` | 400 | JSON/validation error | 不创建 Key |
-| legacy `write` / `commit:*` | 400 | JSON/validation error | 不创建 Key |
-| unknown token | 400 | JSON/validation error | 不创建 Key |
-| Member / API Key caller | 403 | `FORBIDDEN` | 不创建 Key，写拒绝审计 |
-| Tenant mismatch | 403 | `FORBIDDEN` | 不创建 Key，写拒绝审计 |
+| 已授权 Owner/Admin + 空 capability | 400 | `VALIDATION_ERROR` | 不创建 Key |
+| 已授权 Owner/Admin + `admin` / `manage_keys` | 400 | JSON/validation error | 不创建 Key |
+| 已授权 Owner/Admin + legacy `write` / `commit:*` | 400 | JSON/validation error | 不创建 Key |
+| 已授权 Owner/Admin + unknown token | 400 | JSON/validation error | 不创建 Key |
+| Member / API Key caller，即使 body 非法 | 403 | `FORBIDDEN` | 不创建 Key，写调用者租户拒绝审计 |
+| Tenant mismatch，即使 body 非法 | 403 | `FORBIDDEN` | 不创建 Key，写调用者租户拒绝审计 |
 
 重复 canonical capability 在持久化前去重。
 
@@ -127,7 +140,7 @@ DELETE /api/v1/tenant/{tenant_id}/api-keys/{key_id}
 
 - 不要求请求体；
 - Key 不存在和 Key 属于其他 Tenant 使用同一 `404 NOT_FOUND` 响应；
-- 成功后 Key 的受保护操作立即失败。
+- 成功后 Key 的 Repo 和 MCP 受保护操作立即失败。
 
 ```json
 {
@@ -160,8 +173,9 @@ GET /mcp/tools
 ```
 
 - `initialize`：可匿名；
-- `tools/list`：匿名时只发现 public tools；有效 Key 时按 Key Tenant 发现；
-- `GET /mcp/tools`：API Key optional，同上。
+- `tools/list`：匿名时只发现 public tools；有效 Key 时只按该 Key Tenant 发现；
+- `GET /mcp/tools`：API Key optional，同上；
+- 其他 Tenant 的 private Tool 不出现在发现结果中。
 
 ### 3.2 Execute
 
@@ -185,7 +199,7 @@ Content-Type: application/json
 }
 ```
 
-无 Key或 Key 无效：
+无 Key：
 
 ```json
 {
@@ -194,6 +208,19 @@ Content-Type: application/json
   "error": {
     "code": -32001,
     "message": "A valid API key is required to execute tools"
+  }
+}
+```
+
+撤销、过期或无效 Key：
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32001,
+    "message": "Invalid or expired API key"
   }
 }
 ```
@@ -211,7 +238,7 @@ Content-Type: application/json
 }
 ```
 
-Tool 属于其他 Tenant：
+Tool 不存在或属于其他 Tenant 使用完全相同的错误：
 
 ```json
 {
@@ -223,6 +250,8 @@ Tool 属于其他 Tenant：
   }
 }
 ```
+
+调用者只能观察自己提交的 Tool name，不能通过错误码或消息区分“确实不存在”和“存在于其他 Tenant”。两种情况都不会触发 executor。
 
 授权顺序：
 
@@ -236,7 +265,7 @@ validate key status/expiry
 → execute
 ```
 
-因此缺 `execute` 的请求不会查找 Tool，也不会触发 HTTP executor。
+因此缺 `execute`、Key inactive、Tool 不存在或 Tenant 不匹配的请求均不会产生 HTTP executor 副作用。
 
 ## 4. Security Audit Contract
 
@@ -244,16 +273,27 @@ API Key Management 拒绝事件：
 
 ```json
 {
+  "tenant_id": "caller-tenant-uuid",
+  "user_id": "caller-user-or-key-owner-uuid",
   "action": "api_key.management.denied",
   "resource_type": "api_key",
   "details": {
     "operation": "list | create | revoke",
     "reason": "api_key_authentication | tenant_mismatch | insufficient_tenant_role",
-    "caller_tenant_id": "uuid",
+    "caller_tenant_id": "caller-tenant-uuid",
+    "target_tenant_id": "path-tenant-uuid",
     "tenant_role": "owner | admin | member"
   }
 }
 ```
+
+审计归属规则：
+
+- `AuditLog.tenant_id` 始终是调用者 Tenant；
+- `user_id`、IP 和 User-Agent 始终描述调用者；
+- 路径中的目标 Tenant 只写入 `details.target_tenant_id`；
+- 跨租户请求不会向目标 Tenant 审计流写入记录，也不会向其管理员暴露 foreign user identity；
+- 审计写入失败不会把拒绝请求变成成功。
 
 不记录：
 
@@ -272,20 +312,35 @@ API Key Management 拒绝事件：
 
 ## 6. Verification
 
-最低门禁：
+PR 必需门禁由 `.github/workflows/ci.yml` 的 `pull_request` trigger 提供：
 
 ```bash
-cd backend
-cargo test -p api --test api_key_authorization_security_tests
-cargo test -p api --test api_key_scope_e2e_tests
-cargo test -p api --test mcp_tool_execution_tests
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-
-cd ../frontend
+cd frontend
+bun install --frozen-lockfile
 bun run type-check
 bun run build
+
+cd ../backend
+cargo fmt --all -- --check
+cargo check --workspace --all-targets
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
+
+安全回归测试：
+
+```text
+backend/crates/api/tests/api_key_authorization_security_tests.rs
+- Member + invalid capability → 403 + caller audit
+- API Key caller list/create/revoke → 403 + caller audit
+- cross-tenant Owner/Admin list/create/revoke → caller audit only
+- revoked/expired Key → Repo 401 + MCP -32001
+- foreign Tool absent from discovery
+- foreign Tool and missing Tool return identical error
+- denied paths never invoke executor
+
+backend/crates/api/tests/api_key_scope_e2e_tests.rs
+backend/crates/api/tests/mcp_tool_execution_tests.rs
 ```
 
 对应实现：
