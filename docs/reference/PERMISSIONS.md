@@ -85,9 +85,18 @@ action = api_key.management.denied
 resource_type = api_key
 details.operation = list | create | revoke
 details.reason = api_key_authentication | tenant_mismatch | insufficient_tenant_role
+details.caller_tenant_id = credential tenant
+details.target_tenant_id = path tenant
 ```
 
-审计失败不会把拒绝请求变成成功。
+安全顺序与审计归属：
+
+- Create API 先执行身份/角色/Tenant 门禁，再反序列化 Typed capability；
+- 未授权调用者即使发送 `permissions: ["admin"]` 或非法 JSON，也返回 403 并写拒绝审计；
+- `AuditLog.tenant_id` 始终是调用者 Tenant；
+- `user_id`、IP、User-Agent 描述调用者；
+- 跨租户目标只记录在 `details.target_tenant_id`，不会向目标 Tenant 审计流写入 foreign identity；
+- 审计失败不会把拒绝请求变成成功。
 
 ## 4. API Key 存储与生命周期
 
@@ -98,8 +107,8 @@ API Key 有三种状态：
 | 状态 | 行为 |
 |------|------|
 | `active` | 在未过期且 capability 允许时可使用 |
-| `revoked` | 所有受保护操作拒绝 |
-| `expired` 或 `expires_at < now` | 所有受保护操作拒绝 |
+| `revoked` | Repo、MCP 和其他受保护操作拒绝 |
+| `expired` 或 `expires_at < now` | Repo、MCP 和其他受保护操作拒绝 |
 
 Secret 只在创建响应中返回一次；数据库仅存 SHA-256 hash 和显示 prefix。
 
@@ -119,7 +128,8 @@ Secret 只在创建响应中返回一次；数据库仅存 SHA-256 hash 和显�
 
 - 至少选择一个 capability；空列表返回 `400`。
 - 重复 capability 在写入前去重。
-- 未知 token 返回 `400`，不会创建数据库记录。
+- 已授权 Owner/Admin 提交未知 token 返回 `400`，不会创建数据库记录。
+- 未授权调用者的 body 不参与 capability 判断，始终先按身份边界返回 403。
 - API Key 永远不能创建、列出或吊销其他 API Key。
 - capability 只表达调用资格；Tenant、资源可见性和 Policy 仍需单独检查。
 
@@ -154,7 +164,7 @@ commit:<branch>
 
 ### 7.1 Discovery
 
-`initialize`、公共 `tools/list` 和 `GET /mcp/tools` 保持发现语义。提供有效 Key 时，可按该 Key Tenant 发现对应 Tool。
+`initialize`、公共 `tools/list` 和 `GET /mcp/tools` 保持发现语义。提供有效 Key 时，只按该 Key Tenant 发现对应 Tool，其他 Tenant 的 private Tool 不出现在结果中。
 
 ### 7.2 Execution
 
@@ -179,7 +189,14 @@ commit:<branch>
 }
 ```
 
-授权检查发生在 Tool 查询和 executor 调用之前。只读 Key 不会产生出站请求。
+撤销或过期 Key 返回统一 `-32001 Invalid or expired API key`。Tool 不存在和 Tool 属于其他 Tenant 也使用完全相同的 `-32001 not found or access denied` 语义，调用者不能通过错误差异枚举外租户资源。
+
+授权检查发生在副作用之前：
+
+- 缺 `execute` 时不会查询 Tool；
+- 撤销/过期 Key 不进入 Tool 路径；
+- 不存在或外租户 Tool 不调用 executor；
+- 只有同租户 Tool 在 Schema 通过后执行。
 
 ## 8. Repo Action 映射
 
@@ -209,14 +226,18 @@ Canonical 和 legacy 映射：
 权限变更至少覆盖：
 
 - Member 对 list/create/revoke API Key 均为 403；
-- 每次 Member 拒绝均写安全审计；
+- Member + invalid capability 仍是 403，且写调用者租户审计；
+- API Key caller 对 list/create/revoke 均为 403，三类拒绝均审计；
+- 跨租户 Owner/Admin 的 list/create/revoke 均为 403；
+- 跨租户审计仅存在于调用者 Tenant，目标 Tenant 审计流为空；
 - Owner/Admin canonical 签发成功；
 - `admin`、`manage_keys`、`write`、`commit:*` 和 unknown 新签发均为 400；
 - 空 capability 为 400；
-- 拒绝请求不创建 Key；
+- 拒绝请求不创建或吊销 Key；
 - `repo:read` Key 调用 `tools/call` 返回 `-32003`，executor 命中数为 0；
 - `execute` Key 可进入同租户 Tool 执行；
-- 跨租户、撤销和过期 Key 继续 fail closed。
+- revoked/expired Key 对 Repo 和 MCP 均 fail closed；
+- 外租户 Tool 不可发现，且与不存在 Tool 返回相同错误、executor 命中数为 0。
 
 实现测试：
 
@@ -226,11 +247,14 @@ backend/crates/api/tests/api_key_scope_e2e_tests.rs
 backend/crates/api/tests/mcp_tool_execution_tests.rs
 ```
 
+PR 门禁由 `.github/workflows/ci.yml` 的 `pull_request` trigger 执行前端 type-check/build 和后端 fmt/check/clippy/workspace tests。
+
 ## 10. 后续边界
 
 - HTTP Tool SSRF/DNS/Redirect/Egress：EVO-118-C。
 - Branch/Path scoped Agent Token：EVO-105/EVO-106。
 - API Key rate limit 实际接线：EVO-118-G。
+- ESLint 10 flat-config 迁移：独立前端/CI 基线工作，不作为 EVO-118-B 安全 Gate。
 - JWT session revoke/token version：后续独立 Auth Story。
 
 ## 11. 相关文档
