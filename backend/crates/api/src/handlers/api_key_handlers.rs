@@ -65,7 +65,7 @@ async fn authorize_api_key_management(
             "operation": action.as_str(),
             "reason": denial_reason,
             "caller_tenant_id": user.tenant_id,
-            "tenant_role": user.tenant_role,
+            "tenant_role": &user.tenant_role,
         }),
         ip_address: req
             .connection_info()
@@ -265,12 +265,12 @@ pub async fn create_api_key(
     }
 }
 
-/// Revoke an API key
+/// Revoke an API key. The endpoint intentionally accepts no request body so browser and CLI
+/// clients can issue a plain DELETE while authorization remains enforced server-side.
 pub async fn revoke_api_key(
     req: actix_web::HttpRequest,
     path: web::Path<(Uuid, Uuid)>,
     user: AuthenticatedUser,
-    _body: web::Json<RevokeApiKeyRequest>,
     state: web::Data<AppState>,
 ) -> impl Responder {
     let (tenant_id, key_id) = path.into_inner();
