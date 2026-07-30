@@ -361,7 +361,8 @@ async fn handle_resources_read(id: Value) -> HttpResponse {
 }
 
 async fn handle_prompts_list(id: Value) -> HttpResponse {
-    HttpResponse::Ok().json(McpResponse::success(id, serde_json::json!({})))
+    let result = serde_json::json!({ "prompts": [] });
+    HttpResponse::Ok().json(McpResponse::success(id, result))
 }
 
 async fn handle_ping(id: Value) -> HttpResponse {
