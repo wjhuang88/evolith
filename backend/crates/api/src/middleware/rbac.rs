@@ -156,6 +156,15 @@ pub enum RbacError {
 }
 
 impl actix_web::ResponseError for RbacError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        use actix_web::http::StatusCode;
+
+        match self {
+            RbacError::Unauthorized | RbacError::InvalidToken => StatusCode::UNAUTHORIZED,
+            RbacError::Forbidden | RbacError::TenantMismatch => StatusCode::FORBIDDEN,
+        }
+    }
+
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
         use crate::dto::common::ApiResponse;
         use actix_web::http::StatusCode;
