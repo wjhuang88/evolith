@@ -40,9 +40,8 @@ async fn authorize_api_key_management(
     state: &AppState,
 ) -> Result<(), HttpResponse> {
     let authenticated_with_api_key = req.extensions().get::<ApiKey>().is_some();
-    let allowed = !authenticated_with_api_key
-        && user.tenant_id == target_tenant_id
-        && user.is_admin();
+    let allowed =
+        !authenticated_with_api_key && user.tenant_id == target_tenant_id && user.is_admin();
 
     if allowed {
         return Ok(());
@@ -124,14 +123,9 @@ pub async fn list_api_keys(
     state: web::Data<AppState>,
 ) -> impl Responder {
     let tenant_id = tenant_id.into_inner();
-    if let Err(response) = authorize_api_key_management(
-        &req,
-        &user,
-        tenant_id,
-        ApiKeyManagementAction::List,
-        &state,
-    )
-    .await
+    if let Err(response) =
+        authorize_api_key_management(&req, &user, tenant_id, ApiKeyManagementAction::List, &state)
+            .await
     {
         return response;
     }
@@ -233,10 +227,8 @@ pub async fn create_api_key(
     let permissions = match body.permission_tokens() {
         Ok(permissions) => permissions,
         Err(message) => {
-            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
-                "VALIDATION_ERROR",
-                message,
-            ));
+            return HttpResponse::BadRequest()
+                .json(ApiResponse::<()>::error("VALIDATION_ERROR", message));
         }
     };
 
@@ -308,20 +300,22 @@ pub async fn revoke_api_key(
     }
 
     match state.api_key_repo.find_by_id(key_id).await {
-        Ok(Some(key)) if key.tenant_id == tenant_id => match state.api_key_repo.revoke(key_id).await {
-            Ok(()) => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
-                serde_json::json!({
-                    "message": "API key revoked successfully"
-                }),
-            )),
-            Err(error) => {
-                tracing::error!("Failed to revoke API key: {}", error);
-                HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                    "INTERNAL_ERROR",
-                    "Failed to revoke API key",
-                ))
+        Ok(Some(key)) if key.tenant_id == tenant_id => {
+            match state.api_key_repo.revoke(key_id).await {
+                Ok(()) => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::success(
+                    serde_json::json!({
+                        "message": "API key revoked successfully"
+                    }),
+                )),
+                Err(error) => {
+                    tracing::error!("Failed to revoke API key: {}", error);
+                    HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                        "INTERNAL_ERROR",
+                        "Failed to revoke API key",
+                    ))
+                }
             }
-        },
+        }
         Ok(Some(_)) | Ok(None) => HttpResponse::NotFound().json(ApiResponse::<()>::error(
             "NOT_FOUND",
             "API key not found or access denied",

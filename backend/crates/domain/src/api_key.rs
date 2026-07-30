@@ -89,7 +89,10 @@ mod tests {
             (ApiKeyCapability::Promote, "promote"),
         ] {
             assert_eq!(capability.as_str(), token);
-            assert_eq!(serde_json::to_string(&capability).expect("serialize"), format!("\"{}\"", token));
+            assert_eq!(
+                serde_json::to_string(&capability).expect("serialize"),
+                format!("\"{}\"", token)
+            );
             assert_eq!(
                 serde_json::from_str::<ApiKeyCapability>(&format!("\"{}\"", token))
                     .expect("deserialize"),
@@ -100,7 +103,14 @@ mod tests {
 
     #[test]
     fn legacy_and_unknown_capabilities_cannot_be_newly_issued() {
-        for token in ["write", "admin", "manage_keys", "commit", "commit:main", "unknown"] {
+        for token in [
+            "write",
+            "admin",
+            "manage_keys",
+            "commit",
+            "commit:main",
+            "unknown",
+        ] {
             assert!(serde_json::from_str::<ApiKeyCapability>(&format!("\"{}\"", token)).is_err());
         }
     }

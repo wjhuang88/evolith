@@ -339,18 +339,15 @@ fn start_counting_server() -> (String, Arc<AtomicUsize>, ServerHandle) {
     let app_hits = hits.clone();
 
     let server = HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(app_hits.clone()))
-            .route(
-                "/echo",
-                web::post().to(
-                    |hits: web::Data<Arc<AtomicUsize>>,
-                     body: web::Json<serde_json::Value>| async move {
-                        hits.fetch_add(1, Ordering::SeqCst);
-                        HttpResponse::Ok().json(body.into_inner())
-                    },
-                ),
-            )
+        App::new().app_data(web::Data::new(app_hits.clone())).route(
+            "/echo",
+            web::post().to(
+                |hits: web::Data<Arc<AtomicUsize>>, body: web::Json<serde_json::Value>| async move {
+                    hits.fetch_add(1, Ordering::SeqCst);
+                    HttpResponse::Ok().json(body.into_inner())
+                },
+            ),
+        )
     })
     .listen(listener)
     .expect("listen on local test server")
@@ -523,9 +520,7 @@ async fn api_key_authenticated_management_is_always_403_and_audited() {
     );
 
     let revoke_request = test::TestRequest::delete()
-        .uri(&format!(
-            "/api/v1/tenant/{tenant_id}/api-keys/{api_key_id}"
-        ))
+        .uri(&format!("/api/v1/tenant/{tenant_id}/api-keys/{api_key_id}"))
         .insert_header(("X-API-Key", api_key_value))
         .to_request();
     assert_eq!(
@@ -665,12 +660,7 @@ async fn cross_tenant_owner_and_admin_denials_stay_in_caller_audit_stream() {
         log.user_id == Some(caller_owner_id) || log.user_id == Some(caller_admin_id)
     }));
     for log in &caller_logs {
-        assert_denial_audit(
-            log,
-            caller_tenant_id,
-            target_tenant_id,
-            "tenant_mismatch",
-        );
+        assert_denial_audit(log, caller_tenant_id, target_tenant_id, "tenant_mismatch");
     }
     assert!(
         audit_repo
@@ -698,15 +688,7 @@ async fn owner_and_admin_issue_only_canonical_capabilities() {
     let tenant_id = Uuid::new_v4();
     let owner_id = Uuid::new_v4();
     let admin_id = Uuid::new_v4();
-    seed_tenant_users(
-        &pool,
-        tenant_id,
-        owner_id,
-        admin_id,
-        "admin",
-        "canonical",
-    )
-    .await;
+    seed_tenant_users(&pool, tenant_id, owner_id, admin_id, "admin", "canonical").await;
 
     let state = build_app_state(pool.clone(), temp_dir.path().display().to_string());
     let api_key_repo = state.api_key_repo.clone();
@@ -768,13 +750,20 @@ async fn owner_and_admin_issue_only_canonical_capabilities() {
         .set_json(serde_json::json!({"name": "empty", "permissions": []}))
         .to_request();
     let empty_response = test::call_service(&app, empty_request).await;
-    assert_eq!(empty_response.status(), actix_web::http::StatusCode::BAD_REQUEST);
+    assert_eq!(
+        empty_response.status(),
+        actix_web::http::StatusCode::BAD_REQUEST
+    );
 
     let stored_keys = api_key_repo
         .find_by_tenant(tenant_id)
         .await
         .expect("list stored keys");
-    assert_eq!(stored_keys.len(), 2, "rejected payloads must not create keys");
+    assert_eq!(
+        stored_keys.len(),
+        2,
+        "rejected payloads must not create keys"
+    );
 }
 
 #[actix_rt::test]
@@ -839,7 +828,11 @@ async fn mcp_tools_call_requires_execute_and_does_not_invoke_executor_without_it
         .as_str()
         .expect("authorization message")
         .contains("execute"));
-    assert_eq!(hits.load(Ordering::SeqCst), 0, "executor must not be invoked");
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        0,
+        "executor must not be invoked"
+    );
 
     let execute_request = test::TestRequest::post()
         .uri("/mcp")
@@ -1006,8 +999,7 @@ async fn execute_key_cannot_discover_or_distinguish_foreign_tenant_tool() {
             "method": "tools/list"
         }))
         .to_request();
-    let list_response: serde_json::Value =
-        test::call_and_read_body_json(&app, list_request).await;
+    let list_response: serde_json::Value = test::call_and_read_body_json(&app, list_request).await;
     assert_eq!(list_response["result"]["tools"], serde_json::json!([]));
 
     async fn call_tool(

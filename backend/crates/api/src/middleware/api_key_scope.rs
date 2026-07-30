@@ -76,10 +76,12 @@ pub fn legacy_api_key_permissions(api_key: &ApiKey) -> Vec<&str> {
 
 fn permission_grants(permission: &str, action: ApiKeyAction) -> bool {
     match action {
-        ApiKeyAction::RepoRead => matches!(
-            permission,
-            "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit"
-        ) || permission.starts_with("commit:"),
+        ApiKeyAction::RepoRead => {
+            matches!(
+                permission,
+                "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit"
+            ) || permission.starts_with("commit:")
+        }
         ApiKeyAction::RepoWrite => {
             matches!(permission, "write" | "repo:write" | "admin" | "commit")
                 || permission.starts_with("commit:")

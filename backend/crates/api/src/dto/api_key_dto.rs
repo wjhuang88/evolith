@@ -98,7 +98,10 @@ mod tests {
             expires_in_days: None,
             rate_limit: None,
         };
-        assert_eq!(request.permission_tokens().expect("permissions"), vec!["read"]);
+        assert_eq!(
+            request.permission_tokens().expect("permissions"),
+            vec!["read"]
+        );
     }
 
     #[test]
