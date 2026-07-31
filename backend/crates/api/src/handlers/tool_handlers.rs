@@ -107,6 +107,28 @@ async fn persist_tool_audit(
     }
 }
 
+async fn audit_invalid_configuration(
+    req: &HttpRequest,
+    state: &AppState,
+    user: &AuthenticatedUser,
+    action: ToolManagementAction,
+    tool_id: Option<Uuid>,
+) {
+    persist_tool_audit(
+        req,
+        state,
+        user.tenant_id,
+        user.user_id,
+        "tool.configuration.denied",
+        tool_id,
+        serde_json::json!({
+            "operation": action.as_str(),
+            "reason": "invalid_or_disallowed_handler",
+        }),
+    )
+    .await;
+}
+
 fn validation_error(message: &str) -> HttpResponse {
     HttpResponse::BadRequest().json(ApiResponse::<()>::error("VALIDATION_ERROR", message))
 }
@@ -119,12 +141,10 @@ fn parse_handler_type(raw: &str) -> Result<HandlerType, HttpResponse> {
     }
 }
 
-async fn validate_handler(handler: &HandlerConfig) -> Result<(), HttpResponse> {
+async fn validate_handler(handler: &HandlerConfig) -> Result<(), &'static str> {
     if let Some(timeout) = handler.timeout {
         if timeout == 0 || timeout > 30_000 {
-            return Err(validation_error(
-                "Tool handler timeout must be between 1 and 30000 milliseconds",
-            ));
+            return Err("Tool handler timeout must be between 1 and 30000 milliseconds");
         }
     }
 
@@ -133,7 +153,7 @@ async fn validate_handler(handler: &HandlerConfig) -> Result<(), HttpResponse> {
             method.to_ascii_uppercase().as_str(),
             "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS"
         ) {
-            return Err(validation_error("Unsupported HTTP method"));
+            return Err("Unsupported HTTP method");
         }
     }
 
@@ -141,18 +161,17 @@ async fn validate_handler(handler: &HandlerConfig) -> Result<(), HttpResponse> {
         let url = handler
             .url
             .as_deref()
-            .ok_or_else(|| validation_error("HTTP Tool handler URL is required"))?;
+            .ok_or("HTTP Tool handler URL is required")?;
         let client = SafeHttpClient::new(EgressPolicy::default());
         client
             .validate_target(url)
             .await
-            .map_err(|_| validation_error("HTTP Tool handler URL is not allowed"))?;
+            .map_err(|_| "HTTP Tool handler URL is not allowed")?;
     }
 
     Ok(())
 }
 
-/// List tools for current tenant.
 pub async fn list_tools(
     state: web::Data<AppState>,
     user: AuthenticatedUser,
@@ -201,7 +220,6 @@ pub struct ListToolsQuery {
     pub search: Option<String>,
 }
 
-/// Get a single tool by ID.
 pub async fn get_tool(
     state: web::Data<AppState>,
     user: AuthenticatedUser,
@@ -224,7 +242,7 @@ pub async fn get_tool(
     HttpResponse::Ok().json(ApiResponse::success(ToolResponse::from(tool)))
 }
 
-/// Create a new tool. Authorization intentionally precedes DTO deserialization.
+/// Authorization intentionally precedes DTO deserialization.
 pub async fn create_tool(
     req: HttpRequest,
     state: web::Data<AppState>,
@@ -254,8 +272,16 @@ pub async fn create_tool(
         method: body.handler_method,
         timeout: body.handler_timeout,
     };
-    if let Err(response) = validate_handler(&handler).await {
-        return response;
+    if let Err(message) = validate_handler(&handler).await {
+        audit_invalid_configuration(
+            &req,
+            &state,
+            &user,
+            ToolManagementAction::Create,
+            None,
+        )
+        .await;
+        return validation_error(message);
     }
 
     let new_tool = NewTool {
@@ -307,7 +333,7 @@ pub async fn create_tool(
     HttpResponse::Created().json(ApiResponse::success(ToolResponse::from(tool)))
 }
 
-/// Update an existing tool. Authorization intentionally precedes DTO deserialization.
+/// Authorization intentionally precedes DTO deserialization and resource lookup.
 pub async fn update_tool(
     req: HttpRequest,
     state: web::Data<AppState>,
@@ -384,8 +410,16 @@ pub async fn update_tool(
                 .or_else(|| existing.handler.method.clone()),
             timeout: body.handler_timeout.or(existing.handler.timeout),
         };
-        if let Err(response) = validate_handler(&handler).await {
-            return response;
+        if let Err(message) = validate_handler(&handler).await {
+            audit_invalid_configuration(
+                &req,
+                &state,
+                &user,
+                ToolManagementAction::Update,
+                Some(tool_id),
+            )
+            .await;
+            return validation_error(message);
         }
         Some(handler)
     } else {
@@ -445,7 +479,6 @@ pub async fn update_tool(
     HttpResponse::Ok().json(ApiResponse::success(ToolResponse::from(tool)))
 }
 
-/// Delete a tool.
 pub async fn delete_tool(
     state: web::Data<AppState>,
     user: AuthenticatedUser,
