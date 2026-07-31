@@ -1,8 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use actix_web::{
-    middleware::from_fn, test, web, App, HttpResponse, HttpServer,
-};
+use actix_web::{middleware::from_fn, test, web, App, HttpResponse, HttpServer};
 use sha2::{Digest, Sha256};
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
@@ -164,9 +162,8 @@ fn test_config() -> AppConfig {
 
 fn build_app_state(pool: SqlitePool) -> AppState {
     let config = test_config();
-    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::with_policy(
-        EgressPolicy::default(),
-    ));
+    let http_proxy: Arc<dyn ExecutionProvider> =
+        Arc::new(HttpProxyProvider::with_policy(EgressPolicy::default()));
     let execution_provider: Arc<dyn ExecutionProvider> =
         Arc::new(CompositeProvider::new(None, Some(http_proxy)));
     let tool_executor: Arc<dyn ToolExecutor> =
@@ -613,7 +610,10 @@ async fn mcp_loopback_rejection_has_zero_network_hits_and_redacted_audit() {
     let response: serde_json::Value = test::call_and_read_body_json(&app, request).await;
     let serialized = serde_json::to_string(&response).expect("serialize response");
 
-    assert_eq!(response["error"]["message"], "HTTP tool request was rejected");
+    assert_eq!(
+        response["error"]["message"],
+        "HTTP tool request was rejected"
+    );
     assert!(!serialized.contains(&target_url));
     assert!(!serialized.contains("127.0.0.1"));
     assert_eq!(hits.load(Ordering::SeqCst), 0);
