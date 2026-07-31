@@ -72,16 +72,18 @@ jobs:
 
           python - <<'PY'
           from pathlib import Path
-          import textwrap
 
           workflow = Path('.github/workflows/evo-118-b-closeout.yml').read_text()
           start_marker = "          python - <<'PY'\n"
           end_marker = "\n          PY\n"
           start = workflow.index(start_marker) + len(start_marker)
           end = workflow.index(end_marker, start)
-          Path('/tmp/evo-118-b-closeout.py').write_text(
-              textwrap.dedent(workflow[start:end])
-          )
+          raw = workflow[start:end]
+          script = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in raw.splitlines()
+          ) + "\n"
+          Path('/tmp/evo-118-b-closeout.py').write_text(script)
           PY
 
           python /tmp/evo-118-b-closeout.py
