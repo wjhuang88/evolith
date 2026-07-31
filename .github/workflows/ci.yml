@@ -87,6 +87,7 @@ jobs:
           PY
 
           python /tmp/evo-118-b-closeout.py
+          sed -i 's/^> 文档状态：Closed \/ Complete  $/> 文档状态：Closed \/ Complete/' docs/iterations/ITERATION-051.md
           git diff --check
 
           git config user.name "evolith-ci"
