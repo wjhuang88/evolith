@@ -35,7 +35,7 @@ use infra::db::{
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_tool::executor::ToolExecutorAdapter;
-use service_tool::HttpProxyProvider;
+use service_tool::{EgressPolicy, HttpProxyProvider};
 
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
 const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_tenant.sql");
@@ -182,7 +182,9 @@ fn create_test_config(base_path: String) -> AppConfig {
 
 fn build_app_state(pool: SqlitePool, base_path: String) -> AppState {
     let config = create_test_config(base_path);
-    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::new());
+    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::with_policy(
+        EgressPolicy::for_test_allow_private_networks(),
+    ));
     let execution_provider: Arc<dyn ExecutionProvider> =
         Arc::new(CompositeProvider::new(None, Some(http_proxy)));
 
