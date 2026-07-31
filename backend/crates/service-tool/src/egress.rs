@@ -250,10 +250,7 @@ impl SafeHttpClient {
                     .get(LOCATION)
                     .and_then(|value| value.to_str().ok())
                     .ok_or(EgressError::RedirectRejected)?;
-                current_url = current_url
-                    .join(location)
-                    .map_err(|_| EgressError::RedirectRejected)?;
-                self.policy.validate_url(current_url.as_str())?;
+                current_url = redirect_target(&self.policy, &current_url, location)?;
                 continue;
             }
 
@@ -301,6 +298,17 @@ impl SafeHttpClient {
         }
         Ok((Some(host), unique.into_iter().collect()))
     }
+}
+
+fn redirect_target(
+    policy: &EgressPolicy,
+    current_url: &Url,
+    location: &str,
+) -> Result<Url, EgressError> {
+    let target = current_url
+        .join(location)
+        .map_err(|_| EgressError::RedirectRejected)?;
+    policy.validate_url(target.as_str())
 }
 
 fn canonical_host(url: &Url) -> Result<String, EgressError> {
@@ -387,6 +395,9 @@ fn is_public_ipv6(ip: Ipv6Addr) -> bool {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+    use tokio::sync::Notify;
 
     struct StaticResolver {
         calls: Arc<AtomicUsize>,
@@ -406,6 +417,18 @@ mod tests {
     #[async_trait]
     impl DnsResolver for HangingResolver {
         async fn resolve(&self, _host: &str, _port: u16) -> Result<Vec<SocketAddr>, EgressError> {
+            std::future::pending().await
+        }
+    }
+
+    struct SignalingHangingResolver {
+        entered: Arc<Notify>,
+    }
+
+    #[async_trait]
+    impl DnsResolver for SignalingHangingResolver {
+        async fn resolve(&self, _host: &str, _port: u16) -> Result<Vec<SocketAddr>, EgressError> {
+            self.entered.notify_one();
             std::future::pending().await
         }
     }
@@ -460,6 +483,16 @@ mod tests {
         assert!(policy
             .validate_url("https://[2606:4700:4700::1111]")
             .is_ok());
+    }
+
+    #[test]
+    fn private_redirect_is_rejected_before_dns_or_connection() {
+        let policy = EgressPolicy::default();
+        let current = policy
+            .validate_url("https://93.184.216.34/start")
+            .unwrap();
+        let error = redirect_target(&policy, &current, "http://127.0.0.1/private").unwrap_err();
+        assert_eq!(error, EgressError::TargetNotAllowed);
     }
 
     #[tokio::test]
@@ -521,6 +554,113 @@ mod tests {
             .await
             .unwrap_err();
         assert_eq!(error, EgressError::RequestTimedOut);
+    }
+
+    #[tokio::test]
+    async fn total_deadline_is_shared_across_redirect_hops() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            loop {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                tokio::spawn(async move {
+                    let mut request = [0_u8; 4096];
+                    let _ = socket.read(&mut request).await;
+                    tokio::time::sleep(Duration::from_millis(40)).await;
+                    let response = b"HTTP/1.1 302 Found\r\nLocation: /slow-redirect\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+                    let _ = socket.write_all(response).await;
+                });
+            }
+        });
+
+        let client = SafeHttpClient::new(EgressPolicy::for_test_allow_private_networks());
+        let error = client
+            .execute(
+                Method::GET,
+                &format!("http://{address}/slow-redirect"),
+                &serde_json::json!({}),
+                Duration::from_millis(70),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error, EgressError::RequestTimedOut);
+
+        server.abort();
+        let _ = server.await;
+    }
+
+    #[tokio::test]
+    async fn response_header_limit_is_enforced() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0_u8; 4096];
+            let _ = socket.read(&mut request).await;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nX-Large: {}\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+                "x".repeat(128)
+            );
+            socket.write_all(response.as_bytes()).await.unwrap();
+        });
+
+        let policy = EgressPolicy {
+            max_header_bytes: 64,
+            ..EgressPolicy::for_test_allow_private_networks()
+        };
+        let client = SafeHttpClient::new(policy);
+        let error = client
+            .execute(
+                Method::GET,
+                &format!("http://{address}/headers"),
+                &serde_json::json!({}),
+                Duration::from_secs(1),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error, EgressError::ResponseHeadersTooLarge);
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn concurrency_limit_fails_closed_without_waiting() {
+        let entered = Arc::new(Notify::new());
+        let resolver = Arc::new(SignalingHangingResolver {
+            entered: entered.clone(),
+        });
+        let policy = EgressPolicy {
+            max_concurrency: 1,
+            ..EgressPolicy::default()
+        };
+        let client = SafeHttpClient::with_resolver(policy, resolver);
+        let first_client = client.clone();
+        let first = tokio::spawn(async move {
+            first_client
+                .execute(
+                    Method::GET,
+                    "https://first.example.test/",
+                    &serde_json::json!({}),
+                    Duration::from_secs(1),
+                )
+                .await
+        });
+        entered.notified().await;
+
+        let error = client
+            .execute(
+                Method::GET,
+                "https://second.example.test/",
+                &serde_json::json!({}),
+                Duration::from_secs(1),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error, EgressError::ConcurrencyLimit);
+
+        first.abort();
+        let _ = first.await;
     }
 
     #[tokio::test]
