@@ -12,6 +12,7 @@ use reqwest::{Method, StatusCode, Url};
 use tokio::sync::Semaphore;
 
 pub const DEFAULT_MAX_RESPONSE_BYTES: usize = 1_048_576;
+pub const MAX_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 const DEFAULT_MAX_HEADER_BYTES: usize = 64 * 1024;
 const DEFAULT_MAX_REDIRECTS: usize = 5;
 const DEFAULT_MAX_CONCURRENCY: usize = 32;
@@ -31,7 +32,6 @@ pub struct EgressPolicy {
 impl Default for EgressPolicy {
     fn default() -> Self {
         Self {
-            // HTTP remains supported for compatibility, but only to globally routable targets.
             allow_http: true,
             allow_private_networks: false,
             max_redirects: DEFAULT_MAX_REDIRECTS,
@@ -59,7 +59,6 @@ impl EgressPolicy {
             "http" if self.allow_http => {}
             _ => return Err(EgressError::SchemeNotAllowed),
         }
-
         if url.host().is_none() {
             return Err(EgressError::InvalidTarget);
         }
@@ -71,11 +70,9 @@ impl EgressPolicy {
         if is_metadata_hostname(&hostname) {
             return Err(EgressError::TargetNotAllowed);
         }
-
         if let Ok(ip) = hostname.parse::<IpAddr>() {
             self.validate_ip(ip)?;
         }
-
         Ok(url)
     }
 
@@ -106,6 +103,8 @@ pub enum EgressError {
     TooManyRedirects,
     #[error("HTTP tool concurrency limit reached")]
     ConcurrencyLimit,
+    #[error("HTTP tool timeout must be between 1 and 30000 milliseconds")]
+    InvalidTimeout,
     #[error("HTTP tool request timed out")]
     RequestTimedOut,
     #[error("HTTP tool request failed")]
@@ -174,7 +173,10 @@ impl SafeHttpClient {
     /// Validate and resolve a target without opening a network connection.
     pub async fn validate_target(&self, raw_url: &str) -> Result<(), EgressError> {
         let url = self.policy.validate_url(raw_url)?;
-        self.resolve_and_validate(&url).await.map(|_| ())
+        tokio::time::timeout(self.policy.connect_timeout, self.resolve_and_validate(&url))
+            .await
+            .map_err(|_| EgressError::RequestTimedOut)??;
+        Ok(())
     }
 
     pub async fn execute(
@@ -184,12 +186,26 @@ impl SafeHttpClient {
         input: &serde_json::Value,
         timeout: Duration,
     ) -> Result<SafeHttpResponse, EgressError> {
+        if timeout.is_zero() || timeout > MAX_REQUEST_TIMEOUT {
+            return Err(EgressError::InvalidTimeout);
+        }
         let _permit = self
             .semaphore
             .clone()
             .try_acquire_owned()
             .map_err(|_| EgressError::ConcurrencyLimit)?;
 
+        tokio::time::timeout(timeout, self.execute_within_deadline(method, raw_url, input))
+            .await
+            .map_err(|_| EgressError::RequestTimedOut)?
+    }
+
+    async fn execute_within_deadline(
+        &self,
+        method: Method,
+        raw_url: &str,
+        input: &serde_json::Value,
+    ) -> Result<SafeHttpResponse, EgressError> {
         let mut current_url = self.policy.validate_url(raw_url)?;
 
         for hop in 0..=self.policy.max_redirects {
@@ -199,7 +215,6 @@ impl SafeHttpClient {
                 .redirect(reqwest::redirect::Policy::none())
                 .referer(false)
                 .connect_timeout(self.policy.connect_timeout)
-                .timeout(timeout)
                 .pool_max_idle_per_host(0);
 
             if let Some(host) = host.as_deref() {
@@ -249,7 +264,6 @@ impl SafeHttpClient {
                 }
                 body.extend_from_slice(&chunk);
             }
-
             return Ok(SafeHttpResponse { status, body });
         }
 
@@ -269,15 +283,14 @@ impl SafeHttpClient {
             self.policy.validate_ip(ip)?;
             return Ok((None, vec![SocketAddr::new(ip, port)]));
         }
-
         if is_metadata_hostname(&host) {
             return Err(EgressError::TargetNotAllowed);
         }
+
         let addresses = self.resolver.resolve(&host, port).await?;
         if addresses.is_empty() {
             return Err(EgressError::DnsResolutionFailed);
         }
-
         let mut unique = BTreeSet::new();
         for address in addresses {
             self.policy.validate_ip(address.ip())?;
@@ -346,9 +359,24 @@ fn is_public_ipv4(ip: Ipv4Addr) -> bool {
 
 fn is_public_ipv6(ip: Ipv6Addr) -> bool {
     let segments = ip.segments();
-    let globally_routable_unicast = (0x2000..=0x3fff).contains(&segments[0]);
-    let documentation = segments[0] == 0x2001 && segments[1] == 0x0db8;
-    globally_routable_unicast && !documentation
+    if !(0x2000..=0x3fff).contains(&segments[0]) {
+        return false;
+    }
+
+    // Fail closed for IANA special-purpose space inside 2000::/3. 2001::/23
+    // includes benchmarking, ORCHID, ORCHIDv2 and other protocol assignments.
+    if segments[0] == 0x2001 && segments[1] <= 0x01ff {
+        return false;
+    }
+    // 6to4 embeds an IPv4 route and is not accepted as an authoritative public target.
+    if segments[0] == 0x2002 {
+        return false;
+    }
+    // Documentation prefix 3fff::/20.
+    if segments[0] == 0x3fff && segments[1] <= 0x0fff {
+        return false;
+    }
+    true
 }
 
 #[cfg(test)]
@@ -369,6 +397,15 @@ mod tests {
         }
     }
 
+    struct HangingResolver;
+
+    #[async_trait]
+    impl DnsResolver for HangingResolver {
+        async fn resolve(&self, _host: &str, _port: u16) -> Result<Vec<SocketAddr>, EgressError> {
+            std::future::pending().await
+        }
+    }
+
     #[test]
     fn rejects_disallowed_schemes_and_credentials_before_dns() {
         let policy = EgressPolicy::default();
@@ -385,15 +422,24 @@ mod tests {
     }
 
     #[test]
-    fn rejects_private_and_metadata_literal_addresses() {
+    fn rejects_private_metadata_and_special_purpose_addresses() {
         let policy = EgressPolicy::default();
         for url in [
             "http://127.0.0.1",
             "http://10.0.0.1",
             "http://169.254.169.254/latest/meta-data",
+            "http://[::]",
             "http://[::1]",
+            "http://[fe80::1]",
             "http://[fc00::1]",
+            "http://[ff02::1]",
             "http://[::ffff:127.0.0.1]",
+            "http://[2001:2::1]",
+            "http://[2001:10::1]",
+            "http://[2001:20::1]",
+            "http://[2001:db8::1]",
+            "http://[2002:c000:0201::1]",
+            "http://[3fff::1]",
         ] {
             assert_eq!(
                 policy.validate_url(url).unwrap_err(),
@@ -401,6 +447,13 @@ mod tests {
                 "{url} should be rejected"
             );
         }
+    }
+
+    #[test]
+    fn accepts_representative_global_ipv4_and_ipv6() {
+        let policy = EgressPolicy::default();
+        assert!(policy.validate_url("https://93.184.216.34").is_ok());
+        assert!(policy.validate_url("https://[2606:4700:4700::1111]").is_ok());
     }
 
     #[tokio::test]
@@ -414,7 +467,6 @@ mod tests {
             ]),
         });
         let client = SafeHttpClient::with_resolver(EgressPolicy::default(), resolver);
-
         let error = client
             .execute(
                 Method::GET,
@@ -424,7 +476,6 @@ mod tests {
             )
             .await
             .unwrap_err();
-
         assert_eq!(error, EgressError::TargetNotAllowed);
         assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
@@ -437,7 +488,6 @@ mod tests {
             addresses: Err(EgressError::DnsResolutionFailed),
         });
         let client = SafeHttpClient::with_resolver(EgressPolicy::default(), resolver);
-
         let error = client
             .execute(
                 Method::GET,
@@ -447,8 +497,52 @@ mod tests {
             )
             .await
             .unwrap_err();
-
         assert_eq!(error, EgressError::DnsResolutionFailed);
         assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn execution_deadline_includes_dns_resolution() {
+        let client = SafeHttpClient::with_resolver(
+            EgressPolicy::default(),
+            Arc::new(HangingResolver),
+        );
+        let error = client
+            .execute(
+                Method::GET,
+                "https://example.test/",
+                &serde_json::json!({}),
+                Duration::from_millis(20),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error, EgressError::RequestTimedOut);
+    }
+
+    #[tokio::test]
+    async fn configuration_validation_bounds_hanging_dns() {
+        let mut policy = EgressPolicy::default();
+        policy.connect_timeout = Duration::from_millis(20);
+        let client = SafeHttpClient::with_resolver(policy, Arc::new(HangingResolver));
+        let error = client
+            .validate_target("https://example.test/")
+            .await
+            .unwrap_err();
+        assert_eq!(error, EgressError::RequestTimedOut);
+    }
+
+    #[tokio::test]
+    async fn rejects_timeout_above_runtime_limit() {
+        let client = SafeHttpClient::default();
+        let error = client
+            .execute(
+                Method::GET,
+                "https://example.com/",
+                &serde_json::json!({}),
+                Duration::from_millis(30_001),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error, EgressError::InvalidTimeout);
     }
 }
