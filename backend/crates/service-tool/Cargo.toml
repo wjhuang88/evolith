@@ -3,10 +3,6 @@ name = "service-tool"
 version.workspace = true
 edition.workspace = true
 
-[features]
-default = []
-test-egress = []
-
 [lints]
 workspace = true
 
