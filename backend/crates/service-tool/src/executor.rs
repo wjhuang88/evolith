@@ -73,7 +73,10 @@ impl HttpToolExecutor {
 impl ToolExecutor for HttpToolExecutor {
     async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse> {
         let unified_request = to_unified_request(request, self.default_timeout);
-        self.provider.execute(unified_request).await.map(to_tool_response)
+        self.provider
+            .execute(unified_request)
+            .await
+            .map(to_tool_response)
     }
 }
 
@@ -91,7 +94,10 @@ impl ToolExecutorAdapter {
 impl ToolExecutor for ToolExecutorAdapter {
     async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse> {
         let unified_request = to_unified_request(request, Duration::from_secs(30));
-        self.provider.execute(unified_request).await.map(to_tool_response)
+        self.provider
+            .execute(unified_request)
+            .await
+            .map(to_tool_response)
     }
 }
 
