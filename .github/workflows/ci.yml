@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -59,49 +59,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
-
-      - name: Apply EVO-118-B governance closeout
-        if: github.event_name == 'pull_request' && github.head_ref == 'agent/close-evo-118-b'
-        run: |
-          if grep -q -- '- **状态**：Done' docs/backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md; then
-            echo "Closeout already applied"
-            exit 0
-          fi
-
-          python - <<'PY'
-          from pathlib import Path
-
-          workflow = Path('.github/workflows/evo-118-b-closeout.yml').read_text()
-          start_marker = "          python - <<'PY'\n"
-          end_marker = "\n          PY\n"
-          start = workflow.index(start_marker) + len(start_marker)
-          end = workflow.index(end_marker, start)
-          raw = workflow[start:end]
-          script = "\n".join(
-              line[10:] if line.startswith("          ") else line
-              for line in raw.splitlines()
-          ) + "\n"
-          Path('/tmp/evo-118-b-closeout.py').write_text(script)
-          PY
-
-          python /tmp/evo-118-b-closeout.py
-          sed -i 's/^> 文档状态：Closed \/ Complete  $/> 文档状态：Closed \/ Complete/' docs/iterations/ITERATION-051.md
-          git diff --check
-
-          git config user.name "evolith-ci"
-          git config user.email "actions@users.noreply.github.com"
-          git add docs/backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md \
-                  docs/iterations/ITERATION-051.md \
-                  docs/iterations/README.md \
-                  docs/backlog/active/EVO-118-production-readiness-and-security-hardening.md \
-                  docs/BOARD.md \
-                  docs/backlog/PRODUCT-BACKLOG.md \
-                  docs/roadmap/PRODUCTION-READINESS-PLAN-2026-07.md \
-                  docs/reference/PRODUCTION-READINESS-BASELINE.md
-          git commit -m "docs: close EVO-118-B and iteration 051"
-          git push origin "HEAD:${{ github.head_ref }}"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
