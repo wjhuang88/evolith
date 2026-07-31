@@ -1,14 +1,8 @@
 //! MCP endpoint handlers
-//! Handles Model Context Protocol requests for external AI agents
-//!
-//! Architecture:
-//! - MCP Server endpoint: /mcp
-//! - Authentication: API Key via Authorization header
-//! - Each API Key is associated with a tenant, returns that tenant's tools
-//! - `tools/call` additionally requires the `execute` capability
-//! - Supports streamable HTTP mode
+//! Handles Model Context Protocol requests for external AI agents.
 
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use chrono::Utc;
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -17,6 +11,7 @@ use crate::handlers::api_key_handlers::validate_api_key;
 use crate::middleware::api_key_scope::api_key_allows_tool_execute;
 use crate::state::AppState;
 use domain::api_key::ApiKey;
+use domain::audit::AuditLog;
 use domain::tool::{HandlerType, Visibility};
 use domain::ToolFilter;
 use service_tool::executor::ExecuteRequest;
@@ -24,7 +19,6 @@ use service_tool::mcp::{
     self, build_initialize_result, McpRequest, McpResponse, ToolCallParams, ToolsListResult,
 };
 
-/// Main MCP endpoint handler
 pub async fn handle_mcp_request(
     req: HttpRequest,
     body: web::Json<McpRequest>,
@@ -68,7 +62,6 @@ pub async fn handle_mcp_request(
     }
 }
 
-/// List available tools (public endpoint for discovery)
 pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) -> impl Responder {
     let api_key = extract_api_key(&req);
 
@@ -98,7 +91,7 @@ pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) 
 
     match state.tool_repo.find_all(filter).await {
         Ok(tools) => {
-            let mcp_tools: Vec<service_tool::mcp::McpTool> = tools
+            let mcp_tools = tools
                 .into_iter()
                 .map(|tool| service_tool::mcp::McpTool {
                     name: tool.name,
@@ -121,7 +114,6 @@ pub async fn list_available_tools(req: HttpRequest, state: web::Data<AppState>) 
     }
 }
 
-/// Extract API Key from request headers
 fn extract_api_key(req: &HttpRequest) -> Option<String> {
     if let Some(auth) = req.headers().get("authorization") {
         if let Ok(auth_str) = auth.to_str() {
@@ -132,13 +124,41 @@ fn extract_api_key(req: &HttpRequest) -> Option<String> {
         }
     }
 
-    if let Some(key) = req.headers().get("x-api-key") {
-        if let Ok(key_str) = key.to_str() {
-            return Some(key_str.to_string());
-        }
-    }
+    req.headers()
+        .get("x-api-key")
+        .and_then(|key| key.to_str().ok())
+        .map(str::to_string)
+}
 
-    None
+async fn persist_tool_execution_audit(
+    state: &AppState,
+    api_key: &ApiKey,
+    tool_id: Option<Uuid>,
+    action: &str,
+    details: Value,
+) {
+    let audit_log = AuditLog {
+        id: Uuid::new_v4(),
+        tenant_id: Some(api_key.tenant_id),
+        user_id: Some(api_key.user_id),
+        action: action.to_string(),
+        resource_type: Some("tool".to_string()),
+        resource_id: tool_id.map(|id| id.to_string()),
+        details,
+        ip_address: None,
+        user_agent: None,
+        created_at: Utc::now(),
+    };
+
+    if let Err(error) = state.audit_repo.create(audit_log).await {
+        tracing::error!(
+            audit_action = action,
+            tenant_id = %api_key.tenant_id,
+            api_key_id = %api_key.id,
+            "Failed to persist HTTP Tool audit event: {}",
+            error
+        );
+    }
 }
 
 async fn handle_initialize(id: Value) -> HttpResponse {
@@ -162,7 +182,7 @@ async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>)
 
     match state.tool_repo.find_all(filter).await {
         Ok(tools) => {
-            let mcp_tools: Vec<service_tool::mcp::McpTool> = tools
+            let tools = tools
                 .into_iter()
                 .map(|tool| service_tool::mcp::McpTool {
                     name: tool.name,
@@ -170,11 +190,9 @@ async fn handle_tools_list(id: Value, state: &AppState, tenant_id: Option<Uuid>)
                     input_schema: tool.input_schema,
                 })
                 .collect();
-
-            let result = ToolsListResult { tools: mcp_tools };
             HttpResponse::Ok().json(McpResponse::success(
                 id,
-                serde_json::to_value(result).unwrap_or_default(),
+                serde_json::to_value(ToolsListResult { tools }).unwrap_or_default(),
             ))
         }
         Err(error) => {
@@ -217,6 +235,14 @@ async fn handle_tools_call(
     };
 
     if !api_key_allows_tool_execute(api_key) {
+        persist_tool_execution_audit(
+            state,
+            api_key,
+            None,
+            "tool.execution.denied",
+            serde_json::json!({"reason": "missing_execute_capability"}),
+        )
+        .await;
         return HttpResponse::Ok().json(McpResponse::error(
             id,
             -32003,
@@ -231,128 +257,160 @@ async fn handle_tools_call(
             return HttpResponse::Ok().json(McpResponse::invalid_params(id, "Missing params"));
         }
     };
-
     let call_params: ToolCallParams = match serde_json::from_value(params) {
         Ok(params) => params,
-        Err(error) => {
-            return HttpResponse::Ok().json(McpResponse::invalid_params(
-                id,
-                &format!("Invalid params: {}", error),
-            ));
+        Err(_) => {
+            return HttpResponse::Ok().json(McpResponse::invalid_params(id, "Invalid params"));
         }
     };
 
     let tool_name = call_params.name;
     let arguments = call_params.arguments;
-
-    match state.tool_repo.find_by_name(&tool_name).await {
+    let tool = match state.tool_repo.find_by_name(&tool_name).await {
+        Ok(Some(tool)) if tool.tenant_id == api_key.tenant_id => tool,
         Ok(Some(tool)) => {
-            if tool.tenant_id != api_key.tenant_id {
-                return hidden_tool_response(id);
-            }
-
-            let schema: Value = tool.input_schema.clone();
-            if let Err(error) = mcp::validate_arguments(&schema, &arguments) {
-                return HttpResponse::Ok().json(McpResponse::error(id, -32602, error, None));
-            }
-
-            match tool.handler.handler_type {
-                HandlerType::Http => {
-                    let url = match &tool.handler.url {
-                        Some(url) => url.clone(),
-                        None => {
-                            return HttpResponse::Ok().json(McpResponse::error(
-                                id,
-                                -32603,
-                                "HTTP tool missing URL configuration".to_string(),
-                                None,
-                            ));
-                        }
-                    };
-
-                    let method = tool
-                        .handler
-                        .method
-                        .clone()
-                        .unwrap_or_else(|| "POST".to_string());
-                    let timeout_ms = tool.handler.timeout.unwrap_or(30000);
-
-                    let exec_request = ExecuteRequest {
-                        tool_id: tool.id.to_string(),
-                        parameters: arguments,
-                        url,
-                        method,
-                        timeout_ms,
-                    };
-
-                    match state.tool_executor.execute(exec_request).await {
-                        Ok(exec_response) => {
-                            if let Some(error) = exec_response.error {
-                                return HttpResponse::Ok().json(McpResponse::error(
-                                    id,
-                                    -32002,
-                                    error,
-                                    Some(serde_json::json!({
-                                        "status": exec_response.status,
-                                        "response": exec_response.result,
-                                    })),
-                                ));
-                            }
-
-                            let result_text = match exec_response.result {
-                                Value::String(text) => text,
-                                value => serde_json::to_string_pretty(&value).unwrap_or_default(),
-                            };
-                            let result = service_tool::mcp::ToolCallResult {
-                                content: vec![service_tool::mcp::ToolContent {
-                                    content_type: "text".to_string(),
-                                    text: result_text,
-                                }],
-                            };
-
-                            HttpResponse::Ok().json(McpResponse::success(
-                                id,
-                                serde_json::to_value(result).unwrap_or_default(),
-                            ))
-                        }
-                        Err(error) => {
-                            tracing::error!("Tool execution failed: {}", error);
-                            HttpResponse::Ok().json(McpResponse::error(
-                                id,
-                                -32603,
-                                format!("Tool execution failed: {}", error),
-                                None,
-                            ))
-                        }
-                    }
-                }
-                HandlerType::Function => HttpResponse::Ok().json(McpResponse::error(
-                    id,
-                    -32601,
-                    format!(
-                        "Function-type tool execution not yet supported: {}",
-                        tool_name
-                    ),
-                    None,
-                )),
-            }
+            persist_tool_execution_audit(
+                state,
+                api_key,
+                Some(tool.id),
+                "tool.execution.denied",
+                serde_json::json!({"reason": "not_found_or_access_denied"}),
+            )
+            .await;
+            return hidden_tool_response(id);
         }
-        Ok(None) => hidden_tool_response(id),
+        Ok(None) => return hidden_tool_response(id),
         Err(error) => {
             tracing::error!("Failed to find tool: {}", error);
-            HttpResponse::Ok().json(McpResponse::error(
+            return HttpResponse::Ok().json(McpResponse::error(
                 id,
                 -32603,
                 "Internal server error".to_string(),
                 None,
-            ))
+            ));
         }
+    };
+
+    if let Err(error) = mcp::validate_arguments(&tool.input_schema, &arguments) {
+        return HttpResponse::Ok().json(McpResponse::error(id, -32602, error, None));
+    }
+
+    match tool.handler.handler_type {
+        HandlerType::Http => {
+            let url = match &tool.handler.url {
+                Some(url) => url.clone(),
+                None => {
+                    persist_tool_execution_audit(
+                        state,
+                        api_key,
+                        Some(tool.id),
+                        "tool.egress.denied",
+                        serde_json::json!({"reason": "missing_configuration"}),
+                    )
+                    .await;
+                    return HttpResponse::Ok().json(McpResponse::error(
+                        id,
+                        -32603,
+                        "HTTP tool configuration is invalid".to_string(),
+                        None,
+                    ));
+                }
+            };
+            let method = tool
+                .handler
+                .method
+                .clone()
+                .unwrap_or_else(|| "POST".to_string());
+            let timeout_ms = tool.handler.timeout.unwrap_or(30_000);
+            let exec_request = ExecuteRequest {
+                tool_id: tool.id.to_string(),
+                parameters: arguments,
+                url,
+                method,
+                timeout_ms,
+            };
+
+            match state.tool_executor.execute(exec_request).await {
+                Ok(exec_response) if exec_response.error.is_none() => {
+                    persist_tool_execution_audit(
+                        state,
+                        api_key,
+                        Some(tool.id),
+                        "tool.egress.succeeded",
+                        serde_json::json!({"status": exec_response.status}),
+                    )
+                    .await;
+                    let result_text = match exec_response.result {
+                        Value::String(text) => text,
+                        value => serde_json::to_string_pretty(&value).unwrap_or_default(),
+                    };
+                    let result = service_tool::mcp::ToolCallResult {
+                        content: vec![service_tool::mcp::ToolContent {
+                            content_type: "text".to_string(),
+                            text: result_text,
+                        }],
+                    };
+                    HttpResponse::Ok().json(McpResponse::success(
+                        id,
+                        serde_json::to_value(result).unwrap_or_default(),
+                    ))
+                }
+                Ok(exec_response) => {
+                    persist_tool_execution_audit(
+                        state,
+                        api_key,
+                        Some(tool.id),
+                        "tool.egress.failed",
+                        serde_json::json!({
+                            "reason": "upstream_status",
+                            "status": exec_response.status,
+                        }),
+                    )
+                    .await;
+                    HttpResponse::Ok().json(McpResponse::error(
+                        id,
+                        -32002,
+                        format!("HTTP {} error", exec_response.status),
+                        Some(serde_json::json!({"status": exec_response.status})),
+                    ))
+                }
+                Err(_) => {
+                    persist_tool_execution_audit(
+                        state,
+                        api_key,
+                        Some(tool.id),
+                        "tool.egress.denied_or_failed",
+                        serde_json::json!({"reason": "policy_or_network_failure"}),
+                    )
+                    .await;
+                    tracing::warn!(
+                        tenant_id = %api_key.tenant_id,
+                        tool_id = %tool.id,
+                        "HTTP Tool execution was rejected or failed"
+                    );
+                    HttpResponse::Ok().json(McpResponse::error(
+                        id,
+                        -32603,
+                        "HTTP tool request was rejected".to_string(),
+                        None,
+                    ))
+                }
+            }
+        }
+        HandlerType::Function => HttpResponse::Ok().json(McpResponse::error(
+            id,
+            -32601,
+            "Function-type tool execution is not supported".to_string(),
+            None,
+        )),
     }
 }
 
 async fn handle_resources_list(id: Value) -> HttpResponse {
-    let result = serde_json::json!({ "resources": [] });
-    HttpResponse::Ok().json(McpResponse::success(id, result))
+    HttpResponse::Ok().json(McpResponse::success(
+        id,
+        serde_json::json!({ "resources": [] }),
+    ))
 }
 
 async fn handle_resources_read(id: Value) -> HttpResponse {
@@ -360,8 +418,10 @@ async fn handle_resources_read(id: Value) -> HttpResponse {
 }
 
 async fn handle_prompts_list(id: Value) -> HttpResponse {
-    let result = serde_json::json!({ "prompts": [] });
-    HttpResponse::Ok().json(McpResponse::success(id, result))
+    HttpResponse::Ok().json(McpResponse::success(
+        id,
+        serde_json::json!({ "prompts": [] }),
+    ))
 }
 
 async fn handle_ping(id: Value) -> HttpResponse {
