@@ -66,7 +66,7 @@
 - [x] foreign/missing Tool 使用相同响应，并且不在调用者审计中记录外租户 resource UUID。
 - [x] 错误与审计不回显完整 URL、DNS 列表、内部 IP 或大响应体。
 - [x] 覆盖 IPv4/IPv6 loopback、私网、link-local、mapped IPv4、multicast、benchmark、ORCHID/ORCHIDv2、documentation、6to4 和 reserved 地址。
-- [ ] 补齐 Navigator 点名的 public→private Redirect 零命中、Header/并发上限、公开成功投影和 audit-visible foreign/missing 对照证据。
+- [x] 补齐 Navigator 点名的 public→private Redirect 网络前拒绝、慢 Redirect 链共享 deadline、Header/并发上限、合法成功投影和 audit-visible foreign/missing 对照证据。
 - [ ] 获得最新 head 的 Navigator 安全复核结论。
 - [ ] Navigator 通过后再同步 SEC-02 为解除并将 Story 标记 Done。
 
@@ -79,9 +79,9 @@
 
 ## 实际验证
 
-最新验证 head：`e7f6b85a0fb7fd8f68c2da479ad8075482a47ac7`。
+实现与最终定向安全证据锚点：`f8d78dedf71829bf4e35c72a57701d4142def4da`。
 
-GitHub Actions run `30641425436`（CI #105）实际结果：
+GitHub Actions run `30643832546`（CI #115）实际结果：
 
 - `bun install --frozen-lockfile`：通过。
 - `bun run type-check`：通过。
@@ -92,17 +92,37 @@ GitHub Actions run `30641425436`（CI #105）实际结果：
 - `cargo test --workspace`（SQLite required gate）：通过。
 - Frontend lint 与 PostgreSQL 扩展测试为 tag/manual gate，本次 PR required run 正常跳过。
 
-CI 修复过程中验证并关闭了两个实际回归：测试夹具不能隐式依赖生产 localhost 放行；`2001:db8::/32` 必须显式归入 IPv6 documentation 拒绝范围。
+CI 修复过程中验证并关闭了以下实际回归：
+
+- 测试夹具不能隐式依赖生产 localhost 放行，必须显式注入测试策略。
+- `2001:db8::/32` 必须显式归入 IPv6 documentation 拒绝范围。
+- 总 timeout 必须跨越多个 Redirect hop，而不是每跳重置。
+- Header 与并发限制必须在安全边界内 fail closed。
+- foreign 与 missing Tool 在调用者可见响应及审计数据中均不可区分。
+
+本次治理-only 收口提交之后，PR 仍需以新的 exact head 再跑一次 required CI；最终 run 记录在 PR 描述和 Navigator 复核评论中，避免为写入自身未来 SHA 而制造无限文档提交。
 
 ## Navigator 评论处理
 
 | 阻塞项 | 当前处理 |
 |--------|----------|
-| 治理未激活、PR 描述过期 | 本次将 Story / Iteration / Epic / Backlog / Board / docs 入口同步到 Review，并更新 PR 描述 |
-| DNS 与 Redirect 不在统一 deadline 内 | 已使用外层 `tokio::time::timeout` 覆盖完整执行；配置校验 DNS 受 connect timeout 限制；历史 timeout 在 provider 内再次校验 |
+| 治理未激活、PR 描述过期 | Story / Iteration / Epic / Backlog / Board / docs 入口均同步到 Review，PR 描述已改为真实实现与验证状态 |
+| DNS 与 Redirect 不在统一 deadline 内 | 外层 `tokio::time::timeout` 覆盖完整执行；配置校验 DNS 受 connect timeout 限制；历史 timeout 在 provider 内再次校验；慢 Redirect 链测试证明不会逐跳重置 |
 | `test-egress` 可弱化生产默认 | 已删除 feature；生产默认构造器永久 fail closed，测试显式注入 permissive policy |
-| 外租户 Tool UUID 经审计泄露 | foreign/missing 均记录 `resource_id=None` 和相同 reason，不再泄露 foreign UUID |
-| IPv6 特殊用途地址放行 | 已补保守拒绝表和回归矩阵，包括 benchmark、ORCHID、documentation、6to4 与 `3fff::/20` |
+| 外租户 Tool UUID 经审计泄露 | foreign/missing 均记录 `resource_id=None`、相同 action/reason/details，并写入调用者 Tenant，不泄露 foreign UUID |
+| IPv6 特殊用途地址放行 | 已补保守拒绝表和回归矩阵，包括 benchmark、ORCHID/ORCHIDv2、documentation、6to4 与 `3fff::/20` |
+
+## 定向安全证据
+
+| 风险 | 证据 |
+|------|------|
+| DNS mixed result / fallback | `mixed_dns_results_fail_closed_before_request`、`dns_failure_does_not_fall_back_to_reqwest_resolution` |
+| DNS / Redirect 总 deadline | `execution_deadline_includes_dns_resolution`、`configuration_validation_bounds_hanging_dns`、`total_deadline_is_shared_across_redirect_hops` |
+| public→private Redirect | `private_redirect_is_rejected_before_dns_or_connection`，禁止目标在后续 DNS/连接前拒绝 |
+| 响应与并发限制 | `test_http_executor_rejects_oversized_response`、`response_header_limit_is_enforced`、`concurrency_limit_fails_closed_without_waiting` |
+| 生产安全默认 | `production_default_rejects_loopback_even_with_test_feature`、`direct_executor_default_rejects_loopback`，且 permissive Cargo feature 已删除 |
+| 合法成功投影 | `test_mcp_tools_call_executes_authenticated_http_tool` 保持 MCP text/JSON 投影 |
+| foreign/missing 隐藏语义 | `execute_key_cannot_discover_or_distinguish_foreign_tenant_tool` 同时断言响应、网络 hit、audit action/reason/details/resource_id 与 tenant stream |
 
 ## 闭环台账
 
@@ -111,16 +131,16 @@ CI 修复过程中验证并关闭了两个实际回归：测试夹具不能隐�
 | 请求结果 | 建立可验证的统一 HTTP Egress 安全边界，并在 Navigator 通过后解除 SEC-02 |
 | 产物 | Egress Policy / Resolver / Safe Client、真实执行链接线、管理权限与审计、SSRF 负向测试、治理同步 |
 | 状态同步归口 | EVO-118-C Story、EVO-118 Epic、Product Backlog、Board、docs 入口、Iteration 052、PR #5 |
-| 验证证据 | CI #105 / run `30641425436` 在 head `e7f6b85a...` 上 required gates 全绿；剩余定向负向证据与 Navigator 复核待完成 |
-| 残余工作归口 | 本 Story 的剩余负向矩阵与 Navigator 结论；Webhook 复用归 EVO-107；Git 耐久性归 EVO-118-D；部署归 EVO-118-E |
+| 验证证据 | 实现/测试 head `f8d78de...` 的 CI #115 / run `30643832546` required gates 全绿；治理-only 最终 head 的 run 与 Navigator 结论记录在 PR |
+| 残余工作归口 | 仅剩 Navigator 最新结论和 SEC-02 状态关闭；Webhook 复用归 EVO-107；Git 耐久性归 EVO-118-D；部署归 EVO-118-E |
 
 ## 当前结论
 
 - 已实施：统一 egress、总 deadline、严格生产默认、Tool 管理门禁、审计脱敏和 IPv6 特殊用途拒绝。
-- 已验证：最新 exact-head required CI 全绿。
-- 未完成：Navigator 点名的剩余定向负向矩阵、最新安全结论及 SEC-02 状态关闭。
+- 已验证：实现与全部定向安全证据通过 required CI。
+- 未完成：治理-only 最终 head CI、Navigator 最新安全结论及 SEC-02 状态关闭。
 - 闭环状态：`Partial`。
 
 ## 解锁内容
 
-仅在剩余证据与 Navigator 安全复核通过、SEC-02 正式解除后，才允许 MCP HTTP Tool 在 Internal/External Alpha 中按受控策略启用，并为 EVO-107 Webhook 复用安全出站边界。
+仅在最终 exact-head CI 与 Navigator 安全复核通过、SEC-02 正式解除后，才允许 MCP HTTP Tool 在 Internal/External Alpha 中按受控策略启用，并为 EVO-107 Webhook 复用安全出站边界。
