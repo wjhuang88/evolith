@@ -195,9 +195,12 @@ impl SafeHttpClient {
             .try_acquire_owned()
             .map_err(|_| EgressError::ConcurrencyLimit)?;
 
-        tokio::time::timeout(timeout, self.execute_within_deadline(method, raw_url, input))
-            .await
-            .map_err(|_| EgressError::RequestTimedOut)?
+        tokio::time::timeout(
+            timeout,
+            self.execute_within_deadline(method, raw_url, input),
+        )
+        .await
+        .map_err(|_| EgressError::RequestTimedOut)?
     }
 
     async fn execute_within_deadline(
@@ -453,7 +456,9 @@ mod tests {
     fn accepts_representative_global_ipv4_and_ipv6() {
         let policy = EgressPolicy::default();
         assert!(policy.validate_url("https://93.184.216.34").is_ok());
-        assert!(policy.validate_url("https://[2606:4700:4700::1111]").is_ok());
+        assert!(policy
+            .validate_url("https://[2606:4700:4700::1111]")
+            .is_ok());
     }
 
     #[tokio::test]
@@ -503,10 +508,8 @@ mod tests {
 
     #[tokio::test]
     async fn execution_deadline_includes_dns_resolution() {
-        let client = SafeHttpClient::with_resolver(
-            EgressPolicy::default(),
-            Arc::new(HangingResolver),
-        );
+        let client =
+            SafeHttpClient::with_resolver(EgressPolicy::default(), Arc::new(HangingResolver));
         let error = client
             .execute(
                 Method::GET,
