@@ -25,7 +25,7 @@
 |----------|----------|------|--------|------|----------|
 | [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Done | P0 | 无 | Iteration 050 |
 | [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Done | P0 | EVO-118-A Done | Iteration 051 / PR #3 merged |
-| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Ready | P0 | EVO-118-A Done | - |
+| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Review | P0 | EVO-118-A/B Done | Iteration 052 / Draft PR #5 / CI #105 green |
 | [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Proposed | P1 | EVO-118-D/E | - |
@@ -38,7 +38,7 @@
 
 必须完成：EVO-118-B、C、D、E。
 
-当前进度：EVO-118-A/B 已 Done。PR #3 已合并（`6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`），最终 CI run `30567361095` 全绿，SEC-01 已解除；下一项为 EVO-118-C。
+当前进度：EVO-118-A/B 已 Done，SEC-01 已解除。EVO-118-C 已进入 Review：Draft PR #5 的 exact-head CI #105 / run `30641425436` 在 `e7f6b85a0fb7fd8f68c2da479ad8075482a47ac7` 上 required gates 全绿；剩余 Navigator 点名负向证据、最新安全复核和 SEC-02 正式关闭尚未完成。D/E 仍为 Ready。
 
 S1 未完成前：
 
@@ -74,7 +74,8 @@ S1 未完成前：
 
 ## 残余工作归口
 
+- EVO-118-C：完成剩余定向 SSRF/limit/audit 证据并取得最新 Navigator 结论；通过前 SEC-02 保持阻塞。
 - Repo UI 与 Vibe Coding：EVO-112 / EVO-104。
 - Commit/Promote 与 Agent Session：EVO-105 / EVO-106。
-- Webhook/Indexer：EVO-107 / EVO-108，依赖 EVO-118-H。
+- Webhook/Indexer：EVO-107 / EVO-108，依赖 EVO-118-C/H。
 - Sandbox 删除：EVO-111。
