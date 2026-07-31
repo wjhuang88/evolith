@@ -218,12 +218,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn production_default_rejects_loopback_even_with_test_feature() {
+    async fn production_default_rejects_loopback() {
         let error = HttpProxyProvider::new()
-            .execute(http_request("http://127.0.0.1:19999/nonexistent", Some(10)))
+            .execute(http_request(
+                "https://127.0.0.1:19999/nonexistent",
+                Some(10),
+            ))
             .await
             .unwrap_err();
         assert!(error.to_string().contains("target is not allowed"));
+    }
+
+    #[tokio::test]
+    async fn production_default_rejects_plaintext_http() {
+        let error = HttpProxyProvider::new()
+            .execute(http_request("http://93.184.216.34", Some(10)))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("scheme is not allowed"));
     }
 
     #[tokio::test]
