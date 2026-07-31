@@ -72,7 +72,7 @@ pub struct EgressPolicy {
 impl Default for EgressPolicy {
     fn default() -> Self {
         Self {
-            allow_http: true,
+            allow_http: false,
             allow_private_networks: false,
             max_redirects: DEFAULT_MAX_REDIRECTS,
             max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES,
@@ -87,6 +87,7 @@ impl EgressPolicy {
     #[doc(hidden)]
     pub fn for_test_allow_private_networks() -> Self {
         Self {
+            allow_http: true,
             allow_private_networks: true,
             ..Self::default()
         }
@@ -473,6 +474,10 @@ mod tests {
     fn rejects_disallowed_schemes_and_credentials_before_dns() {
         let policy = EgressPolicy::default();
         assert_eq!(
+            policy.validate_url("http://93.184.216.34").unwrap_err(),
+            EgressError::SchemeNotAllowed
+        );
+        assert_eq!(
             policy.validate_url("file:///etc/passwd").unwrap_err(),
             EgressError::SchemeNotAllowed
         );
@@ -488,26 +493,26 @@ mod tests {
     fn rejects_private_metadata_and_special_purpose_addresses() {
         let policy = EgressPolicy::default();
         for url in [
-            "http://127.0.0.1",
-            "http://10.0.0.1",
-            "http://169.254.169.254/latest/meta-data",
-            "http://[::]",
-            "http://[::1]",
-            "http://[fe80::1]",
-            "http://[fc00::1]",
-            "http://[ff02::1]",
-            "http://[::ffff:127.0.0.1]",
-            "http://[2001:2::1]",
-            "http://[2001:10::1]",
-            "http://[2001:20::1]",
-            "http://[2001:1000::1]",
-            "http://[2001:db8::1]",
-            "http://[2002:c000:0201::1]",
-            "http://[2d00::1]",
-            "http://[2e00::1]",
-            "http://[3000::1]",
-            "http://[3ffe::1]",
-            "http://[3fff::1]",
+            "https://127.0.0.1",
+            "https://10.0.0.1",
+            "https://169.254.169.254/latest/meta-data",
+            "https://[::]",
+            "https://[::1]",
+            "https://[fe80::1]",
+            "https://[fc00::1]",
+            "https://[ff02::1]",
+            "https://[::ffff:127.0.0.1]",
+            "https://[2001:2::1]",
+            "https://[2001:10::1]",
+            "https://[2001:20::1]",
+            "https://[2001:1000::1]",
+            "https://[2001:db8::1]",
+            "https://[2002:c000:0201::1]",
+            "https://[2d00::1]",
+            "https://[2e00::1]",
+            "https://[3000::1]",
+            "https://[3ffe::1]",
+            "https://[3fff::1]",
         ] {
             assert_eq!(
                 policy.validate_url(url).unwrap_err(),
@@ -536,7 +541,7 @@ mod tests {
     fn private_redirect_is_rejected_before_dns_or_connection() {
         let policy = EgressPolicy::default();
         let current = policy.validate_url("https://93.184.216.34/start").unwrap();
-        let error = redirect_target(&policy, &current, "http://127.0.0.1/private").unwrap_err();
+        let error = redirect_target(&policy, &current, "https://127.0.0.1/private").unwrap_err();
         assert_eq!(error, EgressError::TargetNotAllowed);
     }
 
