@@ -210,10 +210,8 @@ pub async fn get_tool(
     let tool = match state.tool_repo.find_by_id(path.into_inner()).await {
         Ok(Some(tool)) if tool.tenant_id == user.tenant_id => tool,
         Ok(Some(_)) | Ok(None) => {
-            return HttpResponse::NotFound().json(ApiResponse::<()>::error(
-                "NOT_FOUND",
-                "Tool not found",
-            ));
+            return HttpResponse::NotFound()
+                .json(ApiResponse::<()>::error("NOT_FOUND", "Tool not found"));
         }
         Err(error) => {
             return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
@@ -233,14 +231,8 @@ pub async fn create_tool(
     user: AuthenticatedUser,
     body: web::Bytes,
 ) -> impl Responder {
-    if let Err(response) = authorize_tool_management(
-        &req,
-        &user,
-        ToolManagementAction::Create,
-        None,
-        &state,
-    )
-    .await
+    if let Err(response) =
+        authorize_tool_management(&req, &user, ToolManagementAction::Create, None, &state).await
     {
         return response;
     }
@@ -289,10 +281,8 @@ pub async fn create_tool(
             return validation_error(&message);
         }
         Err(common::error::AppError::DatabaseError(message)) => {
-            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                "DATABASE_ERROR",
-                &message,
-            ));
+            return HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error("DATABASE_ERROR", &message));
         }
         Err(error) => {
             tracing::error!("Failed to create Tool: {}", error);
@@ -429,10 +419,8 @@ pub async fn update_tool(
             return validation_error(&message);
         }
         Err(common::error::AppError::DatabaseError(message)) => {
-            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                "DATABASE_ERROR",
-                &message,
-            ));
+            return HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error("DATABASE_ERROR", &message));
         }
         Err(error) => {
             tracing::error!(tool_id = %tool_id, "Failed to update Tool: {}", error);
@@ -467,10 +455,8 @@ pub async fn delete_tool(
     match state.tool_repo.find_by_id(tool_id).await {
         Ok(Some(tool)) if tool.tenant_id == user.tenant_id => {}
         Ok(Some(_)) | Ok(None) => {
-            return HttpResponse::NotFound().json(ApiResponse::<()>::error(
-                "NOT_FOUND",
-                "Tool not found",
-            ));
+            return HttpResponse::NotFound()
+                .json(ApiResponse::<()>::error("NOT_FOUND", "Tool not found"));
         }
         Err(error) => {
             return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
