@@ -268,18 +268,28 @@ async fn handle_tools_call(
     let arguments = call_params.arguments;
     let tool = match state.tool_repo.find_by_name(&tool_name).await {
         Ok(Some(tool)) if tool.tenant_id == api_key.tenant_id => tool,
-        Ok(Some(tool)) => {
+        Ok(Some(_)) => {
             persist_tool_execution_audit(
                 state,
                 api_key,
-                Some(tool.id),
+                None,
                 "tool.execution.denied",
                 serde_json::json!({"reason": "not_found_or_access_denied"}),
             )
             .await;
             return hidden_tool_response(id);
         }
-        Ok(None) => return hidden_tool_response(id),
+        Ok(None) => {
+            persist_tool_execution_audit(
+                state,
+                api_key,
+                None,
+                "tool.execution.denied",
+                serde_json::json!({"reason": "not_found_or_access_denied"}),
+            )
+            .await;
+            return hidden_tool_response(id);
+        }
         Err(error) => {
             tracing::error!("Failed to find tool: {}", error);
             return HttpResponse::Ok().json(McpResponse::error(
