@@ -9,7 +9,7 @@ use common::error::{AppError, Result};
 use common::execution::{ExecutionPayload, ExecutionProvider, ExecutionRequest, ExecutionResponse};
 use tracing::debug;
 
-use crate::egress::{EgressError, EgressPolicy, SafeHttpClient};
+use crate::egress::{EgressError, EgressPolicy, SafeHttpClient, MAX_REQUEST_TIMEOUT};
 
 pub struct HttpProxyProvider {
     client: SafeHttpClient,
@@ -24,11 +24,11 @@ impl Default for HttpProxyProvider {
 
 impl HttpProxyProvider {
     pub fn new() -> Self {
-        Self::with_policy_and_timeout(default_constructor_policy(), Duration::from_secs(30))
+        Self::with_policy_and_timeout(EgressPolicy::default(), Duration::from_secs(30))
     }
 
     pub fn with_timeout(timeout: Duration) -> Self {
-        Self::with_policy_and_timeout(default_constructor_policy(), timeout)
+        Self::with_policy_and_timeout(EgressPolicy::default(), timeout)
     }
 
     pub fn with_policy(policy: EgressPolicy) -> Self {
@@ -47,17 +47,6 @@ impl HttpProxyProvider {
             client,
             default_timeout: timeout,
         }
-    }
-}
-
-fn default_constructor_policy() -> EgressPolicy {
-    #[cfg(feature = "test-egress")]
-    {
-        EgressPolicy::for_test_allow_private_networks()
-    }
-    #[cfg(not(feature = "test-egress"))]
-    {
-        EgressPolicy::default()
     }
 }
 
@@ -89,6 +78,12 @@ impl ExecutionProvider for HttpProxyProvider {
                     self.default_timeout
                 }
             });
+        if timeout.is_zero() || timeout > MAX_REQUEST_TIMEOUT {
+            return Err(AppError::ValidationError(
+                "HTTP tool timeout must be between 1 and 30000 milliseconds".to_string(),
+            ));
+        }
+
         let method = parse_method(method)?;
         let response = self
             .client
@@ -147,12 +142,10 @@ fn to_app_error(error: EgressError) -> AppError {
         | EgressError::TargetNotAllowed
         | EgressError::DnsResolutionFailed
         | EgressError::RedirectRejected
-        | EgressError::TooManyRedirects => AppError::ValidationError(error.to_string()),
-        EgressError::RequestTimedOut => AppError::ExternalServiceError {
-            service: "http-proxy".to_string(),
-            message: error.to_string(),
-        },
-        EgressError::ConcurrencyLimit
+        | EgressError::TooManyRedirects
+        | EgressError::InvalidTimeout => AppError::ValidationError(error.to_string()),
+        EgressError::RequestTimedOut
+        | EgressError::ConcurrencyLimit
         | EgressError::RequestFailed
         | EgressError::ResponseHeadersTooLarge
         | EgressError::ResponseBodyTooLarge => AppError::ExternalServiceError {
@@ -170,6 +163,22 @@ mod tests {
     use super::*;
     use common::execution::{ExecutionCaller, ExecutionConstraints, ExecutionContext};
 
+    fn http_request(url: &str, timeout_ms: Option<u32>) -> ExecutionRequest {
+        ExecutionRequest {
+            caller: ExecutionCaller::McpTool {
+                tool_id: uuid::Uuid::new_v4(),
+            },
+            payload: ExecutionPayload::HttpProxy {
+                url: url.to_string(),
+                method: "GET".to_string(),
+                timeout_ms,
+            },
+            constraints: ExecutionConstraints::default(),
+            input: serde_json::json!({}),
+            context: ExecutionContext::default(),
+        }
+    }
+
     #[test]
     fn parse_method_valid() {
         assert_eq!(parse_method("GET").unwrap(), reqwest::Method::GET);
@@ -180,10 +189,7 @@ mod tests {
     #[test]
     fn parse_method_invalid_is_redacted() {
         let error = parse_method("SECRET-METHOD").unwrap_err();
-        assert_eq!(
-            error.to_string(),
-            "Validation error: Unsupported HTTP method"
-        );
+        assert_eq!(error.to_string(), "Validation error: Unsupported HTTP method");
     }
 
     #[tokio::test]
@@ -203,28 +209,24 @@ mod tests {
             context: ExecutionContext::default(),
         };
         let error = provider.execute(request).await.unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("HttpProxyProvider only handles HttpProxy payloads"));
+        assert!(error.to_string().contains("HttpProxyProvider only handles HttpProxy payloads"));
     }
 
     #[tokio::test]
-    async fn rejects_loopback_before_connecting() {
-        let provider = HttpProxyProvider::with_policy(EgressPolicy::default());
-        let request = ExecutionRequest {
-            caller: ExecutionCaller::McpTool {
-                tool_id: uuid::Uuid::new_v4(),
-            },
-            payload: ExecutionPayload::HttpProxy {
-                url: "http://127.0.0.1:19999/nonexistent".to_string(),
-                method: "GET".to_string(),
-                timeout_ms: Some(10),
-            },
-            constraints: ExecutionConstraints::default(),
-            input: serde_json::json!({}),
-            context: ExecutionContext::default(),
-        };
-        let error = provider.execute(request).await.unwrap_err();
+    async fn production_default_rejects_loopback_even_with_test_feature() {
+        let error = HttpProxyProvider::new()
+            .execute(http_request("http://127.0.0.1:19999/nonexistent", Some(10)))
+            .await
+            .unwrap_err();
         assert!(error.to_string().contains("target is not allowed"));
+    }
+
+    #[tokio::test]
+    async fn rejects_legacy_timeout_above_runtime_maximum() {
+        let error = HttpProxyProvider::new()
+            .execute(http_request("https://example.com", Some(30_001)))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("between 1 and 30000"));
     }
 }
