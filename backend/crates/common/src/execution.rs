@@ -21,13 +21,21 @@ pub enum ExecutionCaller {
         since = "0.8.0",
         note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
     )]
-    Skill { skill_id: Uuid, runtime: String },
+    Skill {
+        skill_id: Uuid,
+        runtime: String,
+    },
     #[deprecated(
         since = "0.8.0",
         note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
     )]
-    Cli { snippet_id: Uuid, command: String },
-    McpTool { tool_id: Uuid },
+    Cli {
+        snippet_id: Uuid,
+        command: String,
+    },
+    McpTool {
+        tool_id: Uuid,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,12 +44,18 @@ pub enum ExecutionPayload {
         since = "0.8.0",
         note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
     )]
-    Code { source: String, language: String },
+    Code {
+        source: String,
+        language: String,
+    },
     #[deprecated(
         since = "0.8.0",
         note = "will be removed in EVO-111; sandbox execution deprecated per ADR-0005"
     )]
-    Command { command: String, args: Vec<String> },
+    Command {
+        command: String,
+        args: Vec<String>,
+    },
     /// Forward to an external HTTP endpoint (MCP HTTP tool).
     /// `timeout_ms` preserves the existing millisecond Tool contract; the
     /// generic second-based execution constraint remains the fallback.
