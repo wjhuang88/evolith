@@ -66,8 +66,12 @@ impl ExecutionProvider for HttpProxyProvider {
     async fn execute(&self, request: ExecutionRequest) -> Result<ExecutionResponse> {
         let start = Instant::now();
 
-        let (url, method) = match &request.payload {
-            ExecutionPayload::HttpProxy { url, method } => (url, method),
+        let (url, method, timeout_ms) = match &request.payload {
+            ExecutionPayload::HttpProxy {
+                url,
+                method,
+                timeout_ms,
+            } => (url, method, *timeout_ms),
             _ => {
                 return Err(AppError::ValidationError(
                     "HttpProxyProvider only handles HttpProxy payloads".to_string(),
@@ -75,11 +79,16 @@ impl ExecutionProvider for HttpProxyProvider {
             }
         };
 
-        let timeout = if request.constraints.timeout_seconds > 0 {
-            Duration::from_secs(request.constraints.timeout_seconds as u64)
-        } else {
-            self.default_timeout
-        };
+        let timeout = timeout_ms
+            .filter(|timeout_ms| *timeout_ms > 0)
+            .map(|timeout_ms| Duration::from_millis(timeout_ms as u64))
+            .unwrap_or_else(|| {
+                if request.constraints.timeout_seconds > 0 {
+                    Duration::from_secs(request.constraints.timeout_seconds as u64)
+                } else {
+                    self.default_timeout
+                }
+            });
         let method = parse_method(method)?;
         let response = self
             .client
@@ -209,6 +218,7 @@ mod tests {
             payload: ExecutionPayload::HttpProxy {
                 url: "http://127.0.0.1:19999/nonexistent".to_string(),
                 method: "GET".to_string(),
+                timeout_ms: Some(10),
             },
             constraints: ExecutionConstraints::default(),
             input: serde_json::json!({}),
