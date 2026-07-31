@@ -22,13 +22,14 @@
 1. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — 当前成熟度、发布阻断和环境 Gate 的事实 owner。
 2. [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 2026-07-30 后的当前执行顺序 owner。
 3. [EVO-118 Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — 生产就绪硬化的可执行 Story 容器。
-4. [EVO-118-C HTTP Tool Egress Security](backlog/active/EVO-118-C-http-tool-egress-security.md) — 下一激活候选；当前没有 Active/In Progress/Review Iteration，实施前必须按 START-ITERATION 新建迭代。
-5. [Iteration 051](iterations/ITERATION-051.md) — EVO-118-B 的历史闭环记录，已 Closed / Complete；PR #3 已合并并解除 SEC-01。
-6. [API Key Authorization Contract](reference/API-KEY-AUTHORIZATION.md) — Typed capability、管理角色、MCP execute 和 legacy 兼容的当前合约。
-7. [Security Review SOP](sop/SECURITY-REVIEW.md) — 权限、MCP、Git 写入、出站网络、存储和发布改动的强制审查。
-8. [Release SOP](sop/RELEASE.md) — clean build、安全负向测试、Git 持久化和 DB+Git 恢复门禁。
+4. [EVO-118-C HTTP Tool Egress Security](backlog/active/EVO-118-C-http-tool-egress-security.md) — 当前 Review / Partial；Draft PR #5 的 CI #105 required gates 全绿，剩余 Navigator 点名负向证据与最新安全复核，SEC-02 尚未解除。
+5. [Iteration 052](iterations/ITERATION-052.md) — EVO-118-C 的当前计划基线、实际执行、验证和 Review owner。
+6. [Iteration 051](iterations/ITERATION-051.md) — EVO-118-B 的历史闭环记录，已 Closed / Complete；PR #3 已合并并解除 SEC-01。
+7. [API Key Authorization Contract](reference/API-KEY-AUTHORIZATION.md) — Typed capability、管理角色、MCP execute 和 legacy 兼容的当前合约。
+8. [Security Review SOP](sop/SECURITY-REVIEW.md) — 权限、MCP、Git 写入、出站网络、存储和发布改动的强制审查。
+9. [Release SOP](sop/RELEASE.md) — clean build、安全负向测试、Git 持久化和 DB+Git 恢复门禁。
 
-> 当前顺序：EVO-118-C → D → E → F/G/H → EVO-112 → Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
+> 当前顺序：先收口 EVO-118-C，再推进 D → E → F/G/H → EVO-112 → Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
 
 ## Root Entrypoints
 
@@ -77,8 +78,9 @@
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
 - [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic。
 - [EVO-118-B](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) — Done；Iteration 051 和 PR #3 的历史安全闭环记录，SEC-01 已解除。
-- [EVO-118-C](backlog/active/EVO-118-C-http-tool-egress-security.md) — 下一激活候选，负责 SEC-02 HTTP Tool SSRF / Egress Security。
-- [迭代目录](iterations/README.md) — 迭代索引和库存；当前没有 Active/In Progress/Review Iteration。
+- [EVO-118-C](backlog/active/EVO-118-C-http-tool-egress-security.md) — Review / Partial；负责 SEC-02 HTTP Tool SSRF / Egress Security，最新 Navigator 结论前不标 Done。
+- [Iteration 052](iterations/ITERATION-052.md) — 当前 Review；记录 exact-head CI、Navigator remediation 与剩余负向证据。
+- [迭代目录](iterations/README.md) — 迭代索引和库存；Iteration 052 是当前唯一产品/安全 Review。
 - [决策记录](decisions/README.md) — ADR 目录。
 - [ADR-0004 Git-Centric Storage](decisions/ADR-0004-git-centric-storage.md) — Git 事实源方向。
 - [ADR-0005 Deprecate Sandbox](decisions/ADR-0005-deprecate-sandbox-runtime.md) — legacy Sandbox 删除。
