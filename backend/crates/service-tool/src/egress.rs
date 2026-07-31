@@ -18,46 +18,6 @@ const DEFAULT_MAX_REDIRECTS: usize = 5;
 const DEFAULT_MAX_CONCURRENCY: usize = 32;
 const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
-// IANA IPv6 Global Unicast Address Space allocations, last reviewed against the
-// registry dated 2025-10-10. Unlisted space inside 2000::/3 is reserved for
-// future allocation and therefore fails closed here.
-const ALLOCATED_IPV6_GLOBAL_UNICAST: &[(Ipv6Addr, u8)] = &[
-    (Ipv6Addr::new(0x2001, 0x0200, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x0400, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x0600, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x0800, 0, 0, 0, 0, 0, 0), 22),
-    (Ipv6Addr::new(0x2001, 0x0c00, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x0e00, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x1200, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x1400, 0, 0, 0, 0, 0, 0), 22),
-    (Ipv6Addr::new(0x2001, 0x1800, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x1a00, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x1c00, 0, 0, 0, 0, 0, 0), 22),
-    (Ipv6Addr::new(0x2001, 0x2000, 0, 0, 0, 0, 0, 0), 19),
-    (Ipv6Addr::new(0x2001, 0x4000, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x4200, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x4400, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x4600, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x4800, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x4a00, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x4c00, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2001, 0x5000, 0, 0, 0, 0, 0, 0), 20),
-    (Ipv6Addr::new(0x2001, 0x8000, 0, 0, 0, 0, 0, 0), 19),
-    (Ipv6Addr::new(0x2001, 0xa000, 0, 0, 0, 0, 0, 0), 20),
-    (Ipv6Addr::new(0x2001, 0xb000, 0, 0, 0, 0, 0, 0), 20),
-    (Ipv6Addr::new(0x2003, 0, 0, 0, 0, 0, 0, 0), 18),
-    (Ipv6Addr::new(0x2400, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2410, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2600, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2610, 0, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2620, 0, 0, 0, 0, 0, 0, 0), 23),
-    (Ipv6Addr::new(0x2630, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2800, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2a00, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2a10, 0, 0, 0, 0, 0, 0, 0), 12),
-    (Ipv6Addr::new(0x2c00, 0, 0, 0, 0, 0, 0, 0), 12),
-];
-
 #[derive(Debug, Clone)]
 pub struct EgressPolicy {
     allow_http: bool,
@@ -94,7 +54,7 @@ impl EgressPolicy {
     }
 
     pub fn validate_url(&self, raw_url: &str) -> Result<Url, EgressError> {
-        let url = Url::parse(raw_url).map_err(|_| EgressError::InvalidTarget)?;
+        let mut url = Url::parse(raw_url).map_err(|_| EgressError::InvalidTarget)?;
         match url.scheme() {
             "https" => {}
             "http" if self.allow_http => {}
@@ -111,8 +71,14 @@ impl EgressPolicy {
         if is_metadata_hostname(&hostname) {
             return Err(EgressError::TargetNotAllowed);
         }
-        if let Ok(ip) = hostname.parse::<IpAddr>() {
-            self.validate_ip(ip)?;
+        match hostname.parse::<IpAddr>() {
+            Ok(ip) => self.validate_ip(ip)?,
+            Err(_) => {
+                if url.host_str() != Some(hostname.as_str()) {
+                    url.set_host(Some(&hostname))
+                        .map_err(|_| EgressError::InvalidTarget)?;
+                }
+            }
         }
         Ok(url)
     }
@@ -410,22 +376,27 @@ fn is_public_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_public_ipv6(ip: Ipv6Addr) -> bool {
-    if ipv6_in_prefix(
-        ip,
-        Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 0),
-        32,
-    ) {
-        return false;
+    let [first, second, ..] = ip.segments();
+    match first {
+        0x2001 => {
+            matches!(
+                second,
+                0x0200..=0x0fff
+                    | 0x1200..=0x4dff
+                    | 0x5000..=0x5fff
+                    | 0x8000..=0xbfff
+            ) && second != 0x0db8
+        }
+        0x2003 => second <= 0x3fff,
+        0x2400..=0x241f
+        | 0x2600..=0x260f
+        | 0x2630..=0x263f
+        | 0x2800..=0x280f
+        | 0x2a00..=0x2a1f
+        | 0x2c00..=0x2c0f => true,
+        0x2610 | 0x2620 => second <= 0x01ff,
+        _ => false,
     }
-
-    ALLOCATED_IPV6_GLOBAL_UNICAST
-        .iter()
-        .any(|(network, prefix_len)| ipv6_in_prefix(ip, *network, *prefix_len))
-}
-
-fn ipv6_in_prefix(ip: Ipv6Addr, network: Ipv6Addr, prefix_len: u8) -> bool {
-    let shift = 128_u32 - u32::from(prefix_len);
-    (u128::from(ip) >> shift) == (u128::from(network) >> shift)
 }
 
 #[cfg(test)]
@@ -490,6 +461,14 @@ mod tests {
     }
 
     #[test]
+    fn normalizes_domain_host_before_resolution_and_pinning() {
+        let url = EgressPolicy::default()
+            .validate_url("https://EXAMPLE.COM./path")
+            .unwrap();
+        assert_eq!(url.host_str(), Some("example.com"));
+    }
+
+    #[test]
     fn rejects_private_metadata_and_special_purpose_addresses() {
         let policy = EgressPolicy::default();
         for url in [
@@ -533,7 +512,10 @@ mod tests {
             "https://[2804:14d:1::1]",
             "https://[2a00:1450:4001::200e]",
         ] {
-            assert!(policy.validate_url(url).is_ok(), "{url} should be accepted");
+            assert!(
+                policy.validate_url(url).is_ok(),
+                "{url} should be accepted"
+            );
         }
     }
 
