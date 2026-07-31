@@ -1,5 +1,6 @@
 name: evo-118-b-closeout-push
 
+# Branch-scoped temporary runner; removed before PR review.
 on:
   push:
     branches:
