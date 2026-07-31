@@ -367,8 +367,9 @@ fn is_public_ipv6(ip: Ipv6Addr) -> bool {
     }
 
     // Fail closed for IANA special-purpose space inside 2000::/3. 2001::/23
-    // includes benchmarking, ORCHID, ORCHIDv2 and other protocol assignments.
-    if segments[0] == 0x2001 && segments[1] <= 0x01ff {
+    // includes benchmarking, ORCHID, ORCHIDv2 and other protocol assignments;
+    // 2001:db8::/32 is reserved for documentation.
+    if segments[0] == 0x2001 && (segments[1] <= 0x01ff || segments[1] == 0x0db8) {
         return false;
     }
     // 6to4 embeds an IPv4 route and is not accepted as an authoritative public target.
