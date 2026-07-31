@@ -9,9 +9,8 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118-A | 项目体检治理基线与优先级重排 | Review | P0 | Iteration 050；治理产物已提交分支，等待 PR merge 与本地 DOC-CHECK | [Item file](active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](../iterations/ITERATION-050.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
-| EVO-118-B | API Key 与 MCP 授权边界硬化 | Ready | P0 | SEC-01 release blocker；Owner/Admin 管理、Typed Capability、MCP execute scope、已有 Key 审计 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
-| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Ready | P0 | SEC-02 release blocker；DNS/IP/Redirect/Metadata/Egress 边界和 Tool 创建角色门禁 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
+| EVO-118-B | API Key 与 MCP 授权边界硬化 | Review | P0 | Iteration 051 / Draft PR #3；实现已形成，等待 Rust/前端 hard-required 门禁，SEC-01 尚未解除 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md)<br>[Authorization Contract](../reference/API-KEY-AUTHORIZATION.md)<br>[Security Review](../sop/SECURITY-REVIEW.md) |
+| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Ready | P0 | SEC-02 release blocker；DNS/IP/Redirect/Metadata/Egress 边界和 Tool 创建角色门禁；仅在 B 关闭后启动 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | DATA-01 release blocker；生产持久卷、PostgreSQL+Git 联合备份、空环境恢复 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | DEPLOY-01 release blocker；clean build、单一交付形态、协议路径 Smoke Test | [Item file](active/EVO-118-E-production-build-deployment-convergence.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
 | EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | Proposed | P0 | 产品主线保持；EVO-118 S1 未关闭前只做 refinement，不抢占实现 WIP | [Item file](active/EVO-112-repo-management-ui.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)<br>[Design System](../reference/DESIGN.md) |
@@ -25,9 +24,9 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A Review，B~E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
-| EVO-118-A | 项目体检治理基线与优先级重排 | Review | P0 | Governance Story；Iteration 050；等待 PR merge/本地 DOC-CHECK | [Item file](active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](../iterations/ITERATION-050.md) |
-| EVO-118-B | API Key 与 MCP 授权边界硬化 | Ready | P0 | 解除 SEC-01 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md) |
+| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A Done，B Review，C~E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
+| EVO-118-A | 项目体检治理基线与优先级重排 | Done | P0 | Governance Story；Iteration 050 Closed；PR #2 merged | [Item file](active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](../iterations/ITERATION-050.md) |
+| EVO-118-B | API Key 与 MCP 授权边界硬化 | Review | P0 | Iteration 051 / Draft PR #3；运行门禁待补，解除 SEC-01 尚未完成 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md) |
 | EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Ready | P0 | 解除 SEC-02 | [Item file](active/EVO-118-C-http-tool-egress-security.md) |
 | EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | 解除 DATA-01 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | 解除 DEPLOY-01 | [Item file](active/EVO-118-E-production-build-deployment-convergence.md) |

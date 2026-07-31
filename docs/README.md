@@ -22,11 +22,12 @@
 1. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — 当前成熟度、发布阻断和环境 Gate 的事实 owner。
 2. [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 2026-07-30 后的当前执行顺序 owner。
 3. [EVO-118 Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — 生产就绪硬化的可执行 Story 容器。
-4. [Iteration 050](iterations/ITERATION-050.md) — 本次治理基线执行和 Review 记录。
-5. [Security Review SOP](sop/SECURITY-REVIEW.md) — 权限、MCP、Git 写入、出站网络、存储和发布改动的强制审查。
-6. [Release SOP](sop/RELEASE.md) — clean build、安全负向测试、Git 持久化和 DB+Git 恢复门禁。
+4. [Iteration 051](iterations/ITERATION-051.md) — 当前唯一非终态 WIP，处于 Review / Partial；只处理 PR #3 验证和审查。
+5. [API Key Authorization Contract](reference/API-KEY-AUTHORIZATION.md) — Typed capability、管理角色、MCP execute 和 legacy 兼容的当前合约。
+6. [Security Review SOP](sop/SECURITY-REVIEW.md) — 权限、MCP、Git 写入、出站网络、存储和发布改动的强制审查。
+7. [Release SOP](sop/RELEASE.md) — clean build、安全负向测试、Git 持久化和 DB+Git 恢复门禁。
 
-> 当前顺序：EVO-118-A merge → B → C → D → E → F/G/H → EVO-112 → Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
+> 当前顺序：完成 EVO-118-B PR #3 验证/合并 → C → D → E → F/G/H → EVO-112 → Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
 
 ## Root Entrypoints
 
@@ -39,10 +40,11 @@
 - [生产就绪与项目完成度基线](reference/PRODUCTION-READINESS-BASELINE.md) — Git Alpha、产品完成度、Release Gates 和环境准入。
 - [架构设计](reference/ARCHITECTURE.md) — 模块化单体、事实源、数据边界和目标 Application Services。
 - [项目地图](reference/PROJECT-MAP.md) — 代码结构和关键路径。
-- [API 合约](reference/API-CONTRACT.md) — HTTP API、认证和错误响应。
+- [API 合约](reference/API-CONTRACT.md) — 完整 HTTP API、认证和错误响应。
+- [API Key 与 MCP 授权合约](reference/API-KEY-AUTHORIZATION.md) — API Keys/MCP/scope 的安全细化合约；相关冲突时优先。
 - [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本。
 - [配置参考](reference/CONFIG.md) — 环境变量和嵌套配置键。
-- [权限](reference/PERMISSIONS.md) — 多租户和 RBAC；实现仍需 EVO-118-B 校准。
+- [权限](reference/PERMISSIONS.md) — 当前 owner/admin/member 角色、Typed capability 和 legacy 轮换。
 - [多租户设计](reference/MULTI-TENANT.md) — 租户模型和隔离边界。
 - [计费](reference/BILLING.md) — Stripe、订阅和用量设计。
 - [测试](reference/TESTING.md) — 测试策略、位置和历史用例状态。
@@ -73,6 +75,7 @@
 - [Operating Board](BOARD.md) — 当前 Now/Review/Blocked/Next/Later 派生视图。
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
 - [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic。
+- [EVO-118-B](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) — 当前 Review 中的安全 Story。
 - [迭代目录](iterations/README.md) — 迭代索引和库存。
 - [决策记录](decisions/README.md) — ADR 目录。
 - [ADR-0004 Git-Centric Storage](decisions/ADR-0004-git-centric-storage.md) — Git 事实源方向。

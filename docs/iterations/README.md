@@ -8,7 +8,7 @@
 
 | Iteration | 状态 | 目标/处置 |
 |-----------|------|-----------|
-| [Iteration 050](ITERATION-050.md) | Review / Partial | 项目体检治理基线与生产就绪重排；等待 Draft PR merge 与本地 DOC-CHECK |
+| [Iteration 051](ITERATION-051.md) | Review / Partial | EVO-118-B 已提交 Draft PR #3；等待 Rust/前端 hard-required 门禁，未关闭前不启动新 Story |
 | [Iteration 018](ITERATION-018.md) | Blocked for activation / Superseded direction | 旧 Skill 导入计划，被 Git-centric EVO-100/108 替代 |
 | [Iteration 019](ITERATION-019.md) | Blocked for activation / Superseded direction | 旧 Skill 多来源计划，不 deliberate replan 则不激活 |
 | [Iteration 020](ITERATION-020.md) | Blocked for activation / Superseded direction | 旧 Skill 版本计划，被 Git 原生历史与 Indexer 替代 |
@@ -18,12 +18,13 @@
 
 ### 当前启动结论
 
-- Iteration 050 在 Review 未关闭前，不新建另一个产品 Iteration。
-- 050 关闭后，默认从 EVO-118-B 开始新的安全微迭代，而不是激活 Repo UI。
+- Iteration 050 已 Closed / Complete，PR #2 已 merge。
+- Iteration 051 是唯一非终态 Story；WIP 只处理 PR #3 验证和审查，不并行启动 EVO-118-C。
+- 051 全部门禁通过、PR 合并并关闭后，默认进入 EVO-118-C，不直接激活 Repo UI。
 - 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 - 安全、数据损坏或生产构建 P0 可显式插队；普通产品工作不得绕过 EVO-118 S1。
 
-## 最近完成的 Git-centric Iterations
+## 最近完成的 Git-centric / Readiness Iterations
 
 | Iteration | 状态 | 结果 |
 |-----------|------|------|
@@ -35,8 +36,9 @@
 | [Iteration 047](ITERATION-047.md) | Closed | WWW-Authenticate + real git-client E2E |
 | [Iteration 048](ITERATION-048.md) | Closed | Repo Context API |
 | [Iteration 049](ITERATION-049.md) | Closed | EVO-103 acceptance hardening |
+| [Iteration 050](ITERATION-050.md) | Closed | 项目体检治理基线与生产就绪重排；EVO-118-A Done |
 
-这些 Iteration 证明 Git 后端 Alpha 基础存在，但不证明平台生产就绪。后续发布 Gate 归 [EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)。
+这些 Iteration 证明 Git 后端 Alpha 基础和治理 Gate 存在，但不证明平台生产就绪。后续发布 Gate 归 [EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)。
 
 ## 历史 Iteration 索引
 
@@ -83,8 +85,9 @@
 | 039 | [后端死代码清理](ITERATION-039.md) |
 | 040 | [前端类型与死代码清理](ITERATION-040.md) |
 | 041 | [ExecutionProvider + Docker Pool](ITERATION-041.md) |
-| 042~049 | 见“最近完成的 Git-centric Iterations” |
+| 042~049 | 见“最近完成的 Git-centric / Readiness Iterations” |
 | 050 | [项目体检治理与生产就绪重排](ITERATION-050.md) |
+| 051 | [API Key 与 MCP 授权边界硬化](ITERATION-051.md) |
 
 ## 计划基线保护
 

@@ -369,7 +369,11 @@ async fn test_mcp_tools_call_nonexistent_tool() {
         response["error"].is_object(),
         "Expected error for nonexistent tool"
     );
-    assert_eq!(response["error"]["code"], -32601);
+    assert_eq!(response["error"]["code"], -32001);
+    assert_eq!(
+        response["error"]["message"],
+        "Tool not found or access denied"
+    );
 }
 
 #[actix_rt::test]

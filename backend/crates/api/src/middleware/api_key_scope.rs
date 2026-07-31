@@ -1,83 +1,98 @@
-//! API key scope helpers
+//! API key authorization helpers.
 //!
-//! Single source of truth for translating `ApiKey.permissions` strings into
-//! resource-action capabilities. Handlers MUST use these helpers instead of
-//! rolling their own string checks so that read-only keys cannot accidentally
-//! escalate to repo writes or key management.
-//!
-//! Permission taxonomy (current implementations, all case-sensitive):
-//!
-//! | Permission token           | Read | Write | Manage keys | Notes |
-//! |----------------------------|:----:|:-----:|:-----------:|-------|
-//! | `read` / `repo:read`       |  ✓   |       |             | clone/fetch + Context API |
-//! | `write` / `repo:write`     |  ✓   |   ✓   |             | push + Repo CRUD |
-//! | `admin`                    |  ✓   |   ✓   |             | full repo (key management still JWT-only) |
-//! | `commit`                   |  ✓   |   ✓   |             | Smart HTTP push |
-//! | `commit:*` (e.g. `commit:main`) |  ✓ |  ✓ |         | scoped commit permission |
-//! | `execute`                  |      |       |             | MCP tool execution only — NO repo access |
-//! | other / empty              |      |       |             | no implicit access |
-//!
-//! Notes:
-//! - API keys are NEVER allowed to manage other API keys regardless of
-//!   permissions. Management is JWT-only and is enforced in the handler.
-//! - The `admin` token grants repo write/read but still does NOT bypass the
-//!   key-management restriction above.
+//! New API keys may only be issued with canonical capabilities defined by
+//! `domain::api_key::ApiKeyCapability`. Stored permissions remain strings for database and
+//! rolling-upgrade compatibility, so existing `write`, `admin`, `commit` and `commit:<branch>`
+//! tokens continue to authorize their historical repo operations. They are deliberately not
+//! accepted by the create-key DTO.
 
 use domain::api_key::ApiKey;
 
-/// A subset of the Smart HTTP / Repo operations that need a scope check.
+/// Resource actions that an API key may request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApiKeyAction {
+    RepoRead,
+    RepoWrite,
+    ToolExecute,
+    Promote,
+}
+
+/// Backward-compatible subset used by existing repo handlers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RepoScope {
-    /// clone/fetch via `git-upload-pack`, GET Repo Context endpoints, list/get repo.
     Read,
-    /// push via `git-receive-pack`, POST/PATCH/DELETE Repo CRUD.
     Write,
 }
 
-/// Return `true` if `api_key` is allowed to perform `scope` on repos owned by
-/// the same tenant as the key. Returns `false` when no matching permission is
-/// present (including when the key has only `execute` or unrelated tokens).
-///
-/// Use this helper from every handler that touches Repo CRUD, Context API or
-/// Smart HTTP. JWT-authenticated requests should bypass this helper entirely
-/// (their existing `CurrentUser.tenant_role` checks are authoritative).
+/// Single source of truth for API-key action authorization.
+pub fn api_key_allows(api_key: &ApiKey, action: ApiKeyAction) -> bool {
+    api_key
+        .permissions
+        .iter()
+        .any(|permission| permission_grants(permission, action))
+}
+
 pub fn api_key_allows_repo(api_key: &ApiKey, scope: RepoScope) -> bool {
-    api_key.permissions.iter().any(|permission| {
-        let p = permission.as_str();
+    api_key_allows(
+        api_key,
         match scope {
-            RepoScope::Read => is_repo_read_permission(p),
-            RepoScope::Write => is_repo_write_permission(p),
-        }
-    })
+            RepoScope::Read => ApiKeyAction::RepoRead,
+            RepoScope::Write => ApiKeyAction::RepoWrite,
+        },
+    )
 }
 
-/// Convenience wrapper for read-only checks.
 pub fn api_key_allows_repo_read(api_key: &ApiKey) -> bool {
-    api_key_allows_repo(api_key, RepoScope::Read)
+    api_key_allows(api_key, ApiKeyAction::RepoRead)
 }
 
-/// Convenience wrapper for write checks.
 pub fn api_key_allows_repo_write(api_key: &ApiKey) -> bool {
-    api_key_allows_repo(api_key, RepoScope::Write)
+    api_key_allows(api_key, ApiKeyAction::RepoWrite)
 }
 
-/// API keys are NEVER allowed to manage other API keys. This helper exists so
-/// handlers have a single, auditable answer for the question "may this caller
-/// rotate keys?" without re-implementing it inline.
+pub fn api_key_allows_tool_execute(api_key: &ApiKey) -> bool {
+    api_key_allows(api_key, ApiKeyAction::ToolExecute)
+}
+
+pub fn api_key_allows_promote(api_key: &ApiKey) -> bool {
+    api_key_allows(api_key, ApiKeyAction::Promote)
+}
+
+/// API keys can never manage or mint other API keys, regardless of stored permissions.
 pub fn api_key_allows_api_key_management(api_key: &ApiKey) -> bool {
     let _ = api_key;
     false
 }
 
-fn is_repo_read_permission(p: &str) -> bool {
-    matches!(
-        p,
-        "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit"
-    ) || p.starts_with("commit:")
+/// Return legacy permission tokens that should be rotated to canonical capabilities.
+pub fn legacy_api_key_permissions(api_key: &ApiKey) -> Vec<&str> {
+    api_key
+        .permissions
+        .iter()
+        .map(String::as_str)
+        .filter(|permission| is_legacy_permission(permission))
+        .collect()
 }
 
-fn is_repo_write_permission(p: &str) -> bool {
-    matches!(p, "write" | "repo:write" | "admin" | "commit") || p.starts_with("commit:")
+fn permission_grants(permission: &str, action: ApiKeyAction) -> bool {
+    match action {
+        ApiKeyAction::RepoRead => {
+            matches!(
+                permission,
+                "read" | "repo:read" | "write" | "repo:write" | "admin" | "commit"
+            ) || permission.starts_with("commit:")
+        }
+        ApiKeyAction::RepoWrite => {
+            matches!(permission, "write" | "repo:write" | "admin" | "commit")
+                || permission.starts_with("commit:")
+        }
+        ApiKeyAction::ToolExecute => permission == "execute",
+        ApiKeyAction::Promote => permission == "promote",
+    }
+}
+
+fn is_legacy_permission(permission: &str) -> bool {
+    matches!(permission, "write" | "admin" | "commit") || permission.starts_with("commit:")
 }
 
 #[cfg(test)]
@@ -109,85 +124,65 @@ mod tests {
     }
 
     #[test]
-    fn read_only_key_allows_repo_read_only() {
-        let k = api_key_with(vec!["repo:read"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(!api_key_allows_repo_write(&k));
+    fn canonical_repo_capabilities_are_action_scoped() {
+        let read = api_key_with(vec!["repo:read"]);
+        assert!(api_key_allows_repo_read(&read));
+        assert!(!api_key_allows_repo_write(&read));
+        assert!(!api_key_allows_tool_execute(&read));
+
+        let write = api_key_with(vec!["repo:write"]);
+        assert!(api_key_allows_repo_read(&write));
+        assert!(api_key_allows_repo_write(&write));
+        assert!(!api_key_allows_tool_execute(&write));
     }
 
     #[test]
-    fn read_token_alias_works() {
-        let k = api_key_with(vec!["read"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(!api_key_allows_repo_write(&k));
+    fn execute_and_promote_do_not_imply_repo_access() {
+        let execute = api_key_with(vec!["execute"]);
+        assert!(api_key_allows_tool_execute(&execute));
+        assert!(!api_key_allows_repo_read(&execute));
+        assert!(!api_key_allows_promote(&execute));
+
+        let promote = api_key_with(vec!["promote"]);
+        assert!(api_key_allows_promote(&promote));
+        assert!(!api_key_allows_repo_read(&promote));
+        assert!(!api_key_allows_tool_execute(&promote));
     }
 
     #[test]
-    fn write_key_allows_both() {
-        let k = api_key_with(vec!["repo:write"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(api_key_allows_repo_write(&k));
+    fn legacy_repo_permissions_remain_runtime_compatible() {
+        for permission in ["write", "admin", "commit", "commit:main"] {
+            let key = api_key_with(vec![permission]);
+            assert!(api_key_allows_repo_read(&key));
+            assert!(api_key_allows_repo_write(&key));
+            assert!(!api_key_allows_tool_execute(&key));
+            assert_eq!(legacy_api_key_permissions(&key), vec![permission]);
+        }
     }
 
     #[test]
-    fn write_alias_allows_both() {
-        let k = api_key_with(vec!["write"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(api_key_allows_repo_write(&k));
+    fn api_keys_never_manage_other_keys() {
+        let key = api_key_with(vec!["admin", "execute", "repo:write"]);
+        assert!(!api_key_allows_api_key_management(&key));
     }
 
     #[test]
-    fn admin_allows_both() {
-        let k = api_key_with(vec!["admin"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(api_key_allows_repo_write(&k));
+    fn unknown_or_empty_permissions_fail_closed() {
+        for permissions in [vec![], vec!["mcp:tools:read"], vec!["unknown"]] {
+            let key = api_key_with(permissions);
+            assert!(!api_key_allows_repo_read(&key));
+            assert!(!api_key_allows_repo_write(&key));
+            assert!(!api_key_allows_tool_execute(&key));
+            assert!(!api_key_allows_promote(&key));
+        }
     }
 
     #[test]
-    fn commit_token_allows_write() {
-        let k = api_key_with(vec!["commit"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(api_key_allows_repo_write(&k));
-    }
-
-    #[test]
-    fn commit_scoped_token_allows_write() {
-        let k = api_key_with(vec!["commit:main"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(api_key_allows_repo_write(&k));
-    }
-
-    #[test]
-    fn execute_only_key_cannot_access_repo() {
-        let k = api_key_with(vec!["execute"]);
-        assert!(!api_key_allows_repo_read(&k));
-        assert!(!api_key_allows_repo_write(&k));
-    }
-
-    #[test]
-    fn empty_permissions_cannot_access_repo() {
-        let k = api_key_with(vec![]);
-        assert!(!api_key_allows_repo_read(&k));
-        assert!(!api_key_allows_repo_write(&k));
-    }
-
-    #[test]
-    fn unknown_permission_cannot_access_repo() {
-        let k = api_key_with(vec!["mcp:tools:read"]);
-        assert!(!api_key_allows_repo_read(&k));
-        assert!(!api_key_allows_repo_write(&k));
-    }
-
-    #[test]
-    fn admin_key_still_cannot_manage_api_keys() {
-        let k = api_key_with(vec!["admin"]);
-        assert!(!api_key_allows_api_key_management(&k));
-    }
-
-    #[test]
-    fn mixed_permissions_grant_union() {
-        let k = api_key_with(vec!["execute", "repo:write"]);
-        assert!(api_key_allows_repo_read(&k));
-        assert!(api_key_allows_repo_write(&k));
+    fn mixed_permissions_grant_only_their_union() {
+        let key = api_key_with(vec!["execute", "repo:write"]);
+        assert!(api_key_allows_repo_read(&key));
+        assert!(api_key_allows_repo_write(&key));
+        assert!(api_key_allows_tool_execute(&key));
+        assert!(!api_key_allows_promote(&key));
     }
 }
