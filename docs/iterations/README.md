@@ -13,13 +13,14 @@
 | [Iteration 020](ITERATION-020.md) | Blocked for activation / Superseded direction | 旧 Skill 版本计划，被 Git 原生历史与 Indexer 替代 |
 | [Iteration 025](ITERATION-025.md) | Blocked for activation | 租户设置与审计详情；需 refinement，不抢占 EVO-118 S1 |
 | [Iteration 026](ITERATION-026.md) | Blocked for activation | Stripe Webhook/计费；需安全与 Mock 验收 refinement |
-| [Iteration 027](ITERATION-027.md) | Blocked for activation / Superseded direction | 旧 Skill 发现质量计划，被 EVO-108/109 替代 |
+| [Iteration 027](ITERATION-027.md) | Blocked for activation / Superseded direction | 旧 Skill 发现计划，被 EVO-108/109 替代 |
+| [Iteration 052](ITERATION-052.md) | Review / Partial | EVO-118-C HTTP Tool Egress Security；Draft PR #5 的 CI #105 required gates 全绿，剩余 Navigator 点名负向证据与最新安全复核 |
 
 ### 当前启动结论
 
 - Iteration 050 已 Closed / Complete，PR #2 已 merge。
 - Iteration 051 已 Closed / Complete；PR #3 已合并并解除 SEC-01。
-- 当前没有未处置的 Active/In Progress/Review Iteration；下一次激活默认选择 EVO-118-C，不直接激活 Repo UI。
+- Iteration 052 当前为 Review / Partial；在其剩余证据和 Navigator 复核收口前，不激活新的产品 Iteration。
 - 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 - 安全、数据损坏或生产构建 P0 可显式插队；普通产品工作不得绕过 EVO-118 S1。
 
@@ -88,6 +89,7 @@
 | 042~049 | 见“最近完成的 Git-centric / Readiness Iterations” |
 | 050 | [项目体检治理与生产就绪重排](ITERATION-050.md) |
 | 051 | [API Key 与 MCP 授权边界硬化](ITERATION-051.md) |
+| 052 | [HTTP Tool 出站安全与 SSRF 防护](ITERATION-052.md)（Review） |
 
 ## 计划基线保护
 
