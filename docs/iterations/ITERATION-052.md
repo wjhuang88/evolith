@@ -1,6 +1,6 @@
 # Iteration 052: HTTP Tool 出站安全与 SSRF 防护
 
-> 文档状态：Planned
+> 文档状态：Review
 > 计划发布日期：2026-07-31
 > 计划目标：完成 EVO-118-C，建立 HTTP Tool 的统一出站安全边界并关闭 SEC-02。
 >
@@ -301,23 +301,30 @@ Frontend lint 与 PostgreSQL 扩展测试继续保持 tag/manual-only，除非�
 | 2026-07-31 | planning | 核对 PR #4 merged、最新 `main`=`bc4a4a18153b575c47ef76a7a008ae20cf3836c3`；无开放 PR、无 052 或 EVO-118-C 同名分支；完成治理/Security SOP 与真实 HTTP Tool 调用链只读审查。 |
 | 2026-07-31 | planning | 创建分支 `agent/evo-118-c-http-tool-egress-security`；先发布本 Planned 基线。运行时代码尚未修改。 |
 | 2026-07-31 | planning | 激活门禁：必须以单一治理变更同步 Story/Epic/Backlog/Board/docs/Iteration index 后，才把状态改为 Active/In Progress 并开始运行时代码。 |
+| 2026-07-31 | activation correction | 实施已开始但治理状态仍停留 Planned/Ready，Navigator 将其列为阻塞项。补做 owner-first 状态同步：EVO-118-C 与 Iteration 052 进入 Review，父 Epic、Product Backlog、Board、docs 入口和 PR 描述同步实际 head；保留全部计划基线。 |
+| 2026-07-31 | implementation | 新增 `EgressPolicy`、可注入 `DnsResolver` 和 `SafeHttpClient`；禁用系统代理与自动 Redirect，逐跳重新校验并固定批准地址集合；统一主线与 legacy facade。 |
+| 2026-07-31 | implementation | Tool 管理改为同租户 Owner/Admin JWT、auth-before-parse；MCP 保持 execute/tenant 门禁；增加调用者 Tenant 审计与稳定错误脱敏。 |
+| 2026-07-31 | navigator remediation | 修复统一总 deadline 未覆盖 DNS/Redirect、provider 超大 timeout 绕过、`test-egress` feature 弱化生产默认、foreign Tool UUID 审计泄露和 IPv6 特殊用途分类过宽。 |
+| 2026-07-31 | CI remediation | 将 localhost 测试改为显式注入测试策略；生产 `new/default` 永久严格。修复 `2001:db8::/32` documentation 漏判。 |
+| 2026-07-31 | validation | exact-head `e7f6b85a0fb7fd8f68c2da479ad8075482a47ac7` 的 GitHub Actions CI #105 / run `30641425436`：frontend install/type-check/build、Rust fmt/check/clippy、SQLite `cargo test --workspace` 全部通过。 |
 
 ## 13. 变更请求
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
 |------|------|------|------|------------|
 | 2026-07-31 | clarification | 接受 | 用户明确本轮只做 EVO-118-C，不混入 D/E、Repo UI、Agent 写入、Durable Outbox 或架构改造 | 无运行时代码半成品 |
+| 2026-07-31 | review remediation | 接受 | Navigator 要求补齐治理状态、总 deadline、严格生产默认、audit indistinguishability 与 IPv6 特殊用途分类，并完成点名负向矩阵 | 已完成代码阻塞项；剩余 public→private Redirect 零命中、Header/并发限制、public projection 和 audit-visible 对照证据继续归本 Iteration |
 
 ## 14. Review
 
-- 完成：待实施。
-- 未完成：全部运行时代码、安全测试、实际验证、Navigator 审查和 SEC-02 状态同步。
-- 验证结果：尚未运行；计划基线不以历史 CI 代替本轮证据。
-- 闭环状态：`Partial`
-- 残余归口：按闭环台账和本 Iteration 后续执行记录。
+- 完成：统一 Egress Policy / Safe Client；生产主线与 legacy facade 接入；DNS/IP/Metadata/Redirect 校验与连接固定；总 deadline 与运行时 timeout 上限；严格生产默认；Tool 管理权限、MCP tenant/capability、审计脱敏；IPv4/IPv6 特殊用途矩阵；exact-head required CI 全绿。
+- 未完成：Navigator 点名的 public→private Redirect 零命中、Header/并发限制、受控公网成功投影和 audit-visible foreign/missing 对照定向证据；最新 Navigator 安全结论；SEC-02 状态同步。
+- 验证结果：CI #105 / run `30641425436` 在 head `e7f6b85a...` 上通过 frontend install/type-check/build、Rust fmt/check/clippy 和 SQLite workspace tests。Frontend lint 与 PostgreSQL 为 tag/manual gate，正常跳过。
+- 闭环状态：`Partial`；当前生命周期为 `Review`，PR #5 保持 Draft，不合并、不标 Ready。
+- 残余归口：剩余安全负向证据和 Navigator 复核归本 Iteration；通过后再关闭 SEC-02。Webhook 复用归 EVO-107，Git 耐久性归 EVO-118-D，部署归 EVO-118-E。
 
 ## 15. Retrospective
 
-- 做得好的：待迭代结束填写。
-- 需要调整的：待迭代结束填写。
-- 写入 EVOLUTION：如实现发现新的稳定陷阱，再按 SOP 判断写回。
+- 做得好的：CI 失败均按 exact-head 日志收敛，没有通过放宽生产策略修复测试；测试专用私网能力改为显式依赖注入。
+- 需要调整的：Planned 基线发布后必须先原子同步治理状态再写运行时代码；Actions success 不能替代 PR/Navigator validation。
+- 写入 EVOLUTION：待 Navigator 完成后判断是否将“测试 feature 不得改变生产安全默认”和“CI 绿不等于安全 Review 通过”沉淀为稳定陷阱。
