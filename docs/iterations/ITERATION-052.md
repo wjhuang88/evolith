@@ -307,24 +307,26 @@ Frontend lint 与 PostgreSQL 扩展测试继续保持 tag/manual-only，除非�
 | 2026-07-31 | navigator remediation | 修复统一总 deadline 未覆盖 DNS/Redirect、provider 超大 timeout 绕过、`test-egress` feature 弱化生产默认、foreign Tool UUID 审计泄露和 IPv6 特殊用途分类过宽。 |
 | 2026-07-31 | CI remediation | 将 localhost 测试改为显式注入测试策略；生产 `new/default` 永久严格。修复 `2001:db8::/32` documentation 漏判。 |
 | 2026-07-31 | validation | exact-head `e7f6b85a0fb7fd8f68c2da479ad8075482a47ac7` 的 GitHub Actions CI #105 / run `30641425436`：frontend install/type-check/build、Rust fmt/check/clippy、SQLite `cargo test --workspace` 全部通过。 |
+| 2026-07-31 | targeted security evidence | 补齐 public→private Redirect 在后续 DNS/连接前拒绝、慢 Redirect 链共享一个总 deadline、Header 上限、并发 permit fail-closed、合法 MCP 成功投影和 audit-visible foreign/missing 对照断言。 |
+| 2026-07-31 | validation | 实现与全部定向安全证据 head `f8d78dedf71829bf4e35c72a57701d4142def4da` 的 CI #115 / run `30643832546`：frontend install/type-check/build、Rust fmt/check/clippy、SQLite `cargo test --workspace` 全部通过。 |
 
 ## 13. 变更请求
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
 |------|------|------|------|------------|
 | 2026-07-31 | clarification | 接受 | 用户明确本轮只做 EVO-118-C，不混入 D/E、Repo UI、Agent 写入、Durable Outbox 或架构改造 | 无运行时代码半成品 |
-| 2026-07-31 | review remediation | 接受 | Navigator 要求补齐治理状态、总 deadline、严格生产默认、audit indistinguishability 与 IPv6 特殊用途分类，并完成点名负向矩阵 | 已完成代码阻塞项；剩余 public→private Redirect 零命中、Header/并发限制、public projection 和 audit-visible 对照证据继续归本 Iteration |
+| 2026-07-31 | review remediation | 接受 | Navigator 要求补齐治理状态、总 deadline、严格生产默认、audit indistinguishability、IPv6 特殊用途分类和点名负向矩阵 | 代码阻塞项与全部点名定向证据已完成；仅剩治理-only 最终 exact-head CI、Navigator 新结论与 SEC-02 状态关闭 |
 
 ## 14. Review
 
-- 完成：统一 Egress Policy / Safe Client；生产主线与 legacy facade 接入；DNS/IP/Metadata/Redirect 校验与连接固定；总 deadline 与运行时 timeout 上限；严格生产默认；Tool 管理权限、MCP tenant/capability、审计脱敏；IPv4/IPv6 特殊用途矩阵；exact-head required CI 全绿。
-- 未完成：Navigator 点名的 public→private Redirect 零命中、Header/并发限制、受控公网成功投影和 audit-visible foreign/missing 对照定向证据；最新 Navigator 安全结论；SEC-02 状态同步。
-- 验证结果：CI #105 / run `30641425436` 在 head `e7f6b85a...` 上通过 frontend install/type-check/build、Rust fmt/check/clippy 和 SQLite workspace tests。Frontend lint 与 PostgreSQL 为 tag/manual gate，正常跳过。
+- 完成：统一 Egress Policy / Safe Client；生产主线与 legacy facade 接入；DNS/IP/Metadata/Redirect 校验与连接固定；总 deadline 与运行时 timeout 上限；严格生产默认；Tool 管理权限、MCP tenant/capability、审计脱敏；IPv4/IPv6 特殊用途矩阵；public→private Redirect 网络前拒绝；慢 Redirect 链总 deadline；Header/body/并发限制；合法 MCP 成功投影；foreign/missing 响应与审计不可区分。
+- 未完成：治理-only 最终 exact-head required CI；Navigator 最新安全结论；SEC-02 状态同步。
+- 验证结果：CI #115 / run `30643832546` 在实现/测试 head `f8d78de...` 上通过 frontend install/type-check/build、Rust fmt/check/clippy 和 SQLite workspace tests。Frontend lint 与 PostgreSQL 为 tag/manual gate，正常跳过。治理-only 最终 head 的 run 记录在 PR 描述和复核评论中，避免文档为写入自身未来 SHA 而无限产生新提交。
 - 闭环状态：`Partial`；当前生命周期为 `Review`，PR #5 保持 Draft，不合并、不标 Ready。
-- 残余归口：剩余安全负向证据和 Navigator 复核归本 Iteration；通过后再关闭 SEC-02。Webhook 复用归 EVO-107，Git 耐久性归 EVO-118-D，部署归 EVO-118-E。
+- 残余归口：仅剩最终 exact-head CI、Navigator 复核与 SEC-02 正式关闭。Webhook 复用归 EVO-107，Git 耐久性归 EVO-118-D，部署归 EVO-118-E。
 
 ## 15. Retrospective
 
-- 做得好的：CI 失败均按 exact-head 日志收敛，没有通过放宽生产策略修复测试；测试专用私网能力改为显式依赖注入。
-- 需要调整的：Planned 基线发布后必须先原子同步治理状态再写运行时代码；Actions success 不能替代 PR/Navigator validation。
+- 做得好的：CI 失败均按 exact-head 日志收敛，没有通过放宽生产策略修复测试；测试专用私网能力改为显式依赖注入；Actions 与 Navigator validation 被明确区分。
+- 需要调整的：Planned 基线发布后必须先原子同步治理状态再写运行时代码；最终证据应集中写入 Story/Iteration owner，再由 PR exact-head run 承担自引用问题。
 - 写入 EVOLUTION：待 Navigator 完成后判断是否将“测试 feature 不得改变生产安全默认”和“CI 绿不等于安全 Review 通过”沉淀为稳定陷阱。
