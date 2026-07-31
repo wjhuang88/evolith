@@ -1,6 +1,6 @@
 # Iteration 051: API Key 与 MCP 授权边界硬化
 
-> 文档状态：Review  
+> 文档状态：Closed / Complete
 > 计划发布日期：2026-07-30  
 > 计划目标：关闭 SEC-01，阻止 Member/API Key 管理凭证，并要求 MCP `tools/call` 具备 `execute` capability。  
 > PR：#3 `security: harden API key and MCP authorization`  
@@ -108,8 +108,8 @@ cargo test -p api api_key_scope
 | 产物 | Domain capability、授权 helper、auth-before-parse、caller-owned audit、MCP hidden response、RBAC status mapping、测试、前端、文档和 PR CI |
 | 状态同步归口 | EVO-118/B、Iteration 051、Product Backlog、Board、Permissions/API Key Authorization Contract |
 | Story/BDD 归口 | Permission / Security；负向 Given/When/Then |
-| 验证证据 | GitHub Actions 前端 type-check/build、Rust fmt/check/clippy；workspace test 最终只读复验中 |
-| 残余工作归口 | 最新 head CI 全绿、reviewer 复审与 merge；SSRF → EVO-118-C；Agent token → EVO-105/106；legacy Key 轮换 → Permissions Reference |
+| 验证证据 | GitHub Actions run `30567361095`：前端 install/type-check/build 与 Rust fmt/check/clippy/workspace tests 全部通过 |
+| 残余工作归口 | SEC-01 已解除；SSRF → EVO-118-C；Agent token → EVO-105/106；legacy Key 轮换 → Permissions Reference |
 
 ## 8. 实际激活与执行记录
 
@@ -130,7 +130,8 @@ cargo test -p api api_key_scope
 | 2026-07-31 | CI | 为 PR 接入 frontend install/type-check/build + backend fmt/check/clippy/workspace test 门禁；最终配置 `contents: read` |
 | 2026-07-31 | validation | Frontend install/type-check/build、Rust fmt/check/clippy 已在 GitHub Actions 通过 |
 | 2026-07-31 | bugfix | Workspace test 暴露 `RbacError` 默认 status_code=500；补显式 401/403 映射 |
-| 2026-07-31 | validation | 最新 head 的只读 workspace tests 正在复验 RBAC 映射；通过前保持 Partial |
+| 2026-07-31 | validation | 最终只读 CI run `30567361095` 全绿，包含完整 `cargo test --workspace` |
+| 2026-07-31 | merge | PR #3 已合并，merge commit `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；EVO-118-B Done，Iteration 051 Closed / Complete |
 
 ## 9. 变更请求
 
@@ -141,10 +142,10 @@ cargo test -p api api_key_scope
 ## 10. Review
 
 - 完成：两条 inline review comment 与 reviewer 测试矩阵均已落实；实现、前端、Reference 和 PR CI 已同步。
-- 已通过：frontend install/type-check/build；backend fmt/check/clippy；多数 workspace tests 和全部新增边界除最终 RBAC 复验。
-- 未完成：最新 head 的只读 `cargo test --workspace` 最终结果、reviewer 复审和 PR merge。
-- 闭环状态：`Partial`
-- 残余归口：最终 CI 全绿后将 PR 转 Ready for Review；merge 后关闭 EVO-118-B/Iteration 051，随后启动 EVO-118-C。
+- 已通过：frontend install/type-check/build；backend fmt/check/clippy；完整 workspace tests；reviewer 边界复验。
+- 未完成：无；后续工作已归口到 EVO-118-C 及既有 Agent/legacy Key Story。
+- 闭环状态：`Complete`
+- 残余归口：下一 Story 为 EVO-118-C；本 Iteration 不包含其实现。
 
 ## 11. Retrospective
 

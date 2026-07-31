@@ -10,15 +10,11 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | S1 必须按 WIP 逐项关闭，不能整包声称完成。 |
-| EVO-118-B API Key / MCP Authorization | Review / Partial | [Item](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](iterations/ITERATION-051.md) | Draft PR #3 已提交；等待 Rust/前端 hard-required 门禁。 |
+| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B Done；S1 继续按 WIP 推进 C → D → E。 |
 
 ## Review
 
-| Item | State | Owner Doc | Gate |
-|------|-------|-----------|------|
-| PR #3 API Key 与 MCP 授权硬化 | Draft / Review | [EVO-118-B](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Authorization Contract](reference/API-KEY-AUTHORIZATION.md) | `cargo fmt/clippy/test` 与 `bun type-check/build` 全通过后才可合并并解除 SEC-01。 |
-| Iteration 051 | Review / Partial | [Iteration 051](iterations/ITERATION-051.md) | 未关闭前不启动 EVO-118-C 或 Repo UI。 |
+当前没有未处置的产品/安全 Story Review。EVO-118-B 与 Iteration 051 已完成并关闭。
 
 ## Blocked Or Paused
 
@@ -55,7 +51,7 @@
 
 - EVO-118-A/Iteration 050 已由 PR #2 合并并关闭。
 - 当前产品方向仍是 Git hosting + Vibe Coding + capability discovery；EVO-118 是稳定化 Gate，不是产品回退。
-- EVO-118-B 实现已进入 Draft PR #3，但缺 hard-required 运行验证，SEC-01 尚未解除。
-- 当前启动顺序：完成 PR #3 验证/合并 → EVO-118-C → D → E → F/G/H → EVO-112 → EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
+- EVO-118-B/Iteration 051 已由 PR #3 合并并关闭；merge commit `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`，最终 CI run `30567361095` 全绿，SEC-01 已解除。
+- 当前启动顺序：EVO-118-C → D → E → F/G/H → EVO-112 → EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
 - 安全、数据损坏或生产构建问题允许显式 P0 插队；普通 UI、视觉、计费或内部文档不得静默绕过 S1。
 - Board 只反映 owner docs；Gate 关闭必须由 Story 验收和实际验证证明。

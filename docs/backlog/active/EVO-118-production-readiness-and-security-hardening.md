@@ -24,7 +24,7 @@
 | 子 Story | 独立结果 | 状态 | 优先级 | 依赖 | 所属迭代 |
 |----------|----------|------|--------|------|----------|
 | [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Done | P0 | 无 | Iteration 050 |
-| [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Review | P0 | EVO-118-A Done | Iteration 051 / PR #3 |
+| [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Done | P0 | EVO-118-A Done | Iteration 051 / PR #3 merged |
 | [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A Done | - |
@@ -38,7 +38,7 @@
 
 必须完成：EVO-118-B、C、D、E。
 
-当前进度：EVO-118-B 已形成 Draft PR #3，但 hard-required Rust/前端门禁未运行，SEC-01 尚未解除。
+当前进度：EVO-118-A/B 已 Done。PR #3 已合并（`6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`），最终 CI run `30567361095` 全绿，SEC-01 已解除；下一项为 EVO-118-C。
 
 S1 未完成前：
 

@@ -52,7 +52,8 @@
 
 按 WIP 一次只推进一个 Story：
 
-1. **EVO-118-B API Key / MCP Authorization**
+1. **EVO-118-B API Key / MCP Authorization — Done**
+   - PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；最终 CI `30567361095` 全绿，SEC-01 已解除；
    - API Key 管理限制为 Owner/Admin；
    - Permission 强类型化；
    - MCP `tools/call` 强制 `execute` capability；
@@ -137,8 +138,8 @@ S1 关闭后恢复：
 当前建议严格使用以下顺序：
 
 ```text
-EVO-118-A Review/merge
-→ EVO-118-B
+EVO-118-A Done
+→ EVO-118-B Done
 → EVO-118-C
 → EVO-118-D
 → EVO-118-E
