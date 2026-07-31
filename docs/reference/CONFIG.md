@@ -55,6 +55,17 @@ LOG__LEVEL=info
 - 不能使用 Stripe test key。
 - `STRIPE__WEBHOOK_SECRET` 不能是 placeholder。
 
+## HTTP Tool 出站策略
+
+HTTP Tool 的生产默认策略不是环境变量开关，而是代码级 fail-closed 边界：
+
+- 仅允许 `https` 目标；明文 `http` 默认拒绝。
+- 拒绝 localhost、私网、link-local、Metadata、multicast、documentation、benchmark、未分配或其他特殊用途地址。
+- DNS、连接和 Redirect 共用同一个总 deadline；Redirect 每一跳重新验证并固定已批准地址。
+- 系统代理和 reqwest 自动 Redirect 均关闭。
+- 当前没有生产私网或明文 HTTP bypass 配置。新增此类能力必须通过独立安全 Story、显式风险接受和负向测试，不得通过开发环境自动放宽。
+- 本地集成测试使用显式构造的 test-only policy 访问 loopback；该策略不会通过 Cargo feature 或生产默认构造器生效。
+
 ## 常用变量
 
 | 变量 | 说明 | 默认值 |
@@ -129,3 +140,4 @@ VITE_API_URL=http://localhost:8080/api/v1
 | `APP__PUBLIC_URL` 指向后端或容器内地址 | 邮件中的重置密码/邀请链接用户打不开 | 设置为用户可访问的前端地址 |
 | 开发 JWT secret 用于生产 | 启动失败或安全风险 | 生产设置强随机密钥 |
 | SMTP disabled | 邮件不会真实发送 | 开发看 ConsoleMailer，生产启用 SMTP |
+| HTTP Tool 使用明文 `http` 或私网地址 | 创建、更新或执行被安全边界拒绝 | 使用公网 `https` 目标；不要依赖生产 bypass |
