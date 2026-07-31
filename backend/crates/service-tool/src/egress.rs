@@ -634,12 +634,7 @@ Connection: close\r\
             let mut request = [0_u8; 4096];
             let _ = socket.read(&mut request).await;
             let response = format!(
-                "HTTP/1.1 200 OK\r\
-X-Large: {}\r\
-Content-Length: 2\r\
-Connection: close\r\
-\r\
-ok",
+                "HTTP/1.1 200 OK\r\nX-Large: {}\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
                 "x".repeat(128)
             );
             socket.write_all(response.as_bytes()).await.unwrap();
