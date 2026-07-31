@@ -488,9 +488,7 @@ mod tests {
     #[test]
     fn private_redirect_is_rejected_before_dns_or_connection() {
         let policy = EgressPolicy::default();
-        let current = policy
-            .validate_url("https://93.184.216.34/start")
-            .unwrap();
+        let current = policy.validate_url("https://93.184.216.34/start").unwrap();
         let error = redirect_target(&policy, &current, "http://127.0.0.1/private").unwrap_err();
         assert_eq!(error, EgressError::TargetNotAllowed);
     }
