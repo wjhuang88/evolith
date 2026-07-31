@@ -162,13 +162,29 @@ mod tests {
             .execute(ExecuteRequest {
                 tool_id: Uuid::new_v4().to_string(),
                 parameters: serde_json::json!({}),
-                url: "http://127.0.0.1:19999".to_string(),
+                url: "https://127.0.0.1:19999".to_string(),
                 method: "GET".to_string(),
                 timeout_ms: 1_000,
             })
             .await
             .unwrap_err();
         assert!(error.to_string().contains("target is not allowed"));
+    }
+
+    #[tokio::test]
+    async fn direct_executor_default_rejects_plaintext_http() {
+        let executor = HttpToolExecutor::new();
+        let error = executor
+            .execute(ExecuteRequest {
+                tool_id: Uuid::new_v4().to_string(),
+                parameters: serde_json::json!({}),
+                url: "http://93.184.216.34".to_string(),
+                method: "GET".to_string(),
+                timeout_ms: 1_000,
+            })
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("scheme is not allowed"));
     }
 
     #[tokio::test]
