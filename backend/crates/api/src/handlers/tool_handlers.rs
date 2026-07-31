@@ -273,14 +273,7 @@ pub async fn create_tool(
         timeout: body.handler_timeout,
     };
     if let Err(message) = validate_handler(&handler).await {
-        audit_invalid_configuration(
-            &req,
-            &state,
-            &user,
-            ToolManagementAction::Create,
-            None,
-        )
-        .await;
+        audit_invalid_configuration(&req, &state, &user, ToolManagementAction::Create, None).await;
         return validation_error(message);
     }
 
