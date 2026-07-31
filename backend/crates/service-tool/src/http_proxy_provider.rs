@@ -189,7 +189,10 @@ mod tests {
     #[test]
     fn parse_method_invalid_is_redacted() {
         let error = parse_method("SECRET-METHOD").unwrap_err();
-        assert_eq!(error.to_string(), "Validation error: Unsupported HTTP method");
+        assert_eq!(
+            error.to_string(),
+            "Validation error: Unsupported HTTP method"
+        );
     }
 
     #[tokio::test]
@@ -209,13 +212,18 @@ mod tests {
             context: ExecutionContext::default(),
         };
         let error = provider.execute(request).await.unwrap_err();
-        assert!(error.to_string().contains("HttpProxyProvider only handles HttpProxy payloads"));
+        assert!(error
+            .to_string()
+            .contains("HttpProxyProvider only handles HttpProxy payloads"));
     }
 
     #[tokio::test]
     async fn production_default_rejects_loopback_even_with_test_feature() {
         let error = HttpProxyProvider::new()
-            .execute(http_request("http://127.0.0.1:19999/nonexistent", Some(10)))
+            .execute(http_request(
+                "http://127.0.0.1:19999/nonexistent",
+                Some(10),
+            ))
             .await
             .unwrap_err();
         assert!(error.to_string().contains("target is not allowed"));
