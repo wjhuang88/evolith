@@ -35,7 +35,7 @@ Evolith 当前应被描述为：
 | Repo CRUD | Alpha | 本地/测试环境 | DB 与文件系统生命周期非原子；Seed 未形成真实 Commit |
 | Git Smart HTTP | Alpha | 有权限的单实例环境 | Agent 写入策略、Ref/Branch scope、请求/仓库配额仍需硬化 |
 | Repo Context API | Alpha/usable | 受控仓库读取 | 继续保持 Tree/Blob/Diff/Commit 上限和 blocking timeout |
-| API Key / RBAC | Partial | 基础租户隔离 | API Key 管理角色、权限字符串、MCP execute scope 存在缺口 |
+| API Key / RBAC | Hardened baseline | Owner/Admin Key management、Typed Capability、MCP execute 与跨租户隐藏语义可依赖 | SEC-01 已解除；legacy Key 仍需按授权合约轮换 |
 | MCP HTTP Tool | Release blocked | 仅受控开发环境 | 缺 SSRF、DNS/Redirect、私网和 Egress 边界 |
 | Embedded Frontend | Direction accepted | 本地构建链 | 生产 Compose/Docker 构建形态与嵌入式交付不一致 |
 | Git 数据持久化 | Release blocked | 临时单实例 | 生产 Compose 未挂载 Git 持久卷；备份只覆盖 PostgreSQL |
@@ -50,7 +50,7 @@ Evolith 当前应被描述为：
 
 | Gate | 风险 | 归口 | 解除条件 |
 |------|------|------|----------|
-| SEC-01 | 普通成员可能管理/授予高权限 API Key；MCP 调用未严格检查 `execute` | [EVO-118-B](../backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) | 角色矩阵、Typed Capability、负向权限测试和已有 Key 审计通过 |
+| SEC-01 | **已解除（2026-07-31）**：API Key 管理、Typed Capability、MCP execute、跨租户审计/隐藏语义已闭合 | [EVO-118-B](../backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) | PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；CI `30567361095` 全绿；负向授权与撤销/过期/跨租户测试通过 |
 | SEC-02 | HTTP Tool 可访问 localhost、私网、Metadata 或内部服务 | [EVO-118-C](../backlog/active/EVO-118-C-http-tool-egress-security.md) | Scheme/DNS/IP/Redirect/Egress 防护与 SSRF 测试通过 |
 | DATA-01 | Git 仓库目录未形成生产持久卷，数据库备份不包含 Git 对象 | [EVO-118-D](../backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | 持久卷、DB+Git 备份、恢复演练和监控证据通过 |
 | DEPLOY-01 | Embedded Frontend 与生产 Docker/Compose 仍存在双交付和构建上下文冲突 | [EVO-118-E](../backlog/active/EVO-118-E-production-build-deployment-convergence.md) | 干净环境镜像构建、单一交付形态和生产 Smoke Test 通过 |
@@ -127,5 +127,6 @@ Infrastructure
 
 - 本基线中的“确认问题”来自 2026-07-30 对主分支代码和配置的静态审查。
 - 独立编译、Docker clean build、渗透测试和恢复演练仍需由对应 Story 提供实际命令证据。
+- SEC-01 已于 2026-07-31 由 EVO-118-B 解除：PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`，最终 CI `30567361095` 全绿。
 - 每关闭一个发布 Gate，应更新本文件、EVO-118 父项、Backlog、Board 和相关 Iteration。
 - 当代码行为与本基线冲突时，以实际验证结果为准，并同步修正文档；不得保持已知漂移。

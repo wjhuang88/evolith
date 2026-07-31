@@ -1,7 +1,7 @@
 # EVO-118-B API Key 与 MCP 授权边界硬化
 
 - **类型**：Permission / Security
-- **状态**：Review
+- **状态**：Done
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
 - **依赖**：EVO-118-A Done
@@ -103,7 +103,7 @@
 - `cargo clippy --workspace --all-targets -- -D warnings`：通过。
 - 新增安全 E2E 中 Member、API Key caller、cross-tenant Owner/Admin、canonical issuance、MCP execute 和 Tool tenant isolation 均已通过。
 - 诊断运行暴露并修复了两个真实边界：隐藏响应仍带 caller tool name、RBAC error object 默认状态为 500。
-- 最新 head 的最终只读 `cargo test --workspace` 正在复验 RBAC 状态修复；通过前不标记 Done。
+- 最终只读 GitHub Actions run `30567361095` 在 head `192627a32d7a6f9a780624227db2f357b7350b36` 上全部通过，包括 `cargo test --workspace`。
 
 PR CI 对 pull request 使用 `contents: read`，不再包含自动修改分支的步骤。Frontend lint 因仓库既有 ESLint 10 flat-config 缺失仅保留在 tag/manual；PostgreSQL 扩展测试同样保留为 tag/manual，本 Story 的 required gate 使用 SQLite workspace tests。
 
@@ -114,9 +114,18 @@ PR CI 对 pull request 使用 `contents: read`，不再包含自动修改分支�
 | 请求结果 | 按 PR 评论关闭 SEC-01：成员/API Key 不可管理 Key，只读 Key 不可执行 MCP Tool，跨租户审计与资源隐藏正确 |
 | 产物 | Typed capability、统一授权 helper、auth-before-parse、caller-owned audit、MCP hidden response、RBAC status mapping、E2E、前端、Reference、PR CI |
 | 状态同步归口 | EVO-118/B、Iteration 051、Product Backlog、Board、Permissions/API Key Authorization Contract |
-| 验证证据 | GitHub Actions 前端/type-check/build、Rust fmt/check/clippy；workspace tests 最终只读复验中 |
-| 残余工作归口 | 最新 head CI 全绿、reviewer 复审与 PR merge；SSRF 归 EVO-118-C；Agent scoped token 归 EVO-105/106；legacy Key 轮换记录在 Reference |
+| 验证证据 | GitHub Actions run `30567361095`：前端 install/type-check/build 与 Rust fmt/check/clippy/workspace tests 全部通过 |
+| 残余工作归口 | SEC-01 已解除；SSRF 归 EVO-118-C；Agent scoped token 归 EVO-105/106；legacy Key 轮换记录在 Reference |
 
 ## 解锁内容
 
-PR #3 的最终只读 CI 全部通过、reviewer 确认并合并后，解除 SEC-01 Gate；下一项按计划启动 EVO-118-C。
+PR #3 已于 2026-07-31 12:30:50 +08:00 合并，merge commit `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；最终 CI run `30567361095` 全绿，SEC-01 Gate 已解除。下一项按计划进入 EVO-118-C。
+
+## 完成记录
+
+- PR：#3 `security: harden API key and MCP authorization`
+- 合并时间：2026-07-31 12:30:50 +08:00
+- Merge commit：`6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`
+- 验证 head：`192627a32d7a6f9a780624227db2f357b7350b36`
+- 最终只读 CI：`30567361095`，全部 required gates 通过
+- 闭环结论：`Complete`；SEC-01 已解除
