@@ -175,6 +175,12 @@ impl SafeHttpClient {
         &self.policy
     }
 
+    /// Validate and resolve a target without opening a network connection.
+    pub async fn validate_target(&self, raw_url: &str) -> Result<(), EgressError> {
+        let url = self.policy.validate_url(raw_url)?;
+        self.resolve_and_validate(&url).await.map(|_| ())
+    }
+
     pub async fn execute(
         &self,
         method: Method,
