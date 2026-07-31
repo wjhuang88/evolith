@@ -50,11 +50,11 @@ impl Default for HttpToolExecutor {
 
 impl HttpToolExecutor {
     pub fn new() -> Self {
-        Self::with_policy_and_timeout(default_constructor_policy(), Duration::from_secs(30))
+        Self::with_policy_and_timeout(EgressPolicy::default(), Duration::from_secs(30))
     }
 
     pub fn with_timeout(timeout: Duration) -> Self {
-        Self::with_policy_and_timeout(default_constructor_policy(), timeout)
+        Self::with_policy_and_timeout(EgressPolicy::default(), timeout)
     }
 
     pub fn with_policy(policy: EgressPolicy) -> Self {
@@ -69,25 +69,11 @@ impl HttpToolExecutor {
     }
 }
 
-fn default_constructor_policy() -> EgressPolicy {
-    #[cfg(feature = "test-egress")]
-    {
-        EgressPolicy::for_test_allow_private_networks()
-    }
-    #[cfg(not(feature = "test-egress"))]
-    {
-        EgressPolicy::default()
-    }
-}
-
 #[async_trait]
 impl ToolExecutor for HttpToolExecutor {
     async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse> {
         let unified_request = to_unified_request(request, self.default_timeout);
-        self.provider
-            .execute(unified_request)
-            .await
-            .map(to_tool_response)
+        self.provider.execute(unified_request).await.map(to_tool_response)
     }
 }
 
@@ -105,10 +91,7 @@ impl ToolExecutorAdapter {
 impl ToolExecutor for ToolExecutorAdapter {
     async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse> {
         let unified_request = to_unified_request(request, Duration::from_secs(30));
-        self.provider
-            .execute(unified_request)
-            .await
-            .map(to_tool_response)
+        self.provider.execute(unified_request).await.map(to_tool_response)
     }
 }
 
@@ -167,8 +150,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn direct_executor_rejects_loopback_through_shared_policy() {
-        let executor = HttpToolExecutor::with_policy(EgressPolicy::default());
+    async fn direct_executor_default_rejects_loopback() {
+        let executor = HttpToolExecutor::new();
         let error = executor
             .execute(ExecuteRequest {
                 tool_id: Uuid::new_v4().to_string(),
