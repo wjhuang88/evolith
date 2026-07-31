@@ -258,7 +258,9 @@ impl SafeHttpClient {
         &self,
         url: &Url,
     ) -> Result<(Option<String>, Vec<SocketAddr>), EgressError> {
-        let port = url.port_or_known_default().ok_or(EgressError::InvalidTarget)?;
+        let port = url
+            .port_or_known_default()
+            .ok_or(EgressError::InvalidTarget)?;
         let host = url
             .host_str()
             .ok_or(EgressError::InvalidTarget)?
