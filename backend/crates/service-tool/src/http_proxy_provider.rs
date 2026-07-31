@@ -160,7 +160,10 @@ mod tests {
     #[test]
     fn parse_method_invalid_is_redacted() {
         let error = parse_method("SECRET-METHOD").unwrap_err();
-        assert_eq!(error.to_string(), "Validation error: Unsupported HTTP method");
+        assert_eq!(
+            error.to_string(),
+            "Validation error: Unsupported HTTP method"
+        );
     }
 
     #[tokio::test]
