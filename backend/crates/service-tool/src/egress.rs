@@ -67,11 +67,7 @@ impl EgressPolicy {
             return Err(EgressError::CredentialsNotAllowed);
         }
 
-        let hostname = url
-            .host_str()
-            .ok_or(EgressError::InvalidTarget)?
-            .trim_end_matches('.')
-            .to_ascii_lowercase();
+        let hostname = canonical_host(&url)?;
         if is_metadata_hostname(&hostname) {
             return Err(EgressError::TargetNotAllowed);
         }
@@ -267,11 +263,7 @@ impl SafeHttpClient {
         let port = url
             .port_or_known_default()
             .ok_or(EgressError::InvalidTarget)?;
-        let host = url
-            .host_str()
-            .ok_or(EgressError::InvalidTarget)?
-            .trim_end_matches('.')
-            .to_ascii_lowercase();
+        let host = canonical_host(url)?;
 
         if let Ok(ip) = host.parse::<IpAddr>() {
             self.policy.validate_ip(ip)?;
@@ -293,6 +285,15 @@ impl SafeHttpClient {
         }
         Ok((Some(host), unique.into_iter().collect()))
     }
+}
+
+fn canonical_host(url: &Url) -> Result<String, EgressError> {
+    let raw_host = url.host_str().ok_or(EgressError::InvalidTarget)?;
+    let unbracketed = raw_host
+        .strip_prefix('[')
+        .and_then(|host| host.strip_suffix(']'))
+        .unwrap_or(raw_host);
+    Ok(unbracketed.trim_end_matches('.').to_ascii_lowercase())
 }
 
 fn map_reqwest_error(error: reqwest::Error) -> EgressError {
