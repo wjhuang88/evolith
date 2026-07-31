@@ -524,8 +524,10 @@ mod tests {
 
     #[tokio::test]
     async fn configuration_validation_bounds_hanging_dns() {
-        let mut policy = EgressPolicy::default();
-        policy.connect_timeout = Duration::from_millis(20);
+        let policy = EgressPolicy {
+            connect_timeout: Duration::from_millis(20),
+            ..EgressPolicy::default()
+        };
         let client = SafeHttpClient::with_resolver(policy, Arc::new(HangingResolver));
         let error = client
             .validate_target("https://example.test/")
