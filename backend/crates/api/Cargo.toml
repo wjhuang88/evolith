@@ -46,7 +46,6 @@ infra.workspace = true
 common.workspace = true
 
 [dev-dependencies]
-service-tool = { workspace = true, features = ["test-egress"] }
 sqlx.workspace = true
 actix-rt = "2"
 actix-http = "3"
