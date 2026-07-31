@@ -37,8 +37,6 @@ pub trait ToolExecutor: Send + Sync {
     async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse>;
 }
 
-/// Legacy direct facade retained for compatibility. It delegates to the same
-/// controlled HTTP provider used by the production execution path.
 pub struct HttpToolExecutor {
     provider: HttpProxyProvider,
     default_timeout: Duration,
@@ -93,7 +91,6 @@ impl ToolExecutor for HttpToolExecutor {
     }
 }
 
-/// Facade adapter that delegates to the configured unified execution provider.
 pub struct ToolExecutorAdapter {
     provider: Arc<dyn ExecutionProvider>,
 }
@@ -118,17 +115,18 @@ impl ToolExecutor for ToolExecutorAdapter {
 fn to_unified_request(request: ExecuteRequest, default_timeout: Duration) -> ExecutionRequest {
     let tool_id = Uuid::parse_str(&request.tool_id).unwrap_or_else(|_| Uuid::new_v4());
     let timeout_ms = if request.timeout_ms > 0 {
-        request.timeout_ms as u64
+        request.timeout_ms
     } else {
-        default_timeout.as_millis().min(u32::MAX as u128) as u64
+        default_timeout.as_millis().min(u32::MAX as u128) as u32
     };
-    let timeout_seconds = timeout_ms.div_ceil(1_000).max(1).min(u32::MAX as u64) as u32;
+    let timeout_seconds = timeout_ms.div_ceil(1_000).max(1);
 
     ExecutionRequest {
         caller: ExecutionCaller::McpTool { tool_id },
         payload: ExecutionPayload::HttpProxy {
             url: request.url,
             method: request.method,
+            timeout_ms: Some(timeout_ms),
         },
         constraints: ExecutionConstraints {
             timeout_seconds,
@@ -185,13 +183,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn adapter_converts_request_and_response() {
+    async fn adapter_preserves_millisecond_timeout() {
         struct MockProvider;
         #[async_trait]
         impl ExecutionProvider for MockProvider {
             async fn execute(&self, request: ExecutionRequest) -> Result<UnifiedResponse> {
                 assert!(matches!(request.caller, ExecutionCaller::McpTool { .. }));
-                assert_eq!(request.constraints.timeout_seconds, 5);
+                assert!(matches!(
+                    request.payload,
+                    ExecutionPayload::HttpProxy {
+                        timeout_ms: Some(10),
+                        ..
+                    }
+                ));
                 Ok(UnifiedResponse {
                     output: serde_json::json!({"status": "ok"}),
                     stdout: "{\"status\":\"ok\"}".to_string(),
@@ -211,7 +215,7 @@ mod tests {
                 parameters: serde_json::json!({"key": "value"}),
                 url: "https://example.com/api".to_string(),
                 method: "POST".to_string(),
-                timeout_ms: 5_000,
+                timeout_ms: 10,
             })
             .await
             .unwrap();
