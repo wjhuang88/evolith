@@ -512,10 +512,7 @@ mod tests {
             "https://[2804:14d:1::1]",
             "https://[2a00:1450:4001::200e]",
         ] {
-            assert!(
-                policy.validate_url(url).is_ok(),
-                "{url} should be accepted"
-            );
+            assert!(policy.validate_url(url).is_ok(), "{url} should be accepted");
         }
     }
 
@@ -601,7 +598,12 @@ mod tests {
                     let mut request = [0_u8; 4096];
                     let _ = socket.read(&mut request).await;
                     tokio::time::sleep(Duration::from_millis(40)).await;
-                    let response = b"HTTP/1.1 302 Found\r\nLocation: /slow-redirect\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+                    let response = b"HTTP/1.1 302 Found\r\
+Location: /slow-redirect\r\
+Content-Length: 0\r\
+Connection: close\r\
+\r\
+";
                     let _ = socket.write_all(response).await;
                 });
             }
@@ -632,7 +634,12 @@ mod tests {
             let mut request = [0_u8; 4096];
             let _ = socket.read(&mut request).await;
             let response = format!(
-                "HTTP/1.1 200 OK\r\nX-Large: {}\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+                "HTTP/1.1 200 OK\r\
+X-Large: {}\r\
+Content-Length: 2\r\
+Connection: close\r\
+\r\
+ok",
                 "x".repeat(128)
             );
             socket.write_all(response.as_bytes()).await.unwrap();
