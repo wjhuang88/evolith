@@ -52,11 +52,11 @@ impl Default for HttpToolExecutor {
 
 impl HttpToolExecutor {
     pub fn new() -> Self {
-        Self::with_policy_and_timeout(EgressPolicy::default(), Duration::from_secs(30))
+        Self::with_policy_and_timeout(default_constructor_policy(), Duration::from_secs(30))
     }
 
     pub fn with_timeout(timeout: Duration) -> Self {
-        Self::with_policy_and_timeout(EgressPolicy::default(), timeout)
+        Self::with_policy_and_timeout(default_constructor_policy(), timeout)
     }
 
     pub fn with_policy(policy: EgressPolicy) -> Self {
@@ -68,6 +68,17 @@ impl HttpToolExecutor {
             provider: HttpProxyProvider::with_policy_and_timeout(policy, timeout),
             default_timeout: timeout,
         }
+    }
+}
+
+fn default_constructor_policy() -> EgressPolicy {
+    #[cfg(feature = "test-egress")]
+    {
+        EgressPolicy::for_test_allow_private_networks()
+    }
+    #[cfg(not(feature = "test-egress"))]
+    {
+        EgressPolicy::default()
     }
 }
 
@@ -159,7 +170,7 @@ mod tests {
 
     #[tokio::test]
     async fn direct_executor_rejects_loopback_through_shared_policy() {
-        let executor = HttpToolExecutor::new();
+        let executor = HttpToolExecutor::with_policy(EgressPolicy::default());
         let error = executor
             .execute(ExecuteRequest {
                 tool_id: Uuid::new_v4().to_string(),
