@@ -1,6 +1,6 @@
 # 配置参考
 
-本文档记录 Evolith 的稳定配置边界。操作步骤见 [本地开发 SOP](../sop/LOCAL-DEV.md) 和 [数据库迁移 SOP](../sop/DATABASE-MIGRATION.md)。
+本文档记录 Evolith 的稳定配置边界。操作步骤见 [本地开发 SOP](../sop/LOCAL-DEV.md)、[数据库迁移 SOP](../sop/DATABASE-MIGRATION.md) 和 [发布 SOP](../sop/RELEASE.md)。
 
 ## 配置命名规则
 
@@ -9,18 +9,20 @@
 ```text
 DATABASE__DATABASE_TYPE
 DATABASE__URL
+GIT_STORAGE__BASE_PATH
 JWT__SECRET
 SANDBOX__ENABLED
 RATE_LIMIT__UNAUTHENTICATED_RPM
 ```
 
-不要使用 `DATABASE_TYPE`、`DATABASE_URL` 这类单下划线形式表达嵌套配置。
+不要使用 `DATABASE_TYPE`、`DATABASE_URL` 这类单下划线形式表达应用嵌套配置。`scripts/backup.sh`、`scripts/restore.sh` 和 `scripts/git-storage-inventory.sh` 是独立运维入口，按脚本契约使用 `DATABASE_URL` 与 `GIT_STORAGE_PATH`，不要与应用配置变量混淆。
 
 ## 开发环境
 
 ```bash
 DATABASE__DATABASE_TYPE=sqlite
 DATABASE__URL=:memory:
+GIT_STORAGE__BASE_PATH=./.data/git
 ENVIRONMENT=development
 LOG__LEVEL=debug
 ```
@@ -39,11 +41,14 @@ DATABASE__DATABASE_TYPE=postgres
 DATABASE__URL=postgres://evolith:dev_password@localhost:5432/evolith
 ```
 
+SQLite 仍是开发/测试路径；联合生产备份与恢复脚本只支持 PostgreSQL，不改变 SQLite 仓库与 workspace tests 的行为。
+
 ## 生产环境
 
 ```bash
 DATABASE__DATABASE_TYPE=postgres
 DATABASE__URL=postgres://user:password@postgres:5432/evolith
+GIT_STORAGE__BASE_PATH=/var/lib/evolith/git
 ENVIRONMENT=production
 LOG__LEVEL=info
 ```
@@ -54,6 +59,39 @@ LOG__LEVEL=info
 - `JWT__SECRET` 至少 32 字符。
 - 不能使用 Stripe test key。
 - `STRIPE__WEBHOOK_SECRET` 不能是 placeholder。
+- `GIT_STORAGE__BASE_PATH` 必须挂载持久 Volume，并由 Backend 运行用户读取、写入和创建目录。
+- PostgreSQL Volume 与 Git Storage Volume 是同一 DATA-01 耐久性集合；只备份其中一个不构成可恢复备份。
+- 当前 Compose 与 K8s 默认均按单 Backend 实例配置 Git Storage。本地/RWO Volume 不等于多实例共享存储；多副本需要共享存储或 Repo affinity 的独立设计。
+
+## Git Storage readiness
+
+`GET /health/ready` 同时检查数据库与 Git Storage。Git Storage 门禁包括：
+
+- 路径存在且为真实目录；
+- 目录可枚举；
+- 可创建临时子目录和探针文件；
+- 可写入、同步并清理探针；
+- 任一检查失败时 readiness 返回 HTTP 503，而不是带 `degraded` 文本的 200。
+
+`GET /health/live` 只表示进程存活。Docker/K8s 的 readiness/healthcheck 应使用 `/health/ready`，liveness 使用 `/health/live`。
+
+## 联合备份、恢复与 inventory 脚本变量
+
+这些变量属于脚本接口，不由 `AppConfig` 读取：
+
+| 变量 | 用途 | 要求 |
+|------|------|------|
+| `DATABASE_URL` | PostgreSQL 源/目标连接串 | 必填；不得打印到普通日志或写入 manifest |
+| `GIT_STORAGE_PATH` | 脚本可直接访问的 Git Storage 根目录 | 必填；不得是 symlink |
+| `BACKUP_DIR` | 联合备份输出目录 | 默认 `./backups`；建议独立加密存储 |
+| `RETENTION_DAYS` | 本地归档保留天数 | 默认 `30`；只清理 `evolith-backup-*.tar.gz` |
+| `EVOLITH_BACKUP_QUIESCED` | 确认应用写入已停止 | backup 必须显式为 `true`，否则非零退出 |
+| `EVOLITH_RESTORE_QUIESCED` | 确认恢复目标无应用写入 | restore 必须显式为 `true`，否则非零退出 |
+| `EVOLITH_APP_VERSION` | 写入 manifest 的非敏感应用版本 | 默认 `unknown` |
+| `EVOLITH_RESTORE_EXPECTED_APP_VERSION` | 可选的严格应用版本匹配 | 设置后不匹配即拒绝恢复 |
+| `EXPECTED_REFS_FILE` | inventory 的可选 Commit/Branch/Tag ref 快照 | restore 自动使用备份内 `git-refs.tsv` |
+
+脚本必须运行在能够同时访问 PostgreSQL 与同一 Git Volume 的受控维护环境中。对于 Compose/K8s，推荐使用挂载生产 Git Volume 的一次性维护容器/Pod，并将应用流量和写入停止后再设置 `*_QUIESCED=true`；该布尔值是操作确认，不会自行冻结应用。
 
 ## HTTP Tool 出站策略
 
@@ -78,6 +116,7 @@ HTTP Tool 的生产默认策略不是环境变量开关，而是代码级 fail-c
 | `DATABASE__URL` | 数据库连接串 | `:memory:` |
 | `DATABASE__MAX_CONNECTIONS` | 数据库连接池大小 | `10` |
 | `DATABASE__SEED_DATABASE` | 是否写入开发种子数据 | `false` |
+| `GIT_STORAGE__BASE_PATH` | Bare Repository 根目录；布局为 `<tenant UUID>/<repo UUID>.git` | `/srv/evolith/repos` |
 | `REDIS__URL` | Redis 地址 | `redis://localhost:6379` |
 | `JWT__SECRET` | JWT 签名密钥 | dev only |
 | `JWT__EXPIRATION` | JWT 过期时间 | `24h` |
@@ -136,6 +175,11 @@ VITE_API_URL=http://localhost:8080/api/v1
 | 陷阱 | 影响 | 正确做法 |
 |------|------|----------|
 | `DATABASE_TYPE=postgres` | 后端不会按嵌套配置读取 | 使用 `DATABASE__DATABASE_TYPE=postgres` |
+| 应用使用 `DATABASE_URL` | 应用不会按嵌套配置读取；该名称只属于运维脚本 | 应用使用 `DATABASE__URL`；脚本使用 `DATABASE_URL` |
+| 未设置 `GIT_STORAGE__BASE_PATH` 或未挂载 Volume | Repo 写入容器可写层，重建后丢失；readiness 503 | 生产显式设置 `/var/lib/evolith/git` 并挂载持久 Volume |
+| 只备份 PostgreSQL 或只归档 Git | 只能恢复半套状态，DB/Git 可能不一致 | 在停写窗口运行联合 backup，并保留 manifest/checksum/refs |
+| 未停写却设置 `EVOLITH_BACKUP_QUIESCED=true` | 可能生成时间窗口不一致备份 | 先停止流量、后台任务和 readiness 探针写入，再确认标志 |
+| 对非空目标执行 restore | 可能覆盖现有环境 | restore 默认拒绝；准备新的空数据库和空 Git 目录 |
 | 前端 API URL 缺少 `/api/v1` | 登录等请求 404 | 配置完整 base URL |
 | `APP__PUBLIC_URL` 指向后端或容器内地址 | 邮件中的重置密码/邀请链接用户打不开 | 设置为用户可访问的前端地址 |
 | 开发 JWT secret 用于生产 | 启动失败或安全风险 | 生产设置强随机密钥 |
