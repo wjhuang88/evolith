@@ -1,3 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: evolith-git-storage
+  namespace: evolith
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/component: git-storage
+    app.kubernetes.io/part-of: evolith
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,12 +24,11 @@ metadata:
     app.kubernetes.io/component: api
     app.kubernetes.io/part-of: evolith
 spec:
-  replicas: 2
+  # DATA-01 default is deliberately single-replica. ReadWriteOnce local/block
+  # storage does not make Git objects safely shareable across replicas.
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: backend
@@ -26,8 +41,11 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
-        prometheus.io/path: "/health"
+        prometheus.io/path: "/health/ready"
     spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: backend
           image: ghcr.io/evolith/evolith-backend:latest
@@ -43,6 +61,8 @@ spec:
           env:
             - name: DATABASE__URL
               value: "postgres://evolith:$(POSTGRES_PASSWORD)@postgres:5432/evolith"
+            - name: GIT_STORAGE__BASE_PATH
+              value: "/var/lib/evolith/git"
             - name: REDIS__URL
               value: "redis://:$(REDIS_PASSWORD)@redis:6379"
             - name: JWT__SECRET
@@ -67,6 +87,9 @@ spec:
                   key: smtp-password
             - name: RUST_LOG
               value: "info,evolith=debug"
+          volumeMounts:
+            - name: git-storage
+              mountPath: /var/lib/evolith/git
           resources:
             requests:
               memory: "128Mi"
@@ -76,7 +99,7 @@ spec:
               cpu: "1000m"
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: http
             initialDelaySeconds: 15
             periodSeconds: 30
@@ -93,17 +116,13 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app.kubernetes.io/name: backend
-                topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: git-storage
+          persistentVolumeClaim:
+            claimName: evolith-git-storage
 ---
 apiVersion: v1
 kind: Service
@@ -122,32 +141,3 @@ spec:
       name: http
   selector:
     app.kubernetes.io/name: backend
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: backend
-  namespace: evolith
-  labels:
-    app.kubernetes.io/name: backend
-    app.kubernetes.io/part-of: evolith
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: backend
-  minReplicas: 2
-  maxReplicas: 8
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
