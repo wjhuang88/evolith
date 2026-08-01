@@ -20,7 +20,7 @@
 - **双数据库一致性**：Schema 或 Repository 行为变化同时考虑 SQLite/PostgreSQL migration、实现和测试。
 - **重大取舍写 ADR**：技术栈、部署、认证、存储和数据边界变化必须写决策记录。
 - **脚本行为变更写 Release Note**：参数、默认值、退出码、顺序或副作用变化同步 `SCRIPTS-RELEASE-NOTES.md`。
-- **生产就绪 Gate 优先**：EVO-118 S1（授权、SSRF、Git 耐久性、生产构建）关闭前，不把 Repo UI 或 Agent 写入部署为外部 Alpha/生产，也不得声明生产就绪。
+- **生产就绪 Gate 优先**：EVO-118 S1 的 SEC-01/SEC-02 已关闭；DATA-01（Git 耐久性）与 DEPLOY-01（生产构建）关闭前，不把 Repo UI 或 Agent 写入部署为外部 Alpha/生产，也不得声明生产就绪。
 - **安全敏感变更强制审查**：认证、API Key、MCP Tool、Git 写入、Webhook、出站 HTTP、备份和生产配置必须读 `SECURITY-REVIEW.md`。
 - **Git 是代码事实源**：Git Repo 保存代码和历史；PostgreSQL 保存身份、权限、元数据、索引和事件状态。不要把数据库兼容行描述为新能力事实源。
 - **Agent 写入受策略控制**：Agent Scoped Token 默认走 Commit/Promote + PolicyEvaluator；不得把 `commit:<scope>` 当作通用 Smart HTTP write。
@@ -113,8 +113,8 @@
 8. Git Repo 在文件系统；多实例不能只共享 PostgreSQL。
 9. 当前生产 Compose/备份的 Git 持久化与恢复仍被 EVO-118-D 阻断。
 10. Embedded Frontend 已是目标交付形态，但 production build/Compose 收敛仍归 EVO-118-E。
-11. API Key 管理角色、任意权限字符串和 MCP `execute` 尚需 EVO-118-B 硬化。
-12. HTTP Tool 可产生真实出站请求；EVO-118-C 关闭前只用于受控开发环境，不得信任任意 URL。
+11. API Key 管理、Typed Capability 与 MCP `execute` 已由 EVO-118-B 硬化；历史 legacy Key 仍需按权限合约轮换，不能重新接受任意权限字符串。
+12. HTTP Tool Egress/SSRF 已由 EVO-118-C 关闭：生产默认仅允许受策略约束的 HTTPS 公网目标；未来 Webhook/其他租户可控出站必须复用统一 Egress Policy。
 13. `.evolith/policy.yaml` Parser 已有，不代表策略三态已经执行；行为归 EVO-105。
 14. `commit:<scope>` 当前不能被视为真实 Branch/Path 限制；Agent 写入设计必须重新验证。
 15. Repo 创建/删除存在 DB/FS 分裂；Seed 文件不是有效 Git Commit，归 EVO-118-F。
@@ -123,7 +123,9 @@
 18. `/health` 成功不证明 DB/Git Storage ready；发布使用 readiness 503 语义。
 19. SMTP/Redis 的生产降级必须按职责 fail closed，不能用开发 fallback 返回假成功。
 20. 文件或代码存在不等于完成；验证、状态同步和残余归口缺失时必须报告 `Partial`。
-21. EVO-118 S1 当前优先于 EVO-112；不要按旧 Two-Month Plan 直接启动 Repo UI。
+21. EVO-118 S1 当前只剩 EVO-118-D/E；不要按旧 Two-Month Plan 直接启动 Repo UI。
+22. GitHub Actions required CI 通过不等于安全/发布复验通过；必须同时关闭 Navigator、稳定契约和治理状态。
+23. 实现 PR 合并后仍需回写 merge commit、owner Story/Iteration、Gate 和派生入口；合并本身不会自动完成治理收口。
 
 ## Current Project Baseline
 
@@ -144,17 +146,24 @@ Evolith 是 Git-centric AI development platform：
 - Git backend：Alpha foundation。
 - Web product：Repo-centric UI 未实现。
 - Agent loop：Commit/Promote/Session/Webhook 未实现。
-- Production：被 EVO-118 安全、耐久性和部署 Gate 阻断。
+- Production：SEC-01/SEC-02 已关闭；仍被 DATA-01 Git 耐久性与 DEPLOY-01 生产构建阻断。
 
-不得把 EVO-103/116 Done 描述成平台整体生产就绪。
+不得把 EVO-103/116 或已关闭的安全 Gate 描述成平台整体生产就绪。
+
+### Current Execution State
+
+- `main` 已包含 PR #5 / EVO-118-C，SEC-02 已关闭。
+- 当前没有 Active / In Progress / Review Iteration，也没有开放 PR。
+- 下一条可启动 Story 是 `EVO-118-D`；启动时先按 `START-ITERATION.md` 创建 Iteration 053 并原子同步 Story/Epic/Backlog/Board/索引。
+- 在 Iteration 053 激活前，不创建运行时代码提交，不把 EVO-118-E 或 Repo UI 混入同一 WIP。
 
 ### Current Order
 
 ```text
-EVO-118-A Review/merge
-→ EVO-118-B
-→ EVO-118-C
-→ EVO-118-D
+EVO-118-A ✓
+→ EVO-118-B ✓
+→ EVO-118-C ✓
+→ EVO-118-D（Next）
 → EVO-118-E
 → EVO-118-F/G/H
 → EVO-112
@@ -218,6 +227,3 @@ Production validation must include security negative tests, Git persistence and 
 - [Architecture](docs/reference/ARCHITECTURE.md)
 - [Product Backlog](docs/backlog/PRODUCT-BACKLOG.md)
 - [Operating Board](docs/BOARD.md)
-- [Implementation Roadmap](docs/roadmap/IMPLEMENTATION-ROADMAP.md)
-- [Production Readiness Plan](docs/roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)
-- [Evolution Notes](EVOLUTION.md)
