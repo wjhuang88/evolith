@@ -1,0 +1,87 @@
+name: data-durability-container
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-durability-container-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
+
+jobs:
+  backend-container-recreation:
+    name: Evolith Backend container recreation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: evolith
+          POSTGRES_PASSWORD: evolith
+          POSTGRES_DB: evolith_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U evolith"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact head
+        if: github.event_name == 'pull_request'
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+          shared-key: evolith-rust
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Build embedded frontend
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Build application binary
+        working-directory: backend
+        run: cargo build --bin evolith
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Validate recreation script
+        run: bash -n scripts/tests/backend-container-recreation.sh
+
+      - name: Recreate real Backend container with the same Git volume
+        env:
+          POSTGRES_BASE_URL: postgres://evolith:evolith@localhost:5432
+          POSTGRES_ADMIN_URL: postgres://evolith:evolith@localhost:5432/postgres
+          EVOLITH_BINARY: backend/target/debug/evolith
+        run: bash scripts/tests/backend-container-recreation.sh
