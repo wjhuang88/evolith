@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Fail when repository Markdown contains a broken local file link."""
+"""Fail when changed Markdown contains a broken local relative file link."""
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import unquote
@@ -13,12 +15,40 @@ SKIP_DIRS = {".git", "node_modules", "target", "dist", "backups"}
 LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
 
 
-def markdown_files() -> list[Path]:
+def all_markdown_files() -> list[Path]:
     return sorted(
         path
         for path in REPO_ROOT.rglob("*.md")
         if not any(part in SKIP_DIRS for part in path.relative_to(REPO_ROOT).parts)
     )
+
+
+def markdown_files() -> list[Path]:
+    base = os.environ.get("MARKDOWN_LINK_BASE", "").strip()
+    if not base:
+        return all_markdown_files()
+
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--diff-filter=ACMR",
+            f"{base}...HEAD",
+            "--",
+            "*.md",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    files: list[Path] = []
+    for raw_path in result.stdout.splitlines():
+        candidate = REPO_ROOT / raw_path
+        if candidate.is_file() and candidate.suffix.lower() == ".md":
+            files.append(candidate)
+    return sorted(files)
 
 
 def normalize_destination(raw: str) -> str:
@@ -44,12 +74,10 @@ def main() -> int:
                 if lowered.startswith(("http://", "https://", "mailto:", "tel:", "data:")):
                     continue
                 path_part = destination.split("#", 1)[0].split("?", 1)[0]
-                if not path_part:
+                if not path_part or path_part.startswith("/"):
+                    # Root-absolute destinations are product/site routes, not repository files.
                     continue
-                if path_part.startswith("/"):
-                    target = REPO_ROOT / path_part.lstrip("/")
-                else:
-                    target = markdown.parent / path_part
+                target = markdown.parent / path_part
                 if not target.exists():
                     failures.append(
                         f"{markdown.relative_to(REPO_ROOT)}:{line_number}: "
@@ -62,7 +90,8 @@ def main() -> int:
             print(f"- {failure}", file=sys.stderr)
         return 1
 
-    print(f"Markdown link validation passed for {len(files)} file(s)")
+    scope = "changed" if os.environ.get("MARKDOWN_LINK_BASE") else "repository"
+    print(f"Markdown link validation passed for {len(files)} {scope} file(s)")
     return 0
 
 
