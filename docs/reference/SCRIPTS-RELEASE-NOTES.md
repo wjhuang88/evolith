@@ -5,9 +5,41 @@
 
 ## Unreleased
 
+### EVO-118-D — PostgreSQL + Git 联合备份、恢复与盘点
+
+- **`scripts/backup.sh`**：由 PostgreSQL-only `pg_dump` 替换为 DATA-01 联合备份入口。现在强制要求 `EVOLITH_BACKUP_QUIESCED=true`、`DATABASE_URL` 和 `GIT_STORAGE_PATH`；备份前执行 DB/Git inventory 和 `git fsck`，同时归档 PostgreSQL dump、全部 Git objects/refs、refs 快照、版本化 manifest 与 SHA-256 清单。任一子命令失败时非零退出；完整归档先在 staging 中校验，再原子移动到输出目录，不留下可误用的半成品。
+- **`scripts/restore.sh`**：新增安全恢复入口。恢复前验证归档路径、条目类型、精确必需文件、manifest、格式/应用版本、四个唯一 checksum、Git 目录布局、symlink、bare repository、`git fsck` 与 Commit/Branch/Tag refs；默认拒绝非空 PostgreSQL 或 Git 目标。恢复在隔离 staging 中准备，写入后 inventory 失败时清空此前为空的目标并非零退出，不报告部分成功。
+- **`scripts/git-storage-inventory.sh`**：新增 DB/Git 对账入口。识别 DB-only、disk-only、重复/异常 storage path、意外或孤儿目录、symlink、无效 bare repository、`git fsck` 失败、默认 Branch/last Commit/指定 refs 缺失；发现任一不一致即非零退出。
+- **`scripts/tests/durability.sh`**：新增真实 PostgreSQL + Git 故障矩阵。创建多 Commit、额外 Branch 与 Tag，验证联合 backup、空目标 restore、目标 SHA/refs、DB/Git inventory、非空目标拒绝、DB-only/Git-only/损坏/checksum/version/重复 checksum 拒绝、恶意 symlink/非法布局拒绝，以及 restore 后段失败回滚为空。
+- **`scripts/tests/container-volume-persistence.sh`**：新增 Docker named Volume 重建证据。第一个容器创建并 push Commit/Branch/Tag，容器退出后由第二个容器挂载同一 Volume，执行 `git fsck`、refs/SHA 校验和真实 clone。
+- **`scripts/tests/application-recovery-drill.sh`**：新增应用级空环境恢复演练。启动真实 PostgreSQL Backend，注册用户/租户、创建 Repo、通过 Smart HTTP push 多 Commit/Branch/Tag；联合备份后恢复到新 DB 与新 Git 目录，重新登录、列 Repo、clone/refs/SHA 校验，注入只读 readiness 503，恢复后重启 Backend 再次 clone。
+- **`scripts/tests/check-markdown-links.py`**：新增仓库内 Markdown 本地链接门禁。
+- **`.github/workflows/ci.yml`**：PR CI 改为显式 checkout 并验证 PR exact-head SHA；新增 `git diff --check`、Markdown links、Compose durability mapping、脚本语法、PostgreSQL+Git 恢复矩阵、Docker Volume 重建与应用级恢复演练。Frontend lint 与完整 PostgreSQL workspace tests 仍保留在 release/manual gate，未静默改写其既有归口。
+- **`backend/Dockerfile`**：运行时新增 `git`，创建固定 UID/GID 1000 的非 root 用户与 `/var/lib/evolith/git`，Docker healthcheck 改为 `/health/ready`。
+- **`docker-compose.prod.yml`**：Backend 显式设置 `GIT_STORAGE__BASE_PATH=/var/lib/evolith/git` 并挂载 `git_data` named Volume；该 Volume 只声明单实例持久性，不声明多实例共享或复制。
+- **`deploy/k8s/backend.yaml`**：新增 ReadWriteOnce PVC，Backend 单副本 + `Recreate`，以 UID/GID/fsGroup 1000 挂载 Git Storage；移除与本地/RWO Git Volume 不兼容的多副本/HPA 暗示。共享存储或 Repo affinity 另行设计。
+
+### 运维兼容性与注意事项
+
+- 旧用法 `DATABASE_URL=... ./scripts/backup.sh` 不再成功；必须同时提供 Git Storage 并真实进入停写维护窗口。
+- `EVOLITH_BACKUP_QUIESCED=true` / `EVOLITH_RESTORE_QUIESCED=true` 是操作确认，不会自动暂停应用、后台任务或 Git push。
+- 联合 restore 只支持 PostgreSQL 生产路径；SQLite 开发路径不使用这些脚本，继续由 Rust workspace tests 回归。
+- SHA-256 用于损坏检测，不提供归档签名或来源认证；备份介质仍需加密、访问控制和离线/不可变副本。
+- restore 默认只面向空目标。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
+- `GIT_STORAGE_PATH` 不得是 symlink；归档中出现 symlink、hardlink、特殊文件、异常层级或非 UUID 布局会被拒绝。
+- GitHub Contents API 创建的新脚本可能不携带 executable bit；CI 与文档统一使用 `bash scripts/...` 或 `python3 scripts/...` 调用，不依赖直接执行位。
+
+### 验证状态
+
+- 旧基线 CI #142 曾通过 exact-head、Frontend install/type-check/build、Compose durability mapping、真实 PostgreSQL + Git 联合 backup/restore 和 Docker Volume 重建，仅在 Rust 格式检查失败；CI #143 随后通过 fmt/check/clippy。这些结果证明切片可执行，但不再是当前 `main` 的 exact-head 证据。
+- 2026-08-02 `main` 推进到 `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`，包含 PR #8 / #9 的 Repo UI 与 Iteration 054 收口。EVO-118-D 已在该基线上重建实现分支；联合恢复、应用级演练、Frontend/Rust 回归和 Navigator 必须全部在新的 PR #7 Head 重跑。
+- `docker compose build --no-cache` 与完整生产栈 smoke 仍受 EVO-118-E / DEPLOY-01 的 Embedded Frontend 构建收敛约束；EVO-118-D 只将其作为诊断，不通过改变前端交付形态规避该 Gate。
+
+### 既有 Unreleased 记录
+
 - 建立脚本发布说明制度。后续脚本行为变更需要记录用途、影响范围、验证方式和注意事项。
-- **`scripts/dev.sh`**: 前端本地启动从旧 Next.js `localhost:3000` 调整为 Vite + Bun 默认 `localhost:3001`，使用 `bun install` / `bun run dev`，支持通过 `FRONTEND_PORT` 覆盖；状态输出和 ready banner 同步使用该端口。验证：脚本语法检查和前端构建。
-- **`backend/Dockerfile`**: 生产运行时镜像（`debian:bookworm-slim`）新增 `git` 包。Smart HTTP 端点（`git-upload-pack` / `git-receive-pack`）通过 `git` CLI 子进程执行，运行时必须安装 `git`。影响范围：生产 Docker 部署。验证：`docker run --rm <image> git --version` 应输出 git 版本。
+- **`scripts/dev.sh`**：前端本地启动从旧 Next.js `localhost:3000` 调整为 Vite + Bun 默认 `localhost:3001`，使用 `bun install` / `bun run dev`，支持通过 `FRONTEND_PORT` 覆盖；状态输出和 ready banner 同步使用该端口。验证：脚本语法检查和前端构建。
+- **`backend/Dockerfile`**：生产运行时镜像（`debian:bookworm-slim`）安装 `git`。Smart HTTP 端点（`git-upload-pack` / `git-receive-pack`）通过 `git` CLI 子进程执行，运行时必须安装 `git`。
 
 ## v0.2.0 — dev.sh 嵌入式前端死代码清理 + 单端口 lite 模式 (2026-06-03)
 
@@ -17,33 +49,21 @@ Iteration 031 已将前端迁移到 `rust-embed-for-web`（debug 模式读 `fron
 
 ### 变更
 
-- **`scripts/dev.sh`**: 删除 `EMBEDDED_FRONTEND` 环境变量（line 10）——`rust-embed-for-web` 内置 debug/release 切换，无需外部控制。
-- **`scripts/dev.sh`**: 删除 `build_frontend_zip()` 函数（原 lines 126-140）——后端使用 `#[folder]` 读文件系统，不读 ZIP。
-- **`scripts/dev.sh`**: 删除 `start_backend()` 中 `--features embedded-frontend` 逻辑（原 lines 152-168）——`Cargo.toml` 未定义此 feature，调用会报 unknown feature。
-- **`scripts/dev.sh`**: 新增 `build_frontend()` 函数——运行 `bun run build` 确保 `frontend/dist/` 存在。
-- **`scripts/dev.sh`**: `lite` 模式改为 `build_frontend` + `start_backend`（去掉 `start_frontend`），单端口 8080 同时服务 API + 前端。
-- **`scripts/dev.sh`**: `embedded` 模式简化为 `build_frontend` + `start_backend`，删除 `EMBEDDED_FRONTEND=true` 和 ZIP 构建。
-- **`scripts/dev.sh`**: `start` 模式保留双端口（Vite HMR 有独立开发价值），新增 `build_frontend` 确保 dist 存在。
-- **`scripts/dev.sh`**: 后端端口从硬编码 8080 改为读 `SERVER__PORT` 环境变量（默认 8080），通过 `BACKEND_PORT` 变量贯穿全脚本。
-- **`scripts/dev.sh`**: `usage` 文本更新，明确三种模式的端口差异。
+- **`scripts/dev.sh`**：删除 `EMBEDDED_FRONTEND` 环境变量——`rust-embed-for-web` 内置 debug/release 切换，无需外部控制。
+- **`scripts/dev.sh`**：删除旧 `build_frontend_zip()` 和不存在的 `embedded-frontend` Cargo feature 路径。
+- **`scripts/dev.sh`**：新增 `build_frontend()`；`lite`/`embedded` 使用单端口 Backend 提供 API 与静态资源。
+- **`scripts/dev.sh`**：`start` 模式保留 Vite HMR 双端口，并读取 `SERVER__PORT`。
 
 ### 验证
 
-- `bash -n scripts/dev.sh` ✓ 语法检查通过
-- `SERVER__PORT=8090 ./scripts/dev.sh lite` ✓ 单端口启动成功
-- `curl http://localhost:8090/` ✓ index.html 200
-- `curl http://localhost:8090/assets/*.css` ✓ CSS 200
-- `curl http://localhost:8090/assets/*.js` ✓ JS 200
-- `curl http://localhost:8090/health/live` ✓ API 健康检查 200
-- `lsof -i :3001` ✓ 无 Vite dev server 进程（正确）
-- `./scripts/dev.sh stop` ✓ 正常停止
+- `bash -n scripts/dev.sh` ✓
+- `SERVER__PORT=8090 ./scripts/dev.sh lite` ✓
+- 首屏、CSS、JS、`/health/live` 与 stop 流程 ✓
 
 ### 注意事项
 
-- `start` 模式仍启动 Vite dev server（端口 3001），用于 HMR 热更新开发体验。
-- `lite` 和 `embedded` 模式现在行为相同（单端口），保留两个命令名以兼容习惯用法。
-- 后端端口可通过 `SERVER__PORT=8090 ./scripts/dev.sh lite` 覆盖，解决 8080 被占用的场景。
-- `frontend/dist/` 必须在后端启动前存在——`build_frontend()` 已自动处理。
+- `start` 模式仍启动 Vite dev server，用于 HMR。
+- `frontend/dist/` 必须在后端启动前存在；`build_frontend()` 负责生成。
 
 ## 记录模板
 
