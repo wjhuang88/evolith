@@ -3,14 +3,13 @@
 > Compact routing and prioritization surface. Executable context lives in `docs/backlog/active/`; completed, deferred and dropped history lives in `docs/backlog/archive/`.
 > Status and DoR rules: [Requirement Intake](../sop/REQUIREMENT-INTAKE.md). Completion rules: [Iteration Workflow](../sop/ITERATION-WORKFLOW.md). Compaction protocol: `agent-project-governance/references/backlog-compaction.md`.
 
-> **2026-07-30 生产就绪重排**：Git Service 基础已完成，但全面体检确认 API Key/MCP 授权、HTTP Tool SSRF、Git 数据持久化/备份和生产构建为发布阻断项。当前主线先推进 [EVO-118](active/EVO-118-production-readiness-and-security-hardening.md) S1，再恢复 EVO-112 → EVO-105/106/107/104 → EVO-108/109/110。事实口径见 [Production Readiness Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)，执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。原 2026-06-23 Git-centric 方向和 ADR-0004/0005/0006 继续有效；本次重排不回退产品方向，只补齐安全、耐久性和交付门禁。
+> **2026-08-01 生产就绪进展**：Git Service 基础已完成，API Key/MCP 授权与 HTTP Tool SSRF 两项安全 Gate 已关闭；当前主线继续推进 [EVO-118](active/EVO-118-production-readiness-and-security-hardening.md) S1 的 Git 数据持久化/备份和生产构建，再恢复 EVO-112 → EVO-105/106/107/104 → EVO-108/109/110。事实口径见 [Production Readiness Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)，执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。原 2026-06-23 Git-centric 方向和 ADR-0004/0005/0006 继续有效；本次重排不回退产品方向，只补齐安全、耐久性和交付门禁。
 
 ## Current Priorities
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Review | P0 | Draft PR #5；exact-head CI #105 required gates 全绿；剩余 Navigator 点名负向证据与最新安全复核，SEC-02 尚未解除 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Iteration 052](../iterations/ITERATION-052.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
-| EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | DATA-01 release blocker；生产持久卷、PostgreSQL+Git 联合备份、空环境恢复 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
+| EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | 当前下一条 P0；DATA-01 release blocker；生产持久卷、PostgreSQL+Git 联合备份、空环境恢复 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | DEPLOY-01 release blocker；clean build、单一交付形态、协议路径 Smoke Test | [Item file](active/EVO-118-E-production-build-deployment-convergence.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
 | EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | Proposed | P0 | 产品主线保持；EVO-118 S1 未关闭前只做 refinement，不抢占实现 WIP | [Item file](active/EVO-112-repo-management-ui.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)<br>[Design System](../reference/DESIGN.md) |
 | EVO-105 | Commit API + 直推直合 + Promote API | Proposed | P0 | 依赖 EVO-118-B/F/H；Agent 写入必须经过 Typed Capability、PolicyEvaluator 与 Durable Event | [Item file](active/EVO-105-commit-and-promote-api.md)<br>[EVO-100](active/EVO-100-git-centric-platform-foundation.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
@@ -23,10 +22,10 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A/B Done，C Review，D/E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
+| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A/B/C Done，D/E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
 | EVO-118-A | 项目体检治理基线与优先级重排 | Done | P0 | Governance Story；Iteration 050 Closed；PR #2 merged | [Item file](active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](../iterations/ITERATION-050.md) |
 | EVO-118-B | API Key 与 MCP 授权边界硬化 | Done | P0 | Iteration 051 Closed；PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；CI `30567361095` 全绿，SEC-01 已解除 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md) |
-| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Review | P0 | Iteration 052；Draft PR #5；CI #105 全绿；Navigator re-review pending，SEC-02 尚未解除 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Iteration 052](../iterations/ITERATION-052.md) |
+| EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Done | P0 | Iteration 052 Closed / Complete；Navigator accepted runtime security；CI #125 / run `30653767138` 全绿；稳定契约完成，SEC-02 已解除 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Iteration 052](../iterations/ITERATION-052.md)<br>[Permissions](../reference/PERMISSIONS.md)<br>[API Contract](../reference/API-CONTRACT.md) |
 | EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | 解除 DATA-01 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | 解除 DEPLOY-01 | [Item file](active/EVO-118-E-production-build-deployment-convergence.md) |
 | EVO-118-F | Repo 生命周期一致性与 Initial Commit | Proposed | P1 | 依赖 EVO-118-D/E；扩展并替代 EVO-114 的单点回滚范围 | [Item file](active/EVO-118-F-repo-lifecycle-consistency.md) |
@@ -49,7 +48,7 @@
 | EVO-104 | Vibe Coding Web UI | Proposed | P0 | 依赖 EVO-103/105/106/112 与 EVO-118 Gate | [Item file](active/EVO-104-vibe-coding-web-ui.md)<br>[Design Decisions](../design/vibe-coding-ui-decisions.md) |
 | EVO-105 | Commit API + Promote API | Proposed | P0 | 依赖 EVO-118-B/F/H | [Item file](active/EVO-105-commit-and-promote-api.md) |
 | EVO-106 | Agent Session API + Scoped Token | Proposed | P0 | 依赖 EVO-118-B/F/H | [Item file](active/EVO-106-agent-session-and-scoped-token.md) |
-| EVO-107 | Webhook Out | Proposed | P1 | 依赖 EVO-105/106 与 EVO-118-C/H | [Item file](active/EVO-107-webhook-out.md) |
+| EVO-107 | Webhook Out | Proposed | P1 | 依赖 EVO-105/106 与 EVO-118-C/H；出站调用必须复用统一 Egress Policy | [Item file](active/EVO-107-webhook-out.md) |
 | EVO-108 | Skill / CLI / MCP Indexer | Proposed | P0 | 依赖稳定 Push/Commit Event 与 EVO-118-H | [Item file](active/EVO-108-skill-cli-mcp-indexer.md) |
 | EVO-109 | Discovery API + Pages 式发现 UI | Proposed | P1 | 依赖 EVO-108 | [Item file](active/EVO-109-discovery-api-and-pages-ui.md) |
 | EVO-110 | 旧表双写适配 | Proposed | P1 | 依赖 EVO-108 | [Item file](active/EVO-110-old-table-dual-write.md) |
@@ -133,7 +132,7 @@
 | EVO-029 | Skill 发现质量 | Re-scoped | P2 | 归 EVO-108/109 | [Item file](active/EVO-029-skill-专业描述与发现质量提升.md) |
 | EVO-045 | CLI Serverless 引擎 | Superseded | P0 | 被 EVO-105 + EVO-108 覆盖 | [Item file](active/EVO-045-cli-命令执行引擎-serverless.md) |
 | EVO-046 | Skill 下载/安装 | Superseded | P1 | Repo clone + Vibe UI | [Item file](active/EVO-046-skill-可下载制品与-agent-一键安装.md) |
-| EVO-047 | MCP Serverless 执行 | Superseded | P1 | 保持 HTTP Proxy；安全硬化归 EVO-118-C | [Item file](active/EVO-047-mcp-工具-serverless-执行.md) |
+| EVO-047 | MCP Serverless 执行 | Superseded | P1 | 保持 HTTP Proxy；安全硬化由 EVO-118-C 完成 | [Item file](active/EVO-047-mcp-工具-serverless-执行.md) |
 | EVO-049 | Skill/CLI 生态兼容 Epic | Dropped | P0 | 剩余由 EVO-108 覆盖 | [Item file](active/EVO-049-skill-cli-生态兼容与行业标准对齐.md) |
 | EVO-049-B | Parser 接线与报告 | Superseded | P0 | 归 EVO-108 | [Item file](active/EVO-049-B-skill-cli-parser-接线与校验报告.md) |
 | EVO-050 | Skill/CLI 评分体系 | Dropped | P1 | 超出 MVP | [Item file](active/EVO-050-skill-cli-评分与质量体系.md) |
