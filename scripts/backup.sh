@@ -1,60 +1,119 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
+BACKUP_FORMAT_VERSION=1
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/evolith_${TIMESTAMP}.sql.gz"
+DATABASE_URL="${DATABASE_URL:-}"
+GIT_STORAGE_PATH="${GIT_STORAGE_PATH:-}"
+EVOLITH_APP_VERSION="${EVOLITH_APP_VERSION:-unknown}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-mkdir -p "${BACKUP_DIR}"
+log() {
+    printf '[backup] %s\n' "$*"
+}
 
-usage() {
-    echo "Usage: $0 [docker|host]"
-    echo ""
-    echo "  docker  - Backup from PostgreSQL running in docker-compose (default)"
-    echo "  host    - Backup from PostgreSQL on host using pg_dump directly"
-    echo ""
-    echo "Environment variables:"
-    echo "  BACKUP_DIR       - Backup directory (default: ./backups)"
-    echo "  RETENTION_DAYS   - Days to keep backups (default: 30)"
-    echo "  POSTGRES_USER    - Database user (default: evolith)"
-    echo "  POSTGRES_DB      - Database name (default: evolith)"
-    echo "  PGPASSWORD       - Database password (host mode only)"
-    echo "  PGHOST           - Database host (host mode, default: localhost)"
-    echo "  PGPORT           - Database port (host mode, default: 5432)"
+fail() {
+    printf '[backup] ERROR: %s\n' "$*" >&2
     exit 1
 }
 
-MODE="${1:-docker}"
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
 
-case "${MODE}" in
-    docker)
-        echo "[backup] Dumping PostgreSQL from docker container..."
-        docker compose -f docker-compose.prod.yml exec -T postgres \
-            pg_dump -U "${POSTGRES_USER:-evolith}" -d "${POSTGRES_DB:-evolith}" \
-            --no-owner --no-privileges \
-            | gzip > "${BACKUP_FILE}"
-        ;;
-    host)
-        echo "[backup] Dumping PostgreSQL from host..."
-        PGHOST="${PGHOST:-localhost}" PGPORT="${PGPORT:-5432}" \
-            pg_dump -U "${POSTGRES_USER:-evolith}" -d "${POSTGRES_DB:-evolith}" \
-            --no-owner --no-privileges \
-            | gzip > "${BACKUP_FILE}"
-        ;;
-    *)
-        usage
-        ;;
-esac
+sha256_write() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$@"
+    else
+        shasum -a 256 "$@"
+    fi
+}
 
-BACKUP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
-echo "[backup] Created: ${BACKUP_FILE} (${BACKUP_SIZE})"
+[[ "${EVOLITH_BACKUP_QUIESCED:-false}" == "true" ]] || fail \
+    "EVOLITH_BACKUP_QUIESCED=true is required; sequential pg_dump and Git archiving are not an online consistency guarantee"
+[[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
+[[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
+[[ -d "$GIT_STORAGE_PATH" ]] || fail "Git storage path does not exist or is not a directory"
+[[ ! -L "$GIT_STORAGE_PATH" ]] || fail "Git storage base path must not be a symlink"
+[[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] || fail "RETENTION_DAYS must be a non-negative integer"
 
-DELETED=$(find "${BACKUP_DIR}" -name "evolith_*.sql.gz" -type f -mtime +${RETENTION_DAYS} -print -delete | wc -l)
-if [ "${DELETED}" -gt 0 ]; then
-    echo "[backup] Cleaned up ${DELETED} backup(s) older than ${RETENTION_DAYS} days"
+for command_name in pg_dump gzip tar git find sort awk date mktemp mv; do
+    require_command "$command_name"
+done
+
+mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR" 2>/dev/null || true
+
+lock_dir="$BACKUP_DIR/.evolith-backup.lock"
+mkdir "$lock_dir" 2>/dev/null || fail "another backup appears to be running: $lock_dir"
+stage_dir="$(mktemp -d "$BACKUP_DIR/.evolith-backup-stage.XXXXXX")"
+cleanup() {
+    rm -rf "$stage_dir" "$lock_dir"
+}
+trap cleanup EXIT INT TERM
+
+created_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
+archive_path="$BACKUP_DIR/evolith-backup-${timestamp}-$$.tar.gz"
+staged_archive="$stage_dir/evolith-backup.tar.gz"
+refs_unsorted="$stage_dir/git-refs.unsorted.tsv"
+refs_file="$stage_dir/git-refs.tsv"
+: >"$refs_unsorted"
+
+log "checking DB/Git inventory before snapshot"
+DATABASE_URL="$DATABASE_URL" GIT_STORAGE_PATH="$GIT_STORAGE_PATH" \
+    "$script_dir/git-storage-inventory.sh"
+
+log "capturing and validating Git refs"
+while IFS= read -r -d '' repo_path; do
+    relative_path="${repo_path#"$GIT_STORAGE_PATH"/}"
+    [[ "$relative_path" != "$repo_path" ]] || fail "repository escaped Git storage base path"
+    [[ "$(git --git-dir="$repo_path" rev-parse --is-bare-repository 2>/dev/null)" == "true" ]] || \
+        fail "invalid bare repository: $relative_path"
+    git --git-dir="$repo_path" fsck --full >/dev/null || fail "git fsck failed: $relative_path"
+    while read -r sha ref_name; do
+        [[ -n "${sha:-}" && -n "${ref_name:-}" ]] || continue
+        printf '%s\t%s\t%s\n' "$relative_path" "$sha" "$ref_name" >>"$refs_unsorted"
+    done < <(git --git-dir="$repo_path" show-ref)
+done < <(find "$GIT_STORAGE_PATH" -mindepth 2 -maxdepth 2 -type d -name '*.git' -print0)
+LC_ALL=C sort "$refs_unsorted" >"$refs_file"
+rm -f "$refs_unsorted"
+
+log "dumping PostgreSQL"
+pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip -c >"$stage_dir/database.sql.gz"
+gzip -t "$stage_dir/database.sql.gz"
+
+log "archiving Git storage"
+tar -C "$GIT_STORAGE_PATH" -czf "$stage_dir/git-storage.tar.gz" .
+tar -tzf "$stage_dir/git-storage.tar.gz" >/dev/null
+
+safe_app_version="${EVOLITH_APP_VERSION//$'\n'/}"
+safe_app_version="${safe_app_version//$'\r'/}"
+cat >"$stage_dir/manifest.env" <<EOF
+backup_format_version=$BACKUP_FORMAT_VERSION
+application_version=$safe_app_version
+created_at=$created_at
+consistency=quiesced-maintenance-window
+database_format=postgresql-plain-sql-gzip
+git_format=tar-gzip
+git_storage_layout=tenant-uuid/repo-uuid.git
+EOF
+
+(
+    cd "$stage_dir"
+    sha256_write database.sql.gz git-storage.tar.gz git-refs.tsv manifest.env >SHA256SUMS
+)
+
+tar -C "$stage_dir" -czf "$staged_archive" \
+    database.sql.gz git-storage.tar.gz git-refs.tsv manifest.env SHA256SUMS
+tar -tzf "$staged_archive" >/dev/null
+chmod 600 "$staged_archive"
+mv "$staged_archive" "$archive_path"
+
+if (( RETENTION_DAYS > 0 )); then
+    find "$BACKUP_DIR" -maxdepth 1 -type f -name 'evolith-backup-*.tar.gz' \
+        -mtime "+$RETENTION_DAYS" -delete
 fi
 
-TOTAL=$(find "${BACKUP_DIR}" -name "evolith_*.sql.gz" -type f | wc -l)
-echo "[backup] Total backups: ${TOTAL}"
-echo "[backup] Done."
+log "backup completed: $archive_path"
