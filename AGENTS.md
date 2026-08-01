@@ -227,3 +227,6 @@ Production validation must include security negative tests, Git persistence and 
 - [Architecture](docs/reference/ARCHITECTURE.md)
 - [Product Backlog](docs/backlog/PRODUCT-BACKLOG.md)
 - [Operating Board](docs/BOARD.md)
+- [Implementation Roadmap](docs/roadmap/IMPLEMENTATION-ROADMAP.md)
+- [Production Readiness Plan](docs/roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)
+- [Evolution Notes](EVOLUTION.md)
