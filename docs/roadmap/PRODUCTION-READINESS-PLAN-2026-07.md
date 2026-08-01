@@ -1,6 +1,7 @@
 # Evolith 生产就绪优先级重排（2026-07-30）
 
 > 状态：Current execution ordering  
+> 最近同步：2026-08-01（SEC-02 已解除）  
 > 触发：2026-07-30 全面项目体检  
 > 归口：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)  
 > 说明：本文替代原“两个月执行规划”作为当前激活顺序；原规划保留为历史计划基线，不覆写其原始目标和日期。
@@ -20,6 +21,8 @@
 
 > **先让底座安全、可持久化、可构建、可恢复，再把底座暴露给用户和 Agent。**
 
+截至 2026-08-01，SEC-01 与 SEC-02 已关闭；当前执行焦点转为 DATA-01，然后是 DEPLOY-01。
+
 ## 2. 当前产品判断
 
 | 领域 | 判断 |
@@ -27,7 +30,7 @@
 | Git 底座 | 已达到后端 Alpha，可继续硬化 |
 | Web 产品 | 仍是旧 Registry 主入口，Repo-centric UI 未形成 |
 | Agent 闭环 | Commit/Promote、Session、Scoped Token、Webhook 未实现 |
-| 生产安全 | 被 API Key/MCP 授权和 HTTP Tool SSRF 阻断 |
+| 生产安全 | API Key/MCP 授权与 HTTP Tool SSRF Gate 已关闭；未来出站能力必须复用统一 Egress Policy |
 | 数据耐久性 | 被 Git 目录持久化、备份恢复和 Repo 生命周期一致性阻断 |
 | 交付链路 | Embedded Frontend 与生产 Docker/Compose 口径不一致 |
 
@@ -37,7 +40,7 @@
 
 ### Stabilization S0 — 治理基线
 
-归口：EVO-118-A。
+归口：EVO-118-A（Done）。
 
 交付：
 
@@ -52,22 +55,24 @@
 
 按 WIP 一次只推进一个 Story：
 
-1. **EVO-118-B API Key / MCP Authorization — Done**
-   - PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；最终 CI `30567361095` 全绿，SEC-01 已解除；
+1. **EVO-118-B API Key / MCP Authorization — Done / SEC-01 Closed**
+   - PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；最终 CI `30567361095` 全绿；
    - API Key 管理限制为 Owner/Admin；
    - Permission 强类型化；
    - MCP `tools/call` 强制 `execute` capability；
    - 现有 Key 审计与负向测试。
-2. **EVO-118-C HTTP Tool Egress Security**
-   - SSRF、DNS、Redirect、私网和 Metadata 拦截；
-   - Tool 创建角色门禁；
-   - 受控 Egress Client/Proxy。
-3. **EVO-118-D Git Storage Durability and Recovery**
+2. **EVO-118-C HTTP Tool Egress Security — Done / SEC-02 Closed**
+   - Navigator accepted runtime security；CI #125 / run `30653767138` 全绿；
+   - SSRF、DNS、Redirect、私网、Metadata 和特殊用途地址拦截；
+   - Tool create/update 同租户 Owner/Admin JWT 门禁；
+   - 受控 Egress Client、总 deadline、连接固定、审计隐藏；
+   - `PERMISSIONS.md` 与 `API-CONTRACT.md` 稳定契约完成。
+3. **EVO-118-D Git Storage Durability and Recovery — Ready / Next**
    - 生产 Git 持久卷；
    - PostgreSQL + Git 联合备份；
    - 从空环境恢复演练；
    - 容量与磁盘告警基线。
-4. **EVO-118-E Production Build and Deployment Convergence**
+4. **EVO-118-E Production Build and Deployment Convergence — Ready**
    - Embedded Frontend 单一交付形态；
    - 修复 Docker build context；
    - clean build、启动和 Smoke Test；
@@ -123,6 +128,7 @@ S1 关闭后恢复：
 - Agent Token 不得直接获得不受策略控制的通用 Smart HTTP Push。
 - `commit:<scope>` 必须落实为 branch/path capability。
 - 所有写入产生可审计事件并进入 Durable Outbox。
+- Webhook 和其他租户可控出站调用必须复用 EVO-118-C Egress Policy。
 
 ### Product P3 — Capability Index and Discovery
 
@@ -140,8 +146,8 @@ S1 关闭后恢复：
 ```text
 EVO-118-A Done
 → EVO-118-B Done
-→ EVO-118-C
-→ EVO-118-D
+→ EVO-118-C Done
+→ EVO-118-D（Next）
 → EVO-118-E
 → EVO-118-F / G / H（按依赖）
 → EVO-112
@@ -154,21 +160,22 @@ EVO-118-A Done
 
 ## 5. Gate 解除标准
 
-### Security Gate
+### Security Gate — Closed
 
 - Member 无法创建或授予高权限 API Key；
 - 无 `execute` capability 的 Key 无法调用 MCP Tool；
 - localhost、私网、Metadata、DNS Rebinding 和 Redirect SSRF 测试通过；
-- 跨租户访问统一拒绝且不泄露资源存在性。
+- 跨租户访问统一拒绝且不泄露资源存在性；
+- Tool create/update 权限和 API 契约已与实现同步。
 
-### Durability Gate
+### Durability Gate — Open
 
 - 后端容器重建后 Git Repo/Commit/Tag 保留；
 - PostgreSQL + Git 备份可以在空环境恢复；
 - Repo 创建/删除故障不产生不可追踪分裂；
 - Git 存储容量和写入失败可观测。
 
-### Deployment Gate
+### Deployment Gate — Open
 
 - `docker compose -f docker-compose.prod.yml build --no-cache` 通过；
 - 生产镜像包含正确 Embedded Frontend；
@@ -176,7 +183,7 @@ EVO-118-A Done
 - readiness 在依赖故障时返回 503；
 - Smoke Test 覆盖登录、Repo、Git clone/push 和恢复后 clone。
 
-### Agent Gate
+### Agent Gate — Future
 
 - Commit/Promote 失败时 Ref 不移动；
 - Agent Session 可撤销；
@@ -187,7 +194,7 @@ EVO-118-A Done
 ## 6. 计划维护规则
 
 1. 本计划是当前顺序 owner doc；Board 只反映，不得自行改变顺序。
-2. 每个 Story 关闭后更新 EVO-118 父项、Backlog、Board、Iteration 和生产基线。
+2. 每个 Story 关闭后更新 EVO-118 父项、Backlog、Board、Iteration、路线图和生产基线。
 3. 日期不再作为完成证据，Gate 和实际验证优先于日历承诺。
 4. 原 [两个月执行规划](TWO-MONTH-PLAN-2026-07.md) 保留为 2026-06-29 发布的历史基线；不得把其原计划段改写为本轮新目标。
 5. 如果业务要求提前恢复 Repo UI，必须显式记录风险接受者、未关闭 Gate 和环境限制；不得默认视为可外部发布。
