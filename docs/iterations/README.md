@@ -42,7 +42,7 @@
 | [Iteration 050](ITERATION-050.md) | Closed / Complete | 项目体检治理基线与生产就绪重排；EVO-118-A Done |
 | [Iteration 051](ITERATION-051.md) | Closed / Complete | API Key/MCP 授权边界硬化；EVO-118-B Done，SEC-01 解除 |
 | [Iteration 052](ITERATION-052.md) | Closed / Complete | HTTP Tool Egress / SSRF 安全边界、稳定契约和治理关闭；EVO-118-C Done，SEC-02 解除 |
-| [Iteration 054](ITERATION-054.md) | Closed / Complete | EVO-112-A Repo UI Shell 本地历史成果恢复；创建成功返回列表，不进入未实现详情页 |
+| [Iteration 054](ITERATION-054.md) | Closed / Complete | EVO-112-A Repo UI Shell 本地历史成果恢复；PR #8 merged `1216624`，exact-head CI 全绿 |
 
 这些 Iteration 证明 Git 后端 Alpha 基础和安全 Gate 存在，但不证明平台生产就绪。剩余发布 Gate 归 [EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)。
 

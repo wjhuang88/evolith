@@ -45,7 +45,7 @@
 | EVO-103-B-2 | Smart HTTP 端点实现 | Done | P0 | ITERATION-046 | [Item file](active/EVO-103-B-2-smart-http-endpoints.md) |
 | EVO-103-C | Repo Context API | Done | P0 | ITERATION-048 | [Item file](active/EVO-103-C-repo-context-api.md) |
 | EVO-112 | Repo Management UI | In Progress / paused | P0 | EVO-112-A Done（Iteration 054 历史成果恢复）；EVO-112-B 等待 EVO-118 S1 后恢复 | [Item file](active/EVO-112-repo-management-ui.md) |
-| EVO-112-A | Repo UI Shell | Done | P0 | `/repos` 列表与创建、repo-centric 导航和 Dashboard；Iteration 054 Closed / Complete | [Item file](active/EVO-112-A-repo-ui-shell.md)<br>[Iteration 054](../iterations/ITERATION-054.md) |
+| EVO-112-A | Repo UI Shell | Done | P0 | `/repos` 列表与创建、repo-centric 导航和 Dashboard；Iteration 054 Closed / Complete；PR #8 merged `1216624` | [Item file](active/EVO-112-A-repo-ui-shell.md)<br>[Iteration 054](../iterations/ITERATION-054.md)<br>[PR #8](https://github.com/wjhuang88/evolith/pull/8) |
 | EVO-112-B | Repo Detail Read-only | Proposed / paused | P0 | 依赖 EVO-112-A / EVO-103-C；EVO-118 S1 关闭后重新排期 | [Item file](active/EVO-112-B-repo-detail-read-only.md) |
 | EVO-104 | Vibe Coding Web UI | Proposed | P0 | 依赖 EVO-103/105/106/112 与 EVO-118 Gate | [Item file](active/EVO-104-vibe-coding-web-ui.md)<br>[Design Decisions](../design/vibe-coding-ui-decisions.md) |
 | EVO-105 | Commit API + Promote API | Proposed | P0 | 依赖 EVO-118-B/F/H | [Item file](active/EVO-105-commit-and-promote-api.md) |
