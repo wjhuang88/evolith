@@ -212,7 +212,7 @@ The rate limits are configurable via environment variables:
 - `RATE_LIMIT__AUTHENTICATED_RPM` (default: 300)
 - `RATE_LIMIT__API_KEY_RPM` (default: 1000)
 
-> **Note:** Current implementation applies IP-based rate limiting globally via `actix-governor`. Per-user and per-API-key rate limiting tiers are planned for future phases.
+> **Note:** Current implementation applies IP-based rate limiting globally via `actix-governor`. Per-user and per-api-key rate limiting tiers are planned for future phases.
 
 ---
 
@@ -580,6 +580,31 @@ interface MessageResponse {
 
 ## Tools
 
+### Stable Tool management boundary
+
+`POST /api/v1/tools` and `PUT /api/v1/tools/{id}` are security-sensitive management endpoints.
+
+- Only a same-tenant `owner` or `admin` authenticated with JWT may create or update a Tool.
+- A `member` or any API Key caller receives `403 FORBIDDEN`, including an API Key with `execute` capability.
+- Authorization runs before JSON/DTO deserialization. An unauthorized caller therefore receives 403 even when the request body is malformed.
+- HTTP handler configuration is validated before persistence and before any target connection.
+- `DELETE /api/v1/tools/{id}` intentionally retains its existing same-tenant authenticated legacy behavior and is documented separately; the create/update role restriction must not be inferred for delete.
+
+### HTTP Tool handler validation
+
+When `type` is `"http"`:
+
+- `handler_url` is required and must use `https` in the production policy;
+- URL credentials/userinfo are forbidden;
+- metadata hostnames, loopback, private, link-local, multicast, documentation, benchmark, reserved, mapped-private and other non-public targets are rejected;
+- every resolved A/AAAA record must be approved; mixed public/private results fail closed;
+- the approved address set is pinned to the connection and automatic redirects/system proxies are disabled;
+- redirects are handled explicitly, bounded, and each hop repeats URL, DNS and IP validation;
+- `handler_method` may be `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, or `OPTIONS` (case-insensitive);
+- `handler_timeout`, when present, must be in `1..=30000` milliseconds.
+
+Invalid or disallowed handler configuration returns `400 VALIDATION_ERROR` with a stable, redacted message. The response does not expose the full URL, resolved addresses, internal hostnames, or lower-level reqwest diagnostics.
+
 ### `GET /api/v1/tools`
 
 - **Auth:** JWT
@@ -608,34 +633,42 @@ interface ToolListResponse {
 
 ### `POST /api/v1/tools`
 
-- **Auth:** JWT
-- **Description:** Create a new tool
+- **Auth:** Same-tenant Owner/Admin JWT only
+- **Authorization order:** Authentication and role checks run before request-body deserialization.
+- **Description:** Create a new Tool. HTTP Tool configuration must pass the stable egress validation above.
 
 **Request:**
 ```typescript
 interface CreateToolRequest {
-  name: string;           // 1-128 chars
-  description: string;    // min 1 char
-  input_schema: object;   // JSON Schema
-  type?: string;          // "http" | "function" (default: "function")
-  handler_url?: string;
-  handler_method?: string;
-  handler_timeout?: number; // ms
-  is_public?: boolean;     // default: false
+  name: string;             // 1-128 chars
+  description: string;      // min 1 char
+  input_schema: object;     // JSON Schema
+  type?: "http" | "function"; // default: "function"
+  handler_url?: string;     // required for type="http"; production requires https
+  handler_method?: string;  // GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS
+  handler_timeout?: number; // 1..=30000 ms
+  is_public?: boolean;      // default: false
 }
 ```
 
-**Response:**
+**Response:** `201 Created`
+
 ```typescript
 ApiResponse<ToolResponse>
 ```
+
+**Errors:**
+
+- `403 FORBIDDEN` — caller is a Member or authenticated with an API Key. This is returned before parsing the body, including for malformed JSON.
+- `400 VALIDATION_ERROR` — DTO validation fails, handler type/method/timeout is unsupported, or the HTTP target is invalid/disallowed.
+- `500 DATABASE_ERROR` / `500 INTERNAL_ERROR` — persistence or unexpected server failure.
 
 ---
 
 ### `GET /api/v1/tools/{id}`
 
 - **Auth:** JWT
-- **Description:** Get tool by ID
+- **Description:** Get a same-tenant Tool by ID. A missing or foreign Tool returns `404 NOT_FOUND`.
 
 **Response:**
 ```typescript
@@ -646,8 +679,9 @@ ApiResponse<ToolResponse>
 
 ### `PUT /api/v1/tools/{id}`
 
-- **Auth:** JWT
-- **Description:** Update tool
+- **Auth:** Same-tenant Owner/Admin JWT only
+- **Authorization order:** Authentication and role checks run before request-body deserialization and before Tool lookup.
+- **Description:** Partially update a Tool. Handler fields are merged with the existing handler and the resulting configuration is revalidated before persistence.
 
 **Request:**
 ```typescript
@@ -655,10 +689,10 @@ interface UpdateToolRequest {
   name?: string;
   description?: string;
   input_schema?: object;
-  type?: string;
+  type?: "http" | "function";
   handler_url?: string;
   handler_method?: string;
-  handler_timeout?: number;
+  handler_timeout?: number; // 1..=30000 ms
   is_public?: boolean;
 }
 ```
@@ -668,12 +702,21 @@ interface UpdateToolRequest {
 ApiResponse<ToolResponse>
 ```
 
+**Errors:**
+
+- `403 FORBIDDEN` — caller is a Member or authenticated with an API Key. This is returned before parsing the body or looking up the Tool.
+- `404 NOT_FOUND` — Tool is missing or belongs to another tenant. Both cases return the same `Tool not found or access denied` response after the Owner/Admin JWT gate passes.
+- `400 VALIDATION_ERROR` — DTO validation fails or the resulting handler configuration is invalid/disallowed.
+- `500 DATABASE_ERROR` / `500 INTERNAL_ERROR` — persistence or unexpected server failure.
+
 ---
 
 ### `DELETE /api/v1/tools/{id}`
 
-- **Auth:** JWT
-- **Description:** Delete tool
+- **Auth:** Authenticated same-tenant caller (legacy behavior; not changed by EVO-118-C)
+- **Description:** Delete a Tool. Missing and foreign Tools return `404 NOT_FOUND`.
+
+> This endpoint does not currently share the Owner/Admin-only create/update gate. Any future role tightening requires a separate implementation and contract change.
 
 **Response:**
 ```typescript
@@ -2008,6 +2051,7 @@ interface AuditLogResponse {
 
 ## Version History
 
+- **2026-08-01:** EVO-118-C / Iteration 052 — documented the same-tenant Owner/Admin JWT-only Tool create/update boundary, auth-before-deserialization and auth-before-lookup ordering, HTTPS/public-target egress validation, supported methods, `1..=30000 ms` timeout, stable redacted `400`, auth-first `403`, foreign/missing update hiding, and the unchanged legacy delete behavior.
 - **2026-06-26:** EVO-116 / Iteration 049 — added Repos, Smart HTTP, Repo Context API, API key scope, and Push metadata sync sections; documented `INVALID_INPUT`, `RESOURCE_EXCEEDED`, `TIMEOUT`, `REPO_EXISTS` error codes; added `/repos/{id}/git-upload-pack` and `/repos/{id}/git-receive-pack` to CSRF-exempt paths; fixed Audit Logs section placement during acceptance remediation. `cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings` green.
 - **2026-05-27:** Removed ⚠️ markers from `send-verify`, `verify-email` (implemented in Iteration 009) and `PUT /skills/{id}` (implemented in Iteration 010). Added response shapes and error codes. Synced with EVO-040 / Iteration 021.
 - **2026-03-15:** Phase 6 updates — Added Authentication section documenting cookie-based auth (httpOnly `evolith_token` + `csrf_token`), CSRF protection (double-submit cookie pattern), `X-CSRF-Token` header requirement. Added `CSRF_ERROR` to error codes. Updated login/register/logout/refresh descriptions to mention cookie behavior. Updated Table of Contents.

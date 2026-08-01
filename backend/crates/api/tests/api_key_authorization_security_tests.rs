@@ -35,7 +35,7 @@ use infra::db::{
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_tool::executor::ToolExecutorAdapter;
-use service_tool::HttpProxyProvider;
+use service_tool::{EgressPolicy, HttpProxyProvider};
 
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
 const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_tenant.sql");
@@ -182,7 +182,9 @@ fn create_test_config(base_path: String) -> AppConfig {
 
 fn build_app_state(pool: SqlitePool, base_path: String) -> AppState {
     let config = create_test_config(base_path);
-    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::new());
+    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::with_policy(
+        EgressPolicy::for_test_allow_private_networks(),
+    ));
     let execution_provider: Arc<dyn ExecutionProvider> =
         Arc::new(CompositeProvider::new(None, Some(http_proxy)));
 
@@ -985,6 +987,7 @@ async fn execute_key_cannot_discover_or_distinguish_foreign_tenant_tool() {
     .await;
 
     let state = build_app_state(pool, temp_dir.path().display().to_string());
+    let audit_repo = state.audit_repo.clone();
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(state))
@@ -1032,6 +1035,31 @@ async fn execute_key_cannot_discover_or_distinguish_foreign_tenant_tool() {
     assert_eq!(foreign_response["error"], missing_response["error"]);
     assert_eq!(foreign_response["error"]["code"], -32001);
     assert_eq!(hits.load(Ordering::SeqCst), 0);
+
+    let audit_logs = audit_repo
+        .find_by_tenant(caller_tenant_id, 10, 0)
+        .await
+        .expect("read hidden tool denial audits");
+    let denial_logs: Vec<_> = audit_logs
+        .iter()
+        .filter(|log| log.action == "tool.execution.denied")
+        .collect();
+    assert_eq!(denial_logs.len(), 2);
+    assert_eq!(denial_logs[0].resource_id, None);
+    assert_eq!(denial_logs[1].resource_id, None);
+    assert_eq!(denial_logs[0].details, denial_logs[1].details);
+    assert_eq!(
+        denial_logs[0].details,
+        serde_json::json!({"reason": "not_found_or_access_denied"})
+    );
+    assert!(denial_logs
+        .iter()
+        .all(|log| log.tenant_id == Some(caller_tenant_id)));
+    assert!(audit_repo
+        .find_by_tenant(target_tenant_id, 10, 0)
+        .await
+        .expect("read target tenant audits")
+        .is_empty());
 
     server_handle.stop(true).await;
 }

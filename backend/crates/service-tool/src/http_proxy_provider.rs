@@ -1,21 +1,19 @@
 //! HTTP proxy provider for MCP tool execution.
 //!
-//! Implements `ExecutionProvider` for `HttpProxy` payloads by forwarding
-//! requests via reqwest.
+//! All tenant-controlled requests are delegated to the shared egress boundary.
 
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use common::error::{AppError, Result};
 use common::execution::{ExecutionPayload, ExecutionProvider, ExecutionRequest, ExecutionResponse};
-use futures_util::StreamExt;
-use reqwest::Client;
 use tracing::debug;
 
-const MAX_RESPONSE_BYTES: usize = 1_048_576;
+use crate::egress::{EgressError, EgressPolicy, SafeHttpClient, MAX_REQUEST_TIMEOUT};
 
 pub struct HttpProxyProvider {
-    client: Client,
+    client: SafeHttpClient,
+    default_timeout: Duration,
 }
 
 impl Default for HttpProxyProvider {
@@ -26,23 +24,29 @@ impl Default for HttpProxyProvider {
 
 impl HttpProxyProvider {
     pub fn new() -> Self {
-        let client = Client::builder()
-            .no_proxy()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .expect("static HTTP client configuration must be valid");
-
-        Self { client }
+        Self::with_policy_and_timeout(EgressPolicy::default(), Duration::from_secs(30))
     }
 
     pub fn with_timeout(timeout: Duration) -> Self {
-        let client = Client::builder()
-            .no_proxy()
-            .timeout(timeout)
-            .build()
-            .expect("static HTTP client configuration must be valid");
+        Self::with_policy_and_timeout(EgressPolicy::default(), timeout)
+    }
 
-        Self { client }
+    pub fn with_policy(policy: EgressPolicy) -> Self {
+        Self::with_policy_and_timeout(policy, Duration::from_secs(30))
+    }
+
+    pub fn with_policy_and_timeout(policy: EgressPolicy, timeout: Duration) -> Self {
+        Self {
+            client: SafeHttpClient::new(policy),
+            default_timeout: timeout,
+        }
+    }
+
+    pub fn with_client(client: SafeHttpClient, timeout: Duration) -> Self {
+        Self {
+            client,
+            default_timeout: timeout,
+        }
     }
 }
 
@@ -51,8 +55,12 @@ impl ExecutionProvider for HttpProxyProvider {
     async fn execute(&self, request: ExecutionRequest) -> Result<ExecutionResponse> {
         let start = Instant::now();
 
-        let (url, method) = match &request.payload {
-            ExecutionPayload::HttpProxy { url, method } => (url.clone(), method.clone()),
+        let (url, method, timeout_ms) = match &request.payload {
+            ExecutionPayload::HttpProxy {
+                url,
+                method,
+                timeout_ms,
+            } => (url, method, *timeout_ms),
             _ => {
                 return Err(AppError::ValidationError(
                     "HttpProxyProvider only handles HttpProxy payloads".to_string(),
@@ -60,69 +68,51 @@ impl ExecutionProvider for HttpProxyProvider {
             }
         };
 
-        let timeout = Duration::from_secs(request.constraints.timeout_seconds as u64);
-        let method = parse_method(&method)?;
-
-        let response = self
-            .client
-            .request(method, &url)
-            .timeout(timeout)
-            .json(&request.input)
-            .send()
-            .await
-            .map_err(|e| map_reqwest_error(e, &url))?;
-
-        let status = response.status().as_u16();
-        let is_success = response.status().is_success();
-        let mut body_bytes = Vec::new();
-        let mut body_stream = response.bytes_stream();
-        while let Some(chunk) = body_stream.next().await {
-            let chunk = chunk.map_err(|e| AppError::ExternalServiceError {
-                service: "http-proxy".to_string(),
-                message: format!("Failed to read response body: {}", e),
-            })?;
-
-            if body_bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
-                return Err(AppError::ExternalServiceError {
-                    service: "http-proxy".to_string(),
-                    message: format!(
-                        "Response body exceeded {} byte limit for {}",
-                        MAX_RESPONSE_BYTES, url
-                    ),
-                });
-            }
-
-            body_bytes.extend_from_slice(&chunk);
+        let timeout = timeout_ms
+            .filter(|timeout_ms| *timeout_ms > 0)
+            .map(|timeout_ms| Duration::from_millis(timeout_ms as u64))
+            .unwrap_or_else(|| {
+                if request.constraints.timeout_seconds > 0 {
+                    Duration::from_secs(request.constraints.timeout_seconds as u64)
+                } else {
+                    self.default_timeout
+                }
+            });
+        if timeout.is_zero() || timeout > MAX_REQUEST_TIMEOUT {
+            return Err(AppError::ValidationError(
+                "HTTP tool timeout must be between 1 and 30000 milliseconds".to_string(),
+            ));
         }
 
-        let body_text = String::from_utf8_lossy(&body_bytes).into_owned();
-        let elapsed = start.elapsed().as_millis() as u64;
+        let method = parse_method(method)?;
+        let response = self
+            .client
+            .execute(method, url, &request.input, timeout)
+            .await
+            .map_err(to_app_error)?;
 
-        let output = if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body_text) {
-            json
-        } else {
-            serde_json::Value::String(body_text.clone())
-        };
+        let status = response.status.as_u16();
+        let is_success = response.status.is_success();
+        let body_text = String::from_utf8_lossy(&response.body).into_owned();
+        let output = serde_json::from_str::<serde_json::Value>(&body_text)
+            .unwrap_or_else(|_| serde_json::Value::String(body_text.clone()));
 
-        let stderr = if !is_success {
-            format!(
-                "HTTP {} from {}: {}",
-                status,
-                url,
-                body_text.chars().take(500).collect::<String>()
-            )
-        } else {
-            String::new()
-        };
-
-        debug!("HTTP proxy executed: {} -> {}", url, status);
+        debug!(
+            tool_id = ?request.caller,
+            http_status = status,
+            "HTTP tool egress request completed"
+        );
 
         Ok(ExecutionResponse {
             output,
             stdout: body_text,
-            stderr,
+            stderr: if is_success {
+                String::new()
+            } else {
+                format!("HTTP {status} error")
+            },
             exit_code: if is_success { 0 } else { -1 },
-            execution_time_ms: elapsed,
+            execution_time_ms: start.elapsed().as_millis() as u64,
             timed_out: false,
             http_status: Some(status),
         })
@@ -138,31 +128,30 @@ fn parse_method(method: &str) -> Result<reqwest::Method> {
         "PATCH" => Ok(reqwest::Method::PATCH),
         "HEAD" => Ok(reqwest::Method::HEAD),
         "OPTIONS" => Ok(reqwest::Method::OPTIONS),
-        _ => Err(AppError::ValidationError(format!(
-            "Unsupported HTTP method: {}",
-            method
-        ))),
+        _ => Err(AppError::ValidationError(
+            "Unsupported HTTP method".to_string(),
+        )),
     }
 }
 
-fn map_reqwest_error(err: reqwest::Error, url: &str) -> AppError {
-    if err.is_timeout() {
-        AppError::ExternalServiceError {
+fn to_app_error(error: EgressError) -> AppError {
+    match error {
+        EgressError::InvalidTarget
+        | EgressError::SchemeNotAllowed
+        | EgressError::CredentialsNotAllowed
+        | EgressError::TargetNotAllowed
+        | EgressError::DnsResolutionFailed
+        | EgressError::RedirectRejected
+        | EgressError::TooManyRedirects
+        | EgressError::InvalidTimeout => AppError::ValidationError(error.to_string()),
+        EgressError::RequestTimedOut
+        | EgressError::ConcurrencyLimit
+        | EgressError::RequestFailed
+        | EgressError::ResponseHeadersTooLarge
+        | EgressError::ResponseBodyTooLarge => AppError::ExternalServiceError {
             service: "http-proxy".to_string(),
-            message: format!("Request to {} timed out", url),
-        }
-    } else if err.is_connect() {
-        AppError::ExternalServiceError {
-            service: "http-proxy".to_string(),
-            message: format!("Failed to connect to {}: {}", url, err),
-        }
-    } else if err.is_request() {
-        AppError::ValidationError(format!("Invalid request to {}: {}", url, err))
-    } else {
-        AppError::ExternalServiceError {
-            service: "http-proxy".to_string(),
-            message: format!("Request to {} failed: {}", url, err),
-        }
+            message: error.to_string(),
+        },
     }
 }
 
@@ -174,37 +163,40 @@ mod tests {
     use super::*;
     use common::execution::{ExecutionCaller, ExecutionConstraints, ExecutionContext};
 
+    fn http_request(url: &str, timeout_ms: Option<u32>) -> ExecutionRequest {
+        ExecutionRequest {
+            caller: ExecutionCaller::McpTool {
+                tool_id: uuid::Uuid::new_v4(),
+            },
+            payload: ExecutionPayload::HttpProxy {
+                url: url.to_string(),
+                method: "GET".to_string(),
+                timeout_ms,
+            },
+            constraints: ExecutionConstraints::default(),
+            input: serde_json::json!({}),
+            context: ExecutionContext::default(),
+        }
+    }
+
     #[test]
     fn parse_method_valid() {
         assert_eq!(parse_method("GET").unwrap(), reqwest::Method::GET);
         assert_eq!(parse_method("post").unwrap(), reqwest::Method::POST);
         assert_eq!(parse_method("Put").unwrap(), reqwest::Method::PUT);
-        assert_eq!(parse_method("delete").unwrap(), reqwest::Method::DELETE);
-        assert_eq!(parse_method("PATCH").unwrap(), reqwest::Method::PATCH);
     }
 
     #[test]
-    fn parse_method_invalid() {
-        let result = parse_method("INVALID");
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Unsupported HTTP method"));
-    }
-
-    #[test]
-    fn http_proxy_provider_default() {
-        let _provider = HttpProxyProvider::new();
-    }
-
-    #[test]
-    fn http_proxy_provider_with_timeout() {
-        let _provider = HttpProxyProvider::with_timeout(Duration::from_secs(10));
+    fn parse_method_invalid_is_redacted() {
+        let error = parse_method("SECRET-METHOD").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Validation error: Unsupported HTTP method"
+        );
     }
 
     #[tokio::test]
-    async fn http_proxy_rejects_non_http_payload() {
+    async fn rejects_non_http_payload() {
         let provider = HttpProxyProvider::new();
         let request = ExecutionRequest {
             caller: ExecutionCaller::Skill {
@@ -219,32 +211,39 @@ mod tests {
             input: serde_json::json!({}),
             context: ExecutionContext::default(),
         };
-        let err = provider.execute(request).await.unwrap_err();
-        assert!(err
+        let error = provider.execute(request).await.unwrap_err();
+        assert!(error
             .to_string()
             .contains("HttpProxyProvider only handles HttpProxy payloads"));
     }
 
     #[tokio::test]
-    async fn http_proxy_connection_error_returns_error() {
-        let provider = HttpProxyProvider::new();
-        let request = ExecutionRequest {
-            caller: ExecutionCaller::McpTool {
-                tool_id: uuid::Uuid::new_v4(),
-            },
-            payload: ExecutionPayload::HttpProxy {
-                url: "http://localhost:19999/nonexistent".to_string(),
-                method: "GET".to_string(),
-            },
-            constraints: ExecutionConstraints::default(),
-            input: serde_json::json!({}),
-            context: ExecutionContext::default(),
-        };
-        let err = provider.execute(request).await.unwrap_err();
-        assert!(
-            err.to_string().contains("connect")
-                || err.to_string().contains("Failed")
-                || err.to_string().contains("timed out")
-        );
+    async fn production_default_rejects_loopback() {
+        let error = HttpProxyProvider::new()
+            .execute(http_request(
+                "https://127.0.0.1:19999/nonexistent",
+                Some(10),
+            ))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("target is not allowed"));
+    }
+
+    #[tokio::test]
+    async fn production_default_rejects_plaintext_http() {
+        let error = HttpProxyProvider::new()
+            .execute(http_request("http://93.184.216.34", Some(10)))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("scheme is not allowed"));
+    }
+
+    #[tokio::test]
+    async fn rejects_legacy_timeout_above_runtime_maximum() {
+        let error = HttpProxyProvider::new()
+            .execute(http_request("https://example.com", Some(30_001)))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("between 1 and 30000"));
     }
 }

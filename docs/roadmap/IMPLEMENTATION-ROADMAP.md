@@ -1,7 +1,7 @@
 # Evolith 实施路线图
 
 > 制定日期：2026-05-15  
-> 最近更新：2026-07-30（全面体检后增加 Production Readiness Stabilization）  
+> 最近更新：2026-08-01（SEC-02 关闭后推进到 DATA-01）  
 > 目标：维护阶段优先级、实施顺序和 Backlog / Proposals / Release Gate 归口关系。
 
 本文档不是任务池。Agent 不应直接从本文档开工：
@@ -24,15 +24,16 @@ Git Repo 是代码与版本历史的事实源；Skill/CLI/MCP 是由 Repo 内容
 
 ### 1.2 成熟度
 
-截至 2026-07-30：
+截至 2026-08-01：
 
 - 工程骨架较完整，模块化单体方向合理。
 - Repo CRUD、Smart HTTP、真实 clone/push/pull、Context API 已形成 Git 后端 Alpha。
+- API Key/MCP 授权与 HTTP Tool Egress/SSRF 两项安全发布 Gate 已关闭。
 - Web 产品仍以旧 Tools/Skills/Interfaces 为主入口，Repo UI 未落地。
 - Commit/Promote、Agent Session、Webhook、Vibe Coding、Indexer 未形成产品闭环。
-- 权限、SSRF、Git 数据耐久性和生产构建存在发布阻断项。
+- Git 数据耐久性和生产构建仍是发布阻断项。
 
-因此项目不得描述为生产就绪，也不应继续把用户可见功能置于安全和数据 Gate 之前。
+因此项目仍不得描述为生产就绪，也不应继续把用户可见功能置于数据和交付 Gate 之前。
 
 ## 2. 保留的技术路线
 
@@ -91,7 +92,7 @@ Handler 不应长期直接编排权限、DB、文件系统、审计和异步任�
 | Phase A API 对齐 | Done | 修复主要前后端合约漂移 |
 | Phase B React + Vite + Bun | Done | 去除 Next runtime，静态 SPA 落地 |
 | Phase C Auth lifecycle | Done/partial production hardening | 注册、登录、重置、验证、邀请已具备；Session/revocation 仍待 Agent/Auth 后续 |
-| Phase D MCP Tool execution | Done/Release blocked | HTTP Tool 可执行；授权与 SSRF 硬化转 EVO-118-B/C |
+| Phase D MCP Tool execution | Done / Hardened baseline | HTTP Tool 可执行；EVO-118-B/C 已完成授权、租户隐藏与 Egress/SSRF 硬化，未来出站能力必须复用统一策略 |
 | Phase E'-1 Git Service foundation | Done/Alpha | EVO-101/102/103/113/115/116；不等于生产就绪 |
 
 ## 4. 当前阶段：Production Readiness Stabilization
@@ -100,16 +101,16 @@ Handler 不应长期直接编排权限、DB、文件系统、审计和异步任�
 
 ### S0 Governance Baseline
 
-- EVO-118-A：生产就绪事实、Security SOP、Backlog、Roadmap、Release Gate。
+- EVO-118-A：Done；生产就绪事实、Security SOP、Backlog、Roadmap、Release Gate 已建立。
 
 ### S1 P0 Release Blockers
 
-| Story | Gate | 完成结果 |
-|-------|------|----------|
-| EVO-118-B | SEC-01 | API Key Owner/Admin 管理、Typed Capability、MCP execute、负向权限测试 |
-| EVO-118-C | SEC-02 | HTTP Tool DNS/IP/Redirect/Metadata/私网防护和受控 Egress |
-| EVO-118-D | DATA-01 | Git 持久卷、PostgreSQL+Git 备份、空环境恢复演练 |
-| EVO-118-E | DEPLOY-01 | Embedded Frontend 单一交付、clean build 和生产 Smoke Test |
+| Story | Gate | 状态 | 完成结果 |
+|-------|------|------|----------|
+| EVO-118-B | SEC-01 | Done / Closed | API Key Owner/Admin 管理、Typed Capability、MCP execute、负向权限测试 |
+| EVO-118-C | SEC-02 | Done / Closed | HTTP Tool DNS/IP/Redirect/Metadata/私网防护、受控 Egress、稳定权限/API 契约 |
+| EVO-118-D | DATA-01 | Ready / Next | Git 持久卷、PostgreSQL+Git 备份、空环境恢复演练 |
+| EVO-118-E | DEPLOY-01 | Ready | Embedded Frontend 单一交付、clean build 和生产 Smoke Test |
 
 S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生产；Repo UI 可以 refinement，但不抢占实现 WIP。
 
@@ -149,6 +150,7 @@ S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生�
 - Commit/Promote 失败时目标 Ref 不移动。
 - Policy `auto_merge / require_review / block` 必须由行为测试证明。
 - Push/Commit/Promote/Session/Webhook 事件进入 Durable Outbox。
+- Webhook 和其他租户可控 HTTP 出站必须复用 EVO-118-C 的 Egress Policy，不得恢复 raw URL 直连。
 
 ### Phase E'-3 Capability Index and Discovery
 
@@ -176,10 +178,10 @@ S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生�
 ## 6. 当前严格启动顺序
 
 ```text
-EVO-118-A Review/merge
-→ EVO-118-B
-→ EVO-118-C
-→ EVO-118-D
+EVO-118-A ✓
+→ EVO-118-B ✓
+→ EVO-118-C ✓
+→ EVO-118-D（Next）
 → EVO-118-E
 → EVO-118-F / G / H（按依赖和 WIP）
 → EVO-112

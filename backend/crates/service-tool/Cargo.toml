@@ -19,6 +19,7 @@ chrono.workspace = true
 jsonschema.workspace = true
 reqwest.workspace = true
 futures-util.workspace = true
+tokio.workspace = true
 
 # Internal crates
 domain.workspace = true

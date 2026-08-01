@@ -27,7 +27,7 @@ use infra::db::{
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
 use service_tool::executor::{HttpToolExecutor, ToolExecutor, ToolExecutorAdapter};
-use service_tool::HttpProxyProvider;
+use service_tool::{EgressPolicy, HttpProxyProvider};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -168,7 +168,9 @@ fn create_test_config() -> AppConfig {
 
 fn build_app_state(pool: SqlitePool) -> AppState {
     let config = create_test_config();
-    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::new());
+    let http_proxy: Arc<dyn ExecutionProvider> = Arc::new(HttpProxyProvider::with_policy(
+        EgressPolicy::for_test_allow_private_networks(),
+    ));
     let execution_provider: Arc<dyn ExecutionProvider> =
         Arc::new(CompositeProvider::new(None, Some(http_proxy.clone())));
     let skill_executor: Arc<dyn SkillExecutor> =
@@ -539,7 +541,7 @@ async fn test_mcp_tools_call_maps_http_failure_to_mcp_error() {
 #[actix_rt::test]
 async fn test_http_executor_times_out_against_local_server() {
     let (base_url, handle) = start_test_server();
-    let executor = HttpToolExecutor::new();
+    let executor = HttpToolExecutor::with_policy(EgressPolicy::for_test_allow_private_networks());
     let result = executor
         .execute(service_tool::executor::ExecuteRequest {
             tool_id: "slow-tool".to_string(),
@@ -560,7 +562,7 @@ async fn test_http_executor_times_out_against_local_server() {
 #[actix_rt::test]
 async fn test_http_executor_rejects_oversized_response() {
     let (base_url, handle) = start_test_server();
-    let executor = HttpToolExecutor::new();
+    let executor = HttpToolExecutor::with_policy(EgressPolicy::for_test_allow_private_networks());
     let result = executor
         .execute(service_tool::executor::ExecuteRequest {
             tool_id: "large-tool".to_string(),
