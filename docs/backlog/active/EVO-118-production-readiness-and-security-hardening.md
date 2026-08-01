@@ -16,7 +16,7 @@
 
 - 模块化单体、Git Smart HTTP + `gix`、双数据库和 Embedded Frontend 的总体方向保留。
 - Git 后端基础已可用于受控 Alpha，但产品主入口仍是旧 Registry UI。
-- 当前不具备生产发布条件；P0 Gate 详见 [生产就绪基线](../../reference/PRODUCTION-READINESS-BASELINE.md)。
+- SEC-01 与 SEC-02 已关闭；当前仍不具备生产发布条件，剩余 P0 Gate 为 DATA-01 和 DEPLOY-01，详见 [生产就绪基线](../../reference/PRODUCTION-READINESS-BASELINE.md)。
 - 解决问题的方式是小批次安全与耐久性 Story，不拆微服务、不引入 Kafka/Kubernetes 复杂度来替代闭环。
 
 ## 子 Story
@@ -25,7 +25,7 @@
 |----------|----------|------|--------|------|----------|
 | [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Done | P0 | 无 | Iteration 050 |
 | [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Done | P0 | EVO-118-A Done | Iteration 051 / PR #3 merged |
-| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Review | P0 | EVO-118-A/B Done | Iteration 052 / Draft PR #5 / CI #105 green |
+| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Done | P0 | EVO-118-A/B Done | Iteration 052 Closed / PR #5 |
 | [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Proposed | P1 | EVO-118-D/E | - |
@@ -38,7 +38,7 @@
 
 必须完成：EVO-118-B、C、D、E。
 
-当前进度：EVO-118-A/B 已 Done，SEC-01 已解除。EVO-118-C 已进入 Review：Draft PR #5 的 exact-head CI #105 / run `30641425436` 在 `e7f6b85a0fb7fd8f68c2da479ad8075482a47ac7` 上 required gates 全绿；剩余 Navigator 点名负向证据、最新安全复核和 SEC-02 正式关闭尚未完成。D/E 仍为 Ready。
+当前进度：EVO-118-A/B/C 已 Done，SEC-01 与 SEC-02 已解除。EVO-118-C 的统一 HTTP Egress、总 deadline、严格生产默认、Tool 管理门禁、跨租户审计隐藏和 IPv6 特殊用途防护已经 Navigator 接受；CI #125 / run `30653767138` 在 head `1a7e31d82d26086ad5e828e89e25df5601a3cd8f` 的 merge ref 上全绿，稳定权限/API 契约及关闭状态已在 PR #5 后续 head 同步。D/E 仍为 Ready。
 
 S1 未完成前：
 
@@ -74,8 +74,9 @@ S1 未完成前：
 
 ## 残余工作归口
 
-- EVO-118-C：完成剩余定向 SSRF/limit/audit 证据并取得最新 Navigator 结论；通过前 SEC-02 保持阻塞。
+- EVO-118-D：关闭 Git 持久卷、联合备份和恢复演练，对应 DATA-01。
+- EVO-118-E：关闭 Embedded Frontend 与生产构建/部署收敛，对应 DEPLOY-01。
 - Repo UI 与 Vibe Coding：EVO-112 / EVO-104。
 - Commit/Promote 与 Agent Session：EVO-105 / EVO-106。
-- Webhook/Indexer：EVO-107 / EVO-108，依赖 EVO-118-C/H。
+- Webhook/Indexer：EVO-107 / EVO-108，必须复用 EVO-118-C Egress Policy 并依赖 EVO-118-H。
 - Sandbox 删除：EVO-111。
