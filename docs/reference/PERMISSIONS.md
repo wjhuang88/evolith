@@ -37,8 +37,10 @@ Evolith 当前采用两层身份与授权模型：
 | 操作 | owner | admin | member |
 |------|-------|-------|--------|
 | 查看租户内可见资源 | ✅ | ✅ | ✅ |
-| 创建 Tool / Skill / CLI compatibility resource | ✅ | ✅ | ✅ |
-| 编辑自己拥有的资源 | ✅ | ✅ | ✅ |
+| 创建 Skill / CLI compatibility resource | ✅ | ✅ | ✅ |
+| 编辑自己拥有的 Skill / CLI compatibility resource | ✅ | ✅ | ✅ |
+| 创建或更新 Tool | ✅ | ✅ | ❌ |
+| 删除同租户 Tool（当前 legacy 行为） | ✅ | ✅ | ✅ |
 | 管理所有租户资源 | ✅ | ✅ | ❌ |
 | 邀请、移除成员或修改成员角色 | ✅ | ✅ | ❌ |
 | 管理 API Key | ✅ | ✅ | ❌ |
@@ -97,6 +99,42 @@ details.target_tenant_id = path tenant
 - `user_id`、IP、User-Agent 描述调用者；
 - 跨租户目标只记录在 `details.target_tenant_id`，不会向目标 Tenant 审计流写入 foreign identity；
 - 审计失败不会把拒绝请求变成成功。
+
+### 3.2 Tool 创建与更新门禁
+
+以下端点只允许 **同租户 Owner/Admin 的 JWT**：
+
+```text
+POST /api/v1/tools
+PUT  /api/v1/tools/{tool_id}
+```
+
+稳定授权与隐藏语义：
+
+- Member 调用返回 `403 FORBIDDEN`；
+- API Key caller 即使具有 `execute` capability 也返回 `403 FORBIDDEN`；
+- 鉴权发生在 JSON/DTO 反序列化之前，因此未授权调用者发送非法 JSON 仍返回 403；
+- Update 在通过 Owner/Admin JWT 门禁后才查询资源；外租户 Tool 与不存在 Tool 均返回相同 `404 NOT_FOUND` 和 `Tool not found or access denied`；
+- 合法同租户 Owner/Admin 请求仍需通过 handler type、HTTP method、timeout 和 Egress Policy 校验；不合法配置返回 `400 VALIDATION_ERROR`；
+- 配置拒绝发生在持久化和目标网络访问之前。
+
+管理拒绝审计使用：
+
+```text
+action = tool.management.denied
+resource_type = tool
+details.operation = create | update
+details.reason = api_key_authentication | insufficient_tenant_role | not_found_or_tenant_mismatch
+```
+
+非法或禁止的 handler 配置使用：
+
+```text
+action = tool.configuration.denied
+details.reason = invalid_or_disallowed_handler
+```
+
+`DELETE /api/v1/tools/{tool_id}` 未纳入 EVO-118-C 的角色收敛，当前仍保留 legacy 的“同租户已认证调用者可删除”行为，并以 `404` 隐藏外租户/不存在资源。删除门禁如需与 create/update 对齐，必须由独立 Story 修改实现、测试与契约，不能从本节推断已经完成。
 
 ## 4. API Key 存储与生命周期
 
@@ -174,7 +212,7 @@ commit:<branch>
 - Key 包含精确 `execute` capability；
 - Tool 与 Key 属于同一 Tenant；
 - 参数 Schema 验证通过；
-- 后续 EVO-118-C 出站网络策略通过。
+- HTTP Tool 通过 EVO-118-C 已实现的 URL、DNS、IP、Redirect、deadline、响应大小与并发 Egress Policy。
 
 缺少 `execute` 时返回 JSON-RPC 错误：
 
@@ -234,24 +272,29 @@ Canonical 和 legacy 映射：
 - `admin`、`manage_keys`、`write`、`commit:*` 和 unknown 新签发均为 400；
 - 空 capability 为 400；
 - 拒绝请求不创建或吊销 Key；
+- Tool create/update：Owner/Admin JWT 成功，Member/API Key 为 403；鉴权先于无效 JSON 解析；
+- Tool update：foreign 与 missing 返回相同 404 隐藏语义；非法/禁止 HTTP handler 返回 400 且不持久化、不访问目标；
 - `repo:read` Key 调用 `tools/call` 返回 `-32003`，executor 命中数为 0；
 - `execute` Key 可进入同租户 Tool 执行；
 - revoked/expired Key 对 Repo 和 MCP 均 fail closed；
-- 外租户 Tool 不可发现，且与不存在 Tool 返回相同错误、executor 命中数为 0。
+- 外租户 Tool 不可发现，且与不存在 Tool 返回相同错误、executor 命中数为 0、审计可见数据不可区分。
 
 实现测试：
 
 ```text
 backend/crates/api/tests/api_key_authorization_security_tests.rs
 backend/crates/api/tests/api_key_scope_e2e_tests.rs
+backend/crates/api/tests/http_tool_egress_security_tests.rs
 backend/crates/api/tests/mcp_tool_execution_tests.rs
+backend/crates/service-tool/src/egress.rs
 ```
 
 PR 门禁由 `.github/workflows/ci.yml` 的 `pull_request` trigger 执行前端 type-check/build 和后端 fmt/check/clippy/workspace tests。
 
 ## 10. 后续边界
 
-- HTTP Tool SSRF/DNS/Redirect/Egress：EVO-118-C。
+- HTTP Tool SSRF/DNS/Redirect/Egress：EVO-118-C 已完成并由统一 `EgressPolicy` / `SafeHttpClient` 承担；Webhook 等未来出站能力必须复用该边界。
+- Tool delete 的 Owner/Admin 角色收敛：独立 Story，当前不能从 create/update 契约推断。
 - Branch/Path scoped Agent Token：EVO-105/EVO-106。
 - API Key rate limit 实际接线：EVO-118-G。
 - ESLint 10 flat-config 迁移：独立前端/CI 基线工作，不作为 EVO-118-B 安全 Gate。
@@ -259,8 +302,11 @@ PR 门禁由 `.github/workflows/ci.yml` 的 `pull_request` trigger 执行前端 
 
 ## 11. 相关文档
 
+- [API Contract](API-CONTRACT.md)
 - [API Key Authorization Contract](API-KEY-AUTHORIZATION.md)
 - [Security Review SOP](../sop/SECURITY-REVIEW.md)
 - [Production Readiness Baseline](PRODUCTION-READINESS-BASELINE.md)
 - [EVO-118-B](../backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md)
+- [EVO-118-C](../backlog/active/EVO-118-C-http-tool-egress-security.md)
 - [Iteration 051](../iterations/ITERATION-051.md)
+- [Iteration 052](../iterations/ITERATION-052.md)
