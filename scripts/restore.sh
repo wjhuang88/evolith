@@ -1,0 +1,258 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SUPPORTED_BACKUP_FORMAT_VERSION=1
+DATABASE_URL="${DATABASE_URL:-}"
+GIT_STORAGE_PATH="${GIT_STORAGE_PATH:-}"
+EXPECTED_APP_VERSION="${EVOLITH_RESTORE_EXPECTED_APP_VERSION:-}"
+archive_path="${1:-}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+uuid_re='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+storage_path_re="^${uuid_re}/${uuid_re}\\.git$"
+
+log() {
+    printf '[restore] %s\n' "$*"
+}
+
+fail() {
+    printf '[restore] ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
+
+sha256_verify() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum -c SHA256SUMS
+    else
+        shasum -a 256 -c SHA256SUMS
+    fi
+}
+
+validate_tar_listing() {
+    local tar_file="$1"
+    local entry
+    local verbose_entry
+    tar -tzf "$tar_file" >/dev/null
+    while IFS= read -r entry; do
+        case "$entry" in
+            /*|../*|*/../*|*/..)
+                fail "archive contains unsafe path: $entry"
+                ;;
+        esac
+    done < <(tar -tzf "$tar_file")
+    while IFS= read -r verbose_entry; do
+        case "${verbose_entry:0:1}" in
+            -|d) ;;
+            *) fail "archive contains a link or special file entry" ;;
+        esac
+    done < <(tar -tvzf "$tar_file")
+}
+
+manifest_value() {
+    local key="$1"
+    local manifest="$2"
+    local count
+    count="$(grep -c "^${key}=" "$manifest" || true)"
+    [[ "$count" == "1" ]] || fail "manifest key must appear exactly once: $key"
+    awk -F= -v wanted="$key" '$1 == wanted {sub(/^[^=]*=/, ""); print; exit}' "$manifest"
+}
+
+[[ -n "$archive_path" ]] || fail "usage: scripts/restore.sh <evolith-backup.tar.gz>"
+[[ -f "$archive_path" && ! -L "$archive_path" ]] || fail "backup archive not found or is a symlink: $archive_path"
+[[ "${EVOLITH_RESTORE_QUIESCED:-false}" == "true" ]] || fail \
+    "EVOLITH_RESTORE_QUIESCED=true is required; stop application writes before restore"
+[[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
+[[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
+
+for command_name in psql gzip tar git find grep awk sort uniq mktemp; do
+    require_command "$command_name"
+done
+
+stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/evolith-restore.XXXXXX")"
+package_dir="$stage_dir/package"
+staged_git="$stage_dir/git"
+mkdir -p "$package_dir" "$staged_git"
+restore_started=false
+git_path_created=false
+
+reset_empty_target() {
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c \
+        'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
+    if [[ -d "$GIT_STORAGE_PATH" && ! -L "$GIT_STORAGE_PATH" ]]; then
+        find "$GIT_STORAGE_PATH" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null || true
+    fi
+    if [[ "$git_path_created" == "true" ]]; then
+        rmdir "$GIT_STORAGE_PATH" 2>/dev/null || true
+    fi
+}
+
+cleanup() {
+    local status=$?
+    trap - EXIT INT TERM
+    if (( status != 0 )) && [[ "$restore_started" == "true" ]]; then
+        printf '[restore] restore failed; reverting the previously empty target\n' >&2
+        reset_empty_target
+    fi
+    rm -rf "$stage_dir"
+    exit "$status"
+}
+trap cleanup EXIT INT TERM
+
+validate_tar_listing "$archive_path"
+tar --no-same-owner --no-same-permissions -C "$package_dir" -xzf "$archive_path"
+
+required_files=(database.sql.gz git-storage.tar.gz git-refs.tsv manifest.env SHA256SUMS)
+for required_file in "${required_files[@]}"; do
+    [[ -f "$package_dir/$required_file" && ! -L "$package_dir/$required_file" ]] || fail \
+        "backup is incomplete or unsafe: $required_file"
+done
+while IFS= read -r -d '' package_entry; do
+    package_name="${package_entry#"$package_dir"/}"
+    [[ ! -L "$package_entry" ]] || fail "backup contains a top-level symlink: $package_name"
+    case "$package_name" in
+        database.sql.gz|git-storage.tar.gz|git-refs.tsv|manifest.env|SHA256SUMS) ;;
+        *) fail "backup contains unexpected top-level entry: $package_name" ;;
+    esac
+done < <(find "$package_dir" -mindepth 1 -maxdepth 1 -print0)
+
+format_version="$(manifest_value backup_format_version "$package_dir/manifest.env")"
+[[ "$format_version" == "$SUPPORTED_BACKUP_FORMAT_VERSION" ]] || fail \
+    "unsupported backup format version: $format_version"
+[[ "$(manifest_value consistency "$package_dir/manifest.env")" == "quiesced-maintenance-window" ]] || fail \
+    "backup does not declare the required consistency boundary"
+[[ "$(manifest_value database_format "$package_dir/manifest.env")" == "postgresql-plain-sql-gzip" ]] || fail \
+    "unsupported database backup format"
+[[ "$(manifest_value git_format "$package_dir/manifest.env")" == "tar-gzip" ]] || fail \
+    "unsupported Git backup format"
+
+if [[ -n "$EXPECTED_APP_VERSION" ]]; then
+    actual_app_version="$(manifest_value application_version "$package_dir/manifest.env")"
+    [[ "$actual_app_version" == "$EXPECTED_APP_VERSION" ]] || fail \
+        "application version mismatch: expected $EXPECTED_APP_VERSION, got $actual_app_version"
+fi
+
+checksum_count=0
+seen_database=false
+seen_git_storage=false
+seen_git_refs=false
+seen_manifest=false
+while read -r checksum checksum_file extra; do
+    [[ -z "${extra:-}" ]] || fail "invalid checksum entry with extra fields"
+    checksum_file="${checksum_file#\*}"
+    [[ "$checksum" =~ ^[0-9a-fA-F]{64}$ ]] || fail "invalid checksum entry"
+    case "$checksum_file" in
+        database.sql.gz)
+            [[ "$seen_database" == "false" ]] || fail "duplicate checksum entry: database.sql.gz"
+            seen_database=true
+            ;;
+        git-storage.tar.gz)
+            [[ "$seen_git_storage" == "false" ]] || fail "duplicate checksum entry: git-storage.tar.gz"
+            seen_git_storage=true
+            ;;
+        git-refs.tsv)
+            [[ "$seen_git_refs" == "false" ]] || fail "duplicate checksum entry: git-refs.tsv"
+            seen_git_refs=true
+            ;;
+        manifest.env)
+            [[ "$seen_manifest" == "false" ]] || fail "duplicate checksum entry: manifest.env"
+            seen_manifest=true
+            ;;
+        *) fail "checksum file list contains unexpected path: $checksum_file" ;;
+    esac
+    checksum_count=$((checksum_count + 1))
+done <"$package_dir/SHA256SUMS"
+[[ "$checksum_count" == "4" ]] || fail "checksum file must contain exactly four entries"
+[[ "$seen_database" == "true" && "$seen_git_storage" == "true" && \
+    "$seen_git_refs" == "true" && "$seen_manifest" == "true" ]] || fail \
+    "checksum file must cover each required backup component exactly once"
+
+log "verifying checksums and archive structure before target writes"
+(
+    cd "$package_dir"
+    sha256_verify >/dev/null
+)
+gzip -t "$package_dir/database.sql.gz"
+validate_tar_listing "$package_dir/git-storage.tar.gz"
+tar --no-same-owner --no-same-permissions -C "$staged_git" -xzf "$package_dir/git-storage.tar.gz"
+
+if find "$staged_git" -mindepth 1 -type l -print -quit | grep -q .; then
+    fail "Git archive contains symlinks"
+fi
+while IFS= read -r -d '' entry; do
+    relative_path="${entry#"$staged_git"/}"
+    if [[ "$relative_path" == */* ]]; then
+        [[ -d "$entry" && "$relative_path" =~ $storage_path_re ]] || \
+            fail "unexpected second-level Git archive entry: $relative_path"
+    else
+        [[ -d "$entry" && "$relative_path" =~ ^${uuid_re}$ ]] || \
+            fail "unexpected top-level Git archive entry: $relative_path"
+    fi
+done < <(find "$staged_git" -mindepth 1 -maxdepth 2 -print0)
+
+while IFS= read -r -d '' repo_path; do
+    relative_path="${repo_path#"$staged_git"/}"
+    [[ "$(git --git-dir="$repo_path" rev-parse --is-bare-repository 2>/dev/null || true)" == "true" ]] || \
+        fail "invalid bare repository in backup: $relative_path"
+    git --git-dir="$repo_path" fsck --full >/dev/null || fail "git fsck failed in backup: $relative_path"
+done < <(find "$staged_git" -mindepth 2 -maxdepth 2 -type d -name '*.git' -print0)
+
+if [[ -n "$(LC_ALL=C sort "$package_dir/git-refs.tsv" | uniq -d)" ]]; then
+    fail "ref inventory contains duplicate entries"
+fi
+while IFS=$'\t' read -r storage_path expected_sha ref_name extra; do
+    [[ -z "${extra:-}" ]] || fail "invalid ref inventory entry with extra fields"
+    [[ -n "$storage_path" && -n "$expected_sha" && -n "$ref_name" ]] || continue
+    [[ "$storage_path" =~ $storage_path_re ]] || fail \
+        "invalid storage path in ref inventory: $storage_path"
+    [[ "$expected_sha" =~ ^([0-9a-fA-F]{40}|[0-9a-fA-F]{64})$ ]] || fail \
+        "invalid object id in ref inventory"
+    git check-ref-format "$ref_name" >/dev/null 2>&1 || fail \
+        "invalid ref name in ref inventory: $ref_name"
+    repo_path="$staged_git/$storage_path"
+    actual_sha="$(git --git-dir="$repo_path" show-ref --verify --hash "$ref_name" 2>/dev/null || true)"
+    [[ "$actual_sha" == "$expected_sha" ]] || fail \
+        "backup ref mismatch for $storage_path $ref_name: expected $expected_sha, got ${actual_sha:-missing}"
+done <"$package_dir/git-refs.tsv"
+
+target_object_count="$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -c \
+    "SELECT
+       (SELECT COUNT(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','S','f'))
+       +
+       (SELECT COUNT(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public')
+       +
+       (SELECT COUNT(*) FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = 'public' AND t.typisdefined)")"
+[[ "$target_object_count" == "0" ]] || fail \
+    "target database is not empty; restore refuses to overwrite existing data"
+
+if [[ -e "$GIT_STORAGE_PATH" ]]; then
+    [[ -d "$GIT_STORAGE_PATH" && ! -L "$GIT_STORAGE_PATH" ]] || fail \
+        "target Git storage must be a real directory"
+    if find "$GIT_STORAGE_PATH" -mindepth 1 -print -quit | grep -q .; then
+        fail "target Git storage is not empty; restore refuses to overwrite existing data"
+    fi
+else
+    mkdir -p "$GIT_STORAGE_PATH"
+    git_path_created=true
+fi
+
+restore_started=true
+log "restoring PostgreSQL into empty target"
+gzip -dc "$package_dir/database.sql.gz" | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q
+
+log "installing staged Git storage"
+tar -C "$staged_git" -cf - . | tar --no-same-owner --no-same-permissions -C "$GIT_STORAGE_PATH" -xf -
+
+log "running DB/Git inventory and ref verification"
+DATABASE_URL="$DATABASE_URL" \
+GIT_STORAGE_PATH="$GIT_STORAGE_PATH" \
+EXPECTED_REFS_FILE="$package_dir/git-refs.tsv" \
+    "$script_dir/git-storage-inventory.sh"
+
+restore_started=false
+log "restore completed successfully"
