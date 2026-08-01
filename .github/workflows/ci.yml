@@ -1,18 +1,18 @@
 # Evolith CI workflow
 #
 # Trigger:
-# - pull requests targeting main, providing merge-gate evidence for security and product changes;
+# - pull requests targeting main, providing exact-head merge-gate evidence;
 # - semver tags (vX.Y.Z) for release validation;
 # - manual workflow dispatch for explicit re-runs.
 #
-# PR scope: frontend install/type-check/build + backend fmt/check/clippy/workspace tests.
+# PR scope: frontend install/type-check/build + backend fmt/check/clippy/workspace tests
+# + DATA-01 joint PostgreSQL/Git backup-restore, application recovery and container-volume matrices.
 # Release/manual scope additionally keeps the historical frontend lint and PostgreSQL test steps.
 # Frontend builds first (single job, shared filesystem) so backend tests can
 # link against the embedded frontend/dist/ via rust-embed-for-web.
 #
 # Frontend lint currently depends on the repository's pending ESLint flat-config migration, so it
-# is not part of the EVO-118-B hard-required PR gate. That infrastructure debt remains separately
-# owned; security validation must not be skipped because of an unrelated legacy lint setup.
+# is not part of the hard-required PR gate. Release/manual runs retain it.
 name: ci
 
 on:
@@ -39,7 +39,7 @@ jobs:
   ci:
     name: Backend + Frontend
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 55
 
     services:
       postgres:
@@ -57,8 +57,26 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout
+      - name: Checkout exact head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact head
+        if: github.event_name == 'pull_request'
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Diff whitespace check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git diff --check "$BASE_SHA...HEAD"
+
+      - name: Markdown local link check
+        run: python3 scripts/tests/check-markdown-links.py
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -91,6 +109,40 @@ jobs:
         working-directory: frontend
         run: bun run lint
 
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Durability script syntax
+        run: |
+          bash -n scripts/backup.sh
+          bash -n scripts/restore.sh
+          bash -n scripts/git-storage-inventory.sh
+          bash -n scripts/tests/durability.sh
+          bash -n scripts/tests/container-volume-persistence.sh
+          bash -n scripts/tests/application-recovery-drill.sh
+
+      - name: Production Compose durability mapping
+        env:
+          POSTGRES_PASSWORD: ci-postgres-password
+          REDIS_PASSWORD: ci-redis-password
+          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+        run: |
+          docker compose -f docker-compose.prod.yml config >/tmp/evolith-compose.yml
+          grep -F 'GIT_STORAGE__BASE_PATH: /var/lib/evolith/git' /tmp/evolith-compose.yml
+          grep -F 'source: git_data' /tmp/evolith-compose.yml
+          grep -F 'target: /var/lib/evolith/git' /tmp/evolith-compose.yml
+
+      - name: Durability backup and restore integration
+        env:
+          POSTGRES_BASE_URL: postgres://evolith:evolith@localhost:5432
+          POSTGRES_ADMIN_URL: postgres://evolith:evolith@localhost:5432/postgres
+        run: bash scripts/tests/durability.sh
+
+      - name: Git volume container recreation
+        run: bash scripts/tests/container-volume-persistence.sh
+
       - name: Backend format check
         working-directory: backend
         run: cargo fmt --all -- --check
@@ -110,6 +162,18 @@ jobs:
           DATABASE__URL: "sqlite::memory:"
         run: cargo test --workspace
 
+      - name: Build application recovery binary
+        working-directory: backend
+        run: cargo build --bin evolith
+
+      - name: Application-level recovery drill
+        env:
+          POSTGRES_BASE_URL: postgres://evolith:evolith@localhost:5432
+          POSTGRES_ADMIN_URL: postgres://evolith:evolith@localhost:5432/postgres
+          EVOLITH_BINARY: backend/target/debug/evolith
+          EVOLITH_APP_VERSION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bash scripts/tests/application-recovery-drill.sh
+
       - name: Backend test (PostgreSQL release/manual)
         if: github.event_name != 'pull_request'
         working-directory: backend
@@ -117,3 +181,52 @@ jobs:
           DATABASE__DATABASE_TYPE: postgres
           DATABASE__URL: "postgres://evolith:evolith@localhost:5432/evolith_test"
         run: cargo test --workspace
+
+      - name: Production Compose clean build diagnostic
+        id: production_build
+        continue-on-error: true
+        env:
+          POSTGRES_PASSWORD: ci-postgres-password
+          REDIS_PASSWORD: ci-redis-password
+          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+        run: docker compose -f docker-compose.prod.yml build --no-cache
+
+      - name: Production Compose startup diagnostic
+        id: production_up
+        if: steps.production_build.outcome == 'success'
+        continue-on-error: true
+        env:
+          POSTGRES_PASSWORD: ci-postgres-password
+          REDIS_PASSWORD: ci-redis-password
+          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+        run: |
+          docker compose -f docker-compose.prod.yml up -d
+          for attempt in $(seq 1 60); do
+            if docker compose -f docker-compose.prod.yml exec -T backend \
+                curl -sf http://localhost:8080/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.prod.yml ps
+          exit 1
+
+      - name: Record production Compose diagnostic
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.production_build.outcome }}
+          STARTUP_OUTCOME: ${{ steps.production_up.outcome }}
+        run: |
+          printf 'Production Compose clean build outcome: %s\n' "$BUILD_OUTCOME"
+          printf 'Production Compose startup outcome: %s\n' "$STARTUP_OUTCOME"
+          if [[ "$BUILD_OUTCOME" != "success" ]]; then
+            printf 'Known DEPLOY-01 remains open; this diagnostic is not a DATA-01 success substitute.\n'
+          fi
+
+      - name: Stop production Compose diagnostic
+        if: always()
+        env:
+          POSTGRES_PASSWORD: ci-postgres-password
+          REDIS_PASSWORD: ci-redis-password
+          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+        run: docker compose -f docker-compose.prod.yml down -v --remove-orphans || true
