@@ -21,6 +21,7 @@
 - 父 Story：`EVO-112`
 - 所属迭代：ITERATION-054（2026-08-02 恢复本地历史成果；Closed / Complete）
 - Source: 用户反馈 2026-06-24（"git 相关的页面都没有出现"）；Two-Month Plan §3 Week 1 主线。
+- Merge evidence: [PR #8](https://github.com/wjhuang88/evolith/pull/8) merged as `1216624`；exact-head CI run `30712179586` passed；Navigator no blocking findings。
 
 ## Problem Or Outcome
 

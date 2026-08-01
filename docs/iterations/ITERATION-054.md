@@ -128,6 +128,7 @@ git diff --check
 | 2026-08-02 | change-request | `replan`：主线已发布 Iteration 050，远端 PR #7 已使用 Iteration 053；保留两份既有基线，将本地 EVO-112-A 历史记录迁移为 Iteration 054。 |
 | 2026-08-02 | recovery-fix | 创建成功路径由未实现的 `/repos/:id` 改为 `/repos`，避免把 404 当作可接受 fallback；详情页仍归 EVO-112-B。 |
 | 2026-08-02 | revalidation | 最新 `origin/main` 上 `bun run type-check` 与 `bun run build` 通过；en/zh locale key 集合一致；Markdown links、governance validator、`git diff --check` 通过。`bun run lint` 因既有 ESLint 10 flat config 缺失失败，残余归 EVO-118-G，不属于本 Story hard gate。 |
+| 2026-08-02 | merge-closure | [PR #8](https://github.com/wjhuang88/evolith/pull/8) 由 exact head `295f3f36ba16400c6415c90504cf1e0f96fe318a` 合并为 `1216624`；CI run `30712179586` / job `91401439386` 以 15m28s 全绿；Navigator 两轮审查最终无 blocking findings。 |
 
 ### 迭代启动前库存盘点（per [START-ITERATION.md](../sop/START-ITERATION.md)）
 
@@ -181,6 +182,8 @@ git diff --check
     - `validate_project_governance.sh` → `0 warning(s)`
     - `git diff --check` → clean
     - `bun run lint` → exit 2；仓库缺少 ESLint 10 `eslint.config.*`，为已知基线问题，归 EVO-118-G 的 CI/lint Gate，不阻塞本 Story 的 type-check/build hard gate
+    - GitHub exact-head CI run `30712179586` → `Backend + Frontend` pass（15m28s）；frontend type-check/build、backend fmt/check/clippy/SQLite workspace tests 全绿
+    - Navigator final check → no blocking findings；Iteration 053 的后续状态仍由 Draft PR #7 owner branch 同步
   - `cd frontend && bun run type-check` → 0 errors
   - `cd frontend && bun run build` → ✓ built in 599ms；dist/index.html + dist/assets/index-*.css + dist/assets/index-*.js；0 errors
   - `python3 -c "..."` markdown link check → `all markdown links exist`
@@ -199,7 +202,7 @@ git diff --check
     - `11-mobile-nav-overlay.png`：移动端 hamburger overlay 显示 Repos / Dashboard / Settings + Legacy
     - `12-mobile-dashboard.png`：移动端 Dashboard
   - 原始手工冒烟：登录 → /repos → New Repo → 填表 → Create → 回到 /repos 看到新 repo → 进 Dashboard 看到统计更新 → 进 Legacy → Tools 旧路由仍工作
-- 闭环状态：**Complete**
+- 闭环状态：**Complete**（PR #8 已合并，merge/CI/Navigator 证据已写回）
 - 残余归口：
   - `/repos/:id` 详情页 Files / Commits / Settings 三 Tab → `EVO-112-B`（硬依赖 EVO-112-A + EVO-103-C；等待 EVO-118 S1 后重新排期）
   - Dashboard "Recent commits" 列表（按 repo 聚合 5 条最新 commit）需要 commit history API → `EVO-105` 范围；本 Story 仅做静态计数（`repos[i].last_commit_sha` 存在即 +1），不做 commit 时间线

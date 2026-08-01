@@ -23,8 +23,8 @@
 |------|-------|-----------|----------|
 | EVO-118-C HTTP Tool Egress Security | Done / Complete / Merged | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | PR #5 于 2026-08-02 合并，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`；final-head CI #137 / run `30682419168` 全绿；SEC-02 已解除。 |
 | Iteration 052 | Closed / Complete | [Iteration](iterations/ITERATION-052.md) | 统一 Egress、总 deadline、管理门禁、审计隐藏、负向安全矩阵、稳定契约和合并证据完成。 |
-| EVO-112-A Repo UI Shell | Done / Complete | [Item](backlog/active/EVO-112-A-repo-ui-shell.md) | 本地历史成果在最新主线上恢复并迁移为 Iteration 054；创建成功返回 `/repos`，不再进入未实现详情页。 |
-| Iteration 054 | Closed / Complete | [Iteration](iterations/ITERATION-054.md) | 仓库列表/创建、repo-centric 导航与 Dashboard、i18n 和历史截图证据；不关闭 EVO-118 S1。 |
+| EVO-112-A Repo UI Shell | Done / Complete / Merged | [Item](backlog/active/EVO-112-A-repo-ui-shell.md) | PR #8 于 2026-08-02 合并，merge commit `1216624`；exact-head CI run `30712179586` 全绿；创建成功返回 `/repos`。 |
+| Iteration 054 | Closed / Complete | [Iteration](iterations/ITERATION-054.md) | 本地历史成果恢复、冲突迁移、主线重验、Navigator 与 PR #8 merge evidence 已闭环；不关闭 EVO-118 S1。 |
 
 ## Blocked Or Paused
 
