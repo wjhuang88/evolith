@@ -1,6 +1,6 @@
 # 生产就绪与项目完成度基线
 
-> 基线日期：2026-08-01  
+> 基线日期：2026-08-02  
 > 状态：Active release gate  
 > 归口：[EVO-118 Production Readiness and Security Hardening](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)  
 > 复核方式：代码、配置、部署文件、测试证据、Backlog 与路线图交叉审查。
@@ -9,13 +9,13 @@
 
 Evolith 当前应被描述为：
 
-> **Git 托管后端 Alpha 基础已经形成，API Key/MCP 与 HTTP Tool 两项安全发布 Gate 已关闭，但 AI-native Git 产品闭环尚未完成，生产发布仍被数据耐久性和交付链路问题阻断。**
+> **Git 托管后端 Alpha 基础已经形成，API Key/MCP 与 HTTP Tool 两项安全发布 Gate 已关闭并合入 main，但 AI-native Git 产品闭环尚未完成，生产发布仍被数据耐久性和交付链路问题阻断。**
 
 项目不需要推倒重构。当前模块化单体、Rust Workspace、PostgreSQL/SQLite 双轨、Git Smart HTTP + `gix` 的总体方向合理。后续开发的首要任务不是继续扩展页面或拆微服务，而是先关闭剩余发布阻断项，再恢复 Repo UI、Agent Session、Commit/Promote、Vibe Coding 与 Indexer 主线。
 
 ## 2. 完成度口径
 
-以下是 2026-08-01 的能力快照。百分比只用于表达阶段差距，不作为燃尽或绩效指标。
+以下是 2026-08-02 的能力快照。百分比只用于表达阶段差距，不作为燃尽或绩效指标。
 
 | 目标口径 | 估算完成度 | 当前判断 |
 |----------|------------|----------|
@@ -51,7 +51,7 @@ Evolith 当前应被描述为：
 | Gate | 风险 | 归口 | 解除条件 / 证据 |
 |------|------|------|-----------------|
 | SEC-01 | **已解除（2026-07-31）**：API Key 管理、Typed Capability、MCP execute、跨租户审计/隐藏语义已闭合 | [EVO-118-B](../backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) | PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；CI `30567361095` 全绿；负向授权与撤销/过期/跨租户测试通过 |
-| SEC-02 | **已解除（2026-08-01）**：HTTP Tool 统一经过严格 Egress Policy，禁止 localhost、私网、Metadata、特殊用途地址、DNS/Redirect 绕过与不受控代理 | [EVO-118-C](../backlog/active/EVO-118-C-http-tool-egress-security.md) | Navigator 对 head `1a7e31d82d26086ad5e828e89e25df5601a3cd8f` 接受运行时安全实现；CI #125 / run `30653767138` 全绿；稳定权限/API 契约与关闭状态在 PR #5 最终 head 同步 |
+| SEC-02 | **已解除并合入 main（2026-08-02）**：HTTP Tool 统一经过严格 Egress Policy，禁止 localhost、私网、Metadata、特殊用途地址、DNS/Redirect 绕过与不受控代理 | [EVO-118-C](../backlog/active/EVO-118-C-http-tool-egress-security.md) | Navigator 对运行时 head `1a7e31d82d26086ad5e828e89e25df5601a3cd8f` 接受安全实现；final head `de762e2dae6bf5716e54c64e2277cb2e26592e36` 的 CI #137 / run `30682419168` 全绿；PR #5 merged `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c` |
 | DATA-01 | Git 仓库目录未形成生产持久卷，数据库备份不包含 Git 对象 | [EVO-118-D](../backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | 持久卷、DB+Git 备份、恢复演练和监控证据通过 |
 | DEPLOY-01 | Embedded Frontend 与生产 Docker/Compose 仍存在双交付和构建上下文冲突 | [EVO-118-E](../backlog/active/EVO-118-E-production-build-deployment-convergence.md) | 干净环境镜像构建、单一交付形态和生产 Smoke Test 通过 |
 
@@ -123,11 +123,19 @@ Infrastructure
 4. EVO-112 可在 SEC-01~02、DATA-01、DEPLOY-01 关闭后恢复；EVO-105/106/107 必须同时遵守本基线的 Typed Capability、Policy 和 Durable Event 边界。
 5. 新发现的安全、数据损坏或生产构建问题，先进入 EVO-118 或新 P0 Story，不得只留在 PR 评论或对话中。
 
-## 9. 证据与复核
+## 9. 当前执行入口
+
+- 当前 `main`：`936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`（PR #5 merge commit）。
+- 当前没有 Active / In Progress / Review Iteration，也没有开放 PR。
+- 下一条可启动 Story：EVO-118-D / DATA-01。
+- EVO-118-D 启动前必须新建 Iteration 053 Planned 基线，并原子同步 Story/Epic/Backlog/Board/索引；不能在治理激活前写运行时代码。
+- EVO-118-E 保持 Ready，不与 D 并行抢占 WIP。
+
+## 10. 证据与复核
 
 - 本基线中的“确认问题”来自 2026-07-30 对主分支代码和配置的静态审查。
 - 独立编译、Docker clean build、渗透测试和恢复演练仍需由对应 Story 提供实际命令证据。
 - SEC-01 已于 2026-07-31 由 EVO-118-B 解除：PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`，最终 CI `30567361095` 全绿。
-- SEC-02 已于 2026-08-01 由 EVO-118-C 解除：Navigator 接受统一 Egress、总 deadline、严格生产默认、管理权限、审计隐藏和 IPv6 特殊用途防护；CI #125 / run `30653767138` 全绿；稳定契约与关闭状态在 PR #5 收口。
-- 每关闭一个发布 Gate，应更新本文件、EVO-118 父项、Backlog、Board 和相关 Iteration。
+- SEC-02 已由 EVO-118-C 解除并于 2026-08-02 合入 `main`：Navigator 接受统一 Egress、总 deadline、严格生产默认、管理权限、审计隐藏和 IPv6 特殊用途防护；final-head CI #137 / run `30682419168` 全绿；PR #5 merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`。
+- 每关闭一个发布 Gate，应更新本文件、EVO-118 父项、Backlog、Board、相关 Iteration 和 Agent 启动入口。
 - 当代码行为与本基线冲突时，以实际验证结果为准，并同步修正文档；不得保持已知漂移。

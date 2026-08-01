@@ -1,13 +1,16 @@
 # EVO-118-C HTTP Tool 出站安全与 SSRF 防护
 
 - **类型**：Security / Network Boundary
-- **状态**：Done
+- **状态**：Done / Complete / Merged
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
 - **依赖**：EVO-118-A/B Done
 - **所属迭代**：[Iteration 052](../../iterations/ITERATION-052.md)（Closed / Complete）
 - **影响范围**：backend / docs / tests / CI
-- **PR**：#5 `security: harden HTTP tool egress and SSRF boundaries`
+- **PR**：#5 `security: harden HTTP tool egress and SSRF boundaries`（merged）
+- **实现 Head**：`de762e2dae6bf5716e54c64e2277cb2e26592e36`
+- **Merge Commit**：`936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`
+- **合并时间**：2026-08-02 00:26:16 +08:00
 
 ## 用户价值
 
@@ -24,6 +27,7 @@
 - 外租户 Tool 的真实 UUID 可经调用者审计流泄露。
 - IPv6 特殊用途地址分类过宽。
 - 稳定权限与 API 契约仍发布旧的 Tool 管理行为。
+- 实现通过复验后，PR / owner docs / Gate / 派生入口仍可能因合并事实未回写而保持过期状态。
 
 ## 验收场景
 
@@ -71,6 +75,7 @@
 - [x] 获得最新 head 的 Navigator 安全复核结论：运行时安全实现 accepted，无剩余 runtime security blocker。
 - [x] 更新 `PERMISSIONS.md` 与 `API-CONTRACT.md`，发布与真实 Handler 一致的 Tool create/update 权限、校验和隐藏语义。
 - [x] 同步 SEC-02 为已解除并完成 Story / Iteration / Epic / Backlog / Board / docs/index 关闭状态。
+- [x] PR #5 已合并，merge commit 与 final-head CI 已回写 owner Story、Baseline、Epic、Board 和 Agent 入口。
 
 ## 不做事项
 
@@ -104,7 +109,9 @@ CI #125 中 `service-tool` 的 24 个单元测试全部通过，包括：
 - `private_redirect_is_rejected_before_dns_or_connection`
 - `concurrency_limit_fails_closed_without_waiting`
 
-本次稳定契约与治理关闭提交之后，PR 以新的 exact head 再执行 required CI；最终 run 记录在 PR 描述中，避免为写入自身未来 SHA 制造无限文档提交。
+稳定契约与治理关闭后的最终 head `de762e2dae6bf5716e54c64e2277cb2e26592e36` 通过 GitHub Actions CI #137 / run `30682419168`：frontend install/type-check/build、Rust fmt/check/clippy、SQLite `cargo test --workspace` 全绿。
+
+PR #5 随后于 2026-08-02 00:26:16 +08:00 合并，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c` 与当前 `main` 一致。
 
 ## Navigator 评论处理
 
@@ -117,6 +124,7 @@ CI #125 中 `service-tool` 的 24 个单元测试全部通过，包括：
 | IPv6 特殊用途地址放行 | 已补保守允许表和回归矩阵，包括 benchmark、ORCHID/ORCHIDv2、documentation、6to4、reserved 与未分配范围 |
 | 稳定权限契约仍发布旧行为 | `PERMISSIONS.md` 明确 Tool create/update 仅同租户 Owner/Admin JWT；Member/API Key 禁止；delete legacy 行为单列 |
 | 稳定 API 契约不完整 | `API-CONTRACT.md` 明确 auth-first 403、HTTPS/public target、方法/timeout、400 配置拒绝和 foreign/missing update 隐藏语义 |
+| 合并后状态仍可能漂移 | 独立 post-merge closeout 回写 PR merge commit、final-head CI、owner docs、Gate、Board 与下一激活候选；不把“已合并”当成自动治理收口 |
 
 ## 定向安全证据
 
@@ -135,17 +143,18 @@ CI #125 中 `service-tool` 的 24 个单元测试全部通过，包括：
 
 | 项目 | 最终记录 |
 |------|----------|
-| 请求结果 | 建立并验证统一 HTTP Egress 安全边界，关闭 SEC-02 |
-| 产物 | Egress Policy / Resolver / Safe Client、真实执行链接线、管理权限与审计、SSRF 负向测试、稳定权限/API 契约、治理关闭同步 |
-| 状态同步归口 | EVO-118-C Story、EVO-118 Epic、Product Backlog、Board、docs 入口、Iteration 052、Production Readiness Baseline、PR #5 |
-| 验证证据 | 运行时安全 head `1a7e31d...` 的 CI #125 / run `30653767138` required gates 全绿；Navigator 明确接受安全实现；文档关闭 head 另跑 exact-head CI |
+| 请求结果 | 建立并验证统一 HTTP Egress 安全边界，关闭 SEC-02，并将合并事实回写为可供下一任务使用的稳定基线 |
+| 产物 | Egress Policy / Resolver / Safe Client、真实执行链接线、管理权限与审计、SSRF 负向测试、稳定权限/API 契约、治理关闭与 post-merge merge 证据 |
+| 状态同步归口 | EVO-118-C Story、EVO-118 Epic、Product Backlog、Board、Agent 入口、Iteration 052、Production Readiness Baseline、PR #5 |
+| 验证证据 | 运行时安全 head `1a7e31d...` 的 CI #125 / run `30653767138`；final head `de762e2...` 的 CI #137 / run `30682419168`；Navigator final re-review；merge commit `936ed3b...` |
 | 残余工作归口 | Webhook 复用归 EVO-107；Git 耐久性归 EVO-118-D；部署归 EVO-118-E；Tool delete 角色收敛归独立 Story |
 
 ## 当前结论
 
 - 已实施：统一 egress、总 deadline、严格生产默认、Tool 管理门禁、审计脱敏和 IPv6 特殊用途拒绝。
-- 已验证：运行时实现、全部定向安全证据与 required CI 已通过 Navigator 复验。
-- 已同步：稳定权限/API 契约、SEC-02、Story、Iteration 及派生治理状态。
+- 已验证：运行时实现、全部定向安全证据、稳定契约与 required CI 均通过 Navigator 复验。
+- 已合并：PR #5 已进入 `main`，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`。
+- 已同步：SEC-02、Story、Iteration、Epic、Baseline、Board 与 Agent 启动入口。
 - 闭环状态：`Complete`。
 
 ## 解锁内容

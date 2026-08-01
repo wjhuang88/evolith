@@ -4,24 +4,24 @@
 > validation evidence and lifecycle state. Update owner docs first, then reflect the current
 > operating state here.
 >
-> **2026-08-01 生产就绪进展**：Git-centric 产品方向保持不变；EVO-118 S1 中 SEC-01、SEC-02 已关闭，剩余 P0 Gate 为 DATA-01 与 DEPLOY-01。事实见 [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md)，顺序见 [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
+> **2026-08-02 生产就绪进展**：Git-centric 产品方向保持不变；EVO-118 S1 中 SEC-01、SEC-02 已关闭，剩余 P0 Gate 为 DATA-01 与 DEPLOY-01。事实见 [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md)，顺序见 [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 
 ## Now
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C Done；S1 继续 D → E。 |
+| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C Done；当前无激活 Iteration；下一步 D → E。 |
 
 ## Review
 
-当前没有处于 Review 的激活 Iteration 或 Story。PR #5 在关闭文档 final-head CI 完成前仍保持 Draft，但 EVO-118-C 的运行时安全结论与治理 owner 状态已经关闭。
+当前没有处于 Review 的 Story、Iteration 或开放 PR。EVO-118-D 仍为 `Ready`，尚未创建或激活 Iteration 053。
 
 ## Done
 
 | Item | State | Owner Doc | Evidence |
 |------|-------|-----------|----------|
-| EVO-118-C HTTP Tool Egress Security | Done / Complete | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | Navigator accepted runtime security；CI #125 / run `30653767138` 全绿；权限/API 稳定契约已同步；SEC-02 已解除。 |
-| Iteration 052 | Closed / Complete | [Iteration](iterations/ITERATION-052.md) | 统一 Egress、总 deadline、管理门禁、审计隐藏、负向安全矩阵与关闭状态完成。 |
+| EVO-118-C HTTP Tool Egress Security | Done / Complete / Merged | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | PR #5 于 2026-08-02 合并，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`；final-head CI #137 / run `30682419168` 全绿；SEC-02 已解除。 |
+| Iteration 052 | Closed / Complete | [Iteration](iterations/ITERATION-052.md) | 统一 Egress、总 deadline、管理门禁、审计隐藏、负向安全矩阵、稳定契约和合并证据完成。 |
 
 ## Blocked Or Paused
 
@@ -37,8 +37,8 @@
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-D Git Durability and Recovery | Ready | [Item](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | DATA-01；当前下一条 P0；持久卷 + DB/Git 恢复演练。 |
-| EVO-118-E Production Build Convergence | Ready | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | DEPLOY-01；clean build + 单一交付 + Smoke Test。 |
+| EVO-118-D Git Durability and Recovery | Ready / next activation candidate | [Item](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | DATA-01；新会话先盘点库存，再创建 Iteration 053、同步 In Progress，之后才实施持久卷 + DB/Git 恢复演练。 |
+| EVO-118-E Production Build Convergence | Ready | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | DEPLOY-01；D 收口后按 WIP 启动，clean build + 单一交付 + Smoke Test。 |
 | EVO-118-F Repo Lifecycle | Proposed | [Item](backlog/active/EVO-118-F-repo-lifecycle-consistency.md) | 依赖 D/E；DATA-02。 |
 | EVO-118-G Runtime Reliability Gates | Proposed | [Item](backlog/active/EVO-118-G-runtime-reliability-gates.md) | 依赖 B/E；REL-01。 |
 | EVO-118-H Durable Outbox | Proposed | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | 依赖 E/G；EVENT-01。 |
@@ -58,7 +58,8 @@
 - EVO-118-A/Iteration 050 已由 PR #2 合并并关闭。
 - 当前产品方向仍是 Git hosting + Vibe Coding + capability discovery；EVO-118 是稳定化 Gate，不是产品回退。
 - EVO-118-B/Iteration 051 已由 PR #3 合并并关闭；merge commit `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`，最终 CI run `30567361095` 全绿，SEC-01 已解除。
-- EVO-118-C/Iteration 052 已关闭：Navigator 明确接受运行时安全实现，CI #125 / run `30653767138` 全绿，稳定权限/API 契约与派生治理状态已同步，SEC-02 已解除。
+- EVO-118-C/Iteration 052 已由 PR #5 合并并关闭；实现 head `de762e2dae6bf5716e54c64e2277cb2e26592e36`，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`，final-head CI #137 / run `30682419168` 全绿，SEC-02 已解除。
+- 当前没有 Active / In Progress / Review Iteration 或开放 PR；EVO-118-D 是唯一下一激活候选，但尚未开始。
 - 当前启动顺序：EVO-118-D → E → F/G/H → EVO-112 → EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
 - 安全、数据损坏或生产构建问题允许显式 P0 插队；普通 UI、视觉、计费或内部文档不得静默绕过 S1。
 - Board 只反映 owner docs；Gate 关闭必须由 Story 验收和实际验证证明。

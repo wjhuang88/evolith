@@ -16,7 +16,8 @@
 
 - 模块化单体、Git Smart HTTP + `gix`、双数据库和 Embedded Frontend 的总体方向保留。
 - Git 后端基础已可用于受控 Alpha，但产品主入口仍是旧 Registry UI。
-- SEC-01 与 SEC-02 已关闭；当前仍不具备生产发布条件，剩余 P0 Gate 为 DATA-01 和 DEPLOY-01，详见 [生产就绪基线](../../reference/PRODUCTION-READINESS-BASELINE.md)。
+- SEC-01 与 SEC-02 已关闭并合入 `main`；当前仍不具备生产发布条件，剩余 P0 Gate 为 DATA-01 和 DEPLOY-01，详见 [生产就绪基线](../../reference/PRODUCTION-READINESS-BASELINE.md)。
+- 当前没有 Active / In Progress / Review Iteration 或开放 PR；EVO-118-D 是下一条 Ready P0，但尚未激活。
 - 解决问题的方式是小批次安全与耐久性 Story，不拆微服务、不引入 Kafka/Kubernetes 复杂度来替代闭环。
 
 ## 子 Story
@@ -25,8 +26,8 @@
 |----------|----------|------|--------|------|----------|
 | [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Done | P0 | 无 | Iteration 050 |
 | [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Done | P0 | EVO-118-A Done | Iteration 051 / PR #3 merged |
-| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Done | P0 | EVO-118-A/B Done | Iteration 052 Closed / PR #5 |
-| [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready | P0 | EVO-118-A Done | - |
+| [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Done / Merged | P0 | EVO-118-A/B Done | Iteration 052 Closed / PR #5 merged `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c` |
+| [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Ready / Next | P0 | EVO-118-A/B/C Done | 尚未创建 Iteration 053 |
 | [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A Done | - |
 | [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Proposed | P1 | EVO-118-D/E | - |
 | [EVO-118-G](EVO-118-G-runtime-reliability-gates.md) | PR CI、readiness、限流和生产 fail-closed 接线 | Proposed | P1 | EVO-118-B/E | - |
@@ -38,7 +39,12 @@
 
 必须完成：EVO-118-B、C、D、E。
 
-当前进度：EVO-118-A/B/C 已 Done，SEC-01 与 SEC-02 已解除。EVO-118-C 的统一 HTTP Egress、总 deadline、严格生产默认、Tool 管理门禁、跨租户审计隐藏和 IPv6 特殊用途防护已经 Navigator 接受；CI #125 / run `30653767138` 在 head `1a7e31d82d26086ad5e828e89e25df5601a3cd8f` 的 merge ref 上全绿，稳定权限/API 契约及关闭状态已在 PR #5 后续 head 同步。D/E 仍为 Ready。
+当前进度：
+
+- EVO-118-A/B/C 已 Done。
+- SEC-01、SEC-02 已解除并合入 `main`。
+- EVO-118-C 实现 head `de762e2dae6bf5716e54c64e2277cb2e26592e36` 通过 final-head CI #137 / run `30682419168`；PR #5 于 2026-08-02 合并，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`。
+- EVO-118-D/E 仍为 Ready；D 是下一激活候选，E 不与 D 并行抢占 WIP。
 
 S1 未完成前：
 
@@ -71,6 +77,16 @@ S1 未完成前：
 - 安全变更遵守 [Security Review SOP](../../sop/SECURITY-REVIEW.md)。
 - 发布变更遵守 [Release SOP](../../sop/RELEASE.md)。
 - 每个子 Story 独立记录命令、失败注入、负向测试和残余。
+
+## 下一激活门禁
+
+EVO-118-D 只能在新会话按以下顺序启动：
+
+1. 重新读取 `main`、开放 PR/分支、Iteration inventory 和 EVO-118-D owner doc；
+2. 确认没有 Active / In Progress / Review Iteration，且没有重叠 D/053 分支或 PR；
+3. 创建 Iteration 053 的 Planned 基线，写清目标、失败模式、BDD、验证、回滚和闭环台账；
+4. 原子同步 EVO-118-D → `In Progress`、Iteration 053 → `Active`，以及 Epic/Backlog/Board/docs/index；
+5. 只有治理激活提交存在后，才开始部署、脚本、readiness 或恢复实现。
 
 ## 残余工作归口
 
