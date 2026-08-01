@@ -14,13 +14,13 @@
 | [Iteration 025](ITERATION-025.md) | Blocked for activation | 租户设置与审计详情；需 refinement，不抢占 EVO-118 S1 |
 | [Iteration 026](ITERATION-026.md) | Blocked for activation | Stripe Webhook/计费；需安全与 Mock 验收 refinement |
 | [Iteration 027](ITERATION-027.md) | Blocked for activation / Superseded direction | 旧 Skill 发现计划，被 EVO-108/109 替代 |
-| [Iteration 052](ITERATION-052.md) | Review / Partial | EVO-118-C HTTP Tool Egress Security；Draft PR #5 的 CI #105 required gates 全绿，剩余 Navigator 点名负向证据与最新安全复核 |
 
 ### 当前启动结论
 
 - Iteration 050 已 Closed / Complete，PR #2 已 merge。
 - Iteration 051 已 Closed / Complete；PR #3 已合并并解除 SEC-01。
-- Iteration 052 当前为 Review / Partial；在其剩余证据和 Navigator 复核收口前，不激活新的产品 Iteration。
+- Iteration 052 已 Closed / Complete；Navigator accepted runtime security，CI #125 全绿，稳定权限/API 契约及治理关闭完成，SEC-02 已解除。
+- 当前没有 Active / In Progress / Review Iteration；下一条候选按 EVO-118 顺序从 EVO-118-D 规划新 Iteration。
 - 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 - 安全、数据损坏或生产构建 P0 可显式插队；普通产品工作不得绕过 EVO-118 S1。
 
@@ -36,10 +36,11 @@
 | [Iteration 047](ITERATION-047.md) | Closed | WWW-Authenticate + real git-client E2E |
 | [Iteration 048](ITERATION-048.md) | Closed | Repo Context API |
 | [Iteration 049](ITERATION-049.md) | Closed | EVO-103 acceptance hardening |
-| [Iteration 050](ITERATION-050.md) | Closed | 项目体检治理基线与生产就绪重排；EVO-118-A Done |
-| [Iteration 051](ITERATION-051.md) | Closed | API Key/MCP 授权边界硬化；EVO-118-B Done，SEC-01 解除 |
+| [Iteration 050](ITERATION-050.md) | Closed / Complete | 项目体检治理基线与生产就绪重排；EVO-118-A Done |
+| [Iteration 051](ITERATION-051.md) | Closed / Complete | API Key/MCP 授权边界硬化；EVO-118-B Done，SEC-01 解除 |
+| [Iteration 052](ITERATION-052.md) | Closed / Complete | HTTP Tool Egress / SSRF 安全边界、稳定契约和治理关闭；EVO-118-C Done，SEC-02 解除 |
 
-这些 Iteration 证明 Git 后端 Alpha 基础和治理 Gate 存在，但不证明平台生产就绪。后续发布 Gate 归 [EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)。
+这些 Iteration 证明 Git 后端 Alpha 基础和安全 Gate 存在，但不证明平台生产就绪。剩余发布 Gate 归 [EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)。
 
 ## 历史 Iteration 索引
 
@@ -89,7 +90,7 @@
 | 042~049 | 见“最近完成的 Git-centric / Readiness Iterations” |
 | 050 | [项目体检治理与生产就绪重排](ITERATION-050.md) |
 | 051 | [API Key 与 MCP 授权边界硬化](ITERATION-051.md) |
-| 052 | [HTTP Tool 出站安全与 SSRF 防护](ITERATION-052.md)（Review） |
+| 052 | [HTTP Tool 出站安全与 SSRF 防护](ITERATION-052.md)（Closed / Complete） |
 
 ## 计划基线保护
 
