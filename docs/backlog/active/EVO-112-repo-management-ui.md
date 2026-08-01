@@ -5,15 +5,25 @@
 - [Product Backlog](../PRODUCT-BACKLOG.md)
 - [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
-- [Design System (Figma tokens)](../../reference/DESIGN.md)
+- [Design System — Figma tokens](../../reference/DESIGN.md)
 - 父 Epic: [EVO-100](EVO-100-git-centric-platform-foundation.md)
 - 依赖: [EVO-103](EVO-103-repo-context-and-smart-http.md)（Repo CRUD API + Repo Context API）
+- 子 Story: [EVO-112-A](EVO-112-A-repo-ui-shell.md)（Repo UI Shell / ITERATION-054）、[EVO-112-B](EVO-112-B-repo-detail-read-only.md)（Repo Detail Read-only；EVO-118 S1 后恢复）
+
+## Sub-Stories
+
+| 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
+|----------|----------|------|------|----------|
+| EVO-112-A | `/repos` 列表 + `/repos/new` 创建 + repo-centric 导航 + Dashboard repo-centric 改版 | Done | EVO-103-A (Done) + EVO-116 (Done) | ITERATION-054（历史成果恢复） |
+| EVO-112-B | `/repos/:id` Files / Commits / Settings 三 Tab 只读浏览 | Proposed / paused | EVO-112-A + EVO-103-C (Done) + EVO-118 S1 | S1 关闭后重新排期 |
+
+父项完成条件：两个子 Story 全部 Done（且详情页跳转路径不再"假可用"）。
 
 ## Summary
 
 - 类型：feature / frontend
 - 优先级：P0
-- 状态：Proposed
+- 状态：In Progress / paused（EVO-112-A Done；EVO-112-B 等待 EVO-118 S1）
 - 父 Epic: EVO-100
 - Source: 用户反馈 2026-06-24（git 仓库管理页面缺失）
 
@@ -49,7 +59,7 @@ Evolith 战略转型为 Git-centric 平台后，前端没有任何 Git 仓库相
 - 排序：最近更新 / 名称 / 创建时间
 - 空状态：引导用户创建第一个仓库
 - 右上角 "New Repo" 按钮
-- API: `GET /api/v1/repos`
+- API: `GET /api/v1/tenant/{tenant_id}/repos`
 
 ### 2. 创建仓库页（`/repos/new`）
 
@@ -61,7 +71,7 @@ Evolith 战略转型为 Git-centric 平台后，前端没有任何 Git 仓库相
   - auto_merge（开关，默认 off；需 admin 显式开启）
   - require_review（开关，默认 on）
 - 创建成功后跳转到仓库详情页
-- API: `POST /api/v1/repos`
+- API: `POST /api/v1/tenant/{tenant_id}/repos`
 
 ### 3. 仓库详情页（`/repos/:id`）
 
@@ -83,7 +93,7 @@ Tab 布局，三个标签页：
 - 仓库元数据编辑（name / description / visibility）
 - 策略展示（`.evolith/policy.yaml` 解析后的可视化——default_action / protected_paths / agents 列表）
 - 仓库删除（需二次确认）
-- API: `GET/PATCH/DELETE /api/v1/repos/{id}`
+- API: `GET/PATCH/DELETE /api/v1/tenant/{tenant_id}/repos/{id}`
 
 ### 4. 导航重构
 
@@ -170,3 +180,5 @@ Repos / Dashboard / Settings
 - Source: 用户反馈 2026-06-24（"git 相关的页面都没有出现,应该有一个围绕 git 仓库为中心的逻辑"）
 - Decision context: EVO-103 是纯后端 API，EVO-104 是完整 Vibe Coding 编辑器（阻塞于 UX U-01~U-05），中间缺少基础仓库管理 UI 层
 - Prior discussion: 2026-06-24 Playwright 测试发现 Dashboard 仍显示旧 Tools/Skills/Interfaces 统计，导航无 Git 仓库入口
+- 2026-06-29 拆分：本 Story 拆为 EVO-112-A（列表 / 创建 / 导航 / Dashboard）+ EVO-112-B（详情三 Tab）。拆分理由：单 Story 不超过 0.5-2 天交付窗口；EVO-112-A 是 EVO-112-B 的硬依赖，但两者范围独立可分别验收。
+- 2026-08-02 恢复：EVO-112-A 的本地历史成果因主线已占用 Iteration 050，迁移到 Iteration 054；EVO-112-B 不抢占 EVO-118 S1，关闭 D/E Gate 后重新排期。

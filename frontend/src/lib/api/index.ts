@@ -49,6 +49,9 @@ export type {
   Member,
   Invitation,
   InviteMemberRequest,
+  Repo,
+  CreateRepoRequest,
+  UpdateRepoRequest,
 } from './types';
 
 export { authApi } from './auth';
@@ -58,3 +61,4 @@ export { cliInterfacesApi } from './cli-interfaces';
 export { billingApi, paymentMethodApi } from './billing';
 export { apiKeysApi } from './api-keys';
 export { membersApi } from './members';
+export { reposApi } from './repos';

@@ -42,7 +42,9 @@
 | [EVO-103](EVO-103-repo-context-and-smart-http.md) | Repo 托管父项（拆为 A/B/C；B 再拆为 B-1/B-2，见 [EVO-103](EVO-103-repo-context-and-smart-http.md)） | Done | EVO-101 | Phase 1 |
 | [EVO-113](EVO-113-direction-pivot-review-remediation.md) | 方向变更评审缺口修复：安全默认策略、状态同步、断链、reference 与 manifest 风险门禁 | Done | EVO-101, EVO-102 | Remediation |
 | [EVO-116](EVO-116-evo-103-acceptance-hardening.md) | EVO-103 验收硬化：API key scope、Context API 资源边界、push 后 repo metadata、性能证据和 API contract 补齐 | Done | EVO-103 | Iteration 049 |
-| [EVO-112](EVO-112-repo-management-ui.md) | 仓库列表 / 创建 / 详情页（Files + Commits + Settings）+ 导航重构（Repos 为主入口）+ Dashboard repo-centric 改版 | Proposed | EVO-103 | Phase 2 |
+| [EVO-112](EVO-112-repo-management-ui.md) | 仓库列表 / 创建 / 详情页（Files + Commits + Settings）+ 导航重构（Repos 为主入口）+ Dashboard repo-centric 改版；父项已拆为 A/B 子项 | Proposed | EVO-103 | Phase 2 |
+| [EVO-112-A](EVO-112-A-repo-ui-shell.md) | `/repos` 列表 + `/repos/new` 创建 + repo-centric 导航（Repos / Dashboard / Settings）+ Dashboard repo-centric 改版 + 旧 Tools/Skills/Interfaces 降级 Legacy | Done | EVO-103-A (Done) + EVO-116 (Done) | ITERATION-054（历史成果恢复；Closed / Complete） |
+| [EVO-112-B](EVO-112-B-repo-detail-read-only.md) | `/repos/:id` Files / Commits / Settings 三 Tab 只读浏览 + clone URL 复制 + 删除二次确认 | Proposed / paused | EVO-112-A + EVO-103-C (Done) + EVO-118 S1 | S1 关闭后重新排期 |
 | [EVO-105](EVO-105-commit-and-promote-api.md) | `POST /repos/{id}/commits`（policy 评估 + 三态）+ `POST /repos/{id}/promote` + agent branch 自动命名 | Proposed | EVO-102, EVO-103 | Phase 2 |
 | [EVO-106](EVO-106-agent-session-and-scoped-token.md) | `agent_sessions` 表 + `POST /agent-sessions` + scoped token + 权限模型 | Proposed | EVO-103 | Phase 2 |
 | [EVO-107](EVO-107-webhook-out.md) | `webhook_deliveries` 表 + push/promote 事件触发 POST + retry 指数退避 + 失败记录 | Proposed | EVO-105, EVO-106 | Phase 2 |

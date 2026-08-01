@@ -69,7 +69,7 @@
 ### Git Rules
 
 - 提交使用 `feat:`、`fix:`、`docs:`、`refactor:`、`test:`、`chore:`、`perf:` 或 `security:`。
-- Agent 提交末尾必须带 `[model: <model-name>]`。
+- Agent-authored or Agent-assisted commits 必须使用完整格式 `type(scope): description (#story-id) [model: <model-name>]`；Story ID 可选，模型标签 required。
 - 提交前检查 `git diff --cached`；不用 `git add .` 盲加。
 - 一次提交表达一个清晰主题。
 - 不使用破坏性命令覆盖用户改动。
@@ -123,7 +123,7 @@
 18. `/health` 成功不证明 DB/Git Storage ready；发布使用 readiness 503 语义。
 19. SMTP/Redis 的生产降级必须按职责 fail closed，不能用开发 fallback 返回假成功。
 20. 文件或代码存在不等于完成；验证、状态同步和残余归口缺失时必须报告 `Partial`。
-21. EVO-118 S1 当前只剩 EVO-118-D/E；不要按旧 Two-Month Plan 直接启动 Repo UI。
+21. EVO-118 S1 当前只剩 EVO-118-D/E；EVO-112-A 的历史本地成果虽已恢复，但不要按旧 Two-Month Plan 继续启动 EVO-112-B。
 22. GitHub Actions required CI 通过不等于安全/发布复验通过；必须同时关闭 Navigator、稳定契约和治理状态。
 23. 实现 PR 合并后仍需回写 merge commit、owner Story/Iteration、Gate 和派生入口；合并本身不会自动完成治理收口。
 
@@ -144,7 +144,7 @@ Evolith 是 Git-centric AI development platform：
 
 - Engineering foundation：较完整。
 - Git backend：Alpha foundation。
-- Web product：Repo-centric UI 未实现。
+- Web product：EVO-112-A Repo UI Shell 已实现；Repo Detail 与 Vibe Coding 仍未实现。
 - Agent loop：Commit/Promote/Session/Webhook 未实现。
 - Production：SEC-01/SEC-02 已关闭；仍被 DATA-01 Git 耐久性与 DEPLOY-01 生产构建阻断。
 
@@ -153,9 +153,9 @@ Evolith 是 Git-centric AI development platform：
 ### Current Execution State
 
 - `main` 已包含 PR #5 / EVO-118-C，SEC-02 已关闭。
-- 当前没有 Active / In Progress / Review Iteration，也没有开放 PR。
-- 下一条可启动 Story 是 `EVO-118-D`；启动时先按 `START-ITERATION.md` 创建 Iteration 053 并原子同步 Story/Epic/Backlog/Board/索引。
-- 在 Iteration 053 激活前，不创建运行时代码提交，不把 EVO-118-E 或 Repo UI 混入同一 WIP。
+- Draft PR #7 正在推进 `EVO-118-D` / Iteration 053；该 PR 是 DATA-01 的 owner，不与 Repo UI 恢复提交混写。
+- EVO-112-A 的 2026-06-29 本地历史成果已迁移为 Iteration 054 并恢复；这不改变 EVO-118-D/E 的 S1 优先顺序。
+- 下一条产品实现仍是 S1 关闭后的 EVO-112-B；不要把 EVO-118-E 或 Repo Detail 混入当前 WIP。
 
 ### Current Order
 
@@ -166,7 +166,7 @@ EVO-118-A ✓
 → EVO-118-D（Next）
 → EVO-118-E
 → EVO-118-F/G/H
-→ EVO-112
+→ EVO-112-B（EVO-112-A ✓）
 → EVO-105/106/107/104
 → EVO-108/109/110
 → EVO-111

@@ -28,6 +28,8 @@ import TenantSettingsPage from './app/tenant/settings/page';
 import TenantMembersPage from './app/tenant/members/page';
 import TenantBillingPage from './app/tenant/billing/page';
 import TenantApiKeysPage from './app/tenant/api-keys/page';
+import ReposPage from './app/repos/page';
+import NewRepoPage from './app/repos/new/page';
 
 function NotFound() {
   return (
@@ -57,6 +59,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/repos" element={<ReposPage />} />
+            <Route path="/repos/new" element={<NewRepoPage />} />
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/tools/new" element={<ToolNewPage />} />
             <Route path="/tools/:id" element={<ToolDetailPage />} />

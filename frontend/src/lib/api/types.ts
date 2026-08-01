@@ -387,3 +387,35 @@ export interface InviteMemberRequest {
   role: string;
   message?: string;
 }
+
+// ============================================
+// Repo Types (EVO-103 / EVO-112-A)
+// ============================================
+
+export interface Repo {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string;
+  default_branch: string;
+  storage_path: string;
+  visibility: 'public' | 'private';
+  auto_merge: boolean;
+  require_review: boolean;
+  last_commit_sha: string | null;
+  last_committed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRepoRequest {
+  name: string;
+  description?: string;
+  default_branch?: string;
+  visibility?: 'public' | 'private';
+  auto_merge?: boolean;
+  require_review?: boolean;
+  seed_template?: boolean;
+}
+
+export type UpdateRepoRequest = Partial<CreateRepoRequest>;

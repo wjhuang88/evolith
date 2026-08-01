@@ -3,7 +3,7 @@
 ## Required Reads
 
 - [Product Backlog](../PRODUCT-BACKLOG.md)
-- [Design System (Figma tokens)](../../reference/DESIGN.md)
+- [Design System — Figma tokens](../../reference/DESIGN.md)
 - [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
 - [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
 - [Backend Repo Context API item file](EVO-103-repo-context-and-smart-http.md)
