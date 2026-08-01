@@ -3,15 +3,15 @@
 > Compact routing and prioritization surface. Executable context lives in `docs/backlog/active/`; completed, deferred and dropped history lives in `docs/backlog/archive/`.
 > Status and DoR rules: [Requirement Intake](../sop/REQUIREMENT-INTAKE.md). Completion rules: [Iteration Workflow](../sop/ITERATION-WORKFLOW.md). Compaction protocol: `agent-project-governance/references/backlog-compaction.md`.
 
-> **2026-08-01 生产就绪进展**：Git Service 基础已完成，API Key/MCP 授权与 HTTP Tool SSRF 两项安全 Gate 已关闭；当前主线继续推进 [EVO-118](active/EVO-118-production-readiness-and-security-hardening.md) S1 的 Git 数据持久化/备份和生产构建，再恢复 EVO-112 → EVO-105/106/107/104 → EVO-108/109/110。事实口径见 [Production Readiness Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)，执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。原 2026-06-23 Git-centric 方向和 ADR-0004/0005/0006 继续有效；本次重排不回退产品方向，只补齐安全、耐久性和交付门禁。
+> **2026-08-02 生产就绪进展**：Git Service 基础已完成，API Key/MCP 授权与 HTTP Tool SSRF 两项安全 Gate 已关闭；[EVO-118-D](active/EVO-118-D-git-storage-durability-and-recovery.md) 正在 [Draft PR #7](https://github.com/wjhuang88/evolith/pull/7) / Iteration 053 中推进 Git 数据耐久性，随后是 EVO-118-E 生产构建收敛。事实口径见 [Production Readiness Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)，执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。EVO-112-A 的历史成果恢复不改变该优先顺序。
 
 ## Current Priorities
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | 当前下一条 P0；DATA-01 release blocker；生产持久卷、PostgreSQL+Git 联合备份、空环境恢复 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
+| EVO-118-D | Git 存储持久化、备份与恢复演练 | In Progress in PR #7 | P0 | Iteration 053 Active on owner branch；DATA-01 release blocker；本恢复分支不修改其实现 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Draft PR #7](https://github.com/wjhuang88/evolith/pull/7)<br>[Release SOP](../sop/RELEASE.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | DEPLOY-01 release blocker；clean build、单一交付形态、协议路径 Smoke Test | [Item file](active/EVO-118-E-production-build-deployment-convergence.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
-| EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | Proposed | P0 | 产品主线保持；EVO-118 S1 未关闭前只做 refinement，不抢占实现 WIP | [Item file](active/EVO-112-repo-management-ui.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)<br>[Design System](../reference/DESIGN.md) |
+| EVO-112 | Repo Management UI（仓库列表 / 创建 / 详情 / 导航重构） | In Progress / paused | P0 | EVO-112-A 历史成果已恢复为 Iteration 054；EVO-112-B Proposed；EVO-118 S1 未关闭前不继续实现 | [Item file](active/EVO-112-repo-management-ui.md)<br>[EVO-112-A](active/EVO-112-A-repo-ui-shell.md)<br>[EVO-112-B](active/EVO-112-B-repo-detail-read-only.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)<br>[Design System](../reference/DESIGN.md) |
 | EVO-105 | Commit API + 直推直合 + Promote API | Proposed | P0 | 依赖 EVO-118-B/F/H；Agent 写入必须经过 Typed Capability、PolicyEvaluator 与 Durable Event | [Item file](active/EVO-105-commit-and-promote-api.md)<br>[EVO-100](active/EVO-100-git-centric-platform-foundation.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md) |
 | EVO-106 | Agent Session API + Scoped Token | Proposed | P0 | 依赖 EVO-118-B/F/H；Scoped Token 不得退化为通用 Smart HTTP write | [Item file](active/EVO-106-agent-session-and-scoped-token.md)<br>[EVO-100](active/EVO-100-git-centric-platform-foundation.md)<br>[Security Review](../sop/SECURITY-REVIEW.md) |
 | EVO-080 | Spike: 验证 Wasmer/WASI 替代 Docker sandbox 可行性 | Ready | P1 | 仅在 EVO-111 删除后仍需要 runtime 候选时启动；不得绕过 EVO-118 S1 | [Item file](active/EVO-080-spike-验证-wasmer-wasi-替代-docker-sandbox-可行性.md)<br>[Serverless runtime proposal](../proposals/SERVERLESS-RUNTIME.md) |
@@ -22,11 +22,11 @@
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A/B/C Done，D/E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
+| EVO-118 | Epic: Production Readiness and Security Hardening | In Progress | P0 | Phase E'-1 与 Repo UI/Agent 集成之间的稳定化门禁；A/B/C Done，D 在 PR #7 In Progress，E Ready，F~H Proposed | [Item file](active/EVO-118-production-readiness-and-security-hardening.md)<br>[Baseline](../reference/PRODUCTION-READINESS-BASELINE.md)<br>[Readiness plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) |
 | EVO-118-A | 项目体检治理基线与优先级重排 | Done | P0 | Governance Story；Iteration 050 Closed；PR #2 merged | [Item file](active/EVO-118-A-project-health-governance-baseline.md)<br>[Iteration 050](../iterations/ITERATION-050.md) |
 | EVO-118-B | API Key 与 MCP 授权边界硬化 | Done | P0 | Iteration 051 Closed；PR #3 merged `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`；CI `30567361095` 全绿，SEC-01 已解除 | [Item file](active/EVO-118-B-api-key-mcp-authorization-hardening.md)<br>[Iteration 051](../iterations/ITERATION-051.md) |
 | EVO-118-C | HTTP Tool 出站安全与 SSRF 防护 | Done | P0 | Iteration 052 Closed / Complete；Navigator accepted runtime security；CI #125 / run `30653767138` 全绿；稳定契约完成，SEC-02 已解除 | [Item file](active/EVO-118-C-http-tool-egress-security.md)<br>[Iteration 052](../iterations/ITERATION-052.md)<br>[Permissions](../reference/PERMISSIONS.md)<br>[API Contract](../reference/API-CONTRACT.md) |
-| EVO-118-D | Git 存储持久化、备份与恢复演练 | Ready | P0 | 解除 DATA-01 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md) |
+| EVO-118-D | Git 存储持久化、备份与恢复演练 | In Progress in PR #7 | P0 | Iteration 053 Active on owner branch；解除 DATA-01 | [Item file](active/EVO-118-D-git-storage-durability-and-recovery.md)<br>[Draft PR #7](https://github.com/wjhuang88/evolith/pull/7) |
 | EVO-118-E | Embedded Frontend 生产构建与部署收敛 | Ready | P0 | 解除 DEPLOY-01 | [Item file](active/EVO-118-E-production-build-deployment-convergence.md) |
 | EVO-118-F | Repo 生命周期一致性与 Initial Commit | Proposed | P1 | 依赖 EVO-118-D/E；扩展并替代 EVO-114 的单点回滚范围 | [Item file](active/EVO-118-F-repo-lifecycle-consistency.md) |
 | EVO-118-G | 运行可靠性与发布门禁接线 | Proposed | P1 | 依赖 EVO-118-B/E；PR CI、readiness、限流、SMTP/Redis fail-closed | [Item file](active/EVO-118-G-runtime-reliability-gates.md) |
@@ -44,7 +44,9 @@
 | EVO-103-B-1 | Git 客户端认证基础设施 | Done | P0 | ITERATION-045 | [Item file](active/EVO-103-B-1-git-client-auth-infra.md) |
 | EVO-103-B-2 | Smart HTTP 端点实现 | Done | P0 | ITERATION-046 | [Item file](active/EVO-103-B-2-smart-http-endpoints.md) |
 | EVO-103-C | Repo Context API | Done | P0 | ITERATION-048 | [Item file](active/EVO-103-C-repo-context-api.md) |
-| EVO-112 | Repo Management UI | Proposed | P0 | EVO-118 S1 后恢复 | [Item file](active/EVO-112-repo-management-ui.md) |
+| EVO-112 | Repo Management UI | In Progress / paused | P0 | EVO-112-A Done（Iteration 054 历史成果恢复）；EVO-112-B 等待 EVO-118 S1 后恢复 | [Item file](active/EVO-112-repo-management-ui.md) |
+| EVO-112-A | Repo UI Shell | Done | P0 | `/repos` 列表与创建、repo-centric 导航和 Dashboard；Iteration 054 Closed / Complete | [Item file](active/EVO-112-A-repo-ui-shell.md)<br>[Iteration 054](../iterations/ITERATION-054.md) |
+| EVO-112-B | Repo Detail Read-only | Proposed / paused | P0 | 依赖 EVO-112-A / EVO-103-C；EVO-118 S1 关闭后重新排期 | [Item file](active/EVO-112-B-repo-detail-read-only.md) |
 | EVO-104 | Vibe Coding Web UI | Proposed | P0 | 依赖 EVO-103/105/106/112 与 EVO-118 Gate | [Item file](active/EVO-104-vibe-coding-web-ui.md)<br>[Design Decisions](../design/vibe-coding-ui-decisions.md) |
 | EVO-105 | Commit API + Promote API | Proposed | P0 | 依赖 EVO-118-B/F/H | [Item file](active/EVO-105-commit-and-promote-api.md) |
 | EVO-106 | Agent Session API + Scoped Token | Proposed | P0 | 依赖 EVO-118-B/F/H | [Item file](active/EVO-106-agent-session-and-scoped-token.md) |

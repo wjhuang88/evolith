@@ -24,12 +24,25 @@
 | 13 | `cargo test --workspace` 在有 Docker 的机器失败 sandbox 测试 | 测试假设运行环境一定没有 Docker daemon | legacy sandbox 测试不能依赖宿主 Docker 是否存在；按实际初始化结果校验错误语义或功能语义 |
 | 14 | 资源上限声明通过但仍有 DoS 风险 | 上限在完整读取/完整收集后才判断 | blob 先读 object header；tree/diff 在迭代 callback 中达到上限即取消；测试覆盖超限路径 |
 | 15 | iteration README / Board 显示 Closed，但单个 iteration 页头仍是 Active | 只同步派生视图和总目录，漏改 owner 文档页头 | 收口时同时检查 iteration 文件页头、执行记录、README、Board、backlog item；owner 页头优先 |
+| 16 | EVO-112-A 创建 repo 后跳转 `/repos/:id` 出现 404 | shell 切片先交付，但创建成功路径指向尚未实现的 EVO-112-B 详情页 | 详情页未交付前返回 `/repos`；已知后续能力不能作为当前可用路径的 fallback |
+| 17 | `frontend/src/lib/api/members` 返回 `ApiResponse` 而非 `Member[]` | 后端 handler 走统一 `ApiResponse<T>` 包装；前端按字段读取 `.data?.members` | 在调用方 `membersResponse?.data?.members ?? []` 而不是直接把响应赋给 `setState` |
+| 18 | `tenant?.id` 在闭包中被 TypeScript 推断为 `string \| undefined` | TS 对可选链的窄化在闭包边界不可靠；尤其 `await` 之后 | 在闭包外显式 `const tid: string = tenantId` 二次断言后使用 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-08-02 - 仓库管理 UI 可拆分，但不能把 404 当作 fallback（EVO-112-A）
+**现象**: 用户 2026-06-24 反馈 "git 相关的页面都没有出现"。EVO-103（Repo CRUD + Context API）已 Done，但前端没有仓库管理页面。完整 Vibe Coding 编辑器 EVO-104 仍依赖 UX U-01~U-05 之外的 API/UI 依赖。
+**根因**: 单个 Story 跨越 0.5-2 天交付窗口过大；如果直接做"仓库列表 + 创建 + 详情 Files/Commits/Settings + 导航 + Dashboard"全部内容，agent 实施 + 验证会进入"全栈大爆炸"模式，且 E2E 测试覆盖不足。
+**方案**: 将 EVO-112 拆为 EVO-112-A（仓库列表 / 创建 / 侧边栏 Repos-Dashboard-Settings + Legacy 二级菜单 / Dashboard repo-centric 改版）和 EVO-112-B（Files / Commits / Settings 三 Tab 只读浏览）。A 是 B 的硬依赖但 A 不依赖 B；A 创建成功后返回已实现的 `/repos`，B 交付后再把入口改为详情页。
+**教训**:
+- 当 EVO-N 的依赖（D1, D2, ..., Dn）里有「已被未来 EVO-M 解决但 M 还没做」的情况，应优先把 EVO-N 拆为「EVO-N-A 不依赖 M」+「EVO-N-B 依赖 M」，让 EVO-N-A 优先交付、避免 N 等 M。
+- 已知后续 Story 不能替代当前可用路径；若目标路由尚未实现，必须返回已实现页面或提供明确可用的占位页，不能把 404 登记为“预期 fallback”后声明 Complete。
+- 「旧 Tools / Skills / Interfaces 降级为 Legacy 二级菜单」是过渡期最低成本选择：路由保留 → 历史链接可访问；主导航不再暴露 → 新用户不被旧概念干扰；不删除代码 → Phase E' 完成后可单独评估是否彻底删除。
+**Promoted to rule/check**: EVO-112-A BDD 与 Iteration 054 收口证据要求创建成功路径落到已实现的 `/repos`；详情页继续归口 EVO-112-B。
 
 ### 2026-06-29 - 关闭迭代时必须同步 owner 页头状态
 **现象**: EVO-116 / Iteration 049 已在 backlog、iterations README 和 Board 中记录为 Complete/Closed，但 `docs/iterations/ITERATION-049.md` 页头仍写 `Active`，会在下一次 START-ITERATION 库存盘点时误导 Agent 判断仍有在途迭代。

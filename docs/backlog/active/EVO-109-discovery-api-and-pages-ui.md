@@ -40,7 +40,7 @@
 ## Governing ADRs, Specs Or Decisions
 
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
-- [Design System (Figma tokens)](../../reference/DESIGN.md)
+- [Design System — Figma tokens](../../reference/DESIGN.md)
 
 ## UX Decisions Required
 

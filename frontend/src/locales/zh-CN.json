@@ -49,9 +49,11 @@
   "nav": {
     "home": "首页",
     "dashboard": "仪表盘",
+    "repos": "仓库",
     "tools": "工具",
     "skills": "技能",
     "interfaces": "CLI 接口",
+    "legacy": "旧版",
     "docs": "文档",
     "settings": "设置",
     "signIn": "登录",
@@ -208,7 +210,15 @@
       "interfaces": "CLI 接口",
       "cliInterfaces": "CLI 接口定义",
       "apiCalls": "API 调用",
-      "thisMonth": "本月"
+      "thisMonth": "本月",
+      "repos": "仓库",
+      "reposDesc": "本组织下的 Git 仓库",
+      "commitsMonth": "本月提交",
+      "commitsMonthDesc": "最近 30 天有更新的仓库",
+      "members": "团队成员",
+      "membersDesc": "组织内的活跃成员",
+      "withCommits": "已有提交",
+      "empty": "—"
     },
     "quickActions": {
       "title": "快捷操作",
@@ -216,7 +226,10 @@
       "addTool": "添加工具",
       "createSkill": "创建技能",
       "addInterface": "添加 CLI 接口",
-      "teamMembers": "团队成员"
+      "teamMembers": "团队成员",
+      "newRepo": "新建仓库",
+      "browseRepos": "浏览仓库",
+      "apiKeys": "API 密钥"
     },
     "organization": {
       "title": "组织",
@@ -228,7 +241,75 @@
       "title": "快速链接",
       "manageApiKeys": "管理 API 密钥",
       "inviteTeamMembers": "邀请团队成员",
-      "orgSettings": "组织设置"
+      "orgSettings": "组织设置",
+      "browseRepos": "浏览仓库",
+      "createRepo": "新建仓库"
+    },
+    "recentRepos": {
+      "title": "最近的仓库",
+      "subtitle": "组织内 Git 仓库的最新动态",
+      "empty": "还没有仓库。创建一个仓库，开始与 AI 智能体一起交付代码。",
+      "viewAll": "查看全部仓库",
+      "lastCommit": "更新于 {{when}}",
+      "neverCommitted": "暂无提交"
+    },
+    "repoCentric": {
+      "subtitle": "一眼纵览你的 Git 工作空间"
+    }
+  },
+  "repos": {
+    "title": "仓库",
+    "subtitle": "管理组织下的 Git 仓库",
+    "createRepo": "新建仓库",
+    "noRepos": "暂无仓库。创建你的第一个仓库，开始与 AI 智能体一起交付代码。",
+    "noReposTitle": "创建你的第一个仓库",
+    "loading": "正在加载仓库...",
+    "failedToLoad": "加载仓库失败",
+    "failedToConnect": "无法连接服务器",
+    "searchPlaceholder": "按名称或描述搜索仓库",
+    "sortBy": "排序",
+    "sortUpdated": "最近更新",
+    "sortName": "名称",
+    "sortCreated": "最新创建",
+    "repo": {
+      "private": "私有",
+      "public": "公开",
+      "branch": "分支",
+      "lastCommit": "更新于 {{when}}",
+      "neverCommitted": "暂无提交",
+      "neverCommittedShort": "—",
+      "by": "by {{author}}"
+    },
+    "newRepo": {
+      "title": "新建仓库",
+      "subtitle": "为你的组织创建一个新的 Git 仓库",
+      "basicInfo": "仓库信息",
+      "basicInfoDesc": "名称与可见性",
+      "nameLabel": "仓库名称",
+      "namePlaceholder": "my-awesome-repo",
+      "nameHint": "允许小写字母、数字、连字符、点或下划线。在你的组织内必须唯一。",
+      "descLabel": "描述",
+      "descPlaceholder": "这个仓库是做什么的？",
+      "visibilityLabel": "可见性",
+      "visibilityPrivate": "私有 — 仅你的组织成员可访问",
+      "visibilityPublic": "公开 — 任何拥有链接的人可查看",
+      "defaultBranchLabel": "默认分支",
+      "defaultBranchHint": "默认检出的分支。建议保持 main。",
+      "policiesTitle": "AI 智能体协作策略",
+      "policiesDesc": "控制 AI 智能体如何提交代码到此仓库。",
+      "autoMergeLabel": "自动合并智能体提交",
+      "autoMergeDesc": "开启后，AI 智能体对默认分支的提交会自动合并。默认关闭 —— 在你信任智能体前请保持关闭。",
+      "requireReviewLabel": "智能体提交需审查",
+      "requireReviewDesc": "开启后，AI 智能体的提交会进入审查队列。默认开启。",
+      "createButton": "创建仓库",
+      "creating": "创建中...",
+      "failedToCreate": "创建仓库失败",
+      "validation": {
+        "nameRequired": "请填写仓库名称",
+        "nameInvalid": "允许小写字母、数字、连字符、点或下划线（1-128 字符）"
+      },
+      "nextTitle": "接下来可以做什么？",
+      "nextDesc": "你可以在仓库详情页（下一个迭代提供）中克隆、推送和浏览文件。"
     }
   },
   "tools": {
