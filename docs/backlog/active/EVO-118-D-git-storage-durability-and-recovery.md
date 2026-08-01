@@ -1,29 +1,39 @@
 # EVO-118-D Git 存储持久化、备份与恢复演练
 
 - **类型**：Technical / Data Durability / Deploy
-- **状态**：Ready / Next Activation Candidate
+- **状态**：In Progress
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
-- **依赖**：EVO-118-A/B/C Done；PR #5 merged；SEC-01/SEC-02 Closed
+- **依赖**：EVO-118-A/B/C Done；PR #5 / #6 merged；SEC-01/SEC-02 Closed
 - **影响范围**：deploy / backend / scripts / docs / tests
-- **计划 Iteration**：053（尚未创建或激活）
+- **所属 Iteration**：[Iteration 053](../../iterations/ITERATION-053.md)（Active）
+- **实施分支**：`agent/evo-118-d-git-durability-recovery`
 
 ## 工程目标
 
 确保容器重建、节点故障或数据库恢复后，Git Repo、Commit、Branch、Tag 和数据库元数据能够一起恢复，避免“数据库可恢复但代码历史永久丢失”。
 
-## 启动事实基线
+## 激活与基线同步事实
 
-截至 2026-08-02：
+2026-08-02 首次激活时已验证：
 
-- `main` 为 `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`，包含 PR #5 / EVO-118-C。
-- 当前没有 Active / In Progress / Review Iteration，也没有开放 PR。
-- 没有 EVO-118-D 或 Iteration 053 的现有分支/PR。
-- EVO-118-E 保持 Ready，但按 WIP 不与本 Story 同时激活。
-- 本文件满足 Ready 基线，但不代表已开始实施；开始前必须按 `START-ITERATION.md` 创建并激活 Iteration 053。
+- 当时 `main` 为 `711e63227aeb5089a1858b6f38ef0c06374a7f97`，包含 PR #5 与 post-merge PR #6。
+- 当时没有开放或重叠的 EVO-118-D / Iteration 053 实现；Iteration 018/019/020/025/026/027 已记录继续阻塞、替代或延期 disposition。
+- [Iteration 053](../../iterations/ITERATION-053.md) 已在运行时代码之前建立 Planned 基线并激活，本 Story 是 DATA-01 owner。
+- EVO-118-E 保持 Ready，不与本 Story 同时实施。
+- 当时生产 Compose 未为 Backend 挂载 Git Storage，`scripts/backup.sh` 仅覆盖 PostgreSQL，readiness 未检查 Git Storage。
+
+2026-08-02 主线漂移复核：
+
+- 当前 `main` 已推进到 `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；PR #8 合入 EVO-112-A Repo UI Shell，PR #9 写回 Iteration 054 merge closure。
+- Iteration 054 已 Closed / Complete，不是 Active/Review WIP，不替代或关闭 Iteration 053；EVO-112-B 仍暂停等待 EVO-118 S1。
+- PR #7 仍是唯一开放 PR，保持 Draft；漂移前 Head `608ad6acd20229498898eaf16afaff6ec8a79878` 落后 `main` 4 个提交且不可合并。
+- 本 Story 采用“从最新 `main` 建立新基线并迁移 DATA-01 改动”的方式跟进，必须保留 Repo UI 与 Iteration 054 的已合并事实，不得回滚主线。
+- 基线同步后所有 exact-head CI、恢复演练与 Navigator 证据必须重新建立；旧 Head 的通过项只能作为定位线索。
 
 ## 必读文档
 
+- [Iteration 053](../../iterations/ITERATION-053.md)
 - [Release SOP](../../sop/RELEASE.md)
 - [Security Review SOP](../../sop/SECURITY-REVIEW.md)
 - [Start Iteration SOP](../../sop/START-ITERATION.md)
@@ -47,21 +57,21 @@
 
 ### Scenario 1：容器重建不丢仓库
 
-- **Given** Repo 已 push Commit 与 Tag
+- **Given** Repo 已 push 多个 Commit、额外 Branch 与 Tag
 - **When** 删除并重建 Backend 容器
 - **Then** clone、Commit、Branch、Tag 和 Repo Metadata 保持一致
 
 ### Scenario 2：联合备份可恢复
 
-- **Given** PostgreSQL 与 Git Storage 已产生业务数据
-- **When** 执行备份、清空环境并恢复
-- **Then** 用户可重新登录、列出 Repo、clone 并校验 Commit/Tag
+- **Given** PostgreSQL 与 Git Storage 已产生业务数据并进入明确一致性窗口
+- **When** 执行联合备份、清空隔离环境并恢复
+- **Then** 用户可重新登录、列出 Repo、clone 并校验 Commit/Branch/Tag/目标 SHA
 
 ### Scenario 3：Git 存储不可用阻止就绪
 
-- **Given** Git Storage 只读、路径不存在或空间耗尽
-- **When** 调用 readiness 或创建/push Repo
-- **Then** readiness 返回 503，写操作明确失败且不产生成功假象
+- **Given** Git Storage 只读、路径不存在、不是目录或不可写
+- **When** 调用 readiness
+- **Then** readiness 返回 503；存储恢复后返回 200
 
 ### Scenario 4：DB/Git 不一致可被识别
 
@@ -71,38 +81,30 @@
 
 ### Scenario 5：备份产物可追溯且可拒绝不完整输入
 
-- **Given** 备份包含数据库、Git 数据、版本/配置元数据和校验信息
-- **When** 缺少任一必需部分或校验不通过
-- **Then** restore fail closed，不覆盖现有环境，不报告恢复完成
+- **Given** 备份包含数据库、Git 数据、格式版本、非敏感配置元数据和校验信息
+- **When** 缺少任一必需部分、checksum 不匹配、版本不兼容或目标非空
+- **Then** restore 在写入目标前 fail closed，不覆盖现有环境，不报告恢复完成
+
+### Scenario 6：中途失败不破坏原环境
+
+- **Given** restore 使用 staging 路径
+- **When** DB、Git 解包、校验或对账任一阶段失败
+- **Then** 返回非零并清理 staging，原目标保持不变
 
 ## 工程要求
 
 - Compose/K8s 显式配置 `GIT_STORAGE__BASE_PATH` 和持久 Volume。
 - 备份同时覆盖 PostgreSQL、Git Repo 目录和必要版本/配置元数据。
-- 定义备份一致性策略：维护窗口、快照或可重放的 reconcile 方案。
+- 定义备份一致性策略：维护窗口、快照或经过证明的其他边界；不得默认认为顺序 `pg_dump` + `tar` 天然一致。
 - 提供 restore 脚本或明确 SOP，并执行空环境恢复演练。
 - 增加 Repo/DB 对账工具或至少可重复的盘点命令。
 - 增加磁盘容量、inode、备份失败和恢复失败告警基线。
-- Readiness 检查 Git 路径存在、可读写和必要的最小安全条件；失败返回 503。
-- 所有脚本使用明确退出码，失败不继续覆盖，敏感信息不进入归档或日志。
+- Readiness 检查 Git 路径存在、为目录、可读写和必要目录可创建；失败返回 503。
+- 所有脚本使用明确退出码，失败不继续覆盖，敏感信息不进入归档或普通日志。
 - 修改脚本时同步 `SCRIPTS-RELEASE-NOTES.md`。
 - 涉及 SQLite/PostgreSQL 行为时明确双轨影响；本 Story 不以只验证 PostgreSQL 配置替代 Lite 路径回归。
 
-## 启动步骤
-
-新会话只能按以下顺序开始：
-
-1. 重新读取 GitHub 当前 `main` SHA、开放 PR、相关分支和 Actions 状态，不复用本文件中的历史 SHA 作为事实。
-2. 盘点所有非终态 Iteration，并为 018/019/020/025/026/027 记录继续阻塞/替代的 disposition。
-3. 只读审查当前生产 Compose、Dockerfile、Git Storage 配置、readiness、backup/restore 脚本和 Release SOP。
-4. 搜索是否已有重叠 PR、分支、Issue 或脚本实现；发现重叠先归并，不重复实现。
-5. 创建 `docs/iterations/ITERATION-053.md` Planned 基线，写清威胁模型、BDD、验证矩阵、风险、回滚和闭环台账。
-6. 在同一治理批次原子同步：EVO-118-D → `In Progress`、Iteration 053 → `Active`、Epic/Backlog/Board/docs/index → 当前执行状态。
-7. 治理激活提交存在后，才开始实现；默认创建 `agent/evo-118-d-git-durability-recovery` 分支和 Draft PR。
-
 ## 推荐实施切片
-
-单个 Story 内按可验证顺序推进，不把所有脚本和部署一次性堆叠：
 
 1. **事实基线与失败测试**：证明容器重建丢 Git、backup 缺 Git、readiness 不识别不可用路径。
 2. **持久卷和配置收敛**：生产 Compose/K8s 路径与 Volume 显式一致。
@@ -114,34 +116,42 @@
 
 ## 不做事项
 
-- 不在本 Story 实现多地域复制、Git LFS 或对象存储后端。
+- 不在本 Story 实现多地域复制、Git LFS、对象存储后端或多副本共享存储架构。
 - 不宣称本地持久卷自动支持多实例；多实例仍需共享存储或 Repo affinity 设计。
 - Repo 创建/删除业务状态机归 EVO-118-F。
 - 不在本 Story 全面处理 Embedded Frontend 构建收敛；归 EVO-118-E。
 - 不把所有 readiness、限流、SMTP/Redis fail-closed 合并进来；归 EVO-118-G。
-- 不提前恢复 Repo UI 或 Agent 写入主线。
+- 不提前实施 EVO-112-B 或 Agent 写入；已合并的 EVO-112-A Repo UI Shell 必须保留。
 
 ## 最小验证
 
 - `docker compose ... up` → push Commit/Branch/Tag → 重建 backend → clone/refs 校验。
-- DB+Git 备份 → 清空环境 → restore → 登录/list/clone/Commit/Tag 校验。
-- Git 路径缺失、只读、权限不足、空间/inode 模拟故障测试。
+- DB+Git 备份 → 清空隔离环境 → restore → 登录/list/clone/Commit/Branch/Tag/SHA 校验。
+- Git 路径缺失、只读、权限不足和必要目录创建失败的故障测试。
 - readiness 故障 503、恢复后 200。
-- DB-only、Git-only、校验失败和不完整归档的 restore 拒绝测试。
-- backup/restore/对账脚本非零退出码和无假成功断言。
+- DB-only、Git-only、损坏归档、checksum/version 失败和非空目标的 restore 拒绝测试。
+- backup/restore/inventory 非零退出码和无假成功断言。
 - Frontend required gate、Rust fmt/check/clippy/workspace tests、生产 Compose clean build（按实际改动范围）。
-- 文档链接、脚本 release notes 和生产配置一致性检查。
+- Markdown 链接、`git diff --check`、exact-head CI 与 Navigator 独立复验。
+- 最新 `main` 上 Repo UI type-check/build 不回归。
 
-## 闭环台账模板
+## 闭环台账
 
 | 项目 | 本轮记录 |
 |------|----------|
 | 请求结果 | 关闭 DATA-01，使 Git 目录、数据库元数据和备份恢复成为可验证的联合耐久性边界 |
 | 产物 | 持久卷/配置、readiness、backup/restore、对账、故障测试、恢复证据、SOP/Release Notes |
 | 状态同步归口 | EVO-118-D、Iteration 053、EVO-118 Epic、Product Backlog、Board、Baseline、Config/Release SOP/Scripts Release Notes |
-| 验证证据 | 容器重建、空环境恢复、Commit/Branch/Tag、DB/Git 对账、只读/缺失/空间故障、required CI 与 Navigator 结论 |
+| 验证证据 | 容器重建、空环境恢复、Commit/Branch/Tag、DB/Git 对账、只读/缺失故障、required CI 与 Navigator 结论 |
 | 残余工作归口 | Repo lifecycle → EVO-118-F；部署构建 → EVO-118-E；综合 runtime gates → EVO-118-G；多实例共享存储另行评估 |
+
+## 当前执行状态
+
+- Iteration 053：Active。
+- Driver：实施与主线重同步中。
+- PR #7：Draft；基线同步、实现、验证和 Navigator 门禁完成前不得转为 Ready。
+- DATA-01：Open；不得因分支、提交、旧 Head CI 或主线 UI 合并单独关闭。
 
 ## 解锁内容
 
-解除 DATA-01 Gate；允许 Evolith 进入外部 Alpha 的数据耐久性评估，并为 Repo 生命周期一致性提供持久存储基础。
+完成全部验收并经 Navigator/CI/恢复演练关闭后，解除 DATA-01 Gate；允许 Evolith 进入外部 Alpha 的数据耐久性评估，并为 Repo 生命周期一致性提供持久存储基础。
