@@ -33,14 +33,15 @@ COPY --from=builder /app/target/release/evolith /app/evolith
 COPY migrations/sqlite ./migrations/sqlite
 COPY migrations/postgres ./migrations/postgres
 
-RUN useradd -r -s /bin/false evolith && \
-    chown -R evolith:evolith /app
+RUN useradd --uid 1000 --create-home --shell /usr/sbin/nologin evolith && \
+    mkdir -p /var/lib/evolith/git && \
+    chown -R evolith:evolith /app /var/lib/evolith
 
 USER evolith
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -sf http://localhost:8080/health || exit 1
+    CMD curl -sf http://localhost:8080/health/ready || exit 1
 
 CMD ["./evolith"]
