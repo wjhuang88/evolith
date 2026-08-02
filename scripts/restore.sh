@@ -68,7 +68,7 @@ manifest_value() {
 [[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
 [[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
 
-for command_name in psql gzip tar git find grep awk sort uniq mktemp; do
+for command_name in psql gzip tar git find grep awk sort uniq cmp mktemp; do
     require_command "$command_name"
 done
 
@@ -215,14 +215,25 @@ while IFS= read -r -d '' entry; do
     fi
 done < <(find "$staged_git" -mindepth 1 -maxdepth 2 -print0)
 
+staged_refs_unsorted="$stage_dir/staged-refs.unsorted.tsv"
+staged_refs="$stage_dir/staged-refs.tsv"
+expected_refs_sorted="$stage_dir/expected-refs.tsv"
+: >"$staged_refs_unsorted"
+
 while IFS= read -r -d '' repo_path; do
     relative_path="${repo_path#"$staged_git"/}"
     [[ "$(git --git-dir="$repo_path" rev-parse --is-bare-repository 2>/dev/null || true)" == "true" ]] || \
         fail "invalid bare repository in backup: $relative_path"
     git --git-dir="$repo_path" fsck --full >/dev/null || fail "git fsck failed in backup: $relative_path"
+    while read -r sha ref_name; do
+        [[ -n "${sha:-}" && -n "${ref_name:-}" ]] || continue
+        printf '%s\t%s\t%s\n' "$relative_path" "$sha" "$ref_name" >>"$staged_refs_unsorted"
+    done < <(git --git-dir="$repo_path" show-ref)
 done < <(find "$staged_git" -mindepth 2 -maxdepth 2 -type d -name '*.git' -print0)
+LC_ALL=C sort "$staged_refs_unsorted" >"$staged_refs"
+LC_ALL=C sort "$package_dir/git-refs.tsv" >"$expected_refs_sorted"
 
-if [[ -n "$(LC_ALL=C sort "$package_dir/git-refs.tsv" | uniq -d)" ]]; then
+if [[ -n "$(uniq -d "$expected_refs_sorted")" ]]; then
     fail "ref inventory contains duplicate entries"
 fi
 while IFS=$'\t' read -r storage_path expected_sha ref_name extra; do
@@ -239,6 +250,10 @@ while IFS=$'\t' read -r storage_path expected_sha ref_name extra; do
     [[ "$actual_sha" == "$expected_sha" ]] || fail \
         "backup ref mismatch for $storage_path $ref_name: expected $expected_sha, got ${actual_sha:-missing}"
 done <"$package_dir/git-refs.tsv"
+
+if ! cmp -s "$staged_refs" "$expected_refs_sorted"; then
+    fail "Git archive refs do not exactly match git-refs.tsv"
+fi
 
 target_object_count="$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -c \
     "SELECT
