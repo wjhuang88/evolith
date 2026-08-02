@@ -79,7 +79,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-created_at="$(date -u +'%Y-%m-%dT%H%M%SZ')"
+created_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
 archive_path="$BACKUP_DIR/evolith-backup-${timestamp}-$$.tar.gz"
 staged_archive="$stage_dir/evolith-backup.tar.gz"
