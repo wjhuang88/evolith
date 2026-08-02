@@ -7,7 +7,8 @@
 #
 # PR scope: frontend install/type-check/build + backend fmt/check/clippy/workspace tests
 # + DATA-01 joint PostgreSQL/Git backup-restore, application recovery and container-volume matrices.
-# Release/manual scope additionally keeps the historical frontend lint and PostgreSQL test steps.
+# Release/manual scope additionally keeps the historical frontend lint, PostgreSQL tests and
+# production Compose clean-build/startup diagnostics owned by DEPLOY-01.
 # Frontend builds first (single job, shared filesystem) so backend tests can
 # link against the embedded frontend/dist/ via rust-embed-for-web.
 #
@@ -185,8 +186,9 @@ jobs:
           DATABASE__URL: "postgres://evolith:evolith@localhost:5432/evolith_test"
         run: cargo test --workspace
 
-      - name: Production Compose clean build diagnostic
+      - name: Production Compose clean build diagnostic (release/manual)
         id: production_build
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         env:
           POSTGRES_PASSWORD: ci-postgres-password
@@ -194,9 +196,9 @@ jobs:
           JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
         run: docker compose -f docker-compose.prod.yml build --no-cache
 
-      - name: Production Compose startup diagnostic
+      - name: Production Compose startup diagnostic (release/manual)
         id: production_up
-        if: steps.production_build.outcome == 'success'
+        if: github.event_name != 'pull_request' && steps.production_build.outcome == 'success'
         continue-on-error: true
         env:
           POSTGRES_PASSWORD: ci-postgres-password
@@ -214,8 +216,8 @@ jobs:
           docker compose -f docker-compose.prod.yml ps
           exit 1
 
-      - name: Record production Compose diagnostic
-        if: always()
+      - name: Record production Compose diagnostic (release/manual)
+        if: always() && github.event_name != 'pull_request'
         env:
           BUILD_OUTCOME: ${{ steps.production_build.outcome }}
           STARTUP_OUTCOME: ${{ steps.production_up.outcome }}
@@ -226,8 +228,8 @@ jobs:
             printf 'Known DEPLOY-01 remains open; this diagnostic is not a DATA-01 success substitute.\n'
           fi
 
-      - name: Stop production Compose diagnostic
-        if: always()
+      - name: Stop production Compose diagnostic (release/manual)
+        if: always() && github.event_name != 'pull_request'
         env:
           POSTGRES_PASSWORD: ci-postgres-password
           REDIS_PASSWORD: ci-redis-password
