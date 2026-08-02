@@ -7,10 +7,10 @@
 
 ### EVO-118-D — PostgreSQL + Git 联合备份、恢复与盘点
 
-- **`scripts/backup.sh`**：由 PostgreSQL-only `pg_dump` 替换为 DATA-01 联合备份入口。现在强制要求 `EVOLITH_BACKUP_QUIESCED=true`、`DATABASE_URL` 和 `GIT_STORAGE_PATH`；备份前执行 DB/Git inventory 和 `git fsck`，同时归档 PostgreSQL dump、全部 Git objects/refs、refs 快照、版本化 manifest 与 SHA-256 清单。特殊文件在归档前被拒绝，生成后的内层 Git 归档与最终归档还会复用 restore 的路径/条目类型约束进行自校验，避免先报告备份成功、恢复时才发现归档不可接受。任一子命令或自校验失败时非零退出；完整归档先在 staging 中校验，再原子移动到输出目录，不留下可误用的半成品。
-- **`scripts/restore.sh`**：新增安全恢复入口。恢复前验证归档路径、条目类型、精确必需文件、严格七项 manifest schema、格式/应用版本、UTC 创建时间、Git Storage layout、四个唯一 checksum、Git 目录布局、symlink、bare repository、`git fsck` 与 Commit/Branch/Tag refs；默认拒绝非空 PostgreSQL 或 Git 目标。PostgreSQL dump 使用单事务恢复，Git 内容在隔离 staging 中预验证；任何 SQL、安装或 inventory 后段失败都会尝试把此前为空的目标恢复为空并非零退出，自动回滚不完整时输出 CRITICAL 运维提示，不报告部分成功。
+- **`scripts/backup.sh`**：由 PostgreSQL-only `pg_dump` 替换为 DATA-01 联合备份入口。现在强制要求 `EVOLITH_BACKUP_QUIESCED=true`、`DATABASE_URL`、`GIT_STORAGE_PATH` 和可追溯的 `EVOLITH_APP_VERSION`；备份前执行 DB/Git inventory 和 `git fsck`，同时归档 PostgreSQL dump、全部 Git objects/refs、refs 快照、版本化 manifest 与 SHA-256 清单。特殊文件在归档前被拒绝，生成后的内层 Git 归档与最终归档还会复用 restore 的路径/条目类型约束进行自校验，避免先报告备份成功、恢复时才发现归档不可接受。任一子命令或自校验失败时非零退出；完整归档先在 staging 中校验，再原子移动到输出目录，不留下可误用的半成品。
+- **`scripts/restore.sh`**：新增安全恢复入口。恢复前验证归档路径、条目类型、精确必需文件、严格七项 manifest schema、格式/应用版本、UTC 创建时间、Git Storage layout、四个唯一 checksum、Git 目录布局、symlink、bare repository、`git fsck` 与 Commit/Branch/Tag refs 精确集合；默认拒绝非空 PostgreSQL 或 Git 目标。PostgreSQL dump 使用单事务恢复，Git 内容在隔离 staging 中预验证；任何 SQL、安装或 inventory 后段失败都会尝试把此前为空的目标恢复为空并非零退出，自动回滚不完整时输出 CRITICAL 运维提示，不报告部分成功。
 - **`scripts/git-storage-inventory.sh`**：新增 DB/Git 对账入口。识别 DB-only、disk-only、重复/异常 storage path、意外或孤儿目录、symlink、无效 bare repository、`git fsck` 失败、默认 Branch/last Commit/指定 refs 缺失；发现任一不一致即非零退出。
-- **`scripts/tests/durability.sh`**：新增真实 PostgreSQL + Git 故障矩阵。创建多 Commit、额外 Branch 与 Tag，验证联合 backup、空目标 restore、目标 SHA/refs、DB/Git inventory、非空目标拒绝、DB-only/Git-only/损坏/checksum/version/重复 checksum 拒绝、缺失或错误 manifest layout/时间拒绝、恶意 symlink/非法布局拒绝、Git Storage FIFO 导致 backup fail closed、SQL 中途失败单事务回滚为空，以及 restore 后段 inventory 失败回滚为空。版本不兼容测试会重写 checksum，确保实际命中 version gate，而不是被 checksum gate 提前截获。
+- **`scripts/tests/durability.sh`**：新增真实 PostgreSQL + Git 故障矩阵。创建多 Commit、额外 Branch 与 Tag，验证联合 backup、空目标 restore、目标 SHA/refs、DB/Git inventory、非空目标拒绝、DB-only/Git-only/损坏/checksum/version/重复 checksum 拒绝、缺失或错误 manifest layout/时间拒绝、Git refs 快照缺项拒绝、恶意 symlink/非法布局拒绝、缺少应用版本或 Git Storage FIFO 导致 backup fail closed、SQL 中途失败单事务回滚为空，以及 restore 后段 inventory 失败回滚为空。版本不兼容测试会重写 checksum，确保实际命中 version gate，而不是被 checksum gate 提前截获。
 - **`scripts/tests/container-volume-persistence.sh`**：新增 Docker named Volume 重建证据。第一个容器创建并 push Commit/Branch/Tag，容器退出后由第二个容器挂载同一 Volume，执行 `git fsck`、refs/SHA 校验和真实 clone。
 - **`scripts/tests/application-recovery-drill.sh`**：新增应用级空环境恢复演练。启动真实 PostgreSQL Backend，注册用户/租户、创建 Repo、通过 Smart HTTP push 多 Commit/Branch/Tag；联合备份后恢复到新 DB 与新 Git 目录，重新登录、列 Repo、clone/refs/SHA 校验，注入只读 readiness 503，恢复后重启 Backend 再次 clone。
 - **`scripts/tests/check-markdown-links.py`**：新增仓库内 Markdown 本地链接门禁。
@@ -21,7 +21,7 @@
 
 ### 运维兼容性与注意事项
 
-- 旧用法 `DATABASE_URL=... ./scripts/backup.sh` 不再成功；必须同时提供 Git Storage 并真实进入停写维护窗口。
+- 旧用法 `DATABASE_URL=... ./scripts/backup.sh` 不再成功；必须同时提供 Git Storage、可追溯应用版本并真实进入停写维护窗口。
 - `EVOLITH_BACKUP_QUIESCED=true` / `EVOLITH_RESTORE_QUIESCED=true` 是操作确认，不会自动暂停应用、后台任务或 Git push。
 - 联合 restore 只支持 PostgreSQL 生产路径；SQLite 开发路径不使用这些脚本，继续由 Rust workspace tests 回归。
 - SHA-256 用于损坏检测，不提供归档签名或来源认证；备份介质仍需加密、访问控制和离线/不可变副本。
