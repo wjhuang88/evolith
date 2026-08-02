@@ -8,7 +8,7 @@
 
 | Iteration | 状态 | 目标/处置 |
 |-----------|------|-----------|
-| [Iteration 053 / Draft PR #7](https://github.com/wjhuang88/evolith/pull/7) | Active on owner branch | EVO-118-D / DATA-01；当前运行时代码 WIP，本恢复分支不修改其实现或计划基线 |
+| [Iteration 053](ITERATION-053.md) / [Draft PR #7](https://github.com/wjhuang88/evolith/pull/7) | Active / Awaiting independent Navigator | EVO-118-D / DATA-01；Driver 实现与实现 Head exact-head CI 已完成；治理/证据提交后的最新 Head 仍需 required CI，随后按 [Navigator Review Packet](../review/EVO-118-D-navigator-review.md) 独立复验 |
 | [Iteration 018](ITERATION-018.md) | Blocked for activation / Superseded direction | 旧 Skill 导入计划，被 Git-centric EVO-100/108 替代 |
 | [Iteration 019](ITERATION-019.md) | Blocked for activation / Superseded direction | 旧 Skill 多来源计划，不 deliberate replan 则不激活 |
 | [Iteration 020](ITERATION-020.md) | Blocked for activation / Superseded direction | 旧 Skill 版本计划，被 Git 原生历史与 Indexer 替代 |
@@ -22,8 +22,10 @@
 - Iteration 051 已 Closed / Complete；PR #3 已合并并解除 SEC-01。
 - Iteration 052 已 Closed / Complete；Navigator accepted runtime security，CI #125 全绿，稳定权限/API 契约及治理关闭完成，SEC-02 已解除。
 - Iteration 054 已 Closed / Complete；恢复 2026-06-29 的 EVO-112-A 本地历史成果，保留主线 Iteration 050 与 PR #7 的 Iteration 053，不改变 EVO-118 S1 顺序。
-- Iteration 053 已在 Draft PR #7 的 owner branch 激活；EVO-118-D 是当前 `In Progress` Story，DATA-01 仍开放。
-- EVO-118-E 保持 Ready，但不得与 Iteration 053 并行实施；Iteration 054 只是已完成本地成果的恢复，不占用运行时 WIP。
+- Iteration 053 已在 Draft PR #7 的 owner branch 激活；EVO-118-D 是当前 `In Progress / Awaiting independent Navigator` Story，DATA-01 仍开放。
+- 实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612` 与 `data-durability-container` run `30736864631` 已全绿；后续治理/证据提交改变 Head，最终接受必须使用最新 exact-head CI。
+- 独立审核入口为 [EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)；Driver 或 CI 不得替代 Navigator 最终结论。
+- EVO-118-E 保持 Ready / Not Started，不得与 Iteration 053 并行实施；Iteration 054 只是已完成本地成果的恢复，不占用运行时 WIP。
 - 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 - 安全、数据损坏或生产构建 P0 可显式插队；普通产品工作不得绕过 EVO-118 S1。
 
@@ -95,7 +97,7 @@
 | 050 | [项目体检治理与生产就绪重排](ITERATION-050.md) |
 | 051 | [API Key 与 MCP 授权边界硬化](ITERATION-051.md) |
 | 052 | [HTTP Tool 出站安全与 SSRF 防护](ITERATION-052.md)（Closed / Complete） |
-| 053 | [EVO-118-D Git Durability and Recovery（Draft PR #7 owner）](https://github.com/wjhuang88/evolith/pull/7)；合并前以 PR owner doc 为准 |
+| 053 | [EVO-118-D Git Durability and Recovery](ITERATION-053.md)（Active / Awaiting independent Navigator；[Draft PR #7](https://github.com/wjhuang88/evolith/pull/7)） |
 | 054 | [EVO-112-A Repo UI Shell 本地历史成果恢复](ITERATION-054.md)（Closed / Complete） |
 
 ## 计划基线保护
