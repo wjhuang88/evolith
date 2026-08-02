@@ -30,6 +30,28 @@ sha256_write() {
     fi
 }
 
+validate_tar_listing() {
+    local tar_file="$1"
+    local entry
+    local verbose_entry
+
+    tar -tzf "$tar_file" >/dev/null
+    while IFS= read -r entry; do
+        case "$entry" in
+            /*|../*|*/../*|*/..)
+                fail "archive contains unsafe path: $entry"
+                ;;
+        esac
+    done < <(tar -tzf "$tar_file")
+
+    while IFS= read -r verbose_entry; do
+        case "${verbose_entry:0:1}" in
+            -|d) ;;
+            *) fail "archive contains a link or special file entry: $tar_file" ;;
+        esac
+    done < <(tar -tvzf "$tar_file")
+}
+
 [[ "${EVOLITH_BACKUP_QUIESCED:-false}" == "true" ]] || fail \
     "EVOLITH_BACKUP_QUIESCED=true is required; sequential pg_dump and Git archiving are not an online consistency guarantee"
 [[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
@@ -65,6 +87,11 @@ log "checking DB/Git inventory before snapshot"
 DATABASE_URL="$DATABASE_URL" GIT_STORAGE_PATH="$GIT_STORAGE_PATH" \
     "$script_dir/git-storage-inventory.sh"
 
+special_entry="$(find "$GIT_STORAGE_PATH" -mindepth 1 \
+    ! -type d ! -type f ! -type l -print -quit)"
+[[ -z "$special_entry" ]] || fail \
+    "Git storage contains an unsupported special file: ${special_entry#"$GIT_STORAGE_PATH"/}"
+
 log "capturing and validating Git refs"
 while IFS= read -r -d '' repo_path; do
     relative_path="${repo_path#"$GIT_STORAGE_PATH"/}"
@@ -86,7 +113,7 @@ gzip -t "$stage_dir/database.sql.gz"
 
 log "archiving Git storage"
 tar -C "$GIT_STORAGE_PATH" -czf "$stage_dir/git-storage.tar.gz" .
-tar -tzf "$stage_dir/git-storage.tar.gz" >/dev/null
+validate_tar_listing "$stage_dir/git-storage.tar.gz"
 
 safe_app_version="${EVOLITH_APP_VERSION//$'\n'/}"
 safe_app_version="${safe_app_version//$'\r'/}"
@@ -107,7 +134,7 @@ EOF
 
 tar -C "$stage_dir" -czf "$staged_archive" \
     database.sql.gz git-storage.tar.gz git-refs.tsv manifest.env SHA256SUMS
-tar -tzf "$staged_archive" >/dev/null
+validate_tar_listing "$staged_archive"
 chmod 600 "$staged_archive"
 mv "$staged_archive" "$archive_path"
 
