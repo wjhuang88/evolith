@@ -1,6 +1,6 @@
 # Iteration 053 — Git Storage Durability and Recovery
 
-- **状态**：Active
+- **状态**：Active / Awaiting independent Navigator
 - **计划基线**：Planned baseline established on 2026-08-02 before runtime/deploy/script implementation
 - **目标 Story**：[EVO-118-D](../backlog/active/EVO-118-D-git-storage-durability-and-recovery.md)
 - **父 Epic**：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)
@@ -8,6 +8,7 @@
 - **实施分支**：`agent/evo-118-d-git-durability-recovery`
 - **Driver**：GPT-5.6 Thinking
 - **Navigator**：独立复验，结论不得由 Driver 或 CI 代替
+- **审核入口**：[EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)
 
 ## 1. 迭代目标与用户价值
 
@@ -143,9 +144,9 @@
 | 项目 | 本轮记录 |
 |------|----------|
 | 请求结果 | 关闭 DATA-01，形成可验证的 PostgreSQL + Git 联合耐久性、备份与恢复边界 |
-| 产物 | 持久卷/配置、readiness、backup/restore/inventory、故障测试、空环境演练证据、运营与稳定文档 |
+| 产物 | 持久卷/配置、readiness、backup/restore/inventory、故障测试、空环境演练证据、运营与稳定文档、Navigator review packet |
 | 状态同步归口 | EVO-118-D、Iteration 053、EVO-118 Epic、Product Backlog、Board、docs map、Iteration index、Production Readiness Baseline |
-| 验证证据 | frontend required gates；Rust fmt/check/clippy/tests；Compose clean build/up；重建持久性；联合恢复；故障注入；Markdown links；diff check；exact-head CI；Navigator |
+| 验证证据 | frontend required gates；Rust fmt/check/clippy/tests；Compose clean build；重建持久性；联合恢复；故障注入；Markdown links；diff check；exact-head CI；独立 Navigator |
 | 残余工作归口 | lifecycle→EVO-118-F；build→EVO-118-E；综合 runtime gates→EVO-118-G；多实例共享存储另行评估 |
 
 ## 12. 第一条执行记录
@@ -159,9 +160,31 @@
 - 2026-08-02：后续旧 Head CI #143 已通过 fmt/check/clippy，并进入 SQLite workspace tests；这些事实仅证明切片可执行，不是新主线 exact-head 证据。
 - 2026-08-02：`main` 随 PR #8 / #9 推进至 `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`，新增 EVO-112-A Repo UI Shell 与 Iteration 054 Closed / Complete 事实。PR #7 漂移前 Head `608ad6acd20229498898eaf16afaff6ec8a79878` 落后 4 个提交且不可合并。
 - 2026-08-02：执行基线同步 disposition：从最新 `main` 建立临时迁移分支，保留 Repo UI/Iteration 054，迁移 DATA-01 授权改动；旧 Head CI、恢复演练与 mergeability 全部降级为定位线索，必须在新 Head 重跑。
+- 2026-08-02：真实空环境恢复演练发现 PostgreSQL migration 005 将文本 `plan-free` 等 ID 声明为 UUID；提交 `994f192fc4cad92cc7e2e5c10bd7566722826cfd` 将 PostgreSQL plan ID 与 SQLite/API 文本契约对齐。
+- 2026-08-02：增加真实 Backend 容器删除/重建演练及独立 workflow；容器共享同一 PostgreSQL 与命名 Git volume，验证 register/create/push、删除首容器、第二容器 login/list/clone/Branch/Tag/SHA。
+- 2026-08-02：exact-head 失败定位出两个演练缺陷：状态变更请求未满足 CSRF 双提交协议；Ubuntu 24.04 基础镜像 UID 1000 冲突。最终修复使用 cookie jar + `X-CSRF-Token`，并采用 UID/GID 10001。
+- 2026-08-02：实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612` / #157 成功；frontend install/type-check/build、脚本语法、Compose mapping、联合备份恢复矩阵、通用 volume recreation、fmt/check/clippy、SQLite workspace tests、应用级恢复演练与 clean-build diagnostic 均通过。
+- 2026-08-02：同一实现 Head 的 `data-durability-container` run `30736864631` / #3 成功，真实 Backend 容器删除/重建演练通过。
+- 2026-08-02：提交 [Navigator Review Packet](../review/EVO-118-D-navigator-review.md)，明确当前 Driver 不得代替独立 Navigator；该文档及后续治理提交改变 Head，因此最终 Head 必须重新跑 required CI。
+- 2026-08-02：Owner Story 已更新为 `In Progress / Awaiting independent Navigator`；DATA-01 保持 Open，EVO-118-E 保持 Ready 且未启动。
 
 后续只追加实际执行事实、commit/head、命令结果、故障注入、Navigator 结论和偏差；不得改写以上 Planned 基线。
 
 ## 14. Review / Retrospective
 
-尚未进入 Review。最终只能记录 `Complete`、`Partial` 或 `Blocked`，且 PR 合并不自动等于 DATA-01 或 Iteration 关闭。
+### Driver review
+
+- 实现切片、负向矩阵、真实 Git Smart HTTP 行为、容器重建、空环境恢复和 exact-head CI 已完成。
+- Driver 发现并修复 fresh PostgreSQL migration、CSRF 演练和 runtime-image UID 三类缺陷。
+- 当前没有已知未修复的 DATA-01 blocking defect；该陈述只是 Driver 状态，不是独立接受结论。
+
+### Independent Navigator
+
+- 状态：Pending。
+- 审核目标：最新 PR Head，而不是实现 Head `83351a2` 或任一旧 Head。
+- 审核入口：[EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)。
+- 必须独立检查数据损坏、部分恢复、假成功、路径/归档安全、凭证泄露、readiness、真实容器重建和范围边界。
+- Navigator 发现 blocking finding 时，本 Iteration 继续 Active，PR 保持 Draft，修复后重跑 exact-head CI。
+- Navigator 无 blocking finding 且最新 exact-head CI 全绿后，才允许进入 Ready/merge 流程；合并后仍需独立治理 closeout。
+
+最终只能记录 `Complete`、`Partial` 或 `Blocked`。当前尚未形成最终结论，PR 合并也不自动等于 DATA-01 或 Iteration 关闭。
