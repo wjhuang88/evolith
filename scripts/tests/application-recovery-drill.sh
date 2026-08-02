@@ -19,6 +19,7 @@ target_git="$work_dir/target-git"
 backup_dir="$work_dir/backups"
 source_log="$work_dir/source-backend.log"
 target_log="$work_dir/target-backend.log"
+source_cookie_jar="$work_dir/source-cookies.txt"
 backend_pid=""
 email="durability-${run_id}@example.invalid"
 username="durability${run_id}"
@@ -133,6 +134,11 @@ print(payload["data"]["id"])
 PY
 }
 
+csrf_token_from_cookie_jar() {
+    local cookie_jar="$1"
+    awk -F '\t' '$6 == "csrf_token" { token = $7 } END { if (token == "") exit 1; print token }' "$cookie_jar"
+}
+
 assert_repo_list() {
     local file="$1"
     local expected_repo_id="$2"
@@ -150,7 +156,7 @@ if not any(repo.get("id") == sys.argv[2] and repo.get("name") == "durability" fo
 PY
 }
 
-for command_name in curl python3 psql createdb dropdb git gzip tar; do
+for command_name in awk curl python3 psql createdb dropdb git gzip tar; do
     command -v "$command_name" >/dev/null 2>&1 || fail "required command not found: $command_name"
 done
 [[ -x "$repo_root/$EVOLITH_BINARY" ]] || fail "Evolith binary not found or not executable: $EVOLITH_BINARY"
@@ -164,16 +170,21 @@ start_backend "$source_url" "$source_git" "$SOURCE_PORT" "$source_log"
 
 register_json="$work_dir/register.json"
 curl --silent --show-error --fail-with-body \
+    --cookie-jar "$source_cookie_jar" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"username\":\"$username\",\"password\":\"$password\"}" \
     "http://127.0.0.1:${SOURCE_PORT}/api/v1/auth/register" >"$register_json"
 read -r source_token tenant_id < <(json_auth_fields "$register_json")
 [[ -n "$source_token" && -n "$tenant_id" ]] || fail "register response did not contain auth data"
+source_csrf_token="$(csrf_token_from_cookie_jar "$source_cookie_jar")"
+[[ -n "$source_csrf_token" ]] || fail "register response did not set a CSRF cookie"
 
 create_json="$work_dir/create-repo.json"
 curl --silent --show-error --fail-with-body \
+    --cookie "$source_cookie_jar" \
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $source_token" \
+    -H "X-CSRF-Token: $source_csrf_token" \
     -d '{"name":"durability","description":"DATA-01 recovery drill","seed_template":false}' \
     "http://127.0.0.1:${SOURCE_PORT}/api/v1/tenant/${tenant_id}/repos" >"$create_json"
 repo_id="$(json_repo_id "$create_json")"
