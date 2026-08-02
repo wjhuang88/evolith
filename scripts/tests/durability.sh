@@ -268,6 +268,13 @@ if EVOLITH_BACKUP_QUIESCED=true DATABASE_URL="$source_url" GIT_STORAGE_PATH="$so
     fail "backup unexpectedly succeeded without EVOLITH_APP_VERSION"
 fi
 
+log "proving backup rejects an application version that is empty after sanitization"
+if EVOLITH_BACKUP_QUIESCED=true DATABASE_URL="$source_url" GIT_STORAGE_PATH="$source_git" \
+    BACKUP_DIR="$backup_dir" EVOLITH_APP_VERSION=$'\n\r' \
+    "$repo_root/scripts/backup.sh" >/dev/null 2>&1; then
+    fail "backup unexpectedly accepted a line-break-only EVOLITH_APP_VERSION"
+fi
+
 log "proving backup rejects unsupported special files instead of producing an unrestorable archive"
 unsafe_fifo="$source_git/$storage_path/unsafe-fifo"
 mkfifo "$unsafe_fifo"
