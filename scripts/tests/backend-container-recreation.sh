@@ -16,6 +16,7 @@ container=""
 email="container-${run_id}@example.invalid"
 username="container${run_id}"
 password="TestPassword123!"
+cookie_jar="$work_dir/source-cookies.txt"
 
 log() { printf '[backend-container] %s\n' "$*"; }
 fail() {
@@ -79,6 +80,9 @@ assert p.get('success') and p.get('data'), p
 print(p['data']['id'])
 PY
 }
+csrf_token_from_cookie_jar() {
+    awk -F '\t' '$6 == "csrf_token" { token = $7 } END { if (token == "") exit 1; print token }' "$1"
+}
 assert_list() {
     python3 - "$1" "$2" <<'PY'
 import json, sys
@@ -88,7 +92,7 @@ assert any(r.get('id') == sys.argv[2] for r in p['data'].get('repos', [])), p
 PY
 }
 
-for cmd in curl python3 createdb dropdb git docker; do command -v "$cmd" >/dev/null || fail "missing command: $cmd"; done
+for cmd in awk curl python3 createdb dropdb git docker; do command -v "$cmd" >/dev/null || fail "missing command: $cmd"; done
 docker info >/dev/null 2>&1 || fail "Docker daemon unavailable"
 [[ -x "$repo_root/$EVOLITH_BINARY" ]] || fail "missing Evolith binary: $EVOLITH_BINARY"
 
@@ -100,8 +104,8 @@ FROM ubuntu:24.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl git libssl3 libsqlite3-0 passwd && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY evolith /app/evolith
-RUN useradd --uid 1000 --create-home --shell /usr/sbin/nologin evolith && mkdir -p /var/lib/evolith/git && chown -R evolith:evolith /app /var/lib/evolith
-USER 1000:1000
+RUN groupadd --gid 10001 evolith && useradd --uid 10001 --gid evolith --create-home --shell /usr/sbin/nologin evolith && mkdir -p /var/lib/evolith/git && chown -R evolith:evolith /app /var/lib/evolith
+USER 10001:10001
 ENTRYPOINT ["/app/evolith"]
 DOCKERFILE
 docker build -q -t "$image" "$work_dir/image" >/dev/null
@@ -110,11 +114,14 @@ createdb --maintenance-db="$POSTGRES_ADMIN_URL" "$db_name"
 
 log "starting first Evolith Backend container"
 start_container first
-curl -sfS -H 'Content-Type: application/json' \
+curl -sfS --cookie-jar "$cookie_jar" -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"username\":\"$username\",\"password\":\"$password\"}" \
     "http://127.0.0.1:${PORT}/api/v1/auth/register" >"$work_dir/register.json"
 read -r token tenant_id < <(auth_fields "$work_dir/register.json")
-curl -sfS -H 'Content-Type: application/json' -H "Authorization: Bearer $token" \
+csrf_token="$(csrf_token_from_cookie_jar "$cookie_jar")"
+[[ -n "$csrf_token" ]] || fail "register response did not set a CSRF cookie"
+curl -sfS --cookie "$cookie_jar" -H 'Content-Type: application/json' -H "Authorization: Bearer $token" \
+    -H "X-CSRF-Token: $csrf_token" \
     -d '{"name":"container-durability","seed_template":false}' \
     "http://127.0.0.1:${PORT}/api/v1/tenant/${tenant_id}/repos" >"$work_dir/create.json"
 repo_id="$(repo_id_from "$work_dir/create.json")"
