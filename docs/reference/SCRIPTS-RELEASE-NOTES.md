@@ -7,10 +7,10 @@
 
 ### EVO-118-D — PostgreSQL + Git 联合备份、恢复与盘点
 
-- **`scripts/backup.sh`**：由 PostgreSQL-only `pg_dump` 替换为 DATA-01 联合备份入口。现在强制要求 `EVOLITH_BACKUP_QUIESCED=true`、`DATABASE_URL` 和 `GIT_STORAGE_PATH`；备份前执行 DB/Git inventory 和 `git fsck`，同时归档 PostgreSQL dump、全部 Git objects/refs、refs 快照、版本化 manifest 与 SHA-256 清单。任一子命令失败时非零退出；完整归档先在 staging 中校验，再原子移动到输出目录，不留下可误用的半成品。
-- **`scripts/restore.sh`**：新增安全恢复入口。恢复前验证归档路径、条目类型、精确必需文件、manifest、格式/应用版本、四个唯一 checksum、Git 目录布局、symlink、bare repository、`git fsck` 与 Commit/Branch/Tag refs；默认拒绝非空 PostgreSQL 或 Git 目标。恢复在隔离 staging 中准备，写入后 inventory 失败时清空此前为空的目标并非零退出，不报告部分成功。
+- **`scripts/backup.sh`**：由 PostgreSQL-only `pg_dump` 替换为 DATA-01 联合备份入口。现在强制要求 `EVOLITH_BACKUP_QUIESCED=true`、`DATABASE_URL` 和 `GIT_STORAGE_PATH`；备份前执行 DB/Git inventory 和 `git fsck`，同时归档 PostgreSQL dump、全部 Git objects/refs、refs 快照、版本化 manifest 与 SHA-256 清单。特殊文件在归档前被拒绝，生成后的内层 Git 归档与最终归档还会复用 restore 的路径/条目类型约束进行自校验，避免先报告备份成功、恢复时才发现归档不可接受。任一子命令或自校验失败时非零退出；完整归档先在 staging 中校验，再原子移动到输出目录，不留下可误用的半成品。
+- **`scripts/restore.sh`**：新增安全恢复入口。恢复前验证归档路径、条目类型、精确必需文件、严格七项 manifest schema、格式/应用版本、UTC 创建时间、Git Storage layout、四个唯一 checksum、Git 目录布局、symlink、bare repository、`git fsck` 与 Commit/Branch/Tag refs；默认拒绝非空 PostgreSQL 或 Git 目标。PostgreSQL dump 使用单事务恢复，Git 内容在隔离 staging 中预验证；任何 SQL、安装或 inventory 后段失败都会尝试把此前为空的目标恢复为空并非零退出，自动回滚不完整时输出 CRITICAL 运维提示，不报告部分成功。
 - **`scripts/git-storage-inventory.sh`**：新增 DB/Git 对账入口。识别 DB-only、disk-only、重复/异常 storage path、意外或孤儿目录、symlink、无效 bare repository、`git fsck` 失败、默认 Branch/last Commit/指定 refs 缺失；发现任一不一致即非零退出。
-- **`scripts/tests/durability.sh`**：新增真实 PostgreSQL + Git 故障矩阵。创建多 Commit、额外 Branch 与 Tag，验证联合 backup、空目标 restore、目标 SHA/refs、DB/Git inventory、非空目标拒绝、DB-only/Git-only/损坏/checksum/version/重复 checksum 拒绝、恶意 symlink/非法布局拒绝，以及 restore 后段失败回滚为空。
+- **`scripts/tests/durability.sh`**：新增真实 PostgreSQL + Git 故障矩阵。创建多 Commit、额外 Branch 与 Tag，验证联合 backup、空目标 restore、目标 SHA/refs、DB/Git inventory、非空目标拒绝、DB-only/Git-only/损坏/checksum/version/重复 checksum 拒绝、缺失或错误 manifest layout/时间拒绝、恶意 symlink/非法布局拒绝、Git Storage FIFO 导致 backup fail closed、SQL 中途失败单事务回滚为空，以及 restore 后段 inventory 失败回滚为空。版本不兼容测试会重写 checksum，确保实际命中 version gate，而不是被 checksum gate 提前截获。
 - **`scripts/tests/container-volume-persistence.sh`**：新增 Docker named Volume 重建证据。第一个容器创建并 push Commit/Branch/Tag，容器退出后由第二个容器挂载同一 Volume，执行 `git fsck`、refs/SHA 校验和真实 clone。
 - **`scripts/tests/application-recovery-drill.sh`**：新增应用级空环境恢复演练。启动真实 PostgreSQL Backend，注册用户/租户、创建 Repo、通过 Smart HTTP push 多 Commit/Branch/Tag；联合备份后恢复到新 DB 与新 Git 目录，重新登录、列 Repo、clone/refs/SHA 校验，注入只读 readiness 503，恢复后重启 Backend 再次 clone。
 - **`scripts/tests/check-markdown-links.py`**：新增仓库内 Markdown 本地链接门禁。
@@ -26,13 +26,15 @@
 - 联合 restore 只支持 PostgreSQL 生产路径；SQLite 开发路径不使用这些脚本，继续由 Rust workspace tests 回归。
 - SHA-256 用于损坏检测，不提供归档签名或来源认证；备份介质仍需加密、访问控制和离线/不可变副本。
 - restore 默认只面向空目标。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
-- `GIT_STORAGE_PATH` 不得是 symlink；归档中出现 symlink、hardlink、特殊文件、异常层级或非 UUID 布局会被拒绝。
+- `GIT_STORAGE_PATH` 不得是 symlink；源 Git Storage 中的 FIFO/socket/device 等特殊文件会使 backup 失败，归档中出现 symlink、hardlink、特殊文件、异常层级或非 UUID 布局会被拒绝。
+- manifest v1 必须精确包含 `backup_format_version`、`application_version`、`created_at`、`consistency`、`database_format`、`git_format`、`git_storage_layout` 七项；缺失、重复、额外或不兼容值均 fail closed。
 - GitHub Contents API 创建的新脚本可能不携带 executable bit；CI 与文档统一使用 `bash scripts/...` 或 `python3 scripts/...` 调用，不依赖直接执行位。
 
 ### 验证状态
 
 - 旧基线 CI #142 曾通过 exact-head、Frontend install/type-check/build、Compose durability mapping、真实 PostgreSQL + Git 联合 backup/restore 和 Docker Volume 重建，仅在 Rust 格式检查失败；CI #143 随后通过 fmt/check/clippy。这些结果证明切片可执行，但不再是当前 `main` 的 exact-head 证据。
 - 2026-08-02 `main` 推进到 `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`，包含 PR #8 / #9 的 Repo UI 与 Iteration 054 收口。EVO-118-D 已在该基线上重建实现分支；联合恢复、应用级演练、Frontend/Rust 回归和 Navigator 必须全部在新的 PR #7 Head 重跑。
+- 实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612` 与 `data-durability-container` run `30736864631` 已全绿；后续 Driver 审计强化会改变 Head，因此最终接受仍以最新 exact-head required workflows 为准。
 - `docker compose build --no-cache` 与完整生产栈 smoke 仍受 EVO-118-E / DEPLOY-01 的 Embedded Frontend 构建收敛约束；EVO-118-D 只将其作为诊断，不通过改变前端交付形态规避该 Gate。
 
 ### 既有 Unreleased 记录
