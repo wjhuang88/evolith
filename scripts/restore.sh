@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 SUPPORTED_BACKUP_FORMAT_VERSION=1
+EXPECTED_GIT_STORAGE_LAYOUT=tenant-uuid/repo-uuid.git
 DATABASE_URL="${DATABASE_URL:-}"
 GIT_STORAGE_PATH="${GIT_STORAGE_PATH:-}"
 EXPECTED_APP_VERSION="${EVOLITH_RESTORE_EXPECTED_APP_VERSION:-}"
@@ -79,14 +80,22 @@ restore_started=false
 git_path_created=false
 
 reset_empty_target() {
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c \
-        'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
+    local cleanup_failed=false
+
+    if ! psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c \
+        'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1; then
+        cleanup_failed=true
+    fi
     if [[ -d "$GIT_STORAGE_PATH" && ! -L "$GIT_STORAGE_PATH" ]]; then
-        find "$GIT_STORAGE_PATH" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null || true
+        if ! find "$GIT_STORAGE_PATH" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null; then
+            cleanup_failed=true
+        fi
     fi
-    if [[ "$git_path_created" == "true" ]]; then
-        rmdir "$GIT_STORAGE_PATH" 2>/dev/null || true
+    if [[ "$git_path_created" == "true" ]] && ! rmdir "$GIT_STORAGE_PATH" 2>/dev/null; then
+        cleanup_failed=true
     fi
+
+    [[ "$cleanup_failed" == "false" ]]
 }
 
 cleanup() {
@@ -94,7 +103,9 @@ cleanup() {
     trap - EXIT INT TERM
     if (( status != 0 )) && [[ "$restore_started" == "true" ]]; then
         printf '[restore] restore failed; reverting the previously empty target\n' >&2
-        reset_empty_target
+        if ! reset_empty_target; then
+            printf '[restore] CRITICAL: automatic rollback was incomplete; keep the application stopped and inspect both targets\n' >&2
+        fi
     fi
     rm -rf "$stage_dir"
     exit "$status"
@@ -118,18 +129,30 @@ while IFS= read -r -d '' package_entry; do
     esac
 done < <(find "$package_dir" -mindepth 1 -maxdepth 1 -print0)
 
+manifest_line_count="$(awk 'END {print NR}' "$package_dir/manifest.env")"
+[[ "$manifest_line_count" == "7" ]] || fail "manifest must contain exactly seven entries"
+
 format_version="$(manifest_value backup_format_version "$package_dir/manifest.env")"
 [[ "$format_version" == "$SUPPORTED_BACKUP_FORMAT_VERSION" ]] || fail \
     "unsupported backup format version: $format_version"
+
+actual_app_version="$(manifest_value application_version "$package_dir/manifest.env")"
+[[ -n "$actual_app_version" ]] || fail "application_version must not be empty"
+
+created_at="$(manifest_value created_at "$package_dir/manifest.env")"
+[[ "$created_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || fail \
+    "invalid manifest created_at: $created_at"
+
 [[ "$(manifest_value consistency "$package_dir/manifest.env")" == "quiesced-maintenance-window" ]] || fail \
     "backup does not declare the required consistency boundary"
 [[ "$(manifest_value database_format "$package_dir/manifest.env")" == "postgresql-plain-sql-gzip" ]] || fail \
     "unsupported database backup format"
 [[ "$(manifest_value git_format "$package_dir/manifest.env")" == "tar-gzip" ]] || fail \
     "unsupported Git backup format"
+[[ "$(manifest_value git_storage_layout "$package_dir/manifest.env")" == "$EXPECTED_GIT_STORAGE_LAYOUT" ]] || fail \
+    "unsupported Git storage layout"
 
 if [[ -n "$EXPECTED_APP_VERSION" ]]; then
-    actual_app_version="$(manifest_value application_version "$package_dir/manifest.env")"
     [[ "$actual_app_version" == "$EXPECTED_APP_VERSION" ]] || fail \
         "application version mismatch: expected $EXPECTED_APP_VERSION, got $actual_app_version"
 fi
@@ -243,7 +266,8 @@ fi
 
 restore_started=true
 log "restoring PostgreSQL into empty target"
-gzip -dc "$package_dir/database.sql.gz" | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q
+gzip -dc "$package_dir/database.sql.gz" | \
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q --single-transaction
 
 log "installing staged Git storage"
 tar -C "$staged_git" -cf - . | tar --no-same-owner --no-same-permissions -C "$GIT_STORAGE_PATH" -xf -
