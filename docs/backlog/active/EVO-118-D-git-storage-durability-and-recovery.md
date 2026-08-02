@@ -1,13 +1,14 @@
 # EVO-118-D Git 存储持久化、备份与恢复演练
 
 - **类型**：Technical / Data Durability / Deploy
-- **状态**：In Progress
+- **状态**：In Progress / Awaiting independent Navigator
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
 - **依赖**：EVO-118-A/B/C Done；PR #5 / #6 merged；SEC-01/SEC-02 Closed
 - **影响范围**：deploy / backend / scripts / docs / tests
 - **所属 Iteration**：[Iteration 053](../../iterations/ITERATION-053.md)（Active）
 - **实施分支**：`agent/evo-118-d-git-durability-recovery`
+- **审核入口**：[Navigator Review Packet](../../review/EVO-118-D-navigator-review.md)
 
 ## 工程目标
 
@@ -34,6 +35,7 @@
 ## 必读文档
 
 - [Iteration 053](../../iterations/ITERATION-053.md)
+- [Navigator Review Packet](../../review/EVO-118-D-navigator-review.md)
 - [Release SOP](../../sop/RELEASE.md)
 - [Security Review SOP](../../sop/SECURITY-REVIEW.md)
 - [Start Iteration SOP](../../sop/START-ITERATION.md)
@@ -135,23 +137,38 @@
 - Markdown 链接、`git diff --check`、exact-head CI 与 Navigator 独立复验。
 - 最新 `main` 上 Repo UI type-check/build 不回归。
 
+## 实施与验证证据
+
+- 持久化：生产 Compose、K8s 与 Backend runtime 路径统一为 `/var/lib/evolith/git`，并使用显式持久卷；未宣称本地卷支持多实例共享。
+- Readiness：PostgreSQL 与 Git Storage 联合判定；Git 路径通过目录、创建、写入、同步、读取和清理探测，失败返回 503。
+- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚。
+- Inventory：识别 DB-only、Git-only、重复/异常 UUID 布局、无效 bare repo、缺默认分支或最后 Commit，并以非零退出阻止假成功。
+- 应用恢复：真实 Backend 完成 register/create/Smart HTTP push、联合备份、空环境恢复、login/list/clone/refs、readiness 故障注入和 Backend 重启后再次 clone。
+- 容器重建：真实 Backend 容器在同一 PostgreSQL 与命名 Git volume 上删除/重建后，login/list/clone/Branch/Tag/SHA 均保持。
+- 数据库兼容：修复 PostgreSQL migration 005 将文本 plan ID 声明为 UUID 的缺陷，与 SQLite/API 文本 ID 契约对齐。
+- 演练缺陷修复：状态变更请求遵循 CSRF 双提交协议；CI-only runtime image 使用 UID/GID 10001，避免 Ubuntu 基础镜像 UID 1000 冲突。
+- 实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612`（#157）与 `data-durability-container` run `30736864631`（#3）均成功。
+- 上述成功是 review packet 提交前的 exact-head 证据；任何后续文档或修复提交都必须在最终 Head 重新跑 CI，旧 Head 只能作为支持证据。
+
 ## 闭环台账
 
 | 项目 | 本轮记录 |
 |------|----------|
 | 请求结果 | 关闭 DATA-01，使 Git 目录、数据库元数据和备份恢复成为可验证的联合耐久性边界 |
-| 产物 | 持久卷/配置、readiness、backup/restore、对账、故障测试、恢复证据、SOP/Release Notes |
+| 产物 | 持久卷/配置、readiness、backup/restore、对账、故障测试、恢复证据、SOP/Release Notes、Navigator review packet |
 | 状态同步归口 | EVO-118-D、Iteration 053、EVO-118 Epic、Product Backlog、Board、Baseline、Config/Release SOP/Scripts Release Notes |
-| 验证证据 | 容器重建、空环境恢复、Commit/Branch/Tag、DB/Git 对账、只读/缺失故障、required CI 与 Navigator 结论 |
+| 验证证据 | 容器重建、空环境恢复、Commit/Branch/Tag、DB/Git 对账、只读/缺失故障、required exact-head CI 与独立 Navigator 结论 |
 | 残余工作归口 | Repo lifecycle → EVO-118-F；部署构建 → EVO-118-E；综合 runtime gates → EVO-118-G；多实例共享存储另行评估 |
 
 ## 当前执行状态
 
-- Iteration 053：Active。
-- Driver：实施与主线重同步中。
-- PR #7：Draft；基线同步、实现、验证和 Navigator 门禁完成前不得转为 Ready。
-- DATA-01：Open；不得因分支、提交、旧 Head CI 或主线 UI 合并单独关闭。
+- Iteration 053：Active；实施与 Driver 验证完成，等待独立 Navigator。
+- Driver：已完成实现、故障定位、修复和实现 Head exact-head CI；当前只同步审核证据与治理状态。
+- PR #7：Draft；Review Packet 提交后的最新 Head 必须重新通过 required CI，随后仍需独立 Navigator 才能转 Ready。
+- Navigator：尚无独立结论；不得由本 Driver 或 CI 代替。审核入口见 [Navigator Review Packet](../../review/EVO-118-D-navigator-review.md)。
+- DATA-01：Open；不得因分支、提交、旧 Head CI、review packet 或主线 UI 合并单独关闭。
+- EVO-118-E：保持 Ready，未启动。
 
 ## 解锁内容
 
-完成全部验收并经 Navigator/CI/恢复演练关闭后，解除 DATA-01 Gate；允许 Evolith 进入外部 Alpha 的数据耐久性评估，并为 Repo 生命周期一致性提供持久存储基础。
+完成全部验收并经最新 exact-head CI、独立 Navigator 和恢复演练关闭后，解除 DATA-01 Gate；允许 Evolith 进入外部 Alpha 的数据耐久性评估，并为 Repo 生命周期一致性提供持久存储基础。
