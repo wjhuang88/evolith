@@ -135,6 +135,11 @@ mutation_invalid_created_at() {
     rewrite_checksums "$1"
 }
 
+mutation_incomplete_ref_inventory() {
+    sed -i '$d' "$1/git-refs.tsv"
+    rewrite_checksums "$1"
+}
+
 mutation_outer_symlink() {
     local dir="$1"
     rm -f "$dir/manifest.env"
@@ -257,6 +262,12 @@ if DATABASE_URL="$source_url" GIT_STORAGE_PATH="$source_git" BACKUP_DIR="$backup
     fail "backup unexpectedly succeeded without EVOLITH_BACKUP_QUIESCED=true"
 fi
 
+log "proving backup requires a traceable application version"
+if EVOLITH_BACKUP_QUIESCED=true DATABASE_URL="$source_url" GIT_STORAGE_PATH="$source_git" \
+    BACKUP_DIR="$backup_dir" "$repo_root/scripts/backup.sh" >/dev/null 2>&1; then
+    fail "backup unexpectedly succeeded without EVOLITH_APP_VERSION"
+fi
+
 log "proving backup rejects unsupported special files instead of producing an unrestorable archive"
 unsafe_fifo="$source_git/$storage_path/unsafe-fifo"
 mkfifo "$unsafe_fifo"
@@ -313,6 +324,7 @@ for mutation in \
     mutation_missing_manifest_key \
     mutation_layout_mismatch \
     mutation_invalid_created_at \
+    mutation_incomplete_ref_inventory \
     mutation_outer_symlink \
     mutation_inner_symlink \
     mutation_invalid_git_layout; do
