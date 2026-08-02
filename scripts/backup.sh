@@ -7,6 +7,8 @@ RETENTION_DAYS="${RETENTION_DAYS:-30}"
 DATABASE_URL="${DATABASE_URL:-}"
 GIT_STORAGE_PATH="${GIT_STORAGE_PATH:-}"
 EVOLITH_APP_VERSION="${EVOLITH_APP_VERSION:-}"
+safe_app_version="${EVOLITH_APP_VERSION//$'\n'/}"
+safe_app_version="${safe_app_version//$'\r'/}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log() {
@@ -56,7 +58,8 @@ validate_tar_listing() {
     "EVOLITH_BACKUP_QUIESCED=true is required; sequential pg_dump and Git archiving are not an online consistency guarantee"
 [[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
 [[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
-[[ -n "$EVOLITH_APP_VERSION" ]] || fail "EVOLITH_APP_VERSION is required for traceable backups"
+[[ -n "$safe_app_version" ]] || fail \
+    "EVOLITH_APP_VERSION must contain a traceable value after removing line breaks"
 [[ -d "$GIT_STORAGE_PATH" ]] || fail "Git storage path does not exist or is not a directory"
 [[ ! -L "$GIT_STORAGE_PATH" ]] || fail "Git storage base path must not be a symlink"
 [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] || fail "RETENTION_DAYS must be a non-negative integer"
@@ -76,7 +79,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-created_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+created_at="$(date -u +'%Y-%m-%dT%H%M%SZ')"
 timestamp="$(date -u +'%Y%m%dT%H%M%SZ')"
 archive_path="$BACKUP_DIR/evolith-backup-${timestamp}-$$.tar.gz"
 staged_archive="$stage_dir/evolith-backup.tar.gz"
@@ -116,8 +119,6 @@ log "archiving Git storage"
 tar -C "$GIT_STORAGE_PATH" -czf "$stage_dir/git-storage.tar.gz" .
 validate_tar_listing "$stage_dir/git-storage.tar.gz"
 
-safe_app_version="${EVOLITH_APP_VERSION//$'\n'/}"
-safe_app_version="${safe_app_version//$'\r'/}"
 cat >"$stage_dir/manifest.env" <<EOF
 backup_format_version=$BACKUP_FORMAT_VERSION
 application_version=$safe_app_version
