@@ -117,6 +117,22 @@ mutation_duplicate_checksum_entry() {
 
 mutation_version_mismatch() {
     sed -i 's/^backup_format_version=.*/backup_format_version=999/' "$1/manifest.env"
+    rewrite_checksums "$1"
+}
+
+mutation_missing_manifest_key() {
+    sed -i '/^git_storage_layout=/d' "$1/manifest.env"
+    rewrite_checksums "$1"
+}
+
+mutation_layout_mismatch() {
+    sed -i 's#^git_storage_layout=.*#git_storage_layout=tenant-name/repo-name.git#' "$1/manifest.env"
+    rewrite_checksums "$1"
+}
+
+mutation_invalid_created_at() {
+    sed -i 's/^created_at=.*/created_at=not-a-timestamp/' "$1/manifest.env"
+    rewrite_checksums "$1"
 }
 
 mutation_outer_symlink() {
@@ -144,6 +160,18 @@ mutation_invalid_git_layout() {
     rewrite_git_archive "$1" add_invalid_layout
 }
 
+mutation_database_sql_failure() {
+    local dir="$1"
+    gzip -dc "$dir/database.sql.gz" >"$dir/database.sql"
+    cat >>"$dir/database.sql" <<'SQL'
+CREATE TABLE should_be_rolled_back (value TEXT);
+THIS IS NOT VALID SQL;
+SQL
+    gzip -c "$dir/database.sql" >"$dir/database.sql.gz"
+    rm -f "$dir/database.sql"
+    rewrite_checksums "$dir"
+}
+
 mutation_inventory_failure() {
     local dir="$1"
     gzip -dc "$dir/database.sql.gz" >"$dir/database.sql"
@@ -164,7 +192,7 @@ SQL
     rewrite_checksums "$dir"
 }
 
-for command_name in psql pg_dump createdb dropdb git gzip tar sha256sum; do
+for command_name in psql pg_dump createdb dropdb git gzip tar sha256sum mkfifo; do
     command -v "$command_name" >/dev/null 2>&1 || fail "required command not found: $command_name"
 done
 
@@ -229,6 +257,19 @@ if DATABASE_URL="$source_url" GIT_STORAGE_PATH="$source_git" BACKUP_DIR="$backup
     fail "backup unexpectedly succeeded without EVOLITH_BACKUP_QUIESCED=true"
 fi
 
+log "proving backup rejects unsupported special files instead of producing an unrestorable archive"
+unsafe_fifo="$source_git/$storage_path/unsafe-fifo"
+mkfifo "$unsafe_fifo"
+if EVOLITH_BACKUP_QUIESCED=true DATABASE_URL="$source_url" GIT_STORAGE_PATH="$source_git" \
+    BACKUP_DIR="$backup_dir" EVOLITH_APP_VERSION="test-head" \
+    "$repo_root/scripts/backup.sh" >/dev/null 2>&1; then
+    fail "backup unexpectedly accepted a FIFO in Git storage"
+fi
+rm -f "$unsafe_fifo"
+if find "$backup_dir" -maxdepth 1 -type f -name 'evolith-backup-*.tar.gz' -print -quit | grep -q .; then
+    fail "failed special-file backup left a publishable archive"
+fi
+
 log "creating joint PostgreSQL + Git backup"
 backup_output="$work_dir/backup-output.log"
 EVOLITH_BACKUP_QUIESCED=true DATABASE_URL="$source_url" GIT_STORAGE_PATH="$source_git" \
@@ -269,6 +310,9 @@ for mutation in \
     mutation_checksum_mismatch \
     mutation_duplicate_checksum_entry \
     mutation_version_mismatch \
+    mutation_missing_manifest_key \
+    mutation_layout_mismatch \
+    mutation_invalid_created_at \
     mutation_outer_symlink \
     mutation_inner_symlink \
     mutation_invalid_git_layout; do
@@ -281,6 +325,16 @@ for mutation in \
     fi
     assert_reject_target_empty
 done
+
+log "proving a database restore error leaves the previously empty target empty"
+recreate_reject_target
+sql_failure_archive="$work_dir/database-sql-failure.tar.gz"
+make_modified_archive "$archive" "$sql_failure_archive" mutation_database_sql_failure
+if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$reject_url" GIT_STORAGE_PATH="$reject_git" \
+    "$repo_root/scripts/restore.sh" "$sql_failure_archive" >/dev/null 2>&1; then
+    fail "restore unexpectedly reported success after a SQL failure"
+fi
+assert_reject_target_empty
 
 log "proving a post-write inventory failure rolls the empty target back"
 recreate_reject_target
