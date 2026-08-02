@@ -6,7 +6,7 @@ BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 DATABASE_URL="${DATABASE_URL:-}"
 GIT_STORAGE_PATH="${GIT_STORAGE_PATH:-}"
-EVOLITH_APP_VERSION="${EVOLITH_APP_VERSION:-unknown}"
+EVOLITH_APP_VERSION="${EVOLITH_APP_VERSION:-}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log() {
@@ -56,6 +56,7 @@ validate_tar_listing() {
     "EVOLITH_BACKUP_QUIESCED=true is required; sequential pg_dump and Git archiving are not an online consistency guarantee"
 [[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
 [[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
+[[ -n "$EVOLITH_APP_VERSION" ]] || fail "EVOLITH_APP_VERSION is required for traceable backups"
 [[ -d "$GIT_STORAGE_PATH" ]] || fail "Git storage path does not exist or is not a directory"
 [[ ! -L "$GIT_STORAGE_PATH" ]] || fail "Git storage base path must not be a symlink"
 [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] || fail "RETENTION_DAYS must be a non-negative integer"
