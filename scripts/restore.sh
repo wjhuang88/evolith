@@ -8,6 +8,7 @@ GIT_STORAGE_PATH="${GIT_STORAGE_PATH:-}"
 EXPECTED_APP_VERSION="${EVOLITH_RESTORE_EXPECTED_APP_VERSION:-}"
 archive_path="${1:-}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+database_empty_query="$script_dir/postgres-user-object-count.sql"
 uuid_re='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 storage_path_re="^${uuid_re}/${uuid_re}\\.git$"
 
@@ -61,12 +62,39 @@ manifest_value() {
     awk -F= -v wanted="$key" '$1 == wanted {sub(/^[^=]*=/, ""); print; exit}' "$manifest"
 }
 
+database_user_object_count() {
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq -f "$database_empty_query"
+}
+
+reset_postgres_to_empty() {
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q >/dev/null <<'SQL'
+DO $evolith$
+DECLARE
+    user_schema TEXT;
+BEGIN
+    FOR user_schema IN
+        SELECT nspname
+        FROM pg_catalog.pg_namespace
+        WHERE nspname <> 'information_schema'
+          AND nspname !~ '^pg_'
+        ORDER BY nspname
+    LOOP
+        EXECUTE format('DROP SCHEMA %I CASCADE', user_schema);
+    END LOOP;
+END
+$evolith$;
+CREATE SCHEMA public;
+SQL
+}
+
 [[ -n "$archive_path" ]] || fail "usage: scripts/restore.sh <evolith-backup.tar.gz>"
 [[ -f "$archive_path" && ! -L "$archive_path" ]] || fail "backup archive not found or is a symlink: $archive_path"
 [[ "${EVOLITH_RESTORE_QUIESCED:-false}" == "true" ]] || fail \
     "EVOLITH_RESTORE_QUIESCED=true is required; stop application writes before restore"
 [[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
 [[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
+[[ -f "$database_empty_query" && ! -L "$database_empty_query" ]] || fail \
+    "database emptiness query is missing or unsafe: $database_empty_query"
 
 for command_name in psql gzip tar git find grep awk sort uniq cmp mktemp; do
     require_command "$command_name"
@@ -81,17 +109,31 @@ git_path_created=false
 
 reset_empty_target() {
     local cleanup_failed=false
+    local remaining_objects
 
-    if ! psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -c \
-        'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1; then
+    if ! reset_postgres_to_empty >/dev/null 2>&1; then
+        cleanup_failed=true
+    elif ! remaining_objects="$(database_user_object_count 2>/dev/null)"; then
+        cleanup_failed=true
+    elif [[ "$remaining_objects" != "0" ]]; then
         cleanup_failed=true
     fi
-    if [[ -d "$GIT_STORAGE_PATH" && ! -L "$GIT_STORAGE_PATH" ]]; then
-        if ! find "$GIT_STORAGE_PATH" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null; then
+
+    if [[ -e "$GIT_STORAGE_PATH" ]]; then
+        if [[ -d "$GIT_STORAGE_PATH" && ! -L "$GIT_STORAGE_PATH" ]]; then
+            if ! find "$GIT_STORAGE_PATH" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + 2>/dev/null; then
+                cleanup_failed=true
+            fi
+            if find "$GIT_STORAGE_PATH" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
+                cleanup_failed=true
+            fi
+        else
             cleanup_failed=true
         fi
     fi
-    if [[ "$git_path_created" == "true" ]] && ! rmdir "$GIT_STORAGE_PATH" 2>/dev/null; then
+
+    if [[ "$git_path_created" == "true" && -e "$GIT_STORAGE_PATH" ]] && \
+        ! rmdir "$GIT_STORAGE_PATH" 2>/dev/null; then
         cleanup_failed=true
     fi
 
@@ -255,17 +297,10 @@ if ! cmp -s "$staged_refs" "$expected_refs_sorted"; then
     fail "Git archive refs do not exactly match git-refs.tsv"
 fi
 
-target_object_count="$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -c \
-    "SELECT
-       (SELECT COUNT(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-        WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','S','f'))
-       +
-       (SELECT COUNT(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'public')
-       +
-       (SELECT COUNT(*) FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
-        WHERE n.nspname = 'public' AND t.typisdefined)")"
-[[ "$target_object_count" == "0" ]] || fail \
+target_user_object_count="$(database_user_object_count)"
+[[ "$target_user_object_count" =~ ^[0-9]+$ ]] || fail \
+    "target database emptiness check returned an invalid result"
+[[ "$target_user_object_count" == "0" ]] || fail \
     "target database is not empty; restore refuses to overwrite existing data"
 
 if [[ -e "$GIT_STORAGE_PATH" ]]; then
