@@ -47,7 +47,9 @@ Required behavior:
 - Any cleanup or verification failure keeps restore non-zero, emits `CRITICAL`, and never prints restore success.
 - Keep `ON_ERROR_STOP` plus `--single-transaction` for plain SQL restore.
 
-The durability source fixture now includes non-`public` schema `audit`, a table, function and enum type. Success must restore them. The post-write inventory failure must reach the intended gate and then prove that `public`, `audit`, all schema objects and Git files are gone.
+The durability source fixture includes non-`public` schema `audit`, a table, function and enum type. Success must restore them. The normal post-write inventory failure must reach the intended gate and prove that `public`, `audit`, all schema objects and Git files are gone.
+
+A separate deterministic incomplete-rollback case restores an event trigger that rejects `DROP SCHEMA`, then forces post-write inventory failure. It must reach restore and inventory, invoke rollback, return non-zero, print `CRITICAL: automatic rollback was incomplete`, suppress restore success, and prove the injected blocker/user state remains. The test recreates the isolated reject database afterwards; it must not weaken production rollback behavior with a test-only bypass.
 
 ### Git Storage readiness readback
 
@@ -92,6 +94,7 @@ Production no-cache Compose build/startup remains release/tag/manual evidence ow
 - missing/corrupt/incompatible/malicious archive refusal;
 - malformed SQL reaches the transactional restore and leaves the target empty;
 - post-write inventory failure reaches inventory, invokes rollback, removes all user schemas/objects and Git files;
+- deliberately blocked rollback reaches the same post-write gate, remains non-zero, emits the exact `CRITICAL` incomplete-rollback warning and leaves demonstrably non-empty state;
 - no failed restore prints `restore completed successfully`;
 - DB-only, Git-only and invalid layout remain non-zero.
 
@@ -99,7 +102,7 @@ Production no-cache Compose build/startup remains release/tag/manual evidence ow
 
 The exact final remediation Head must have:
 
-1. `ci`: success, including exact-head checkout, diff/link checks, frontend gates, shell syntax, Compose mapping, full PostgreSQL+Git matrix with non-`public` cases, volume recreation, Rust fmt/check/clippy, SQLite tests, application recovery and readiness readback tests.
+1. `ci`: success, including exact-head checkout, diff/link checks, frontend gates, shell syntax, Compose mapping, full PostgreSQL+Git matrix with non-`public` and `CRITICAL` rollback cases, volume recreation, Rust fmt/check/clippy, SQLite tests, application recovery and readiness readback tests.
 2. `data-durability-container`: success, proving real Backend recreation with the same PostgreSQL database and named Git volume.
 
 The re-review request must record the latest Base SHA, exact Head SHA, both run IDs, both blocker dispositions, added negative tests, and unchanged governance state.
