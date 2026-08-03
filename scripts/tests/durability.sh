@@ -208,6 +208,38 @@ SQL
     rewrite_checksums "$dir"
 }
 
+mutation_critical_rollback_failure() {
+    local dir="$1"
+    gzip -dc "$dir/database.sql.gz" >"$dir/database.sql"
+    cat >>"$dir/database.sql" <<'SQL'
+CREATE FUNCTION public.block_evolith_rollback()
+RETURNS event_trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RAISE EXCEPTION 'injected rollback cleanup failure';
+END
+$$;
+CREATE EVENT TRIGGER block_evolith_rollback
+ON ddl_command_start
+WHEN TAG IN ('DROP SCHEMA')
+EXECUTE FUNCTION public.block_evolith_rollback();
+INSERT INTO public.git_repos (
+    id, tenant_id, name, description, default_branch, storage_path,
+    visibility, auto_merge, require_review, created_at, updated_at
+) VALUES (
+    '55555555-5555-4555-8555-555555555555',
+    '11111111-1111-4111-8111-111111111111',
+    'rollback-blocker', '', 'main',
+    '11111111-1111-4111-8111-111111111111/55555555-5555-4555-8555-555555555555.git',
+    'private', false, true, NOW(), NOW()
+);
+SQL
+    gzip -c "$dir/database.sql" >"$dir/database.sql.gz"
+    rm -f "$dir/database.sql"
+    rewrite_checksums "$dir"
+}
+
 for command_name in psql pg_dump createdb dropdb git gzip tar sha256sum mkfifo grep; do
     command -v "$command_name" >/dev/null 2>&1 || fail "required command not found: $command_name"
 done
@@ -442,6 +474,30 @@ assert_reject_target_empty
     fail "rollback left the non-public function behind"
 [[ "$(psql "$reject_url" -At -c "SELECT to_regtype('audit.marker_kind') IS NULL")" == "t" ]] || \
     fail "rollback left the non-public type behind"
+
+log "proving incomplete rollback is elevated to CRITICAL"
+recreate_reject_target
+critical_archive="$work_dir/critical-rollback-failure.tar.gz"
+make_modified_archive "$archive" "$critical_archive" mutation_critical_rollback_failure
+critical_output="$work_dir/critical-rollback-failure.log"
+if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$reject_url" GIT_STORAGE_PATH="$reject_git" \
+    "$repo_root/scripts/restore.sh" "$critical_archive" >"$critical_output" 2>&1; then
+    fail "restore unexpectedly reported success after an incomplete rollback"
+fi
+grep -Fq "restoring PostgreSQL into empty target" "$critical_output" || \
+    fail "CRITICAL test did not restore the database"
+grep -Fq "running DB/Git inventory and ref verification" "$critical_output" || \
+    fail "CRITICAL test did not reach the post-write gate"
+grep -Fq "reverting the previously empty target" "$critical_output" || \
+    fail "CRITICAL test did not invoke rollback"
+grep -Fq "CRITICAL: automatic rollback was incomplete" "$critical_output" || \
+    fail "incomplete rollback did not emit the required CRITICAL message"
+assert_no_restore_success "$critical_output"
+[[ "$(psql "$reject_url" -At -c "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_event_trigger WHERE evtname = 'block_evolith_rollback')")" == "t" ]] || \
+    fail "CRITICAL fixture did not leave the injected rollback blocker"
+[[ "$(database_user_object_count "$reject_url")" != "0" ]] || \
+    fail "CRITICAL fixture unexpectedly left the database empty"
+recreate_reject_target
 
 log "proving DB-only, disk-only and invalid-layout inventory mismatches return non-zero"
 mv "$target_git/$storage_path" "$work_dir/saved-repo.git"
