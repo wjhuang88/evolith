@@ -173,10 +173,7 @@ mod tests {
 
     fn assert_probe_artifacts_cleaned(path: &std::path::Path) {
         assert!(
-            fs::read_dir(path)
-                .expect("read tempdir")
-                .next()
-                .is_none(),
+            fs::read_dir(path).expect("read tempdir").next().is_none(),
             "readiness probe must clean up its temporary artifacts"
         );
     }
@@ -235,8 +232,7 @@ mod tests {
 
         assert!(read_probe_exact(&probe, GIT_STORAGE_PROBE_BYTES).is_ok());
 
-        fs::write(&probe, b"evolith-git-storage-readiness-v1")
-            .expect("write truncated probe");
+        fs::write(&probe, b"evolith-git-storage-readiness-v1").expect("write truncated probe");
         assert!(read_probe_exact(&probe, GIT_STORAGE_PROBE_BYTES).is_err());
     }
 
