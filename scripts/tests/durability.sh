@@ -11,6 +11,7 @@ source_url="$POSTGRES_BASE_URL/$source_db"
 target_url="$POSTGRES_BASE_URL/$target_db"
 reject_url="$POSTGRES_BASE_URL/$reject_db"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+database_empty_query="$repo_root/scripts/postgres-user-object-count.sql"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/evolith-durability-test.XXXXXX")"
 source_git="$work_dir/source-git"
 target_git="$work_dir/target-git"
@@ -45,21 +46,31 @@ recreate_reject_target() {
     mkdir -p "$reject_git"
 }
 
-assert_reject_target_empty() {
+database_user_object_count() {
+    local database_url="$1"
+    psql "$database_url" -v ON_ERROR_STOP=1 -Atq -f "$database_empty_query"
+}
+
+assert_target_empty() {
+    local database_url="$1"
+    local git_path="$2"
     local objects
-    objects="$(psql "$reject_url" -At -c \
-        "SELECT
-           (SELECT COUNT(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-            WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m','S','f'))
-           +
-           (SELECT COUNT(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-            WHERE n.nspname = 'public')
-           +
-           (SELECT COUNT(*) FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
-            WHERE n.nspname = 'public' AND t.typisdefined)")"
-    [[ "$objects" == "0" ]] || fail "failed restore left database objects behind"
-    if find "$reject_git" -mindepth 1 -print -quit | grep -q .; then
+
+    objects="$(database_user_object_count "$database_url")"
+    [[ "$objects" == "0" ]] || fail "failed restore left user database schemas or objects behind: $objects"
+    if find "$git_path" -mindepth 1 -print -quit | grep -q .; then
         fail "failed restore left Git data behind"
+    fi
+}
+
+assert_reject_target_empty() {
+    assert_target_empty "$reject_url" "$reject_git"
+}
+
+assert_no_restore_success() {
+    local log_file="$1"
+    if grep -Fq "restore completed successfully" "$log_file"; then
+        fail "failed restore printed a success message"
     fi
 }
 
@@ -197,9 +208,11 @@ SQL
     rewrite_checksums "$dir"
 }
 
-for command_name in psql pg_dump createdb dropdb git gzip tar sha256sum mkfifo; do
+for command_name in psql pg_dump createdb dropdb git gzip tar sha256sum mkfifo grep; do
     command -v "$command_name" >/dev/null 2>&1 || fail "required command not found: $command_name"
 done
+[[ -f "$database_empty_query" && ! -L "$database_empty_query" ]] || fail \
+    "database emptiness query is missing or unsafe"
 
 log "creating PostgreSQL source and empty restore targets"
 createdb --maintenance-db="$POSTGRES_ADMIN_URL" "$source_db"
@@ -225,6 +238,17 @@ CREATE TABLE git_repos (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE SCHEMA audit;
+CREATE TYPE audit.marker_kind AS ENUM ('durable');
+CREATE TABLE audit.durable_marker (
+    kind audit.marker_kind NOT NULL,
+    value TEXT NOT NULL
+);
+INSERT INTO audit.durable_marker(kind, value) VALUES ('durable', 'non-public-restored');
+CREATE FUNCTION audit.marker_text() RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$ SELECT 'audit-function-restored'::TEXT $$;
 SQL
 
 log "creating real Git history with commit, branch and tag"
@@ -306,6 +330,12 @@ EVOLITH_RESTORE_EXPECTED_APP_VERSION="test-head" \
     "$repo_root/scripts/restore.sh" "$archive"
 [[ "$(psql "$target_url" -At -c 'SELECT value FROM durable_marker')" == "postgres-restored" ]] || \
     fail "PostgreSQL marker was not restored"
+[[ "$(psql "$target_url" -At -c 'SELECT value FROM audit.durable_marker')" == "non-public-restored" ]] || \
+    fail "non-public PostgreSQL table was not restored"
+[[ "$(psql "$target_url" -At -c 'SELECT audit.marker_text()')" == "audit-function-restored" ]] || \
+    fail "non-public PostgreSQL function was not restored"
+[[ "$(psql "$target_url" -At -c "SELECT to_regtype('audit.marker_kind') IS NOT NULL")" == "t" ]] || \
+    fail "non-public PostgreSQL type was not restored"
 [[ "$(git --git-dir="$target_git/$storage_path" rev-parse refs/heads/main)" == "$main_sha" ]] || \
     fail "main branch SHA mismatch after restore"
 git --git-dir="$target_git/$storage_path" show-ref --verify --quiet refs/heads/feature/recovery || \
@@ -315,10 +345,36 @@ git --git-dir="$target_git/$storage_path" show-ref --verify --quiet refs/tags/v1
 DATABASE_URL="$target_url" GIT_STORAGE_PATH="$target_git" \
     "$repo_root/scripts/git-storage-inventory.sh"
 
-log "proving non-empty targets are rejected"
+log "proving non-empty public targets are rejected"
 if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$target_url" GIT_STORAGE_PATH="$target_git" \
     "$repo_root/scripts/restore.sh" "$archive" >/dev/null 2>&1; then
     fail "restore unexpectedly overwrote a non-empty target"
+fi
+
+log "proving a non-public user schema target is rejected before any writes"
+recreate_reject_target
+psql "$reject_url" -v ON_ERROR_STOP=1 <<'SQL'
+CREATE SCHEMA legacy;
+CREATE TABLE legacy.marker (value TEXT NOT NULL);
+INSERT INTO legacy.marker(value) VALUES ('preserve-me');
+SQL
+legacy_reject_output="$work_dir/non-public-target-reject.log"
+if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$reject_url" GIT_STORAGE_PATH="$reject_git" \
+    "$repo_root/scripts/restore.sh" "$archive" >"$legacy_reject_output" 2>&1; then
+    fail "restore unexpectedly accepted a non-public non-empty target"
+fi
+grep -Fq "target database is not empty" "$legacy_reject_output" || \
+    fail "non-public target test did not reach the database emptiness gate"
+if grep -Fq "restoring PostgreSQL into empty target" "$legacy_reject_output"; then
+    fail "non-public target rejection happened after database writes started"
+fi
+assert_no_restore_success "$legacy_reject_output"
+[[ "$(psql "$reject_url" -At -c 'SELECT value FROM legacy.marker')" == "preserve-me" ]] || \
+    fail "non-public target rejection modified the pre-existing marker"
+[[ "$(psql "$reject_url" -At -c "SELECT to_regclass('public.durable_marker') IS NULL")" == "t" ]] || \
+    fail "non-public target rejection wrote Evolith public objects"
+if find "$reject_git" -mindepth 1 -print -quit | grep -q .; then
+    fail "non-public target rejection wrote Git data"
 fi
 
 log "proving incomplete, corrupt, malicious and incompatible backups are rejected before writes"
@@ -338,10 +394,12 @@ for mutation in \
     recreate_reject_target
     bad_archive="$work_dir/${mutation}.tar.gz"
     make_modified_archive "$archive" "$bad_archive" "$mutation"
+    bad_output="$work_dir/${mutation}.log"
     if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$reject_url" GIT_STORAGE_PATH="$reject_git" \
-        "$repo_root/scripts/restore.sh" "$bad_archive" >/dev/null 2>&1; then
+        "$repo_root/scripts/restore.sh" "$bad_archive" >"$bad_output" 2>&1; then
         fail "$mutation archive unexpectedly restored"
     fi
+    assert_no_restore_success "$bad_output"
     assert_reject_target_empty
 done
 
@@ -349,21 +407,41 @@ log "proving a database restore error leaves the previously empty target empty"
 recreate_reject_target
 sql_failure_archive="$work_dir/database-sql-failure.tar.gz"
 make_modified_archive "$archive" "$sql_failure_archive" mutation_database_sql_failure
+sql_failure_output="$work_dir/database-sql-failure.log"
 if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$reject_url" GIT_STORAGE_PATH="$reject_git" \
-    "$repo_root/scripts/restore.sh" "$sql_failure_archive" >/dev/null 2>&1; then
+    "$repo_root/scripts/restore.sh" "$sql_failure_archive" >"$sql_failure_output" 2>&1; then
     fail "restore unexpectedly reported success after a SQL failure"
 fi
+grep -Fq "restoring PostgreSQL into empty target" "$sql_failure_output" || \
+    fail "SQL failure test did not reach the transactional database restore"
+assert_no_restore_success "$sql_failure_output"
 assert_reject_target_empty
 
-log "proving a post-write inventory failure rolls the empty target back"
+log "proving a post-write inventory failure removes public and non-public restored state"
 recreate_reject_target
 mid_failure_archive="$work_dir/mid-failure.tar.gz"
 make_modified_archive "$archive" "$mid_failure_archive" mutation_inventory_failure
+mid_failure_output="$work_dir/mid-failure.log"
 if EVOLITH_RESTORE_QUIESCED=true DATABASE_URL="$reject_url" GIT_STORAGE_PATH="$reject_git" \
-    "$repo_root/scripts/restore.sh" "$mid_failure_archive" >/dev/null 2>&1; then
+    "$repo_root/scripts/restore.sh" "$mid_failure_archive" >"$mid_failure_output" 2>&1; then
     fail "restore unexpectedly reported success after inventory failure"
 fi
+grep -Fq "restoring PostgreSQL into empty target" "$mid_failure_output" || \
+    fail "inventory failure test did not restore the database"
+grep -Fq "running DB/Git inventory and ref verification" "$mid_failure_output" || \
+    fail "inventory failure test did not reach the post-write gate"
+grep -Fq "reverting the previously empty target" "$mid_failure_output" || \
+    fail "inventory failure did not invoke rollback-to-empty"
+assert_no_restore_success "$mid_failure_output"
 assert_reject_target_empty
+[[ "$(psql "$reject_url" -At -c "SELECT to_regnamespace('audit') IS NULL")" == "t" ]] || \
+    fail "rollback left the non-public audit schema behind"
+[[ "$(psql "$reject_url" -At -c "SELECT to_regclass('audit.durable_marker') IS NULL")" == "t" ]] || \
+    fail "rollback left the non-public table behind"
+[[ "$(psql "$reject_url" -At -c "SELECT to_regprocedure('audit.marker_text()') IS NULL")" == "t" ]] || \
+    fail "rollback left the non-public function behind"
+[[ "$(psql "$reject_url" -At -c "SELECT to_regtype('audit.marker_kind') IS NULL")" == "t" ]] || \
+    fail "rollback left the non-public type behind"
 
 log "proving DB-only, disk-only and invalid-layout inventory mismatches return non-zero"
 mv "$target_git/$storage_path" "$work_dir/saved-repo.git"
