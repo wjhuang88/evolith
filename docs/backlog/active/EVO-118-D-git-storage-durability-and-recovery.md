@@ -1,12 +1,12 @@
 # EVO-118-D Git 存储持久化、备份与恢复演练
 
 - **类型**：Technical / Data Durability / Deploy
-- **状态**：In Progress / Awaiting independent Navigator
+- **状态**：In Progress / Navigator Blocked / Remediation
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
 - **依赖**：EVO-118-A/B/C Done；PR #5 / #6 merged；SEC-01/SEC-02 Closed
 - **影响范围**：deploy / backend / scripts / docs / tests
-- **所属 Iteration**：[Iteration 053](../../iterations/ITERATION-053.md)（Active）
+- **所属 Iteration**：[Iteration 053](../../iterations/ITERATION-053.md)（Active / Navigator Blocked / Remediation）
 - **实施分支**：`agent/evo-118-d-git-durability-recovery`
 - **审核入口**：[Navigator Review Packet](../../review/EVO-118-D-navigator-review.md)
 
@@ -71,7 +71,7 @@
 
 ### Scenario 3：Git 存储不可用阻止就绪
 
-- **Given** Git Storage 只读、路径不存在、不是目录或不可写
+- **Given** Git Storage 只读、路径不存在、不是目录、不可读或不可写
 - **When** 调用 readiness
 - **Then** readiness 返回 503；存储恢复后返回 200
 
@@ -91,7 +91,7 @@
 
 - **Given** restore 使用 staging 路径
 - **When** DB、Git 解包、校验或对账任一阶段失败
-- **Then** 返回非零并清理 staging，原目标保持不变
+- **Then** 返回非零并清理 staging；对已通过空目标门禁且由本次 restore 写入的目标执行完整 rollback-to-empty，回滚不完整必须输出 `CRITICAL`
 
 ## 工程要求
 
@@ -101,7 +101,7 @@
 - 提供 restore 脚本或明确 SOP，并执行空环境恢复演练。
 - 增加 Repo/DB 对账工具或至少可重复的盘点命令。
 - 增加磁盘容量、inode、备份失败和恢复失败告警基线。
-- Readiness 检查 Git 路径存在、为目录、可读写和必要目录可创建；失败返回 503。
+- Readiness 检查 Git 路径存在、为目录、可创建/写入/sync，关闭写句柄后独立 reopen/read/精确比对，并清理探针；失败返回 503。
 - 所有脚本使用明确退出码，失败不继续覆盖，敏感信息不进入归档或普通日志。
 - 修改脚本时同步 `SCRIPTS-RELEASE-NOTES.md`。
 - 涉及 SQLite/PostgreSQL 行为时明确双轨影响；本 Story 不以只验证 PostgreSQL 配置替代 Lite 路径回归。
@@ -110,7 +110,7 @@
 
 1. **事实基线与失败测试**：证明容器重建丢 Git、backup 缺 Git、readiness 不识别不可用路径。
 2. **持久卷和配置收敛**：生产 Compose/K8s 路径与 Volume 显式一致。
-3. **Readiness fail closed**：路径缺失、只读/不可写等故障返回 503；不与 EVO-118-G 的其他 readiness/依赖范围混淆。
+3. **Readiness fail closed**：路径缺失、只读/不可写、独立读取失败或内容不一致时返回 503；不与 EVO-118-G 的其他 readiness/依赖范围混淆。
 4. **联合 backup/restore**：定义一致性策略、manifest/checksum、退出码和安全恢复顺序。
 5. **对账与演练**：DB/Git inventory、空环境恢复、Commit/Branch/Tag 校验、重建后 clone。
 6. **运营与文档**：容量/inode/失败告警基线、Release SOP、配置和脚本 release notes。
@@ -129,10 +129,11 @@
 
 - `docker compose ... up` → push Commit/Branch/Tag → 重建 backend → clone/refs 校验。
 - DB+Git 备份 → 清空隔离环境 → restore → 登录/list/clone/Commit/Branch/Tag/SHA 校验。
-- Git 路径缺失、只读、权限不足和必要目录创建失败的故障测试。
-- readiness 故障 503、恢复后 200。
-- DB-only、Git-only、损坏归档、checksum/version 失败和非空目标的 restore 拒绝测试。
-- backup/restore/inventory 非零退出码和无假成功断言。
+- Git 路径缺失、只读、权限不足、独立读取失败和内容不一致的故障测试。
+- readiness 故障 503、恢复后 200，且失败路径尽最大努力清理探针。
+- DB-only、Git-only、损坏归档、checksum/version 失败、非空 `public` 目标和非 `public` 用户 schema 目标的 restore 拒绝测试。
+- 含非 `public` 用户 schema/table 的 backup 在 post-write failure 后完整 rollback-to-empty。
+- backup/restore/inventory 非零退出码、无 restore success 假阳性及回滚不完整 `CRITICAL` 语义。
 - Frontend required gate、Rust fmt/check/clippy/workspace tests、生产 Compose clean build（按实际改动范围）。
 - Markdown 链接、`git diff --check`、exact-head CI 与 Navigator 独立复验。
 - 最新 `main` 上 Repo UI type-check/build 不回归。
@@ -140,15 +141,24 @@
 ## 实施与验证证据
 
 - 持久化：生产 Compose、K8s 与 Backend runtime 路径统一为 `/var/lib/evolith/git`，并使用显式持久卷；未宣称本地卷支持多实例共享。
-- Readiness：PostgreSQL 与 Git Storage 联合判定；Git 路径通过目录、创建、写入、同步、读取和清理探测，失败返回 503。
-- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚。
+- Readiness：PostgreSQL 与 Git Storage 联合判定；Navigator 已确认旧 Head 探针仅完成目录、创建、写入、sync 与 cleanup，没有独立 reopen/read/compare，当前正在整改，修复后必须由新 exact-head 测试证明。
+- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚；Navigator 已确认旧 Head 的数据库空判断和 rollback 仅覆盖 `public`，当前正在整改统一用户数据库空定义及全用户 schema 清理。
 - Inventory：识别 DB-only、Git-only、重复/异常 UUID 布局、无效 bare repo、缺默认分支或最后 Commit，并以非零退出阻止假成功。
 - 应用恢复：真实 Backend 完成 register/create/Smart HTTP push、联合备份、空环境恢复、login/list/clone/refs、readiness 故障注入和 Backend 重启后再次 clone。
 - 容器重建：真实 Backend 容器在同一 PostgreSQL 与命名 Git volume 上删除/重建后，login/list/clone/Branch/Tag/SHA 均保持。
 - 数据库兼容：修复 PostgreSQL migration 005 将文本 plan ID 声明为 UUID 的缺陷，与 SQLite/API 文本 ID 契约对齐。
 - 演练缺陷修复：状态变更请求遵循 CSRF 双提交协议；CI-only runtime image 使用 UID/GID 10001，避免 Ubuntu 基础镜像 UID 1000 冲突。
-- 实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612`（#157）与 `data-durability-container` run `30736864631`（#3）均成功。
-- 上述成功是 review packet 提交前的 exact-head 证据；任何后续文档或修复提交都必须在最终 Head 重新跑 CI，旧 Head 只能作为支持证据。
+- 被审核旧 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885` 的 `ci` run `30756053633`（#177）与 `data-durability-container` run `30756053641`（#23）均成功，但未覆盖 Navigator 发现的两个失败路径。
+- 任何整改提交都会使上述旧 Head CI 失效；只有整改最终 Head 的 required exact-head CI 和独立 Navigator re-review 可作为下一步验收证据。
+
+## Navigator 阻塞与整改
+
+2026-08-03 独立 Navigator 对 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885` 给出 `Blocked`：
+
+1. PostgreSQL 目标空判断及失败 rollback 只处理 `public`，可能接受含 `legacy.marker` 的非空目标，或在含非 `public` 备份对象的 post-write failure 后留下未报告的部分数据库。
+2. Git Storage readiness 没有关闭写句柄后重新打开并读取、精确比对探针内容，可能在读取路径失败时错误返回 200。
+
+整改必须补充：统一用户数据库空检查、全用户 schema/object rollback-to-empty、非 `public` 拒绝与 rollback 负向测试、readback/read-error/mismatch/cleanup 测试，以及最新 Head 的两条 required workflow。独立 Navigator re-review 前不得转 Ready、合并或关闭 DATA-01。
 
 ## 闭环台账
 
@@ -157,17 +167,17 @@
 | 请求结果 | 关闭 DATA-01，使 Git 目录、数据库元数据和备份恢复成为可验证的联合耐久性边界 |
 | 产物 | 持久卷/配置、readiness、backup/restore、对账、故障测试、恢复证据、SOP/Release Notes、Navigator review packet |
 | 状态同步归口 | EVO-118-D、Iteration 053、EVO-118 Epic、Product Backlog、Board、Baseline、Config/Release SOP/Scripts Release Notes |
-| 验证证据 | 容器重建、空环境恢复、Commit/Branch/Tag、DB/Git 对账、只读/缺失故障、required exact-head CI 与独立 Navigator 结论 |
+| 验证证据 | 容器重建、空环境恢复、Commit/Branch/Tag、DB/Git 对账、只读/缺失/读取失败故障、required exact-head CI 与独立 Navigator 结论 |
 | 残余工作归口 | Repo lifecycle → EVO-118-F；部署构建 → EVO-118-E；综合 runtime gates → EVO-118-G；多实例共享存储另行评估 |
 
 ## 当前执行状态
 
-- Iteration 053：Active；实施与 Driver 验证完成，等待独立 Navigator。
-- Driver：已完成实现、故障定位、修复和实现 Head exact-head CI；当前只同步审核证据与治理状态。
-- PR #7：Draft；Review Packet 提交后的最新 Head 必须重新通过 required CI，随后仍需独立 Navigator 才能转 Ready。
-- Navigator：尚无独立结论；不得由本 Driver 或 CI 代替。审核入口见 [Navigator Review Packet](../../review/EVO-118-D-navigator-review.md)。
-- DATA-01：Open；不得因分支、提交、旧 Head CI、review packet 或主线 UI 合并单独关闭。
-- EVO-118-E：保持 Ready，未启动。
+- Iteration 053：Active / Navigator Blocked / Remediation。
+- Driver：独立复核两个 blocking finding，均确认成立；正在修复代码、负向测试及稳定文档。
+- PR #7：Open / Draft / Mergeable；保持 Draft，整改提交后旧 CI 不再有效。
+- Navigator：已对旧 Head 给出 `Blocked`；等待整改最终 Head 与 exact-head CI 后重新审核。
+- DATA-01：Open；不得因代码提交、旧 Head CI 或整改 Driver 自验关闭。
+- EVO-118-E：Ready / Not Started；保持未启动。
 
 ## 解锁内容
 
