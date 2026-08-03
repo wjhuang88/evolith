@@ -134,6 +134,8 @@
 - DB-only、Git-only、损坏归档、checksum/version 失败、非空 `public`、非 `public` 用户 schema，以及仅含空 Publication 的数据库级非空目标拒绝测试。
 - 含非 `public` 用户 schema/table 与数据库级 Publication 的 backup 在 post-write failure 后完整 rollback-to-empty。
 - backup/restore/inventory 非零退出码、无 restore success 假阳性及回滚不完整 `CRITICAL` 语义。
+- 真实 Subscription credential sentinel 必须在 source catalog 中存在，但解开的最终联合归档、解压后的 `database.sql`、manifest、refs、checksum 与普通 stdout/stderr 中均不得出现；dump 不得包含 `CREATE SUBSCRIPTION`，Publication 仍需恢复。
+- hostile `PSQLRC` 动态测试必须实际执行 restore 并命中 non-empty pre-write database gate；原 marker 与完整 schema snapshot 不变，`public.psqlrc_sentinel` 不得创建，Git 保持空，不进入 PostgreSQL restore、Git installation 或 inventory phase。
 - Frontend required gate、Rust fmt/check/clippy/workspace tests、生产 Compose clean build（按实际改动范围）。
 - Markdown 链接、`git diff --check`、exact-head CI 与 Navigator 独立复验。
 - 最新 `main` 上 Repo UI type-check/build 不回归。
@@ -142,7 +144,7 @@
 
 - 持久化：生产 Compose、K8s 与 Backend runtime 路径统一为 `/var/lib/evolith/git`，并使用显式持久卷；未宣称本地卷支持多实例共享。
 - Readiness：PostgreSQL 与 Git Storage 联合判定；Head `7608be9f5e7234c0797e4aeba23a133ca91552dc` 已实现 create/write/sync/close/reopen/read/精确比对/cleanup，第二次独立 Navigator 已明确判定该 blocker **Resolved**。
-- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚；第一次复验发现的非 `public` schema 缺陷及第二次复验发现的 database-level Publication 对象面均已进入统一共享空库 helper、rollback cleanup 与专项负向矩阵。生产 dump 继续显式使用 `--no-owner --no-privileges`，不把 role/global/default-ACL 状态纳入本备份格式。
+- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚；第一次复验发现的非 `public` schema 缺陷及第二次复验发现的 database-level Publication 对象面均已进入统一共享空库 helper、rollback cleanup 与专项负向矩阵。生产 dump 显式使用 `--no-owner --no-privileges --no-subscriptions`：Publication 仍属于 DATA-01 数据面，Subscription conninfo 属于环境级敏感配置，不进入普通联合归档，必须由独立、安全、受控的运维流程重建；共享空库 helper 仍检测 Subscription，含 Subscription 的目标不得被静默覆盖。
 - Inventory：识别 DB-only、Git-only、重复/异常 UUID 布局、无效 bare repo、缺默认分支或最后 Commit，并以非零退出阻止假成功。
 - 应用恢复：真实 Backend 完成 register/create/Smart HTTP push、联合备份、空环境恢复、login/list/clone/refs、readiness 故障注入和 Backend 重启后再次 clone。
 - 容器重建：真实 Backend 容器在同一 PostgreSQL 与命名 Git volume 上删除/重建后，login/list/clone/Branch/Tag/SHA 均保持。
@@ -170,6 +172,10 @@
 
 整改实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 已完成上述对象面收敛：共享 helper 与 rollback cleanup 新增 Publication、Subscription、Event Trigger、Extension、Large Object、FDW/Server/User Mapping、非内置 Language/Cast/Transform/Access Method；新增 Publication 专项矩阵已证明生产 backup/restore 携带 Publication、Publication-only 目标写前拒绝、post-write failure 后 Publication/schema/Git 全量回滚及 helper=`0`。`ci` #195 / run `30830738917` 与 `data-durability-container` #41 / run `30830734213` 为实现切片证据；治理同步提交改变 Head 后必须再跑最终 exact-head CI。
 
+2026-08-03 第三次独立 Navigator 对 Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`、Head `551e71331a579020a0037c3db2a7ccd98c781c05` 给出 `Blocked`。此前非 `public`、Publication、rollback `CRITICAL` 与 Git Storage readback finding 均被明确判定 **Resolved**；本轮只剩两个新 blocker：生产超级用户 `pg_dump` 未排除可能携带明文 conninfo 的 Subscription，以及 restore/inventory 非交互 `psql` 未使用 `-X`、可能执行环境 `psqlrc`。该 Head 的 `ci` #197 / run `30832407367` 与 `data-durability-container` #43 / run `30832407357` 仅为旧实现矩阵证据，不覆盖 credential sentinel 与 hostile `PSQLRC`。
+
+本轮整改范围固定为：生产 `pg_dump --no-subscriptions`；Subscription 环境级敏感配置边界；真实 `connect=false` Subscription sentinel 解包/解压泄漏测试；Subscription-only 目标拒绝；production `psql -X` 统一 wrapper；hostile `PSQLRC` preflight 动态测试；保留 Publication、非 `public`、post-write rollback、incomplete rollback `CRITICAL`、readiness 与完整 required matrix。不得扩展为加密备份或 EVO-118-E。
+
 ## 闭环台账
 
 | 项目 | 本轮记录 |
@@ -183,10 +189,10 @@
 ## 当前执行状态
 
 - Iteration 053：Active / Navigator Blocked / Remediation。
-- Driver：第二次 Navigator 的数据库级对象 blocker 已完成实现与 Publication 专项验证，正在同步 Story、Iteration、Review Packet 与 Scripts Release Notes；同步提交后还需最终 exact-head CI。
-- PR #7：Open / Draft / Mergeable；保持 Draft。实现 Head `75f7868...` 已完成专项与容器验证，但治理同步提交后仍需新的最终 exact-head CI。
-- Navigator：对 Head `7608be9...` 给出 `Blocked`；readiness 已解决，数据库级对象实现已完成，等待治理同步后的最终 Head、两条 exact-head workflow 与第三次独立审核。
-- DATA-01：Open；不得因代码提交、旧 Head CI 或整改 Driver 自验关闭。
+- Driver：第三次 Navigator 的 Subscription credential 与 ambient `psqlrc` blocker 正在原分支整改；治理事实已先同步，代码、动态负向测试与最终 exact-head CI 必须共同闭环。
+- PR #7：Open / Draft / Mergeable；保持 Draft。被审核 Head `551e713...` 的 workflow 仅为历史证据，任何整改提交后都必须重新建立 exact-head `ci` 与 `data-durability-container`。
+- Navigator：对 Base `38c19b19...`、Head `551e713...` 给出 `Blocked`；此前所有 finding 已解决，本轮等待两个新 blocker 的最终 exact-head 独立复验。
+- DATA-01：Open；不得因代码提交、绿色 CI 或 Driver 总结关闭。
 - EVO-118-E：Ready / Not Started；保持未启动。
 
 ## 解锁内容

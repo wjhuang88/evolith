@@ -20,6 +20,10 @@ require_command() {
     command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
 }
 
+run_psql() {
+    psql -X -v ON_ERROR_STOP=1 "$@" "$DATABASE_URL"
+}
+
 [[ -n "$DATABASE_URL" ]] || fail "DATABASE_URL is required"
 [[ -n "$GIT_STORAGE_PATH" ]] || fail "GIT_STORAGE_PATH is required"
 [[ -d "$GIT_STORAGE_PATH" ]] || fail "Git storage path does not exist or is not a directory"
@@ -39,7 +43,7 @@ db_paths="$work_dir/db-paths.txt"
 disk_paths="$work_dir/disk-paths.txt"
 errors=0
 
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At -F $'\t' -c \
+run_psql -At -F $'\t' -c \
     "SELECT storage_path, default_branch, COALESCE(last_commit_sha, '') FROM git_repos ORDER BY storage_path" \
     >"$db_rows"
 

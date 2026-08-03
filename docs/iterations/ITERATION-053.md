@@ -107,7 +107,8 @@
 | Restore | 空目标 staging 恢复并通过对账 | DB-only/Git-only/corrupt/checksum/version、schema 或 Publication 非空目标、mid-failure 拒绝 |
 | Inventory | 完整环境退出 0 | DB-only/disk-only/invalid bare/missing ref 等退出非零 |
 | 双数据库回归 | SQLite workspace tests 无无关回归 | PostgreSQL 生产路径需真实演练证据 |
-| 凭证保护 | manifest/log 仅含非敏感配置 | Secret grep 或归档检查发现敏感字段即失败 |
+| 凭证保护 | Publication 正常备份；Subscription 作为环境级敏感配置排除 | 解包并解压 SQL 后出现 Subscription sentinel / `CREATE SUBSCRIPTION`，或普通日志、manifest、refs 出现 sentinel 即失败 |
+| psql 启动隔离 | production 非交互 `psql` 统一 `-X` + `ON_ERROR_STOP=1` | hostile `PSQLRC` 产生任意 SQL side effect、改变 preflight/rollback 边界或使失败路径进入写阶段即失败 |
 
 ## 8. 计划实现切片
 
@@ -171,6 +172,8 @@
 - 2026-08-03：Iteration 进入 `Active / Navigator Blocked / Remediation`；PR #7 保持 Draft，DATA-01 保持 Open，EVO-118-E 保持 Ready / Not Started。
 - 2026-08-03：第二次独立 Navigator 对 Head `7608be9f5e7234c0797e4aeba23a133ca91552dc` 给出 `Blocked`。Git Storage readiness readback 已明确解决，非 `public` schema 缺陷对 schema-scoped state 已修复；唯一剩余 blocker 为 unrestricted database-level `pg_dump` 可携带 Publication 等数据库级对象，而当时共享空库 helper 和 rollback 只覆盖 schema state。Head `7608be9...` 的 `ci` #191 / run `30797578993` 与 `data-durability-container` #37 / run `30797579026` 自本轮整改提交起仅为历史证据。
 - 2026-08-03：整改实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 已把 Publication、Subscription、Event Trigger、Extension、Large Object、FDW/Server/User Mapping、非内置 Language/Cast/Transform/Access Method 纳入共享空库定义与 rollback cleanup；新增 `scripts/tests/postgres-database-object-durability.sh`，真实证明生产 backup/restore 携带 Publication、Publication-only 目标写前拒绝，以及 post-write inventory failure 后 Publication、schema 与 Git 一起回滚为空。`ci` #195 / run `30830738917` 与 `data-durability-container` #41 / run `30830734213` 为该实现切片验证；后续治理同步提交仍需最终 exact-head 重跑。
+- 2026-08-03：第三次独立 Navigator 对 Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`、Head `551e71331a579020a0037c3db2a7ccd98c781c05` 给出 `Blocked`。既有非 `public`、Publication、rollback `CRITICAL` 与 Git readback finding 均判定 Resolved；新增 blocker 为超级用户 dump 可能携带 Subscription 明文 conninfo，以及 production 非交互 `psql` 未使用 `-X`。该 Head `ci` #197 / run `30832407367` 与 `data-durability-container` #43 / run `30832407357` 自整改提交起降级为历史证据。
+- 2026-08-04：第三次整改范围冻结为 `pg_dump --no-subscriptions`、Subscription 安全重建边界、真实 credential sentinel 解包/解压测试、Subscription-only target 拒绝、production `psql -X` wrapper 与 hostile `PSQLRC` preflight 动态测试；不扩展加密格式，不启动 EVO-118-E。
 
 后续只追加实际执行事实、commit/head、命令结果、故障注入、Navigator 结论和偏差；不得改写以上 Planned 基线。
 
@@ -184,10 +187,11 @@
 
 ### Independent Navigator
 
-- 状态：Blocked；等待数据库级对象整改最终 Head re-review。
-- 已审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；第一次 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885`，第二次 Head `7608be9f5e7234c0797e4aeba23a133ca91552dc`。
-- 第一次 Blocker 1 的非 `public` schema 场景已修复；第二次复验发现的数据库级对象缺口已在实现 Head `75f7868...` 补齐并由 Publication 专项矩阵通过，仍需最终 exact-head CI 与第三次独立复验确认。
-- 第一次 Blocker 2 的 Git Storage reopen/read/compare 已被第二次复验明确判定 Resolved。
+- 状态：Blocked；等待 Subscription credential 与 ambient `psqlrc` 第三次整改最终 Head re-review。
+- 已审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；第一次 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885`，第二次 Head `7608be9f5e7234c0797e4aeba23a133ca91552dc`，第三次 Head `551e71331a579020a0037c3db2a7ccd98c781c05`。
+- 第三次复验明确确认非 `public` schema、Publication-only gate、Publication backup/restore/rollback、incomplete rollback `CRITICAL` 与 Git Storage reopen/read/compare 均 Resolved。
+- 当前 blocker 1：普通联合归档必须排除 Subscription conninfo；真实 sentinel 必须存在于 source catalog，但不得进入解压 SQL、外层归档元数据或普通日志，恢复后不得出现 Subscription。
+- 当前 blocker 2：restore、rollback、helper 与 inventory 的 production 非交互 `psql` 必须自行使用 `-X`；hostile `PSQLRC` 测试必须命中 non-empty pre-write gate 且无任何 DB/Git side effect。
 - 审核入口：[EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)。
 - 修复后必须以最新 PR Head、两条 required exact-head workflow 和新增失败路径证据请求原独立 Navigator 重新给出 `Complete | Partial | Blocked`。
 - Navigator 无 blocking finding 且最新 exact-head CI 全绿后，才允许进入 Ready/merge 流程；合并后仍需独立治理 closeout。

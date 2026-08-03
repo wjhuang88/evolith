@@ -112,7 +112,11 @@ LC_ALL=C sort "$refs_unsorted" >"$refs_file"
 rm -f "$refs_unsorted"
 
 log "dumping PostgreSQL"
-pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip -c >"$stage_dir/database.sql.gz"
+# Subscription connection strings are environment-level sensitive operational
+# state. They are intentionally excluded from the ordinary DATA-01 archive and
+# must be reconstructed through a separate secure, controlled process.
+pg_dump --no-owner --no-privileges --no-subscriptions "$DATABASE_URL" | \
+    gzip -c >"$stage_dir/database.sql.gz"
 gzip -t "$stage_dir/database.sql.gz"
 
 log "archiving Git storage"

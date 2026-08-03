@@ -25,6 +25,10 @@ require_command() {
     command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
 }
 
+run_psql() {
+    psql -X -v ON_ERROR_STOP=1 "$@" "$DATABASE_URL"
+}
+
 sha256_verify() {
     if command -v sha256sum >/dev/null 2>&1; then
         sha256sum -c SHA256SUMS
@@ -63,11 +67,11 @@ manifest_value() {
 }
 
 database_user_object_count() {
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq -f "$database_empty_query"
+    run_psql -Atq -f "$database_empty_query"
 }
 
 reset_postgres_to_empty() {
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q >/dev/null <<'SQL'
+    run_psql -q >/dev/null <<'SQL'
 -- Subscriptions are database-local but can own remote replication slots. Make
 -- them inert and detach slot ownership before dropping them so rollback never
 -- attempts a remote connection.
@@ -411,7 +415,7 @@ fi
 restore_started=true
 log "restoring PostgreSQL into empty target"
 gzip -dc "$package_dir/database.sql.gz" | \
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q --single-transaction
+    run_psql -q --single-transaction
 
 log "installing staged Git storage"
 tar -C "$staged_git" -cf - . | tar --no-same-owner --no-same-permissions -C "$GIT_STORAGE_PATH" -xf -

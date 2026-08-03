@@ -5,6 +5,16 @@
 
 ## Unreleased
 
+### EVO-118-D Navigator 第三次整改 — Subscription 凭据边界与 psql startup isolation
+
+- **Subscription 不进入普通联合归档**：`scripts/backup.sh` 的 PostgreSQL 16 dump 显式增加 `--no-subscriptions`。Publication 仍属于 DATA-01 数据面；Subscription conninfo 可能包含 host/user/password，因此定义为环境级敏感配置，必须通过独立、安全、受控的运维流程重建，本 PR 不扩展加密备份或密钥管理格式。
+- **空目标保护不削弱**：`scripts/postgres-user-object-count.sql` 继续检测当前数据库 Subscription；Subscription-only 目标仍在任何 PostgreSQL/Git 写入前拒绝并保留，不因备份排除 Subscription 而允许静默覆盖。
+- **真实 credential sentinel 负向测试**：数据库级专项矩阵使用 PostgreSQL 16 `CREATE SUBSCRIPTION ... WITH (connect=false, slot_name=NONE)` 创建不连接上游、不创建 slot 的真实 Subscription，并确认 catalog conninfo 包含唯一 sentinel。测试解开最终归档、解压 `database.sql.gz`，证明 SQL、manifest、refs、checksum、archive listing 和普通 backup/restore stdout/stderr 均无 sentinel，且无 `CREATE SUBSCRIPTION`；Publication、数据库 marker、Git ref 与 inventory 仍恢复成功，目标无 Subscription。
+- **production `psql -X` 收敛**：`scripts/restore.sh` 与 `scripts/git-storage-inventory.sh` 通过统一 wrapper 强制 `psql -X -v ON_ERROR_STOP=1`，覆盖 empty-target preflight、helper、plain SQL restore、rollback cleanup、rollback verification 与 inventory；plain restore 继续 `--single-transaction`。
+- **hostile `PSQLRC` 动态测试**：专项矩阵提供会创建 `public.psqlrc_sentinel` 并修改 `ON_ERROR_STOP` 的 startup file，只对被测 restore 设置 `PSQLRC`。restore 必须在 archive 校验后命中 non-empty database preflight，原 marker 与 schema snapshot 完全不变，sentinel 不存在，Git 为空，不进入 SQL restore、Git install 或 inventory，不输出 success。
+- **既有矩阵保留**：Publication-only 拒绝、Publication backup/restore、post-write Publication/schema/Git rollback、incomplete rollback `CRITICAL`、非 `public` schema、Git readiness readback、Frontend/Rust/SQLite/应用恢复和容器重建门禁继续执行。旧 Head `551e713...` 的 `ci` #197 / `30832407367` 与 container #43 / `30832407357` 不覆盖本轮路径，仅为历史证据。
+
+
 ### EVO-118-D Navigator 第二次整改 — 数据库级 PostgreSQL 对象
 
 - **生产 `pg_dump` 对象面与空库契约对齐**：`scripts/postgres-user-object-count.sql` 在既有 schema-scoped 对象之外，新增对 user extension、Publication、当前数据库 Subscription、Event Trigger、Large Object、Foreign Data Wrapper/Server/User Mapping，以及非内置 Language/Cast/Transform/Access Method 的计数。restore 写前门禁、rollback 后验证和测试继续共用同一 helper。
@@ -42,7 +52,7 @@
 - `EVOLITH_BACKUP_QUIESCED=true` / `EVOLITH_RESTORE_QUIESCED=true` 是操作确认，不会自动暂停应用、后台任务或 Git push。
 - 联合 restore 只支持 PostgreSQL 生产路径；SQLite 开发路径不使用这些脚本，继续由 Rust workspace tests 回归。
 - SHA-256 用于损坏检测，不提供归档签名或来源认证；备份介质仍需加密、访问控制和离线/不可变副本。
-- restore 默认只面向真正空目标：除 PostgreSQL 内部 schema 与默认空 `public` 外，不得存在 schema-scoped 或数据库级用户对象；额外用户 schema、`public` 用户对象或 Publication 等 database-level state 都会在写入前拒绝。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
+- restore 默认只面向真正空目标：除 PostgreSQL 内部 schema 与默认空 `public` 外，不得存在 schema-scoped 或数据库级用户对象；额外用户 schema、`public` 用户对象、Publication 或 Subscription 等 database-level state 都会在写入前拒绝。备份格式故意不携带 Subscription 凭据，但不会把含 Subscription 的目标视为空。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
 - `GIT_STORAGE_PATH` 不得是 symlink；源 Git Storage 中的 FIFO/socket/device 等特殊文件会使 backup 失败，归档中出现 symlink、hardlink、特殊文件、异常层级或非 UUID 布局会被拒绝。
 - manifest v1 必须精确包含 `backup_format_version`、`application_version`、`created_at`、`consistency`、`database_format`、`git_format`、`git_storage_layout` 七项；缺失、重复、额外或不兼容值均 fail closed。
 - GitHub Contents API 创建的新脚本可能不携带 executable bit；CI 与文档统一使用 `bash scripts/...`、`psql -f scripts/postgres-user-object-count.sql` 或 `python3 scripts/...` 调用，不依赖直接执行位。

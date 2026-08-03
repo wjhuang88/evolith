@@ -34,6 +34,18 @@ Result: `Blocked`.
 
 All runs associated with those reviewed Heads are historical evidence only.
 
+### Review 3 — Head `551e71331a579020a0037c3db2a7ccd98c781c05`
+
+Result: `Blocked`.
+
+The Navigator independently marked every earlier finding resolved, including non-`public` schemas, Publication-only refusal, Publication backup/restore/rollback, incomplete rollback `CRITICAL`, and Git Storage reopen/read/compare. Two new blockers remain:
+
+1. Production `pg_dump` runs as the default PostgreSQL superuser but does not pass PostgreSQL 16 `--no-subscriptions`; a dumped `CREATE SUBSCRIPTION ... CONNECTION '<conninfo>'` can place plaintext host/user/password material into `database.sql.gz` and the final ordinary archive.
+2. Production non-interactive `psql` calls do not pass `-X`; system or user startup files can execute SQL before the preflight gate, alter `ON_ERROR_STOP`, and create changes outside the armed rollback boundary.
+
+Head `551e713...` workflow runs `ci` #197 / `30832407367` and `data-durability-container` #43 / `30832407357` are historical evidence because they do not exercise either new negative path.
+
+
 ## Database-level PostgreSQL remediation
 
 Inspect:
@@ -61,6 +73,41 @@ The focused Publication matrix must prove three independent gates:
 3. post-write failure removes the restored Publication, all schema state and Git data, after which the shared helper returns `0`.
 
 ## Git Storage readiness disposition
+## Subscription credential boundary
+
+Inspect:
+
+- `scripts/backup.sh`
+- `scripts/postgres-user-object-count.sql`
+- `scripts/tests/postgres-database-object-durability.sh`
+- `docs/reference/SCRIPTS-RELEASE-NOTES.md`
+
+Required behavior:
+
+- Production backup uses PostgreSQL 16 `pg_dump --no-subscriptions` while retaining Publication behavior.
+- Subscription conninfo is environment-level sensitive operational configuration outside the DATA-01 ordinary joint backup format; it must be reconstructed through a separate secure controlled process rather than extending this PR into encrypted backup/key management.
+- The shared empty-database helper continues counting current-database Subscriptions, so a Subscription-only target is rejected before writes and preserved.
+- The focused test creates a real `connect=false`, no-slot Subscription whose catalog conninfo contains a unique credential sentinel.
+- The test unpacks the final outer archive, decompresses `database.sql.gz`, and proves the sentinel, Subscription name and `CREATE SUBSCRIPTION` are absent from SQL; sentinel is also absent from manifest, refs, checksum, archive listing and ordinary backup/restore stdout/stderr.
+- Publication, database marker, Git refs and inventory still restore successfully, while the target contains no Subscription.
+
+## psql startup-file isolation
+
+Inspect:
+
+- `scripts/restore.sh`
+- `scripts/git-storage-inventory.sh`
+- `scripts/tests/postgres-database-object-durability.sh`
+
+Required behavior:
+
+- Every production non-interactive `psql` path uses a centralized `-X` / `ON_ERROR_STOP=1` wrapper, including preflight helper, plain SQL restore, rollback cleanup, rollback verification and inventory invoked directly or through backup.
+- Plain SQL restore retains `--single-transaction`; rollback, exact `CRITICAL` and no-success-on-failure semantics remain unchanged.
+- The focused test supplies a hostile `PSQLRC` that would create `public.psqlrc_sentinel` and alter `ON_ERROR_STOP`.
+- Restore must execute far enough to validate the archive and reach the legitimate non-empty database preflight gate, but must not enter PostgreSQL restore, Git installation or post-write inventory.
+- The preexisting marker and normalized schema snapshot remain exact, `psqlrc_sentinel` is absent, Git remains empty, and no success message is printed.
+- Test setup and verification SQL also use `-X`.
+
 
 Inspect `backend/crates/api/src/handlers/health.rs` and its tests.
 
@@ -94,11 +141,13 @@ The final review request in the PR conversation must identify the current exact 
 
 1. Re-read PR metadata, current Base/Head, all comments, Reviews, Review Threads and requested reviewers.
 2. Verify both workflows target the exact current Head and completed successfully.
-3. Inspect the production dump object contract, shared helper and cleanup order rather than treating the Publication test alone as proof.
-4. Confirm each negative test reaches its named gate and no failed restore prints success.
-5. Confirm no mixed target, hidden database-level residue, incomplete rollback without `CRITICAL`, or false readiness remains.
-6. Keep PR Draft and DATA-01 Open during review.
-7. Publish one result:
+3. Inspect the production dump object contract: Publication remains in scope, Subscription credentials are explicitly excluded, and Subscription-only targets are still non-empty.
+4. Confirm the credential sentinel exists in `pg_subscription.subconninfo`, then verify the test inspects the unpacked archive and decompressed SQL rather than grepping compressed bytes.
+5. Confirm production `psql` uses `-X` in every preflight/restore/rollback/inventory path and the hostile startup-file test reaches the named pre-write gate without side effects.
+6. Confirm all earlier negative matrices still run, each failure reaches its named gate, and no failed restore prints success.
+7. Confirm no mixed target, hidden database-level residue, incomplete rollback without `CRITICAL`, credential leakage, startup-file dependence, or false readiness remains.
+8. Keep PR Draft and DATA-01 Open during review.
+9. Publish one result:
 
 ```text
 Review target: <exact Head>
