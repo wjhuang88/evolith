@@ -4,18 +4,18 @@
 > validation evidence and lifecycle state. Update owner docs first, then reflect the current
 > operating state here.
 >
-> **2026-08-02 生产就绪进展**：Git-centric 产品方向保持不变；EVO-118 S1 中 SEC-01、SEC-02 已关闭，[Draft PR #7](https://github.com/wjhuang88/evolith/pull/7) 已完成 EVO-118-D / Iteration 053 的 Driver 实现和实现 Head exact-head CI，当前等待最新 Head CI 与独立 Navigator；DATA-01、DEPLOY-01 仍开放。事实见 [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md)，顺序见 [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
+> **2026-08-03 生产就绪进展**：Git-centric 产品方向保持不变；EVO-118 S1 中 SEC-01、SEC-02 已关闭。[Draft PR #7](https://github.com/wjhuang88/evolith/pull/7) 的独立 Navigator 已对旧 Head 给出 `Blocked`，EVO-118-D / Iteration 053 当前处于整改阶段；DATA-01、DEPLOY-01 仍开放。事实见 [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md)，顺序见 [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 
 ## Now
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-D Git Durability and Recovery | In Progress / Awaiting independent Navigator in Draft PR #7 | [Story](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | DATA-01；Iteration 053 Active；实现 Head CI 已绿，治理/证据提交后的最终 Head 仍需 required CI 与独立 Navigator。 |
-| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C Done；D 等待 Navigator；E 为下一 Gate，但尚未启动。 |
+| EVO-118-D Git Durability and Recovery | In Progress / Navigator Blocked / Remediation in Draft PR #7 | [Story](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | DATA-01；Iteration 053 Active。旧 Head CI 已失效；整改最终 Head 必须重新通过 required CI 并由原独立 Navigator re-review。 |
+| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C Done；D 正在 Navigator 整改；E 为下一 Gate，但尚未启动。 |
 
 ## Review
 
-EVO-118-D / Iteration 053 已完成 Driver 实现与恢复演练，进入独立 Navigator 等待阶段。审核入口见 [Navigator Review Packet](review/EVO-118-D-navigator-review.md)。PR #7 在最新 exact-head CI 和独立 Navigator 无 blocking finding 前保持 Draft；当前不存在可替代该独立结论的 GitHub Review、评论或线程。
+独立 Navigator 对旧 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885` 给出 `Blocked`：PostgreSQL 空目标/rollback 只覆盖 `public`，Git Storage readiness 未执行关闭写句柄后的独立 reopen/read/精确比对。整改已限定在上述两个 DATA-01 blocker、对应负向测试和稳定说明；审核入口见 [Navigator Review Packet](review/EVO-118-D-navigator-review.md)。PR #7 在最新 exact-head CI 与独立 Navigator `Complete` 前保持 Draft。
 
 ## Done
 
@@ -62,7 +62,7 @@ EVO-118-D / Iteration 053 已完成 Driver 实现与恢复演练，进入独立 
 - EVO-118-B/Iteration 051 已由 PR #3 合并并关闭；merge commit `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`，最终 CI run `30567361095` 全绿，SEC-01 已解除。
 - EVO-118-C/Iteration 052 已由 PR #5 合并并关闭；实现 head `de762e2dae6bf5716e54c64e2277cb2e26592e36`，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`，final-head CI #137 / run `30682419168` 全绿，SEC-02 已解除。
 - EVO-112-A 的 2026-06-29 本地历史成果已按冲突恢复流程迁移为 Iteration 054；该恢复不改变 EVO-118-D/E 的 S1 优先顺序。
-- Draft PR #7 已完成 EVO-118-D Driver 实现、真实容器重建和空环境恢复；实现 Head `83351a2` 的两条 workflow 全绿。当前治理/证据 Head 必须重新通过 required CI，随后由独立 Navigator 复验；DATA-01 仍未关闭。
-- 当前启动顺序：EVO-118-D（Awaiting Navigator）→ E → F/G/H → EVO-112-B（A 已恢复）→ EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
+- Draft PR #7 的被审核旧 Head 两条 workflow 虽全绿，但没有命中非 `public` rollback 和真实 readback；Navigator 已阻塞。整改分支已增加统一用户数据库空定义、全用户 schema rollback、`legacy.marker`/非 `public` 失败矩阵和独立 reopen/read/compare 测试，最终接受仍取决于最新 exact-head CI 与 Navigator re-review。
+- 当前启动顺序：EVO-118-D（Navigator Remediation）→ E → F/G/H → EVO-112-B（A 已恢复）→ EVO-105/106/107/104 → EVO-108/109/110 → EVO-111。
 - 安全、数据损坏或生产构建问题允许显式 P0 插队；普通 UI、视觉、计费或内部文档不得静默绕过 S1。
 - Board 只反映 owner docs；Gate 关闭必须由 Story 验收、最新 exact-head CI、独立 Navigator 和实际验证共同证明。
