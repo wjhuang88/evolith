@@ -124,6 +124,7 @@ jobs:
           bash -n scripts/restore.sh
           bash -n scripts/git-storage-inventory.sh
           bash -n scripts/tests/durability.sh
+          bash -n scripts/tests/postgres-database-object-durability.sh
           bash -n scripts/tests/container-volume-persistence.sh
           bash -n scripts/tests/application-recovery-drill.sh
 
@@ -143,6 +144,12 @@ jobs:
           POSTGRES_BASE_URL: postgres://evolith:evolith@localhost:5432
           POSTGRES_ADMIN_URL: postgres://evolith:evolith@localhost:5432/postgres
         run: bash scripts/tests/durability.sh
+
+      - name: Database-level PostgreSQL durability integration
+        env:
+          POSTGRES_BASE_URL: postgres://evolith:evolith@localhost:5432
+          POSTGRES_ADMIN_URL: postgres://evolith:evolith@localhost:5432/postgres
+        run: bash scripts/tests/postgres-database-object-durability.sh
 
       - name: Git volume container recreation
         run: bash scripts/tests/container-volume-persistence.sh

@@ -68,6 +68,58 @@ database_user_object_count() {
 
 reset_postgres_to_empty() {
     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q >/dev/null <<'SQL'
+-- Subscriptions are database-local but can own remote replication slots. Make
+-- them inert and detach slot ownership before dropping them so rollback never
+-- attempts a remote connection.
+SELECT pg_catalog.format('ALTER SUBSCRIPTION %I DISABLE;', subname)
+FROM pg_catalog.pg_subscription
+WHERE subdbid = (SELECT oid FROM pg_catalog.pg_database WHERE datname = current_database())
+ORDER BY subname
+\gexec
+SELECT pg_catalog.format('ALTER SUBSCRIPTION %I SET (slot_name = NONE);', subname)
+FROM pg_catalog.pg_subscription
+WHERE subdbid = (SELECT oid FROM pg_catalog.pg_database WHERE datname = current_database())
+ORDER BY subname
+\gexec
+SELECT pg_catalog.format('DROP SUBSCRIPTION %I;', subname)
+FROM pg_catalog.pg_subscription
+WHERE subdbid = (SELECT oid FROM pg_catalog.pg_database WHERE datname = current_database())
+ORDER BY subname
+\gexec
+
+-- Extensions must be removed before their member schemas/objects. plpgsql is
+-- the fresh-database baseline installed by PostgreSQL itself.
+SELECT pg_catalog.format('DROP EXTENSION %I CASCADE;', extname)
+FROM pg_catalog.pg_extension
+WHERE oid >= 16384
+ORDER BY extname
+\gexec
+
+SELECT pg_catalog.format('DROP PUBLICATION %I CASCADE;', pubname)
+FROM pg_catalog.pg_publication
+WHERE oid >= 16384
+ORDER BY pubname
+\gexec
+
+SELECT pg_catalog.format('DROP SERVER %I CASCADE;', srvname)
+FROM pg_catalog.pg_foreign_server
+WHERE oid >= 16384
+ORDER BY srvname
+\gexec
+
+SELECT pg_catalog.format('DROP FOREIGN DATA WRAPPER %I CASCADE;', fdwname)
+FROM pg_catalog.pg_foreign_data_wrapper AS f
+WHERE f.oid >= 16384
+ORDER BY fdwname
+\gexec
+
+SELECT pg_catalog.lo_unlink(oid)
+FROM pg_catalog.pg_largeobject_metadata
+WHERE oid >= 16384;
+
+-- Keep event triggers active through schema removal. The durability suite uses
+-- one to deterministically prove that a failed cleanup remains non-zero and is
+-- escalated to CRITICAL instead of being reported as an empty rollback.
 DO $evolith$
 DECLARE
     user_schema TEXT;
@@ -79,10 +131,52 @@ BEGIN
           AND nspname !~ '^pg_'
         ORDER BY nspname
     LOOP
-        EXECUTE format('DROP SCHEMA %I CASCADE', user_schema);
+        EXECUTE pg_catalog.format('DROP SCHEMA %I CASCADE', user_schema);
     END LOOP;
 END
 $evolith$;
+
+-- Remove any database-level programmable objects that were not already
+-- removed through schema or extension dependencies.
+SELECT pg_catalog.format(
+    'DROP TRANSFORM FOR %s LANGUAGE %I CASCADE;',
+    pg_catalog.format_type(t.trftype, NULL),
+    l.lanname
+)
+FROM pg_catalog.pg_transform AS t
+JOIN pg_catalog.pg_language AS l ON l.oid = t.trflang
+WHERE t.oid >= 16384
+ORDER BY 1
+\gexec
+
+SELECT pg_catalog.format(
+    'DROP CAST (%s AS %s) CASCADE;',
+    pg_catalog.format_type(c.castsource, NULL),
+    pg_catalog.format_type(c.casttarget, NULL)
+)
+FROM pg_catalog.pg_cast AS c
+WHERE c.oid >= 16384
+ORDER BY 1
+\gexec
+
+SELECT pg_catalog.format('DROP ACCESS METHOD %I CASCADE;', amname)
+FROM pg_catalog.pg_am AS a
+WHERE a.oid >= 16384
+ORDER BY amname
+\gexec
+
+SELECT pg_catalog.format('DROP LANGUAGE %I CASCADE;', lanname)
+FROM pg_catalog.pg_language AS l
+WHERE l.oid >= 16384
+ORDER BY lanname
+\gexec
+
+SELECT pg_catalog.format('DROP EVENT TRIGGER %I;', evtname)
+FROM pg_catalog.pg_event_trigger
+WHERE oid >= 16384
+ORDER BY evtname
+\gexec
+
 CREATE SCHEMA public;
 SQL
 }
