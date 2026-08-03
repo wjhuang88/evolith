@@ -168,6 +168,8 @@
 
 本轮整改必须让共享 helper、restore cleanup 与生产 `pg_dump` 的对象范围一致，并增加 Publication-only preflight 拒绝、Publication restore/rollback、helper 前后计数和既有 incomplete-rollback `CRITICAL` 回归。Head `7608be9...` 的 `ci` #191 / run `30797578993` 与 `data-durability-container` #37 / run `30797579026` 自本轮提交起仅为历史证据。
 
+整改实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 已完成上述对象面收敛：共享 helper 与 rollback cleanup 新增 Publication、Subscription、Event Trigger、Extension、Large Object、FDW/Server/User Mapping、非内置 Language/Cast/Transform/Access Method；新增 Publication 专项矩阵已证明生产 backup/restore 携带 Publication、Publication-only 目标写前拒绝、post-write failure 后 Publication/schema/Git 全量回滚及 helper=`0`。`ci` #195 / run `30830738917` 与 `data-durability-container` #41 / run `30830734213` 为实现切片证据；治理同步提交改变 Head 后必须再跑最终 exact-head CI。
+
 ## 闭环台账
 
 | 项目 | 本轮记录 |
@@ -181,9 +183,9 @@
 ## 当前执行状态
 
 - Iteration 053：Active / Navigator Blocked / Remediation。
-- Driver：已接受第二次 Navigator 的唯一剩余 blocker，正在把数据库级对象纳入统一空库/rollback 契约并补 Publication 负向测试。
-- PR #7：Open / Draft / Mergeable；保持 Draft，本轮治理或实现提交后 Head `7608be9...` 的 CI 不再是最终验收证据。
-- Navigator：对 Head `7608be9...` 给出 `Blocked`；readiness 已解决，等待数据库级对象整改最终 Head 与新 exact-head CI 后再次审核。
+- Driver：第二次 Navigator 的数据库级对象 blocker 已完成实现与 Publication 专项验证，正在同步 Story、Iteration、Review Packet 与 Scripts Release Notes；同步提交后还需最终 exact-head CI。
+- PR #7：Open / Draft / Mergeable；保持 Draft。实现 Head `75f7868...` 已完成专项与容器验证，但治理同步提交后仍需新的最终 exact-head CI。
+- Navigator：对 Head `7608be9...` 给出 `Blocked`；readiness 已解决，数据库级对象实现已完成，等待治理同步后的最终 Head、两条 exact-head workflow 与第三次独立审核。
 - DATA-01：Open；不得因代码提交、旧 Head CI 或整改 Driver 自验关闭。
 - EVO-118-E：Ready / Not Started；保持未启动。
 

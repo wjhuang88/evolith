@@ -104,7 +104,7 @@
 | Compose/K8s volume | Backend 重建后 clone/refs 不丢 | 移除挂载可复现丢失风险 |
 | Git readiness | 可读写目录 200 | missing/not-dir/read-only/unwritable 503 |
 | Backup | DB+Git+manifest+checksum 完整，退出 0 | 任一命令失败、停写边界缺失或归档不完整时非零 |
-| Restore | 空目标 staging 恢复并通过对账 | DB-only/Git-only/corrupt/checksum/version/non-empty/mid-failure 拒绝 |
+| Restore | 空目标 staging 恢复并通过对账 | DB-only/Git-only/corrupt/checksum/version、schema 或 Publication 非空目标、mid-failure 拒绝 |
 | Inventory | 完整环境退出 0 | DB-only/disk-only/invalid bare/missing ref 等退出非零 |
 | 双数据库回归 | SQLite workspace tests 无无关回归 | PostgreSQL 生产路径需真实演练证据 |
 | 凭证保护 | manifest/log 仅含非敏感配置 | Secret grep 或归档检查发现敏感字段即失败 |
@@ -169,6 +169,8 @@
 - 2026-08-02：Owner Story 已更新为 `In Progress / Awaiting independent Navigator`；DATA-01 保持 Open，EVO-118-E 保持 Ready 且未启动。
 - 2026-08-03：独立 Navigator 对 Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`、Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885` 给出 `Blocked`。两个 blocker 分别为 PostgreSQL 空目标/rollback 仅覆盖 `public`，以及 Git Storage readiness 未执行独立 reopen/read/compare。旧 `ci` run `30756053633` 与 `data-durability-container` run `30756053641` 不覆盖这些失败路径，整改提交后也不再是最终验收证据。
 - 2026-08-03：Iteration 进入 `Active / Navigator Blocked / Remediation`；PR #7 保持 Draft，DATA-01 保持 Open，EVO-118-E 保持 Ready / Not Started。
+- 2026-08-03：第二次独立 Navigator 对 Head `7608be9f5e7234c0797e4aeba23a133ca91552dc` 给出 `Blocked`。Git Storage readiness readback 已明确解决，非 `public` schema 缺陷对 schema-scoped state 已修复；唯一剩余 blocker 为 unrestricted database-level `pg_dump` 可携带 Publication 等数据库级对象，而当时共享空库 helper 和 rollback 只覆盖 schema state。Head `7608be9...` 的 `ci` #191 / run `30797578993` 与 `data-durability-container` #37 / run `30797579026` 自本轮整改提交起仅为历史证据。
+- 2026-08-03：整改实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 已把 Publication、Subscription、Event Trigger、Extension、Large Object、FDW/Server/User Mapping、非内置 Language/Cast/Transform/Access Method 纳入共享空库定义与 rollback cleanup；新增 `scripts/tests/postgres-database-object-durability.sh`，真实证明生产 backup/restore 携带 Publication、Publication-only 目标写前拒绝，以及 post-write inventory failure 后 Publication、schema 与 Git 一起回滚为空。`ci` #195 / run `30830738917` 与 `data-durability-container` #41 / run `30830734213` 为该实现切片验证；后续治理同步提交仍需最终 exact-head 重跑。
 
 后续只追加实际执行事实、commit/head、命令结果、故障注入、Navigator 结论和偏差；不得改写以上 Planned 基线。
 
@@ -176,16 +178,16 @@
 
 ### Driver review
 
-- 独立复核确认两个 Navigator blocker 均成立，当前进入整改，不再声明“无已知 blocking defect”。
-- 整改范围严格限制为统一 PostgreSQL 用户数据库空语义、完整 rollback-to-empty、对应负向测试，以及 Git Storage 独立 readback/read-error/mismatch/cleanup 测试。
+- 第二次复核确认 Git Storage readback blocker 已解决；数据库级 PostgreSQL 对象与生产 `pg_dump` 对象面的契约缺口已进入实现验证。
+- 整改范围严格限制为统一空库 helper、完整 rollback-to-empty、Publication-only preflight 拒绝、Publication production backup/restore、Publication post-write rollback、helper 前后计数，以及既有 incomplete-rollback `CRITICAL` 回归。
 - 所有整改提交都必须在最终 Head 重新运行 required exact-head CI；Driver 自验不能替代 Navigator。
 
 ### Independent Navigator
 
-- 状态：Blocked；等待整改最终 Head re-review。
-- 已审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`，Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885`。
-- Blocker 1：restore 的数据库空判断与 rollback 只处理 `public`，可能接受非 `public` 非空目标或留下未报告的部分恢复。
-- Blocker 2：Git Storage readiness 没有关闭写句柄后重新打开并读取、精确比对探针内容，可能产生错误 200。
+- 状态：Blocked；等待数据库级对象整改最终 Head re-review。
+- 已审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；第一次 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885`，第二次 Head `7608be9f5e7234c0797e4aeba23a133ca91552dc`。
+- 第一次 Blocker 1 的非 `public` schema 场景已修复；第二次复验发现的数据库级对象缺口已在实现 Head `75f7868...` 补齐并由 Publication 专项矩阵通过，仍需最终 exact-head CI 与第三次独立复验确认。
+- 第一次 Blocker 2 的 Git Storage reopen/read/compare 已被第二次复验明确判定 Resolved。
 - 审核入口：[EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)。
 - 修复后必须以最新 PR Head、两条 required exact-head workflow 和新增失败路径证据请求原独立 Navigator 重新给出 `Complete | Partial | Blocked`。
 - Navigator 无 blocking finding 且最新 exact-head CI 全绿后，才允许进入 Ready/merge 流程；合并后仍需独立治理 closeout。

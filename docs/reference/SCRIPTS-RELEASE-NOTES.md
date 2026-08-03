@@ -5,6 +5,14 @@
 
 ## Unreleased
 
+### EVO-118-D Navigator 第二次整改 — 数据库级 PostgreSQL 对象
+
+- **生产 `pg_dump` 对象面与空库契约对齐**：`scripts/postgres-user-object-count.sql` 在既有 schema-scoped 对象之外，新增对 user extension、Publication、当前数据库 Subscription、Event Trigger、Large Object、Foreign Data Wrapper/Server/User Mapping，以及非内置 Language/Cast/Transform/Access Method 的计数。restore 写前门禁、rollback 后验证和测试继续共用同一 helper。
+- **数据库级 rollback-to-empty**：`scripts/restore.sh` 在后段失败时，按依赖顺序清理 Subscription、Extension、Publication、foreign-data 对象、Large Object、全部用户 schema，以及剩余 database-level programmable objects，最后删除 Event Trigger 并重建空 `public`。任何 SQL、Git 或后置验证失败都保持非零；完整清理不可达时继续输出 `CRITICAL`。
+- **Publication 专项矩阵**：新增 `scripts/tests/postgres-database-object-durability.sh`。测试直接证明生产 backup 包含空 Publication，成功 restore 后 Publication/数据库标记/Git commit 同时恢复；仅含 Publication 的目标在写前被拒绝且原 Publication 保留；post-write inventory failure 后 Publication、schema 与 Git 全部清除，shared helper 返回 `0`。
+- **既有 CRITICAL 回归不削弱**：`scripts/tests/durability.sh` 的 Event Trigger 阻断 `DROP SCHEMA` 场景继续运行，证明自动回滚不完整时 restore 非零、不得打印成功，并输出 `CRITICAL: automatic rollback was incomplete`。
+- **CI 接线**：PR required `ci` 新增独立的 Database-level PostgreSQL durability step，并保留原联合耐久性矩阵、Volume recreation、Rust 与应用恢复门禁。任何后续文档/治理提交改变 Head 后，仍须重新建立 exact-head 两条 required workflow。
+
 ### EVO-118-D Navigator 整改 — 全数据库空目标与 Git readback
 
 - **统一 PostgreSQL 空目标语义**：新增 `scripts/postgres-user-object-count.sql`，由 restore 前置门禁、rollback 后置验证和 durability 测试共用。PostgreSQL 内部 schema（`information_schema` 与 `pg_*`）不计入用户数据；默认空 `public` 可存在；任意额外用户 schema 即使为空也视为非空，`public` 内关系、分区、view、materialized view、sequence、foreign table、function/procedure、用户定义 type 等 schema-scoped 对象均会阻止覆盖。
@@ -24,7 +32,7 @@
 - **`scripts/tests/application-recovery-drill.sh`**：新增应用级空环境恢复演练。启动真实 PostgreSQL Backend，注册用户/租户、创建 Repo、通过 Smart HTTP push 多 Commit/Branch/Tag；联合备份后恢复到新 DB 与新 Git 目录，重新登录、列 Repo、clone/refs/SHA 校验，注入只读 readiness 503，恢复后重启 Backend 再次 clone。
 - **`scripts/tests/check-markdown-links.py`**：新增仓库内 Markdown 本地链接门禁。
 - **`.github/workflows/ci.yml`**：PR CI 改为显式 checkout 并验证 PR exact-head SHA；新增 `git diff --check`、Markdown links、Compose durability mapping、脚本语法、PostgreSQL+Git 恢复矩阵、Docker Volume 重建与应用级恢复演练。Frontend lint、完整 PostgreSQL workspace tests 和生产 Compose clean-build/startup 诊断保留在 release/tag/manual gate。PR #7 的一次 exact-head run 在全部 DATA-01 门禁通过后，因无缓存生产构建诊断耗尽 55 分钟 job timeout 而被误报失败；该 DEPLOY-01 诊断现已从 PR required job 解耦，避免 `continue-on-error` 无法处理 runner/job 级超时。
-- **`backend/Dockerfile`**：运行时新增 `git`，创建固定非 root 用户与 `/var/lib/evolith/git`，Docker healthcheck 改为 `/health/ready`。CI-only recovery runtime image 使用 UID/GID 10001，避免 Ubuntu runner 已占用 UID 1000。
+- **`backend/Dockerfile`**：运行时新增 `git`，创建固定非 root 用户与 `/var/lib/evolith/git`，Docker healthcheck 改为 `/health/ready`。CI-only recovery runtime image 使用 UID/GID 10001，避免 Ubuntu runner 已占用 UID 1000 冲突。
 - **`docker-compose.prod.yml`**：Backend 显式设置 `GIT_STORAGE__BASE_PATH=/var/lib/evolith/git` 并挂载 `git_data` named Volume；该 Volume 只声明单实例持久性，不声明多实例共享或复制。
 - **`deploy/k8s/backend.yaml`**：新增 ReadWriteOnce PVC，Backend 单副本 + `Recreate`，以受控非 root UID/GID/fsGroup 挂载 Git Storage；移除与本地/RWO Git Volume 不兼容的多副本/HPA 暗示。共享存储或 Repo affinity 另行设计。
 
@@ -34,7 +42,7 @@
 - `EVOLITH_BACKUP_QUIESCED=true` / `EVOLITH_RESTORE_QUIESCED=true` 是操作确认，不会自动暂停应用、后台任务或 Git push。
 - 联合 restore 只支持 PostgreSQL 生产路径；SQLite 开发路径不使用这些脚本，继续由 Rust workspace tests 回归。
 - SHA-256 用于损坏检测，不提供归档签名或来源认证；备份介质仍需加密、访问控制和离线/不可变副本。
-- restore 默认只面向真正空目标：除 PostgreSQL 内部 schema 外只能存在默认空 `public`；任何额外用户 schema 或 `public` 用户对象都会在写入前拒绝。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
+- restore 默认只面向真正空目标：除 PostgreSQL 内部 schema 与默认空 `public` 外，不得存在 schema-scoped 或数据库级用户对象；额外用户 schema、`public` 用户对象或 Publication 等 database-level state 都会在写入前拒绝。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
 - `GIT_STORAGE_PATH` 不得是 symlink；源 Git Storage 中的 FIFO/socket/device 等特殊文件会使 backup 失败，归档中出现 symlink、hardlink、特殊文件、异常层级或非 UUID 布局会被拒绝。
 - manifest v1 必须精确包含 `backup_format_version`、`application_version`、`created_at`、`consistency`、`database_format`、`git_format`、`git_storage_layout` 七项；缺失、重复、额外或不兼容值均 fail closed。
 - GitHub Contents API 创建的新脚本可能不携带 executable bit；CI 与文档统一使用 `bash scripts/...`、`psql -f scripts/postgres-user-object-count.sql` 或 `python3 scripts/...` 调用，不依赖直接执行位。
@@ -46,6 +54,7 @@
 - 实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612` 与 `data-durability-container` run `30736864631` 已全绿；后续 Driver 审计强化会改变 Head，因此最终接受仍以最新 exact-head required workflows 为准。
 - Head `6bbb2dabc39232f7c057c08215a9faed0e0b3b9b` 的 run `30755307482` 已通过所有 DATA-01 required steps，包括强化负向矩阵、Rust 全量回归和应用级恢复；随后仅在 DEPLOY-01 无缓存生产构建诊断期间触发 55 分钟 job timeout。该结果不是最终绿色证据，但证明诊断耦合而非 DATA-01 失败。
 - 整改中间 Head `fb4b189e7c75b1fff224f9770e6b9aa269695dcb` 的 `ci` run `30794295296` 已实际通过新增非 `public` 目标拒绝、非 `public` post-write rollback、通用 Volume recreation、Frontend gates 和脚本门禁，仅因 readiness 测试文件未应用 rustfmt 而停止；格式修正后的最终 Head 仍需重新跑全部 required steps。
+- 数据库级对象实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 的 `ci` #195 / run `30830738917` 已通过原 durability matrix 与新增 Publication 专项矩阵；`data-durability-container` #41 / run `30830734213` 已通过真实 Backend container recreation。治理同步提交会改变 Head，因此这两条在最终请求中只作为实现切片证据。
 - `docker compose build --no-cache` 与完整生产栈 smoke 仍受 EVO-118-E / DEPLOY-01 的 Embedded Frontend 构建收敛约束；EVO-118-D 不通过改变前端交付形态规避该 Gate，PR required CI 也不再让该诊断覆盖 DATA-01 结论。
 
 ### 既有 Unreleased 记录
