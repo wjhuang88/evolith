@@ -56,9 +56,13 @@ database_user_object_count() {
 publication_exists() {
     local database_url="$1"
     local name="$2"
-    psql "$database_url" -v ON_ERROR_STOP=1 -Atq \
-        -v publication_name="$name" \
-        -c "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_publication WHERE pubname = :'publication_name')"
+    psql "$database_url" -v ON_ERROR_STOP=1 -Atq -v publication_name="$name" <<'SQL'
+SELECT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_publication
+    WHERE pubname = :'publication_name'
+);
+SQL
 }
 
 assert_no_restore_success() {
