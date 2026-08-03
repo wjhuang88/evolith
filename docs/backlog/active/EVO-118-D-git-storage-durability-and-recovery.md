@@ -142,7 +142,7 @@
 
 - 持久化：生产 Compose、K8s 与 Backend runtime 路径统一为 `/var/lib/evolith/git`，并使用显式持久卷；未宣称本地卷支持多实例共享。
 - Readiness：PostgreSQL 与 Git Storage 联合判定；Head `7608be9f5e7234c0797e4aeba23a133ca91552dc` 已实现 create/write/sync/close/reopen/read/精确比对/cleanup，第二次独立 Navigator 已明确判定该 blocker **Resolved**。
-- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚；非 `public` schema 缺陷已修复，但第二次独立 Navigator 发现 unrestricted database-level `pg_dump` 还会包含 Publication 等数据库级对象，当前共享空库定义和 rollback 仍未覆盖该对象面。
+- Backup/Restore：维护窗口前提、版本化 manifest/checksum、PostgreSQL + Git 联合归档、staging-first restore、空目标保护、路径/类型/版本/checksum/bare repo/refs 校验和失败回滚；第一次复验发现的非 `public` schema 缺陷及第二次复验发现的 database-level Publication 对象面均已进入统一共享空库 helper、rollback cleanup 与专项负向矩阵。生产 dump 继续显式使用 `--no-owner --no-privileges`，不把 role/global/default-ACL 状态纳入本备份格式。
 - Inventory：识别 DB-only、Git-only、重复/异常 UUID 布局、无效 bare repo、缺默认分支或最后 Commit，并以非零退出阻止假成功。
 - 应用恢复：真实 Backend 完成 register/create/Smart HTTP push、联合备份、空环境恢复、login/list/clone/refs、readiness 故障注入和 Backend 重启后再次 clone。
 - 容器重建：真实 Backend 容器在同一 PostgreSQL 与命名 Git volume 上删除/重建后，login/list/clone/Branch/Tag/SHA 均保持。
