@@ -1,6 +1,6 @@
 # Iteration 053 — Git Storage Durability and Recovery
 
-- **状态**：Active / Awaiting independent Navigator
+- **状态**：Active / Navigator Blocked / Remediation
 - **计划基线**：Planned baseline established on 2026-08-02 before runtime/deploy/script implementation
 - **目标 Story**：[EVO-118-D](../backlog/active/EVO-118-D-git-storage-durability-and-recovery.md)
 - **父 Epic**：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)
@@ -167,6 +167,8 @@
 - 2026-08-02：同一实现 Head 的 `data-durability-container` run `30736864631` / #3 成功，真实 Backend 容器删除/重建演练通过。
 - 2026-08-02：提交 [Navigator Review Packet](../review/EVO-118-D-navigator-review.md)，明确当前 Driver 不得代替独立 Navigator；该文档及后续治理提交改变 Head，因此最终 Head 必须重新跑 required CI。
 - 2026-08-02：Owner Story 已更新为 `In Progress / Awaiting independent Navigator`；DATA-01 保持 Open，EVO-118-E 保持 Ready 且未启动。
+- 2026-08-03：独立 Navigator 对 Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`、Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885` 给出 `Blocked`。两个 blocker 分别为 PostgreSQL 空目标/rollback 仅覆盖 `public`，以及 Git Storage readiness 未执行独立 reopen/read/compare。旧 `ci` run `30756053633` 与 `data-durability-container` run `30756053641` 不覆盖这些失败路径，整改提交后也不再是最终验收证据。
+- 2026-08-03：Iteration 进入 `Active / Navigator Blocked / Remediation`；PR #7 保持 Draft，DATA-01 保持 Open，EVO-118-E 保持 Ready / Not Started。
 
 后续只追加实际执行事实、commit/head、命令结果、故障注入、Navigator 结论和偏差；不得改写以上 Planned 基线。
 
@@ -174,17 +176,18 @@
 
 ### Driver review
 
-- 实现切片、负向矩阵、真实 Git Smart HTTP 行为、容器重建、空环境恢复和 exact-head CI 已完成。
-- Driver 发现并修复 fresh PostgreSQL migration、CSRF 演练和 runtime-image UID 三类缺陷。
-- 当前没有已知未修复的 DATA-01 blocking defect；该陈述只是 Driver 状态，不是独立接受结论。
+- 独立复核确认两个 Navigator blocker 均成立，当前进入整改，不再声明“无已知 blocking defect”。
+- 整改范围严格限制为统一 PostgreSQL 用户数据库空语义、完整 rollback-to-empty、对应负向测试，以及 Git Storage 独立 readback/read-error/mismatch/cleanup 测试。
+- 所有整改提交都必须在最终 Head 重新运行 required exact-head CI；Driver 自验不能替代 Navigator。
 
 ### Independent Navigator
 
-- 状态：Pending。
-- 审核目标：最新 PR Head，而不是实现 Head `83351a2` 或任一旧 Head。
+- 状态：Blocked；等待整改最终 Head re-review。
+- 已审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`，Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885`。
+- Blocker 1：restore 的数据库空判断与 rollback 只处理 `public`，可能接受非 `public` 非空目标或留下未报告的部分恢复。
+- Blocker 2：Git Storage readiness 没有关闭写句柄后重新打开并读取、精确比对探针内容，可能产生错误 200。
 - 审核入口：[EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)。
-- 必须独立检查数据损坏、部分恢复、假成功、路径/归档安全、凭证泄露、readiness、真实容器重建和范围边界。
-- Navigator 发现 blocking finding 时，本 Iteration 继续 Active，PR 保持 Draft，修复后重跑 exact-head CI。
+- 修复后必须以最新 PR Head、两条 required exact-head workflow 和新增失败路径证据请求原独立 Navigator 重新给出 `Complete | Partial | Blocked`。
 - Navigator 无 blocking finding 且最新 exact-head CI 全绿后，才允许进入 Ready/merge 流程；合并后仍需独立治理 closeout。
 
-最终只能记录 `Complete`、`Partial` 或 `Blocked`。当前尚未形成最终结论，PR 合并也不自动等于 DATA-01 或 Iteration 关闭。
+最终只能记录 `Complete`、`Partial` 或 `Blocked`。当前结论为 `Blocked`，PR 合并也不自动等于 DATA-01 或 Iteration 关闭。
