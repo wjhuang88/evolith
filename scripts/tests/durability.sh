@@ -180,7 +180,7 @@ mutation_database_sql_failure() {
     local dir="$1"
     gzip -dc "$dir/database.sql.gz" >"$dir/database.sql"
     cat >>"$dir/database.sql" <<'SQL'
-CREATE TABLE should_be_rolled_back (value TEXT);
+CREATE TABLE public.should_be_rolled_back (value TEXT);
 THIS IS NOT VALID SQL;
 SQL
     gzip -c "$dir/database.sql" >"$dir/database.sql.gz"
@@ -192,7 +192,7 @@ mutation_inventory_failure() {
     local dir="$1"
     gzip -dc "$dir/database.sql.gz" >"$dir/database.sql"
     cat >>"$dir/database.sql" <<'SQL'
-INSERT INTO git_repos (
+INSERT INTO public.git_repos (
     id, tenant_id, name, description, default_branch, storage_path,
     visibility, auto_merge, require_review, created_at, updated_at
 ) VALUES (
