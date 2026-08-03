@@ -1,7 +1,7 @@
 //! Health check handlers
 
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Read, Write};
 use std::path::Path;
 
 use actix_web::http::StatusCode;
@@ -9,6 +9,8 @@ use actix_web::{web, HttpResponse, Responder};
 use serde::Serialize;
 
 use crate::state::AppState;
+
+const GIT_STORAGE_PROBE_BYTES: &[u8] = b"evolith-git-storage-readiness-v1\n";
 
 #[derive(Serialize)]
 struct HealthCheckResponse {
@@ -87,6 +89,13 @@ async fn check_database(state: &AppState) -> bool {
 }
 
 fn check_git_storage(base_path: &Path) -> bool {
+    check_git_storage_with_readback(base_path, read_probe_exact)
+}
+
+fn check_git_storage_with_readback<F>(base_path: &Path, readback: F) -> bool
+where
+    F: FnOnce(&Path, &[u8]) -> io::Result<()>,
+{
     let metadata = match fs::metadata(base_path) {
         Ok(metadata) => metadata,
         Err(_) => return false,
@@ -101,33 +110,76 @@ fn check_git_storage(base_path: &Path) -> bool {
     }
 
     let probe_file = probe_dir.join("probe");
-    let probe_result = (|| -> std::io::Result<()> {
+    let probe_result = (|| -> io::Result<()> {
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(&probe_file)?;
-        file.write_all(b"ready")?;
+        file.write_all(GIT_STORAGE_PROBE_BYTES)?;
         file.sync_all()?;
         drop(file);
-        fs::remove_file(&probe_file)?;
-        fs::remove_dir(&probe_dir)?;
-        Ok(())
+
+        readback(&probe_file, GIT_STORAGE_PROBE_BYTES)
     })();
 
-    if probe_result.is_err() {
-        let _ = fs::remove_file(&probe_file);
-        let _ = fs::remove_dir(&probe_dir);
-        return false;
-    }
+    let cleanup_result = cleanup_probe(&probe_file, &probe_dir);
+    probe_result.is_ok() && cleanup_result.is_ok()
+}
 
-    true
+fn read_probe_exact(probe_file: &Path, expected: &[u8]) -> io::Result<()> {
+    let mut file = File::open(probe_file)?;
+    let mut actual = Vec::new();
+    file.read_to_end(&mut actual)?;
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Git storage readiness probe readback mismatch",
+        ))
+    }
+}
+
+fn cleanup_probe(probe_file: &Path, probe_dir: &Path) -> io::Result<()> {
+    let file_result = remove_file_if_present(probe_file);
+    let directory_result = remove_dir_if_present(probe_dir);
+    file_result.and(directory_result)
+}
+
+fn remove_file_if_present(path: &Path) -> io::Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+fn remove_dir_if_present(path: &Path) -> io::Result<()> {
+    match fs::remove_dir(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{check_git_storage, readiness_status};
+    use super::{
+        check_git_storage, check_git_storage_with_readback, read_probe_exact, readiness_status,
+        GIT_STORAGE_PROBE_BYTES,
+    };
     use actix_web::http::StatusCode;
     use std::fs;
+
+    fn assert_probe_artifacts_cleaned(path: &std::path::Path) {
+        assert!(
+            fs::read_dir(path)
+                .expect("read tempdir")
+                .next()
+                .is_none(),
+            "readiness probe must clean up its temporary artifacts"
+        );
+    }
 
     #[test]
     fn readiness_returns_503_when_database_is_unavailable() {
@@ -168,17 +220,50 @@ mod tests {
     }
 
     #[test]
-    fn git_storage_readiness_accepts_readable_writable_directory() {
+    fn git_storage_readiness_reopens_reads_compares_and_cleans_up() {
         let temp = tempfile::tempdir().expect("tempdir");
 
         assert!(check_git_storage(temp.path()));
-        assert!(
-            fs::read_dir(temp.path())
-                .expect("read tempdir")
-                .next()
-                .is_none(),
-            "readiness probe must clean up its temporary artifacts"
-        );
+        assert_probe_artifacts_cleaned(temp.path());
+    }
+
+    #[test]
+    fn git_storage_readback_requires_exact_probe_bytes() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let probe = temp.path().join("probe");
+        fs::write(&probe, GIT_STORAGE_PROBE_BYTES).expect("write exact probe");
+
+        assert!(read_probe_exact(&probe, GIT_STORAGE_PROBE_BYTES).is_ok());
+
+        fs::write(&probe, b"evolith-git-storage-readiness-v1")
+            .expect("write truncated probe");
+        assert!(read_probe_exact(&probe, GIT_STORAGE_PROBE_BYTES).is_err());
+    }
+
+    #[test]
+    fn git_storage_readiness_rejects_readback_mismatch_and_cleans_up() {
+        let temp = tempfile::tempdir().expect("tempdir");
+
+        let ready = check_git_storage_with_readback(temp.path(), |probe_file, expected| {
+            fs::write(probe_file, b"corrupted")?;
+            read_probe_exact(probe_file, expected)
+        });
+
+        assert!(!ready);
+        assert_probe_artifacts_cleaned(temp.path());
+    }
+
+    #[test]
+    fn git_storage_readiness_rejects_read_error_and_cleans_up() {
+        let temp = tempfile::tempdir().expect("tempdir");
+
+        let ready = check_git_storage_with_readback(temp.path(), |probe_file, expected| {
+            fs::remove_file(probe_file)?;
+            read_probe_exact(probe_file, expected)
+        });
+
+        assert!(!ready);
+        assert_probe_artifacts_cleaned(temp.path());
     }
 
     #[cfg(unix)]
