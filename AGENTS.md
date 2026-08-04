@@ -146,16 +146,16 @@ Evolith 是 Git-centric AI development platform：
 - Git backend：Alpha foundation。
 - Web product：EVO-112-A Repo UI Shell 已实现；Repo Detail 与 Vibe Coding 仍未实现。
 - Agent loop：Commit/Promote/Session/Webhook 未实现。
-- Production：SEC-01/SEC-02 已关闭；仍被 DATA-01 Git 耐久性与 DEPLOY-01 生产构建阻断。
+- Production：SEC-01/SEC-02/DATA-01 已关闭；仍被 DEPLOY-01 生产构建阻断。
 
 不得把 EVO-103/116 或已关闭的安全 Gate 描述成平台整体生产就绪。
 
 ### Current Execution State
 
-- `main` 已包含 PR #5 / EVO-118-C，SEC-02 已关闭。
-- Draft PR #7 正在推进 `EVO-118-D` / Iteration 053；该 PR 是 DATA-01 的 owner，不与 Repo UI 恢复提交混写。
-- EVO-112-A 的 2026-06-29 本地历史成果已迁移为 Iteration 054 并恢复；这不改变 EVO-118-D/E 的 S1 优先顺序。
-- 下一条产品实现仍是 S1 关闭后的 EVO-112-B；不要把 EVO-118-E 或 Repo Detail 混入当前 WIP。
+- `main` 已包含 PR #7 / EVO-118-D；merge commit `932def05717b678f6f44dc23f137933d56158957`，DATA-01 已关闭。
+- EVO-118-D Done / Merged，Iteration 053 Closed / Complete；当前没有 Active runtime Iteration。
+- EVO-118-E 保持 Ready / Not Started，是下一候选，但必须重新执行 START-ITERATION，不得自动启动。
+- EVO-112-A 已完成；EVO-112-B 仍等待 S1 的 DEPLOY-01 关闭。
 
 ### Current Order
 
@@ -163,8 +163,8 @@ Evolith 是 Git-centric AI development platform：
 EVO-118-A ✓
 → EVO-118-B ✓
 → EVO-118-C ✓
-→ EVO-118-D（Next）
-→ EVO-118-E
+→ EVO-118-D ✓
+→ EVO-118-E（Next / Ready）
 → EVO-118-F/G/H
 → EVO-112-B（EVO-112-A ✓）
 → EVO-105/106/107/104

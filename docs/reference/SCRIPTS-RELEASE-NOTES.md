@@ -5,6 +5,13 @@
 
 ## Unreleased
 
+### EVO-118-D / DATA-01 merge closure
+
+- **最终验收**：final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`；`ci` #204 / run `30838250911` 与 `data-durability-container` #50 / run `30838250875` 均成功；独立 Navigator 返回 `Complete`，无 blocking finding。
+- **合并**：PR #7 于 2026-08-04 squash merged，merge commit `932def05717b678f6f44dc23f137933d56158957`。
+- **治理状态**：EVO-118-D Done / Complete / Merged；Iteration 053 Closed / Complete；DATA-01 Closed；EVO-118-E 保持 Ready / Not Started。
+- **稳定边界**：普通联合归档继续排除 Subscription conninfo；恢复只面向真正空目标并使用 `psql -X`；单实例持久性不扩展为多副本共享或自动故障转移声明。
+
 ### EVO-118-D Navigator 第三次整改 — Subscription 凭据边界与 psql startup isolation
 
 - **Subscription 不进入普通联合归档**：`scripts/backup.sh` 的 PostgreSQL 16 dump 显式增加 `--no-subscriptions`。Publication 仍属于 DATA-01 数据面；Subscription conninfo 可能包含 host/user/password，因此定义为环境级敏感配置，必须通过独立、安全、受控的运维流程重建，本 PR 不扩展加密备份或密钥管理格式。

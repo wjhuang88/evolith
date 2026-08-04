@@ -16,8 +16,8 @@
 
 - 模块化单体、Git Smart HTTP + `gix`、双数据库和 Embedded Frontend 的总体方向保留。
 - Git 后端 Alpha 与 EVO-112-A Repo UI Shell 已进入 `main`；Repo Detail、Agent write loop 和生产交付仍未闭环。
-- SEC-01 与 SEC-02 已关闭并合入 `main`；当前仍不具备生产发布条件，剩余 P0 Gate 为 DATA-01 和 DEPLOY-01，详见 [生产就绪基线](../../reference/PRODUCTION-READINESS-BASELINE.md)。
-- EVO-118-D 已进入 [Iteration 053](../../iterations/ITERATION-053.md) 并成为当前唯一 Active runtime Story；EVO-118-E 保持 Ready，不并行抢占 WIP。
+- SEC-01、SEC-02、DATA-01 已关闭并合入 `main`；当前仍不具备生产发布条件，剩余 S1 P0 Gate 仅为 DEPLOY-01，详见 [生产就绪基线](../../reference/PRODUCTION-READINESS-BASELINE.md)。
+- EVO-118-D / [Iteration 053](../../iterations/ITERATION-053.md) 已 Done / Closed，DATA-01 已解除；当前无 Active runtime Story，EVO-118-E 保持 Ready / Not Started。
 - Iteration 054 已 Closed / Complete，PR #8 / #9 的 Repo UI 与治理收口事实必须保留，但不替代 DATA-01 owner。
 - 解决问题的方式是小批次安全与耐久性 Story，不拆微服务、不引入 Kafka/Kubernetes 复杂度来替代闭环。
 
@@ -28,7 +28,7 @@
 | [EVO-118-A](EVO-118-A-project-health-governance-baseline.md) | 建立体检事实基线、安全 SOP、路线图和发布门禁 | Done | P0 | 无 | Iteration 050 |
 | [EVO-118-B](EVO-118-B-api-key-mcp-authorization-hardening.md) | API Key/RBAC/MCP execute 权限边界闭合 | Done | P0 | EVO-118-A Done | Iteration 051 / PR #3 merged |
 | [EVO-118-C](EVO-118-C-http-tool-egress-security.md) | HTTP Tool SSRF 与出站网络边界闭合 | Done / Merged | P0 | EVO-118-A/B Done | Iteration 052 Closed / PR #5 merged `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c` |
-| [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | In Progress | P0 | EVO-118-A/B/C Done | Iteration 053 Active / Draft PR #7 |
+| [EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md) | Git 持久卷、联合备份和恢复演练闭合 | Done / Merged | P0 | EVO-118-A/B/C Done | Iteration 053 Closed / PR #7 merged `932def0` |
 | [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | Embedded Frontend 与生产构建/部署收敛 | Ready | P0 | EVO-118-A Done | D 收口后激活 |
 | [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Proposed | P1 | EVO-118-D/E | - |
 | [EVO-118-G](EVO-118-G-runtime-reliability-gates.md) | PR CI、readiness、限流和生产 fail-closed 接线 | Proposed | P1 | EVO-118-B/E | - |
@@ -45,7 +45,7 @@
 - EVO-118-A/B/C 已 Done。
 - SEC-01、SEC-02 已解除并合入 `main`。
 - EVO-118-C 实现 head `de762e2dae6bf5716e54c64e2277cb2e26592e36` 通过 final-head CI #137 / run `30682419168`；PR #5 于 2026-08-02 合并，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`。
-- EVO-118-D 已于 2026-08-02 激活 Iteration 053，当前实施 DATA-01；EVO-118-E 仍为 Ready。
+- EVO-118-D / Iteration 053 已完成；final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd` required workflows 全绿、Navigator Complete，PR #7 merged `932def05717b678f6f44dc23f137933d56158957`，DATA-01 Closed；EVO-118-E 仍为 Ready / Not Started。
 - 主线随后合入 EVO-112-A / Iteration 054；该完成事实不解除 DATA-01 或 DEPLOY-01，PR #7 必须在最新 `main` 上重新验证。
 
 S1 未完成前：
@@ -82,16 +82,13 @@ S1 未完成前：
 
 ## 当前执行入口
 
-1. 当前 runtime WIP：[EVO-118-D](EVO-118-D-git-storage-durability-and-recovery.md)。
-2. 当前 Iteration：[Iteration 053](../../iterations/ITERATION-053.md)（Active）；Iteration 054 已 Closed / Complete。
-3. 当前分支：`agent/evo-118-d-git-durability-recovery`；PR #7 保持 Draft 直至最新主线上的实现、恢复演练、exact-head CI 与 Navigator 全部通过。
-4. 当前 `main`：`38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；PR #7 必须包含并回归验证 Repo UI 合入结果。
-5. DATA-01 仍开放；代码提交、旧 Head CI、Repo UI 合并或单次脚本成功不能单独解除 Gate。
-6. D 完成并 post-merge 收口后，下一候选为 EVO-118-E，但不得自动启动。
+1. 当前没有 Active runtime WIP；EVO-118-D / Iteration 053 已完成并合入 `main`。
+2. PR #7 final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，merge commit `932def05717b678f6f44dc23f137933d56158957`；DATA-01 Closed。
+3. 下一候选为 [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md)（Ready / Not Started），必须重新执行 START-ITERATION 后才可进入 In Progress。
+4. EVO-112-B 仍等待 S1 的 DEPLOY-01 收口；不得把 D 的完成解释为整个 Epic 或平台生产就绪。
 
 ## 残余工作归口
 
-- EVO-118-D：关闭 Git 持久卷、联合备份和恢复演练，对应 DATA-01。
 - EVO-118-E：关闭 Embedded Frontend 与生产构建/部署收敛，对应 DEPLOY-01。
 - Repo Detail 与 Vibe Coding：EVO-112-B / EVO-104。
 - Commit/Promote 与 Agent Session：EVO-105 / EVO-106。
