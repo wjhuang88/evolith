@@ -1,7 +1,7 @@
 # Evolith 生产就绪优先级重排（2026-07-30）
 
 > 状态：Current execution ordering  
-> 最近同步：2026-08-01（SEC-02 已解除）  
+> 最近同步：2026-08-04（DATA-01 已解除）
 > 触发：2026-07-30 全面项目体检  
 > 归口：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)  
 > 说明：本文替代原“两个月执行规划”作为当前激活顺序；原规划保留为历史计划基线，不覆写其原始目标和日期。
@@ -21,7 +21,7 @@
 
 > **先让底座安全、可持久化、可构建、可恢复，再把底座暴露给用户和 Agent。**
 
-截至 2026-08-01，SEC-01 与 SEC-02 已关闭；当前执行焦点转为 DATA-01，然后是 DEPLOY-01。
+截至 2026-08-04，SEC-01、SEC-02、DATA-01 已关闭；当前执行焦点转为 DEPLOY-01。
 
 ## 2. 当前产品判断
 
@@ -31,7 +31,7 @@
 | Web 产品 | 仍是旧 Registry 主入口，Repo-centric UI 未形成 |
 | Agent 闭环 | Commit/Promote、Session、Scoped Token、Webhook 未实现 |
 | 生产安全 | API Key/MCP 授权与 HTTP Tool SSRF Gate 已关闭；未来出站能力必须复用统一 Egress Policy |
-| 数据耐久性 | 被 Git 目录持久化、备份恢复和 Repo 生命周期一致性阻断 |
+| 数据耐久性 | DATA-01 单实例联合耐久性已关闭；Repo 生命周期一致性与多副本共享仍归后续 Gate |
 | 交付链路 | Embedded Frontend 与生产 Docker/Compose 口径不一致 |
 
 详见 [生产就绪与项目完成度基线](../reference/PRODUCTION-READINESS-BASELINE.md)。
@@ -67,11 +67,11 @@
    - Tool create/update 同租户 Owner/Admin JWT 门禁；
    - 受控 Egress Client、总 deadline、连接固定、审计隐藏；
    - `PERMISSIONS.md` 与 `API-CONTRACT.md` 稳定契约完成。
-3. **EVO-118-D Git Storage Durability and Recovery — Ready / Next**
-   - 生产 Git 持久卷；
-   - PostgreSQL + Git 联合备份；
-   - 从空环境恢复演练；
-   - 容量与磁盘告警基线。
+3. **EVO-118-D Git Storage Durability and Recovery — Done / DATA-01 Closed**
+   - PR #7 final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，required workflows 全绿，Navigator Complete；
+   - squash merge commit `932def05717b678f6f44dc23f137933d56158957`；
+   - 生产 Git 持久卷、Git readiness、PostgreSQL + Git 联合备份、安全恢复、inventory、故障矩阵和空环境演练完成；
+   - Subscription credential 与 `psqlrc` 环境隔离边界闭合。
 4. **EVO-118-E Production Build and Deployment Convergence — Ready**
    - Embedded Frontend 单一交付形态；
    - 修复 Docker build context；

@@ -19,17 +19,15 @@
 
 ## 当前最高优先级入口
 
-1. [Iteration 053](iterations/ITERATION-053.md) — 当前 Active 计划与执行证据 owner；只推进 EVO-118-D / DATA-01。
-2. [EVO-118-D Git Durability and Recovery](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) — 当前唯一 In Progress P0，负责关闭 DATA-01。
-3. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — 当前成熟度、发布阻断和环境 Gate 的事实 owner；SEC-01/SEC-02 已解除，DATA-01/DEPLOY-01 仍开放。
-4. [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 2026-07-30 后的当前执行顺序 owner。
-5. [EVO-118 Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — 生产就绪硬化的可执行 Story 容器；A/B/C Done，D In Progress，E Ready。
-6. [EVO-118-E Production Build Convergence](backlog/active/EVO-118-E-production-build-deployment-convergence.md) — D 收口后的下一 Ready P0，负责关闭 DEPLOY-01；当前不得并行启动。
-7. [EVO-118-C HTTP Tool Egress Security](backlog/active/EVO-118-C-http-tool-egress-security.md) — Done / Merged；SEC-02 已解除。
-8. [Permissions](reference/PERMISSIONS.md) 与 [API Contract](reference/API-CONTRACT.md) — 当前稳定授权与出站安全契约。
-9. [Security Review SOP](sop/SECURITY-REVIEW.md) 与 [Release SOP](sop/RELEASE.md) — 数据耐久性和交付 Gate 的强制审查与发布步骤。
+1. [EVO-118-E Production Build Convergence](backlog/active/EVO-118-E-production-build-deployment-convergence.md) — 当前下一 Ready / Not Started P0，负责关闭 DEPLOY-01；必须 deliberate activation。
+2. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC-01、SEC-02、DATA-01 已解除，DEPLOY-01 仍开放。
+3. [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 当前执行顺序 owner；D 已完成，下一步 E。
+4. [EVO-118 Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — A/B/C/D Done，E Ready / Not Started，F~H Proposed。
+5. [EVO-118-D Git Durability and Recovery](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) 与 [Iteration 053](iterations/ITERATION-053.md) — Done / Closed；PR #7 merged `932def0`，DATA-01 Closed。
+6. [Permissions](reference/PERMISSIONS.md) 与 [API Contract](reference/API-CONTRACT.md) — 当前稳定授权与出站安全契约。
+7. [Security Review SOP](sop/SECURITY-REVIEW.md) 与 [Release SOP](sop/RELEASE.md) — 后续 DEPLOY-01 与生产 Gate 的强制审查入口。
 
-> 当前顺序：EVO-118-D（Iteration 053 Active）→ E → F/G/H → EVO-112 → Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
+> 当前顺序：EVO-118-E（Ready / Not Started）→ F/G/H → EVO-112-B（A 已完成）→ Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
 
 ## Root Entrypoints
 
@@ -45,7 +43,7 @@
 - [API 合约](reference/API-CONTRACT.md) — 完整 HTTP API、认证和错误响应；包含 Tool 管理与 Egress 稳定契约。
 - [API Key 与 MCP 授权合约](reference/API-KEY-AUTHORIZATION.md) — API Keys/MCP/scope 的安全细化合约；相关冲突时优先。
 - [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本。
-- [配置参考](reference/CONFIG.md) — 环境变量和嵌套配置键；EVO-118-D 将同步 Git Storage 稳定配置。
+- [配置参考](reference/CONFIG.md) — 环境变量和嵌套配置键；Git Storage 稳定配置已随 EVO-118-D 合入。
 - [权限](reference/PERMISSIONS.md) — 当前 owner/admin/member 角色、Typed capability、Tool 管理边界和 legacy 轮换。
 - [多租户设计](reference/MULTI-TENANT.md) — 租户模型和隔离边界。
 - [计费](reference/BILLING.md) — Stripe、订阅和用量设计。

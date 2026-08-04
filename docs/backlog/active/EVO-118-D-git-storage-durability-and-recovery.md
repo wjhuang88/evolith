@@ -1,12 +1,12 @@
 # EVO-118-D Git 存储持久化、备份与恢复演练
 
 - **类型**：Technical / Data Durability / Deploy
-- **状态**：In Progress / Navigator Blocked / Remediation
+- **状态**：Done / Complete / Merged
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
 - **依赖**：EVO-118-A/B/C Done；PR #5 / #6 merged；SEC-01/SEC-02 Closed
 - **影响范围**：deploy / backend / scripts / docs / tests
-- **所属 Iteration**：[Iteration 053](../../iterations/ITERATION-053.md)（Active / Navigator Blocked / Remediation）
+- **所属 Iteration**：[Iteration 053](../../iterations/ITERATION-053.md)（Closed / Complete）
 - **实施分支**：`agent/evo-118-d-git-durability-recovery`
 - **审核入口**：[Navigator Review Packet](../../review/EVO-118-D-navigator-review.md)
 
@@ -176,6 +176,16 @@
 
 本轮整改范围固定为：生产 `pg_dump --no-subscriptions`；Subscription 环境级敏感配置边界；真实 `connect=false` Subscription sentinel 解包/解压泄漏测试；Subscription-only 目标拒绝；production `psql -X` 统一 wrapper；hostile `PSQLRC` preflight 动态测试；保留 Publication、非 `public`、post-write rollback、incomplete rollback `CRITICAL`、readiness 与完整 required matrix。不得扩展为加密备份或 EVO-118-E。
 
+## 最终独立复验与合并收口
+
+- 最终 Base：`38c19b19cff5aab7a08ac40a1cf417e1712e1b07`。
+- 最终 exact Head：`158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`。
+- Required workflows：`ci` #204 / run `30838250911` 与 `data-durability-container` #50 / run `30838250875` 均为 `success`，并验证 exact Head、Subscription credential sentinel、hostile `PSQLRC`、Publication/非 `public` rollback、`CRITICAL`、readiness、应用恢复与真实 Backend 容器重建矩阵。
+- 独立 Navigator 于 2026-08-04 对最终 exact Head 返回 `Complete`，Blocking findings 为 None；Subscription credential archive boundary 与 ambient `psqlrc` 两项 finding 均判定 Resolved。
+- PR #7 已转 Ready，并于 2026-08-04 以 squash 方式合并到 `main`；merge commit：`932def05717b678f6f44dc23f137933d56158957`。
+- DATA-01 已关闭；本 Story 为 `Done / Complete / Merged`，Iteration 053 为 `Closed / Complete`。
+- EVO-118-E 仍为 `Ready / Not Started`，只是下一候选，不在本次收口中自动启动。
+
 ## 闭环台账
 
 | 项目 | 本轮记录 |
@@ -188,12 +198,11 @@
 
 ## 当前执行状态
 
-- Iteration 053：Active / Navigator Blocked / Remediation。
-- Driver：第三次 Navigator 的 Subscription credential 与 ambient `psqlrc` blocker 正在原分支整改；治理事实已先同步，代码、动态负向测试与最终 exact-head CI 必须共同闭环。
-- PR #7：Open / Draft / Mergeable；保持 Draft。被审核 Head `551e713...` 的 workflow 仅为历史证据，任何整改提交后都必须重新建立 exact-head `ci` 与 `data-durability-container`。
-- Navigator：对 Base `38c19b19...`、Head `551e713...` 给出 `Blocked`；此前所有 finding 已解决，本轮等待两个新 blocker 的最终 exact-head 独立复验。
-- DATA-01：Open；不得因代码提交、绿色 CI 或 Driver 总结关闭。
-- EVO-118-E：Ready / Not Started；保持未启动。
+- Iteration 053：Closed / Complete。
+- PR #7：Merged；final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，merge commit `932def05717b678f6f44dc23f137933d56158957`。
+- Navigator：Complete；最终 exact Head 无 blocking finding。
+- DATA-01：Closed；联合 PostgreSQL + Git durability/recovery Gate 已解除。
+- EVO-118-E：Ready / Not Started；等待 deliberate activation，不在本 PR 中提前实施。
 
 ## 解锁内容
 

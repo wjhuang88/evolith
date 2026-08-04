@@ -128,7 +128,7 @@ cd frontend && bun run build
 
 - **In Progress / Active**：无（BOARD.md `Now` 段为空；iterations/ 中无 Active 文档）
 - **Review**：无
-- **Blocked**：Iterations 018-020、025-027 已被 2026-06-23 方向调整 superseded（见 [BOARD.md](../board.md) Blocked Or Paused 段；本轮同步清理 README.md 库存段）
+- **Blocked**：Iterations 018-020、025-027 已被 2026-06-23 方向调整 superseded（见 [BOARD.md](../BOARD.md) Blocked Or Paused 段；本轮同步清理 README.md 库存段）
 - **Recently Closed**：Iteration 041（EVO-045-A ExecutionProvider；2026-06-05 follow-up 已修复 sandbox 默认启用回归）
 
 **disposition 决策**：

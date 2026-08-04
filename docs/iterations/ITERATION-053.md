@@ -1,10 +1,10 @@
 # Iteration 053 — Git Storage Durability and Recovery
 
-- **状态**：Active / Navigator Blocked / Remediation
+- **状态**：Closed / Complete
 - **计划基线**：Planned baseline established on 2026-08-02 before runtime/deploy/script implementation
 - **目标 Story**：[EVO-118-D](../backlog/active/EVO-118-D-git-storage-durability-and-recovery.md)
 - **父 Epic**：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)
-- **Gate**：DATA-01
+- **Gate**：DATA-01（Closed）
 - **实施分支**：`agent/evo-118-d-git-durability-recovery`
 - **Driver**：GPT-5.6 Thinking
 - **Navigator**：独立复验，结论不得由 Driver 或 CI 代替
@@ -174,8 +174,11 @@
 - 2026-08-03：整改实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 已把 Publication、Subscription、Event Trigger、Extension、Large Object、FDW/Server/User Mapping、非内置 Language/Cast/Transform/Access Method 纳入共享空库定义与 rollback cleanup；新增 `scripts/tests/postgres-database-object-durability.sh`，真实证明生产 backup/restore 携带 Publication、Publication-only 目标写前拒绝，以及 post-write inventory failure 后 Publication、schema 与 Git 一起回滚为空。`ci` #195 / run `30830738917` 与 `data-durability-container` #41 / run `30830734213` 为该实现切片验证；后续治理同步提交仍需最终 exact-head 重跑。
 - 2026-08-03：第三次独立 Navigator 对 Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`、Head `551e71331a579020a0037c3db2a7ccd98c781c05` 给出 `Blocked`。既有非 `public`、Publication、rollback `CRITICAL` 与 Git readback finding 均判定 Resolved；新增 blocker 为超级用户 dump 可能携带 Subscription 明文 conninfo，以及 production 非交互 `psql` 未使用 `-X`。该 Head `ci` #197 / run `30832407367` 与 `data-durability-container` #43 / run `30832407357` 自整改提交起降级为历史证据。
 - 2026-08-04：第三次整改范围冻结为 `pg_dump --no-subscriptions`、Subscription 安全重建边界、真实 credential sentinel 解包/解压测试、Subscription-only target 拒绝、production `psql -X` wrapper 与 hostile `PSQLRC` preflight 动态测试；不扩展加密格式，不启动 EVO-118-E。
+- 2026-08-04：最终 exact Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd` 的 `ci` #204 / run `30838250911` 与 `data-durability-container` #50 / run `30838250875` 均成功；日志确认新增两条负向路径命中预期 Gate，且全部既有 DATA-01 矩阵未回退。
+- 2026-08-04：独立 Navigator 对 Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`、exact Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd` 返回 `Complete`，Blocking findings 为 None，允许转 Ready 并按正常保护规则合并。
+- 2026-08-04：PR #7 转 Ready 后以 squash 方式合并；`main` 实际 merge commit 为 `932def05717b678f6f44dc23f137933d56158957`。DATA-01 关闭，EVO-118-D Done，Iteration 053 Closed / Complete；EVO-118-E 保持 Ready / Not Started。
 
-后续只追加实际执行事实、commit/head、命令结果、故障注入、Navigator 结论和偏差；不得改写以上 Planned 基线。
+本 Iteration 已闭环。Planned 基线、历史阻塞和整改记录保留，不再作为 Active WIP。
 
 ## 14. Review / Retrospective
 
@@ -187,13 +190,18 @@
 
 ### Independent Navigator
 
-- 状态：Blocked；等待 Subscription credential 与 ambient `psqlrc` 第三次整改最终 Head re-review。
-- 已审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；第一次 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885`，第二次 Head `7608be9f5e7234c0797e4aeba23a133ca91552dc`，第三次 Head `551e71331a579020a0037c3db2a7ccd98c781c05`。
-- 第三次复验明确确认非 `public` schema、Publication-only gate、Publication backup/restore/rollback、incomplete rollback `CRITICAL` 与 Git Storage reopen/read/compare 均 Resolved。
-- 当前 blocker 1：普通联合归档必须排除 Subscription conninfo；真实 sentinel 必须存在于 source catalog，但不得进入解压 SQL、外层归档元数据或普通日志，恢复后不得出现 Subscription。
-- 当前 blocker 2：restore、rollback、helper 与 inventory 的 production 非交互 `psql` 必须自行使用 `-X`；hostile `PSQLRC` 测试必须命中 non-empty pre-write gate 且无任何 DB/Git side effect。
-- 审核入口：[EVO-118-D Navigator Review Packet](../review/EVO-118-D-navigator-review.md)。
-- 修复后必须以最新 PR Head、两条 required exact-head workflow 和新增失败路径证据请求原独立 Navigator 重新给出 `Complete | Partial | Blocked`。
-- Navigator 无 blocking finding 且最新 exact-head CI 全绿后，才允许进入 Ready/merge 流程；合并后仍需独立治理 closeout。
+- 最终审核目标：Base `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；exact Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`。
+- 最终结果：`Complete`；Blocking findings：None。
+- Subscription credential leakage：Resolved。生产 dump 使用 `--no-subscriptions`，真实 sentinel 不进入解压 SQL、外层归档或普通日志，Publication 正常恢复，Subscription-only 目标仍写前拒绝。
+- Ambient `psqlrc`：Resolved。production 非交互 `psql` 统一使用 `-X -v ON_ERROR_STOP=1`；hostile startup file 未执行，pre-write gate 无 DB/Git side effect。
+- Required workflows：`ci` #204 / `30838250911` 与 `data-durability-container` #50 / `30838250875` 均成功并绑定最终 exact Head。
+- PR #7 已合并，merge commit `932def05717b678f6f44dc23f137933d56158957`；post-merge 治理收口完成后 DATA-01 正式关闭。
 
-最终只能记录 `Complete`、`Partial` 或 `Blocked`。当前结论为 `Blocked`，PR 合并也不自动等于 DATA-01 或 Iteration 关闭。
+### Retrospective
+
+- 数据耐久性验收必须以生产对象面、失败后的 rollback-to-empty、敏感信息边界和自动化环境隔离为整体契约，不能只验证 happy path。
+- 绿色 CI 只有在覆盖审查指出的确定性负向路径并绑定 exact Head 时才是有效证据；独立 Navigator 结论仍不可被 Driver 摘要替代。
+- Subscription conninfo 保持为环境级敏感配置；未来如需备份必须另立加密格式与密钥管理 Story，不回扩本次 DATA-01 范围。
+- 下一候选 EVO-118-E 必须重新执行 START-ITERATION，不能因 D 完成自动进入 In Progress。
+
+最终结论：`Complete`。
