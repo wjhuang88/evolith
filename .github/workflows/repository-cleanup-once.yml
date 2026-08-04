@@ -1,0 +1,127 @@
+name: repository-cleanup-once
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - maintenance/cleanup-target-20260804
+    paths:
+      - .github/workflows/repository-cleanup-once.yml
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'maintenance/repository-cleanup-20260804'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Delete obsolete branches and completed workflow runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const currentRunId = Number(process.env.GITHUB_RUN_ID);
+            const pullNumber = context.payload.pull_request.number;
+            const cleanupHead = context.payload.pull_request.head.ref;
+            const cleanupBase = context.payload.pull_request.base.ref;
+
+            const obsoleteBranches = [
+              'agent/evo-118-d-git-durability-recovery',
+              'agent/evo-118-d-rebase-20260802',
+              'docs/evo-118-d-merge-closure',
+            ];
+
+            const deletedBranches = [];
+            const missingBranches = [];
+            for (const branch of obsoleteBranches) {
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${branch}`,
+                });
+                deletedBranches.push(branch);
+                core.info(`Deleted branch: ${branch}`);
+              } catch (error) {
+                if (error.status === 404) {
+                  missingBranches.push(branch);
+                  core.info(`Branch already absent: ${branch}`);
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRunsForRepo,
+              { owner, repo, per_page: 100 },
+            );
+            const deletableRuns = runs.filter(
+              (run) => run.id !== currentRunId && run.status === 'completed',
+            );
+
+            const deletedByConclusion = {};
+            const deletionFailures = [];
+            for (const run of deletableRuns) {
+              try {
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id,
+                });
+                const conclusion = run.conclusion || 'unknown';
+                deletedByConclusion[conclusion] = (deletedByConclusion[conclusion] || 0) + 1;
+              } catch (error) {
+                if (error.status !== 404) {
+                  deletionFailures.push({ id: run.id, status: error.status });
+                  core.warning(`Failed to delete run ${run.id}: HTTP ${error.status}`);
+                }
+              }
+            }
+
+            if (deletionFailures.length > 0) {
+              throw new Error(`Failed to delete ${deletionFailures.length} completed workflow run(s)`);
+            }
+
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number: pullNumber,
+              state: 'closed',
+            });
+
+            for (const branch of [cleanupHead, cleanupBase]) {
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${branch}`,
+                });
+                deletedBranches.push(branch);
+                core.info(`Deleted temporary cleanup branch: ${branch}`);
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+              }
+            }
+
+            core.info(`Deleted completed workflow runs: ${deletableRuns.length}`);
+            core.info(`Deleted run conclusions: ${JSON.stringify(deletedByConclusion)}`);
+            core.info(`Deleted branches: ${JSON.stringify(deletedBranches)}`);
+            core.info(`Already absent branches: ${JSON.stringify(missingBranches)}`);
+
+            await core.summary
+              .addHeading('Repository cleanup completed')
+              .addRaw(`Deleted completed workflow runs: ${deletableRuns.length}\n`)
+              .addRaw(`Deleted branches: ${deletedBranches.join(', ')}\n`)
+              .addRaw(`Retained active workflows: ci.yml, data-durability-container.yml\n`)
+              .addRaw(`This cleanup run is retained as the final audit record.\n`)
+              .write();
