@@ -5,9 +5,73 @@
 
 ## Unreleased
 
+### EVO-118-D Navigator 第三次整改 — Subscription 凭据边界与 psql startup isolation
+
+- **Subscription 不进入普通联合归档**：`scripts/backup.sh` 的 PostgreSQL 16 dump 显式增加 `--no-subscriptions`。Publication 仍属于 DATA-01 数据面；Subscription conninfo 可能包含 host/user/password，因此定义为环境级敏感配置，必须通过独立、安全、受控的运维流程重建，本 PR 不扩展加密备份或密钥管理格式。
+- **空目标保护不削弱**：`scripts/postgres-user-object-count.sql` 继续检测当前数据库 Subscription；Subscription-only 目标仍在任何 PostgreSQL/Git 写入前拒绝并保留，不因备份排除 Subscription 而允许静默覆盖。
+- **真实 credential sentinel 负向测试**：数据库级专项矩阵使用 PostgreSQL 16 `CREATE SUBSCRIPTION ... WITH (connect=false, slot_name=NONE)` 创建不连接上游、不创建 slot 的真实 Subscription，并确认 catalog conninfo 包含唯一 sentinel。测试解开最终归档、解压 `database.sql.gz`，证明 SQL、manifest、refs、checksum、archive listing 和普通 backup/restore stdout/stderr 均无 sentinel，且无 `CREATE SUBSCRIPTION`；Publication、数据库 marker、Git ref 与 inventory 仍恢复成功，目标无 Subscription。
+- **production `psql -X` 收敛**：`scripts/restore.sh` 与 `scripts/git-storage-inventory.sh` 通过统一 wrapper 强制 `psql -X -v ON_ERROR_STOP=1`，覆盖 empty-target preflight、helper、plain SQL restore、rollback cleanup、rollback verification 与 inventory；plain restore 继续 `--single-transaction`。
+- **hostile `PSQLRC` 动态测试**：专项矩阵提供会创建 `public.psqlrc_sentinel` 并修改 `ON_ERROR_STOP` 的 startup file，只对被测 restore 设置 `PSQLRC`。restore 必须在 archive 校验后命中 non-empty database preflight，原 marker 与 schema snapshot 完全不变，sentinel 不存在，Git 为空，不进入 SQL restore、Git install 或 inventory，不输出 success。
+- **既有矩阵保留**：Publication-only 拒绝、Publication backup/restore、post-write Publication/schema/Git rollback、incomplete rollback `CRITICAL`、非 `public` schema、Git readiness readback、Frontend/Rust/SQLite/应用恢复和容器重建门禁继续执行。旧 Head `551e713...` 的 `ci` #197 / `30832407367` 与 container #43 / `30832407357` 不覆盖本轮路径，仅为历史证据。
+
+
+### EVO-118-D Navigator 第二次整改 — 数据库级 PostgreSQL 对象
+
+- **生产 `pg_dump` 对象面与空库契约对齐**：`scripts/postgres-user-object-count.sql` 在既有 schema-scoped 对象之外，新增对 user extension、Publication、当前数据库 Subscription、Event Trigger、Large Object、Foreign Data Wrapper/Server/User Mapping，以及非内置 Language/Cast/Transform/Access Method 的计数。restore 写前门禁、rollback 后验证和测试继续共用同一 helper。
+- **数据库级 rollback-to-empty**：`scripts/restore.sh` 在后段失败时，按依赖顺序清理 Subscription、Extension、Publication、foreign-data 对象、Large Object、全部用户 schema，以及剩余 database-level programmable objects，最后删除 Event Trigger 并重建空 `public`。任何 SQL、Git 或后置验证失败都保持非零；完整清理不可达时继续输出 `CRITICAL`。
+- **Publication 专项矩阵**：新增 `scripts/tests/postgres-database-object-durability.sh`。测试直接证明生产 backup 包含空 Publication，成功 restore 后 Publication/数据库标记/Git commit 同时恢复；仅含 Publication 的目标在写前被拒绝且原 Publication 保留；post-write inventory failure 后 Publication、schema 与 Git 全部清除，shared helper 返回 `0`。
+- **既有 CRITICAL 回归不削弱**：`scripts/tests/durability.sh` 的 Event Trigger 阻断 `DROP SCHEMA` 场景继续运行，证明自动回滚不完整时 restore 非零、不得打印成功，并输出 `CRITICAL: automatic rollback was incomplete`。
+- **CI 接线**：PR required `ci` 新增独立的 Database-level PostgreSQL durability step，并保留原联合耐久性矩阵、Volume recreation、Rust 与应用恢复门禁。任何后续文档/治理提交改变 Head 后，仍须重新建立 exact-head 两条 required workflow。
+
+### EVO-118-D Navigator 整改 — 全数据库空目标与 Git readback
+
+- **统一 PostgreSQL 空目标语义**：新增 `scripts/postgres-user-object-count.sql`，由 restore 前置门禁、rollback 后置验证和 durability 测试共用。PostgreSQL 内部 schema（`information_schema` 与 `pg_*`）不计入用户数据；默认空 `public` 可存在；任意额外用户 schema 即使为空也视为非空，`public` 内关系、分区、view、materialized view、sequence、foreign table、function/procedure、用户定义 type 等 schema-scoped 对象均会阻止覆盖。
+- **全用户 schema rollback-to-empty**：`scripts/restore.sh` 只在数据库与 Git 双空目标门禁通过后武装 rollback。后段失败时删除本次恢复创建的全部非内部用户 schema/object，重建空 `public`，再用同一 SQL 定义验证数据库为空；Git 目标同时清理并验证。任一清理或验证失败保持 restore 非零并输出 `CRITICAL`，不得打印 restore success。
+- **非 `public` 负向矩阵**：`scripts/tests/durability.sh` 的 source backup 包含 `audit` schema、table、enum type 与 function。新增 `legacy.marker` 目标拒绝测试，证明在写入前拒绝并保留原标记；新增 post-write inventory failure，证明已恢复的 `public` 与 `audit` 对象及 Git 文件全部回滚。故障注入对象使用 schema-qualified 名称，避免被 `pg_dump` 的空 `search_path` 提前截获。
+- **真实 Git Storage readback**：readiness 探针写入固定字节并 `sync_all` 后关闭写句柄，重新通过 `File::open` 读取到 EOF 并精确比对。reopen/read 失败、内容不一致或 cleanup 失败均返回 not-ready；成功、读取失败和 mismatch 都尽最大努力清理隔离 probe。
+- **readback 测试**：新增正常 create/write/sync/reopen/read/compare/cleanup、精确字节与截断 mismatch、确定性 read error、内容篡改 mismatch 以及失败后 cleanup 验证；原 missing path、普通文件、不可写目录和 503 状态测试继续保留。
+- 被审核旧 Head `c8b83dec54c1ed7df75c29b34b3d1b3a0f40a885` 的 `ci` run `30756053633` 与 `data-durability-container` run `30756053641` 不覆盖上述失败路径，只保留为历史定位证据。整改最终接受必须使用最新 exact-head 两条 required workflow 与原独立 Navigator re-review。
+
+### EVO-118-D — PostgreSQL + Git 联合备份、恢复与盘点
+
+- **`scripts/backup.sh`**：由 PostgreSQL-only `pg_dump` 替换为 DATA-01 联合备份入口。现在强制要求 `EVOLITH_BACKUP_QUIESCED=true`、`DATABASE_URL`、`GIT_STORAGE_PATH` 和可追溯的 `EVOLITH_APP_VERSION`；版本移除 CR/LF 后必须仍非空。备份前执行 DB/Git inventory 和 `git fsck`，同时归档 PostgreSQL dump、全部 Git objects/refs、refs 快照、版本化 manifest 与 SHA-256 清单。特殊文件在归档前被拒绝，生成后的内层 Git 归档与最终归档还会复用 restore 的路径/条目类型约束进行自校验，避免先报告备份成功、恢复时才发现归档不可接受。任一子命令或自校验失败时非零退出；完整归档先在 staging 中校验，再原子移动到输出目录，不留下可误用的半成品。
+- **`scripts/restore.sh`**：新增安全恢复入口。恢复前验证归档路径、条目类型、精确必需文件、严格七项 manifest schema、格式/应用版本、UTC 创建时间、Git Storage layout、四个唯一 checksum、Git 目录布局、symlink、bare repository、`git fsck` 与 Commit/Branch/Tag refs 精确集合；默认拒绝含任意用户 schema/object 的 PostgreSQL 目标或非空 Git 目标。PostgreSQL dump 使用单事务恢复，Git 内容在隔离 staging 中预验证；任何 SQL、安装或 inventory 后段失败都会尝试把此前为空的全部用户数据库与 Git 目标恢复为空并非零退出，自动回滚不完整时输出 CRITICAL 运维提示，不报告部分成功。
+- **`scripts/git-storage-inventory.sh`**：新增 DB/Git 对账入口。识别 DB-only、disk-only、重复/异常 storage path、意外或孤儿目录、symlink、无效 bare repository、`git fsck` 失败、默认 Branch/last Commit/指定 refs 缺失；发现任一不一致即非零退出。
+- **`scripts/tests/durability.sh`**：新增真实 PostgreSQL + Git 故障矩阵。创建多 Commit、额外 Branch 与 Tag，验证联合 backup、空目标 restore、目标 SHA/refs、DB/Git inventory、非空目标拒绝、DB-only/Git-only/损坏/checksum/version/重复 checksum 拒绝、缺失或错误 manifest layout/时间拒绝、Git refs 快照缺项拒绝、恶意 symlink/非法布局拒绝、缺少应用版本、仅含 CR/LF 的清洗后空版本或 Git Storage FIFO 导致 backup fail closed、SQL 中途失败单事务回滚为空，以及 restore 后段 inventory 失败回滚为空。版本不兼容测试会重写 checksum，确保实际命中 version gate，而不是被 checksum gate 提前截获。
+- **`scripts/tests/container-volume-persistence.sh`**：新增 Docker named Volume 重建证据。第一个容器创建并 push Commit/Branch/Tag，容器退出后由第二个容器挂载同一 Volume，执行 `git fsck`、refs/SHA 校验和真实 clone。
+- **`scripts/tests/application-recovery-drill.sh`**：新增应用级空环境恢复演练。启动真实 PostgreSQL Backend，注册用户/租户、创建 Repo、通过 Smart HTTP push 多 Commit/Branch/Tag；联合备份后恢复到新 DB 与新 Git 目录，重新登录、列 Repo、clone/refs/SHA 校验，注入只读 readiness 503，恢复后重启 Backend 再次 clone。
+- **`scripts/tests/check-markdown-links.py`**：新增仓库内 Markdown 本地链接门禁。
+- **`.github/workflows/ci.yml`**：PR CI 改为显式 checkout 并验证 PR exact-head SHA；新增 `git diff --check`、Markdown links、Compose durability mapping、脚本语法、PostgreSQL+Git 恢复矩阵、Docker Volume 重建与应用级恢复演练。Frontend lint、完整 PostgreSQL workspace tests 和生产 Compose clean-build/startup 诊断保留在 release/tag/manual gate。PR #7 的一次 exact-head run 在全部 DATA-01 门禁通过后，因无缓存生产构建诊断耗尽 55 分钟 job timeout 而被误报失败；该 DEPLOY-01 诊断现已从 PR required job 解耦，避免 `continue-on-error` 无法处理 runner/job 级超时。
+- **`backend/Dockerfile`**：运行时新增 `git`，创建固定非 root 用户与 `/var/lib/evolith/git`，Docker healthcheck 改为 `/health/ready`。CI-only recovery runtime image 使用 UID/GID 10001，避免 Ubuntu runner 已占用 UID 1000 冲突。
+- **`docker-compose.prod.yml`**：Backend 显式设置 `GIT_STORAGE__BASE_PATH=/var/lib/evolith/git` 并挂载 `git_data` named Volume；该 Volume 只声明单实例持久性，不声明多实例共享或复制。
+- **`deploy/k8s/backend.yaml`**：新增 ReadWriteOnce PVC，Backend 单副本 + `Recreate`，以受控非 root UID/GID/fsGroup 挂载 Git Storage；移除与本地/RWO Git Volume 不兼容的多副本/HPA 暗示。共享存储或 Repo affinity 另行设计。
+
+### 运维兼容性与注意事项
+
+- 旧用法 `DATABASE_URL=... ./scripts/backup.sh` 不再成功；必须同时提供 Git Storage、可追溯应用版本并真实进入停写维护窗口。
+- `EVOLITH_BACKUP_QUIESCED=true` / `EVOLITH_RESTORE_QUIESCED=true` 是操作确认，不会自动暂停应用、后台任务或 Git push。
+- 联合 restore 只支持 PostgreSQL 生产路径；SQLite 开发路径不使用这些脚本，继续由 Rust workspace tests 回归。
+- SHA-256 用于损坏检测，不提供归档签名或来源认证；备份介质仍需加密、访问控制和离线/不可变副本。
+- restore 默认只面向真正空目标：除 PostgreSQL 内部 schema 与默认空 `public` 外，不得存在 schema-scoped 或数据库级用户对象；额外用户 schema、`public` 用户对象、Publication 或 Subscription 等 database-level state 都会在写入前拒绝。备份格式故意不携带 Subscription 凭据，但不会把含 Subscription 的目标视为空。覆盖式灾难恢复必须先在新环境恢复、完成功能验收，再通过独立受控切换方案执行。
+- `GIT_STORAGE_PATH` 不得是 symlink；源 Git Storage 中的 FIFO/socket/device 等特殊文件会使 backup 失败，归档中出现 symlink、hardlink、特殊文件、异常层级或非 UUID 布局会被拒绝。
+- manifest v1 必须精确包含 `backup_format_version`、`application_version`、`created_at`、`consistency`、`database_format`、`git_format`、`git_storage_layout` 七项；缺失、重复、额外或不兼容值均 fail closed。
+- GitHub Contents API 创建的新脚本可能不携带 executable bit；CI 与文档统一使用 `bash scripts/...`、`psql -f scripts/postgres-user-object-count.sql` 或 `python3 scripts/...` 调用，不依赖直接执行位。
+
+### 验证状态
+
+- 旧基线 CI #142 曾通过 exact-head、Frontend install/type-check/build、Compose durability mapping、真实 PostgreSQL + Git 联合 backup/restore 和 Docker Volume 重建，仅在 Rust 格式检查失败；CI #143 随后通过 fmt/check/clippy。这些结果证明切片可执行，但不再是当前 `main` 的 exact-head 证据。
+- 2026-08-02 `main` 推进到 `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`，包含 PR #8 / #9 的 Repo UI 与 Iteration 054 收口。EVO-118-D 已在该基线上重建实现分支；联合恢复、应用级演练、Frontend/Rust 回归和 Navigator 必须全部在新的 PR #7 Head 重跑。
+- 实现 Head `83351a2375b6537ddb83d71d84a2d22bfaaacc15` 的 `ci` run `30736864612` 与 `data-durability-container` run `30736864631` 已全绿；后续 Driver 审计强化会改变 Head，因此最终接受仍以最新 exact-head required workflows 为准。
+- Head `6bbb2dabc39232f7c057c08215a9faed0e0b3b9b` 的 run `30755307482` 已通过所有 DATA-01 required steps，包括强化负向矩阵、Rust 全量回归和应用级恢复；随后仅在 DEPLOY-01 无缓存生产构建诊断期间触发 55 分钟 job timeout。该结果不是最终绿色证据，但证明诊断耦合而非 DATA-01 失败。
+- 整改中间 Head `fb4b189e7c75b1fff224f9770e6b9aa269695dcb` 的 `ci` run `30794295296` 已实际通过新增非 `public` 目标拒绝、非 `public` post-write rollback、通用 Volume recreation、Frontend gates 和脚本门禁，仅因 readiness 测试文件未应用 rustfmt 而停止；格式修正后的最终 Head 仍需重新跑全部 required steps。
+- 数据库级对象实现 Head `75f7868b8d14fe2ac95132643289620d2c50be89` 的 `ci` #195 / run `30830738917` 已通过原 durability matrix 与新增 Publication 专项矩阵；`data-durability-container` #41 / run `30830734213` 已通过真实 Backend container recreation。治理同步提交会改变 Head，因此这两条在最终请求中只作为实现切片证据。
+- `docker compose build --no-cache` 与完整生产栈 smoke 仍受 EVO-118-E / DEPLOY-01 的 Embedded Frontend 构建收敛约束；EVO-118-D 不通过改变前端交付形态规避该 Gate，PR required CI 也不再让该诊断覆盖 DATA-01 结论。
+
+### 既有 Unreleased 记录
+
 - 建立脚本发布说明制度。后续脚本行为变更需要记录用途、影响范围、验证方式和注意事项。
-- **`scripts/dev.sh`**: 前端本地启动从旧 Next.js `localhost:3000` 调整为 Vite + Bun 默认 `localhost:3001`，使用 `bun install` / `bun run dev`，支持通过 `FRONTEND_PORT` 覆盖；状态输出和 ready banner 同步使用该端口。验证：脚本语法检查和前端构建。
-- **`backend/Dockerfile`**: 生产运行时镜像（`debian:bookworm-slim`）新增 `git` 包。Smart HTTP 端点（`git-upload-pack` / `git-receive-pack`）通过 `git` CLI 子进程执行，运行时必须安装 `git`。影响范围：生产 Docker 部署。验证：`docker run --rm <image> git --version` 应输出 git 版本。
+- **`scripts/dev.sh`**：前端本地启动从旧 Next.js `localhost:3000` 调整为 Vite + Bun 默认 `localhost:3001`，使用 `bun install` / `bun run dev`，支持通过 `FRONTEND_PORT` 覆盖；状态输出和 ready banner 同步使用该端口。验证：脚本语法检查和前端构建。
+- **`backend/Dockerfile`**：生产运行时镜像（`debian:bookworm-slim`）安装 `git`。Smart HTTP 端点（`git-upload-pack` / `git-receive-pack`）通过 `git` CLI 子进程执行，运行时必须安装 `git`。
 
 ## v0.2.0 — dev.sh 嵌入式前端死代码清理 + 单端口 lite 模式 (2026-06-03)
 
@@ -17,33 +81,21 @@ Iteration 031 已将前端迁移到 `rust-embed-for-web`（debug 模式读 `fron
 
 ### 变更
 
-- **`scripts/dev.sh`**: 删除 `EMBEDDED_FRONTEND` 环境变量（line 10）——`rust-embed-for-web` 内置 debug/release 切换，无需外部控制。
-- **`scripts/dev.sh`**: 删除 `build_frontend_zip()` 函数（原 lines 126-140）——后端使用 `#[folder]` 读文件系统，不读 ZIP。
-- **`scripts/dev.sh`**: 删除 `start_backend()` 中 `--features embedded-frontend` 逻辑（原 lines 152-168）——`Cargo.toml` 未定义此 feature，调用会报 unknown feature。
-- **`scripts/dev.sh`**: 新增 `build_frontend()` 函数——运行 `bun run build` 确保 `frontend/dist/` 存在。
-- **`scripts/dev.sh`**: `lite` 模式改为 `build_frontend` + `start_backend`（去掉 `start_frontend`），单端口 8080 同时服务 API + 前端。
-- **`scripts/dev.sh`**: `embedded` 模式简化为 `build_frontend` + `start_backend`，删除 `EMBEDDED_FRONTEND=true` 和 ZIP 构建。
-- **`scripts/dev.sh`**: `start` 模式保留双端口（Vite HMR 有独立开发价值），新增 `build_frontend` 确保 dist 存在。
-- **`scripts/dev.sh`**: 后端端口从硬编码 8080 改为读 `SERVER__PORT` 环境变量（默认 8080），通过 `BACKEND_PORT` 变量贯穿全脚本。
-- **`scripts/dev.sh`**: `usage` 文本更新，明确三种模式的端口差异。
+- **`scripts/dev.sh`**：删除 `EMBEDDED_FRONTEND` 环境变量——`rust-embed-for-web` 内置 debug/release 切换，无需外部控制。
+- **`scripts/dev.sh`**：删除旧 `build_frontend_zip()` 和不存在的 `embedded-frontend` Cargo feature 路径。
+- **`scripts/dev.sh`**：新增 `build_frontend()`；`lite`/`embedded` 使用单端口 Backend 提供 API 与静态资源。
+- **`scripts/dev.sh`**：`start` 模式保留 Vite HMR 双端口，并读取 `SERVER__PORT`。
 
 ### 验证
 
-- `bash -n scripts/dev.sh` ✓ 语法检查通过
-- `SERVER__PORT=8090 ./scripts/dev.sh lite` ✓ 单端口启动成功
-- `curl http://localhost:8090/` ✓ index.html 200
-- `curl http://localhost:8090/assets/*.css` ✓ CSS 200
-- `curl http://localhost:8090/assets/*.js` ✓ JS 200
-- `curl http://localhost:8090/health/live` ✓ API 健康检查 200
-- `lsof -i :3001` ✓ 无 Vite dev server 进程（正确）
-- `./scripts/dev.sh stop` ✓ 正常停止
+- `bash -n scripts/dev.sh` ✓
+- `SERVER__PORT=8090 ./scripts/dev.sh lite` ✓
+- 首屏、CSS、JS、`/health/live` 与 stop 流程 ✓
 
 ### 注意事项
 
-- `start` 模式仍启动 Vite dev server（端口 3001），用于 HMR 热更新开发体验。
-- `lite` 和 `embedded` 模式现在行为相同（单端口），保留两个命令名以兼容习惯用法。
-- 后端端口可通过 `SERVER__PORT=8090 ./scripts/dev.sh lite` 覆盖，解决 8080 被占用的场景。
-- `frontend/dist/` 必须在后端启动前存在——`build_frontend()` 已自动处理。
+- `start` 模式仍启动 Vite dev server，用于 HMR。
+- `frontend/dist/` 必须在后端启动前存在；`build_frontend()` 负责生成。
 
 ## 记录模板
 

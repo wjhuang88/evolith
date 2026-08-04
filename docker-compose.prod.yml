@@ -3,6 +3,10 @@ version: '3.8'
 # =============================================================================
 # Evolith Production Stack
 # Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# DATA-01 boundary: postgres_data and git_data are a joint durability set.
+# The local git_data volume is intentionally single-instance storage; it does
+# not provide multi-replica sharing or replication.
 # =============================================================================
 
 services:
@@ -62,6 +66,7 @@ services:
       SERVER__PORT: 8080
       DATABASE__DATABASE_TYPE: postgres
       DATABASE__URL: postgres://${POSTGRES_USER:-evolith}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-evolith}
+      GIT_STORAGE__BASE_PATH: /var/lib/evolith/git
       REDIS__URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
       JWT__SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT__EXPIRATION: ${JWT_EXPIRATION:-86400}
@@ -75,6 +80,8 @@ services:
       SMTP__FROM_NAME: ${SMTP_FROM_NAME:-Evolith}
       SMTP__ENABLED: ${SMTP_ENABLED:-false}
       SANDBOX__ENABLED: ${SANDBOX_ENABLED:-false}
+    volumes:
+      - git_data:/var/lib/evolith/git
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,7 +90,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health/ready"]
       interval: 30s
       timeout: 5s
       start_period: 15s
@@ -149,3 +156,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  git_data:
