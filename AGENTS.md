@@ -127,6 +127,7 @@
 22. GitHub Actions required CI 通过不等于安全/发布复验通过；必须同时关闭 Navigator、稳定契约和治理状态。
 23. 实现 PR 合并后仍需回写 merge commit、owner Story/Iteration、Gate 和派生入口；合并本身不会自动完成治理收口。
 24. 项目尚未上线；ADR-0009 已取消 EVO-110 旧表双写、回填和旧 API 兼容。Repo-derived read/execute 承接后由 EVO-121-F/EVO-122 直接删除旧 UI/runtime/table，不得重新建设 Legacy 兼容层。
+25. Actix/Tokio 异步 E2E 调用真实 Git 客户端必须使用异步、有界 subprocess；同步 `Command::output` 会阻塞 runtime，并可能伪装成 Smart HTTP 认证失败。
 
 ## Current Project Baseline
 
@@ -157,8 +158,8 @@ Evolith 是 Git-centric AI development platform：
 - EVO-118-D Done / Merged，Iteration 053 Closed / Complete。
 - EVO-118-F Done / Complete，Iteration 055 Closed / Complete，DATA-02 已关闭。
 - EVO-118-G 已拆为 G-A/B/C/D；G-B/C/D Complete，G-A 因远端 Branch Protection 证据保持 Partial。
-- EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B / Iterations 066/067 Done / Complete，H-C / Iteration 068 Review / Partial，EVENT-01 未关闭；EVO-125 负责完整 Smart HTTP E2E 残余。
-- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。EVO-105/106 不能绕过 H，H-C 核心已实现但等待 Review / Partial 收口。
+- EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B/H-C 与 Iterations 066/067/068 Done / Closed / Complete，EVENT-01 Durable Outbox 基础 Gate 已解除；EVO-125 已关闭完整 Smart HTTP E2E 残余。
+- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。EVO-105/106 的 H 硬依赖已满足，下一候选需按 DoR 重新激活。
 - EVO-118-E 保持 Proposed / final release gate。
 
 ### Current Order
@@ -170,7 +171,7 @@ EVO-118-A ✓
 → EVO-118-D ✓
 → EVO-118-F ✓
 → EVO-118-G-A/B/C/D（G-B/C/D ✓；G-A Partial residual）
-→ EVO-118-H-A ✓ → H-B ✓ → H-C（EVENT-01）
+→ EVO-118-H-A ✓ → H-B ✓ → H-C ✓（EVENT-01 基础 Gate ✓）
 → EVO-120 ✓ / EVO-112-A/B/C ✓
 → EVO-121-C/D ✓
 → EVO-105/106/107/104

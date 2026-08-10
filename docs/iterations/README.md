@@ -8,7 +8,7 @@
 
 | Iteration | 状态 | 目标/处置 |
 |-----------|------|-----------|
-| [Iteration 068](ITERATION-068.md) | Review / Partial | EVO-118-H-C 核心 durable producer/subscriber 已实现；完整 Smart HTTP E2E 的 pull clone 认证失败归 EVO-125 |
+| [Iteration 068](ITERATION-068.md) | Closed / Complete | EVO-118-H-C durable producer/subscriber、双数据库与完整 Smart HTTP E2E 闭合；EVO-125 Done |
 | [Iteration 067](ITERATION-067.md) | Closed / Complete | EVO-118-H-B Outbox Worker Runtime；独立进程、bounded delivery、101 backlog/recovery 与 confirmed replay 闭合 |
 | [Iteration 066](ITERATION-066.md) | Closed / Complete | EVO-118-H-A Recoverable Outbox Claims；paired upgrade、lease/fencing、stale recovery 与 PostgreSQL concurrent claim 闭合 |
 | [Iteration 065](ITERATION-065.md) | Closed / Complete | EVO-121-D Settings Information Architecture；`/settings/*`、角色矩阵、error/retry 与响应式证据闭合 |
@@ -50,7 +50,7 @@
 - 2026-08-09 复核确认 EVO-105/106 对 H 是硬依赖；H 的剩余范围拆为 H-A/B/C，Iteration 066 激活 H-A，Iteration 060 保持 Closed / Partial。
 - Iteration 066 已 Closed / Complete；H-A 的 paired 012 upgrade、recoverable/fenced claim 与 PostgreSQL concurrency 证据闭合。父 H / EVENT-01 保持未完成；H-B 后续已由 Iteration 067 完成。
 - Iteration 067 已 Closed / Complete；H-B 的独立 Worker、bounded delivery、双数据库 101 backlog/crash recovery、confirmed replay 与 Navigator 证据闭合。父 H / EVENT-01 保持未完成，下一依赖切片为 H-C。
-- Iteration 068 已进入 Review / Partial；H-C 核心 Push -> Durable Event -> Worker -> Repo metadata 双数据库闭环通过，完整 Smart HTTP E2E 残余归 EVO-125。
+- Iteration 068 已 Closed / Complete；H-C 的 Push -> Durable Event -> Worker -> Repo metadata 双数据库闭环及完整 Smart HTTP E2E 通过，EVO-125 已关闭。
 - Iteration 054 继续 Closed / Complete；EVO-112-B 不等待最终 DEPLOY-01。
 - 当前严格顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 - 安全、数据损坏或基础构建失败 P0 可显式插队；普通产品工作按 F/G/H 直接依赖推进，最终 DEPLOY-01 不作为开发前置。

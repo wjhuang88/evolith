@@ -1,7 +1,7 @@
 # EVO-118-H Durable Outbox 与可靠事件交付
 
 - **类型**：Epic / Reliability / Eventing
-- **状态**：In Progress
+- **状态**：Done / Complete
 - **历史迭代**：Iteration 060 Closed / Partial
 - **优先级**：P1
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
@@ -22,10 +22,10 @@ Iteration 060 已交付 schema/repository 最小边界，但剩余范围包含 c
 | --- | --- | --- | --- | --- |
 | [EVO-118-H-A](EVO-118-H-A-recoverable-outbox-claims.md) | 可回收 lease/fencing claim + PostgreSQL 并发互斥 | Done / Complete | Iteration 060 boundary | Iteration 066 |
 | [EVO-118-H-B](EVO-118-H-B-outbox-worker-runtime.md) | 常驻 Worker 生命周期、积压恢复与 replay | Done / Complete | H-A Done | Iteration 067 |
-| [EVO-118-H-C](EVO-118-H-C-durable-push-event-integration.md) | 现有 Push 派生工作接入 Durable Event 与幂等 subscriber | Review / Partial | H-B Done | Iteration 068 |
+| [EVO-118-H-C](EVO-118-H-C-durable-push-event-integration.md) | 现有 Push 派生工作接入 Durable Event 与幂等 subscriber | Done / Complete | H-B Done | Iteration 068 |
 
 父 Epic 只在 H-A/B/C 全部 Done、EVENT-01 证据同步且未来 producer/consumer 约束已写入
-EVO-105/106/107/108 后进入 Done。Commit/Promote/Agent Session 尚未实现，因此其具体事件
+EVO-105/106/107/108 后进入 Done。以上条件现已满足；Commit/Promote/Agent Session 尚未实现，因此其具体事件
 enqueue 是各 owner Story 的验收，不与 H 形成循环依赖。
 
 ## 已确认失败模式
@@ -98,10 +98,11 @@ enqueue 是各 owner Story 的验收，不与 H 形成循环依赖。
   dead-letter 状态变更。
 - OutboxWorker 已补齐单次 claim/deliver/retry 处理，SQLite 集成测试 4/4 通过：pending→processing、幂等键拒绝、重试至 dead-letter、成功 delivered。
 - Workspace check、strict Clippy 和格式检查通过。
-- 残余：PG 并发 claim 实测、进程级 Worker 生命周期/崩溃重启演练、业务 Push/Commit/Promote 事务接入、
-  Webhook/Indexer/Agent Event subscriber 尚未完成；这些是 H 的后续执行范围。
+- 残余：Commit/Promote/Agent Session 业务事件与 Webhook/Indexer/Agent Event subscriber 尚未实现，
+  由 EVO-105/106/107/108 各自负责；H 提供的持久事件边界已完成。
 
-闭环状态：`Partial`，不得据此关闭 EVENT-01。
+闭环状态：`Complete`；EVENT-01 的 Durable Outbox 基础 Gate 已解除，后续业务 producer/consumer
+仍须在各自 Story 中提供具体验收证据。
 
 ## 2026-08-09 Refinement
 
@@ -125,3 +126,11 @@ enqueue 是各 owner Story 的验收，不与 H 形成循环依赖。
 - SQLite file 与 PostgreSQL 16 真实子进程、workspace check/test/strict Clippy、文档治理和
   Navigator 复验通过；EVO-125 独立承接既有 Git Smart HTTP E2E 不稳定。
 - 父 H 保持 In Progress，EVENT-01 保持开放；下一依赖切片为 H-C Durable Push Event 接入。
+
+## H-C 完成记录
+
+- Iteration 068 Closed / Complete：真实 Push durable event producer、幂等 subscriber、SQLite/PostgreSQL
+  证据、crash/restart、reconcile 与完整 Smart HTTP clone/push/pull E2E 已闭合。
+- EVO-125 已 Done / Complete：同步 Git 子进程造成的 runtime starvation 改为异步 bounded runner；
+  聚焦 E2E 连续 3/3 通过。
+- 父 H 与 EVENT-01 Durable Outbox 基础 Gate 完成；未来业务事件仍归各 owner Story，不在 H 中扩张范围。

@@ -41,6 +41,8 @@ use service_tool::executor::ToolExecutorAdapter;
 use service_tool::HttpProxyProvider;
 use uuid::Uuid;
 
+const GIT_CLIENT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+
 const MIGRATION_001: &str = include_str!("../../../migrations/sqlite/001_initial_schema.sql");
 const MIGRATION_003: &str = include_str!("../../../migrations/sqlite/003_multi_tenant.sql");
 const MIGRATION_004: &str = include_str!("../../../migrations/sqlite/004_user_permissions.sql");
@@ -543,6 +545,28 @@ fn run_git(args: &[&str], dir: &Path, env_vars: &[(&str, &str)]) -> std::process
     cmd.output().expect("Failed to execute git")
 }
 
+async fn run_git_bounded(
+    stage: &str,
+    args: &[&str],
+    dir: &Path,
+    env_vars: &[(&str, &str)],
+) -> std::process::Output {
+    let mut cmd = tokio::process::Command::new("git");
+    cmd.args(args)
+        .current_dir(dir)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_ASKPASS", "echo")
+        .env("HOME", dir)
+        .kill_on_drop(true);
+    for (key, value) in env_vars {
+        cmd.env(key, value);
+    }
+    tokio::time::timeout(GIT_CLIENT_TIMEOUT, cmd.output())
+        .await
+        .unwrap_or_else(|_| panic!("git stage '{stage}' exceeded {GIT_CLIENT_TIMEOUT:?}"))
+        .unwrap_or_else(|error| panic!("git stage '{stage}' failed to start: {error}"))
+}
+
 #[actix_rt::test]
 async fn test_info_refs_with_basic_auth_returns_advertisement() {
     let (pool, _db_dir) = setup_test_db().await;
@@ -783,7 +807,13 @@ async fn test_git_clone_push_pull_e2e() {
         api_key_value, port, repo_id
     );
 
-    let output = run_git(&["clone", &clone_url, "."], clone_path, &[]);
+    let output = run_git_bounded(
+        "initial clone",
+        &["clone", &clone_url, "."],
+        clone_path,
+        &[],
+    )
+    .await;
     assert!(
         output.status.success(),
         "git clone failed: stderr={}",
@@ -793,7 +823,7 @@ async fn test_git_clone_push_pull_e2e() {
     let work_dir = TempDir::new().expect("Failed to create work dir");
     let work_path = work_dir.path();
 
-    let output = run_git(&["clone", &clone_url, "."], work_path, &[]);
+    let output = run_git_bounded("work clone", &["clone", &clone_url, "."], work_path, &[]).await;
     assert!(
         output.status.success(),
         "git clone (work) failed: stderr={}",
@@ -803,14 +833,15 @@ async fn test_git_clone_push_pull_e2e() {
     let test_file = work_path.join("test.txt");
     std::fs::write(&test_file, "Hello from E2E test\n").expect("Failed to write test file");
 
-    let output = run_git(&["add", "test.txt"], work_path, &[]);
+    let output = run_git_bounded("add", &["add", "test.txt"], work_path, &[]).await;
     assert!(
         output.status.success(),
         "git add failed: stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let output = run_git(
+    let output = run_git_bounded(
+        "commit",
         &[
             "-c",
             "user.email=test@example.com",
@@ -822,21 +853,22 @@ async fn test_git_clone_push_pull_e2e() {
         ],
         work_path,
         &[],
-    );
+    )
+    .await;
     assert!(
         output.status.success(),
         "git commit failed: stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let output = run_git(&["push", "origin", "HEAD"], work_path, &[]);
+    let output = run_git_bounded("push", &["push", "origin", "HEAD"], work_path, &[]).await;
     assert!(
         output.status.success(),
         "git push failed: stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let pushed_sha = run_git(&["rev-parse", "HEAD"], work_path, &[]);
+    let pushed_sha = run_git_bounded("rev-parse", &["rev-parse", "HEAD"], work_path, &[]).await;
     assert!(pushed_sha.status.success(), "git rev-parse failed");
     let pushed_sha = String::from_utf8(pushed_sha.stdout)
         .expect("SHA is UTF-8")
@@ -943,7 +975,7 @@ async fn test_git_clone_push_pull_e2e() {
     let pull_dir = TempDir::new().expect("Failed to create pull dir");
     let pull_path = pull_dir.path();
 
-    let output = run_git(&["clone", &clone_url, "."], pull_path, &[]);
+    let output = run_git_bounded("pull clone", &["clone", &clone_url, "."], pull_path, &[]).await;
     assert!(
         output.status.success(),
         "git clone (pull) failed: stderr={}",

@@ -1,6 +1,6 @@
 # Iteration 068: Durable Push Event Integration
 
-> 文档状态：Review / Partial
+> 文档状态：Closed / Complete
 > 计划发布日期：2026-08-10
 > 计划目标：完成 EVO-118-H-C，使真实 Git Push 通过 Durable Outbox 驱动幂等 Repo metadata 派生，不再依赖可丢失的 post-push task。
 >
@@ -98,9 +98,10 @@ lease/worker 基线。若 Git 已写但 DB 失败，保留 Git 事实并通过�
 | 2026-08-10 | refinement | 补齐 H-C Required Reads、四个 BDD 场景、事件 schema/idempotency、威胁模型、Git/DB 分裂与 residual owner；不需要新 ADR。 |
 | 2026-08-10 | activation | H-B 已 Done；H-C 满足 DoR 并进入 In Progress，Iteration 068 成为唯一 Active iteration。 |
 | 2026-08-10 | implementation | typed `repo.push.completed.v1` producer、幂等 SQLite/PostgreSQL enqueue、Receive Pack 503/reconcile、Worker subscriber、secret/tenant/旧事件负向测试已完成。 |
-| 2026-08-10 | validation | Domain 2/2、SQLite outbox 11/11、SQLite failure E2E 1/1、PostgreSQL H-C integration 1/1、Worker SQLite/PG process、check/clippy 通过；完整 Git Smart HTTP 4 项中 3 项通过，pull clone 认证失败归 EVO-125。 |
+| 2026-08-10 | validation | Domain 2/2、SQLite outbox 11/11、SQLite failure E2E 1/1、PostgreSQL H-C integration 1/1、Worker SQLite/PG process、check/clippy 通过；完整 Git Smart HTTP 4/4 通过。 |
 | 2026-08-10 | fixture correction | Repo Context SQLite fixtures 补齐 migrations 011/012；metadata Push 测试改为断言 pending durable event、执行真实 Worker 后验证元数据，不再等待已删除的进程内后台任务。定向测试 1/1、workspace 跳过已登记 EVO-125 单项后全绿，PostgreSQL H-C 与 claim/idempotency 顺序复验各 1/1。 |
-| 2026-08-10 | navigator | 发现并修复 trait 幂等默认退化、SQLite 冲突吞错、超时 stdin 残留和 former-default 旧事件处理；无未归口 H-C blocking finding，EVO-125 是独立残余。 |
+| 2026-08-10 | EVO-125 closure | 复现并确认同步 Git 子进程导致 runtime starvation；改用 `tokio::process::Command` + 20 秒阶段超时 + `kill_on_drop`。完整 clone/push/pull 聚焦 E2E 连续 3/3、Smart HTTP suite 4/4、未跳过的 workspace 全量测试、format/check/strict Clippy、文档与治理校验均通过；`lsof -c git` 无遗留 Git 子进程。EVO-125、H-C 与本 Iteration 均达到 Complete。 |
+| 2026-08-10 | navigator | 发现并修复 trait 幂等默认退化、SQLite 冲突吞错、超时 stdin 残留和 former-default 旧事件处理；无未归口 H-C blocking finding；当时的 EVO-125 独立残余已在最终 closure 记录中关闭。 |
 
 ## 9. 变更请求
 
@@ -110,14 +111,14 @@ lease/worker 基线。若 Git 已写但 DB 失败，保留 Git 事实并通过�
 ## 10. Review
 
 - 完成：typed event contract、Push producer、reconcile handshake、幂等 subscriber、SQLite/PostgreSQL、crash/restart/secret/tenant 负向证据。
-- 未完成：完整 Git Smart HTTP clone-push-pull 仍有最后 pull clone 认证失败；不把历史不稳定伪装为 H-C 通过。
-- 验证结果：见 H-C item 实际验证；workspace 全量门禁继续执行。
-- 闭环状态：`Partial`
-- 残余归口：EVO-125 修复完整 Smart HTTP E2E；H-C 关闭前需重新运行该测试并确认 4/4，父 H / EVENT-01 保持开放。
+- 完成：完整 Git Smart HTTP clone-push-pull 连续 3/3 通过；Git 子进程具备有界 timeout 与阶段诊断。
+- 验证结果：见 H-C item 实际验证；workspace 全量门禁已通过。
+- 闭环状态：`Complete`
+- 残余归口：后续 Commit/Promote/Agent Session/Webhook/Indexer producer/consumer 仍由各自 Story 负责；最终 Worker supervisor 与 production smoke 归 EVO-118-E。
 
 ## 11. Retrospective
 
 - 做得好的：把 reconcile 放到 receive-pack advertisement，覆盖 up-to-date 重试无法触发 producer 的分裂场景。
-- 需要调整的：Smart HTTP E2E 需要稳定的子进程/认证生命周期，已由 EVO-125 独立承接。
+- 需要调整的：Smart HTTP E2E 必须使用异步、有界 Git 子进程；本轮已由 EVO-125 收口。
 - 用户可见文档：API Contract、Architecture、CONFIG 已同步 durable event 与 503/reconcile 语义。
-- 写入 EVOLUTION：本轮稳定性残余已写入 EVO-125，避免在 H-C 关闭前误宣称 full E2E。
+- 事件基础设施完成，但未来业务事件仍按 owner Story 接入，不将 H-C 扩大为 Commit/Promote/Webhook/Indexer 实现。

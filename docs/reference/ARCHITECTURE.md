@@ -326,8 +326,9 @@ dead-letter。独立 `outbox-worker` 支持 continuous、one-batch 与 confirmed
 `batch × delivery timeout < lease`，优雅停止等待当前有界 batch，日志和 `last_error` 只暴露
 稳定错误码。H-C 已注册 `repo.push.completed.v1` producer/subscriber：payload 只含非敏感
 Repo/tenant/ref/commit facts，idempotency key 由 Repo/default branch/commit 派生，Worker
-以当前 Git ref 防止旧事件回写；生产 supervisor 仍归 EVO-118-E，EVENT-01 在 Commit/Promote、
-Webhook、Indexer 等后续 producer/consumer 约束同步前保持开放。
+以当前 Git ref 防止旧事件回写；生产 supervisor 仍归 EVO-118-E。Commit/Promote、Webhook、
+Indexer 等后续 producer/consumer 约束已同步至 EVO-105/106/107/108，EVENT-01 Durable Outbox
+基础 Gate 已关闭；具体业务接入仍由各 owner Story 验收。
 
 ## 7. 安全边界
 

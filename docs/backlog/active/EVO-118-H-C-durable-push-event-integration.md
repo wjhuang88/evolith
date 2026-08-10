@@ -2,7 +2,7 @@
 
 - **身份**：平台维护者、Git Push 调用方与后续事件消费者
 - **类型**：Technical / Reliability / Integration
-- **状态**：Review / Partial（Iteration 068）
+- **状态**：Done / Complete（Iteration 068）
 - **优先级**：P1
 - **父 Epic**：[EVO-118-H](EVO-118-H-durable-outbox-events.md)
 - **依赖**：EVO-118-H-B Done；现有 Git Smart HTTP Push 路径
@@ -74,12 +74,12 @@ subscriber/idempotency contract，使未来 Webhook/Indexer 可以复用同一�
 
 ## 技术验收
 
-- [ ] Push 成功后持久化结构化事件；失败路径不返回假成功，Git/DB 分裂有明确 reconcile 归口。
-- [ ] 现有 push 后 metadata 派生工作消费 Durable Event，不再依赖可丢失的 fire-and-forget task。
-- [ ] subscriber 使用 idempotency key，重复投递不产生重复业务副作用。
-- [ ] crash/restart、重复投递、事务/补偿失败和 payload secret 负向测试通过。
-- [ ] EVO-105/EVO-106/EVO-107/EVO-108 的事件生产/消费契约和依赖同步。
-- [ ] Driver 实现后完成 Navigator 审查，无未归口 blocking finding。
+- [x] Push 成功后持久化结构化事件；失败路径不返回假成功，Git/DB 分裂有明确 reconcile 归口。
+- [x] 现有 push 后 metadata 派生工作消费 Durable Event，不再依赖可丢失的 fire-and-forget task。
+- [x] subscriber 使用 idempotency key，重复投递不产生重复业务副作用。
+- [x] crash/restart、重复投递、事务/补偿失败和 payload secret 负向测试通过。
+- [x] EVO-105/EVO-106/EVO-107/EVO-108 的事件生产/消费契约和依赖同步。
+- [x] Driver 实现后完成 Navigator 审查，无未归口 blocking finding。
 
 ## 最小验证
 
@@ -91,8 +91,8 @@ subscriber/idempotency contract，使未来 Webhook/Indexer 可以复用同一�
 
 - Commit/Promote producer 归 EVO-105；Agent Session Event 归 EVO-106；Webhook/Indexer consumer
   归 EVO-107/EVO-108。
-- 最终 Worker supervisor 与 production smoke 归 EVO-118-E；既有 Smart HTTP E2E 偶发阻塞
-  归 EVO-125。
+- 最终 Worker supervisor 与 production smoke 归 EVO-118-E；后续业务 producer/consumer 继续
+  由 EVO-105/EVO-106/EVO-107/EVO-108 负责。
 
 ## ADR 结论
 
@@ -110,4 +110,8 @@ subscriber/idempotency contract，使未来 Webhook/Indexer 可以复用同一�
 - `cargo test -p api --test durable_push_event_postgres_tests` with dedicated PostgreSQL 16：1/1 通过；真实 PostgreSQL producer/reconcile、Worker subscriber、metadata update 与重复投递幂等闭合。
 - `cargo test --test outbox_worker_process_tests`：SQLite 2/2 通过；PostgreSQL 进程 1/1 通过（显式 `TEST_POSTGRES_URL`）。
 - `cargo clippy --workspace --all-targets -- -D warnings` 与 `cargo check --workspace --all-targets`：通过。
-- 完整 `git_smart_http_e2e_tests`：3/4 通过；`test_git_clone_push_pull_e2e` 在最后 pull clone 阶段 53.9s 后认证失败，既有不稳定已归 [EVO-125](EVO-125-git-smart-http-e2e-hang.md)，因此本 Story 保持 Review / Partial。
+- `test_git_clone_push_pull_e2e`：连续 3/3 通过；同步 Git 子进程导致的 runtime starvation 已由
+  [EVO-125](EVO-125-git-smart-http-e2e-hang.md) 修复为 bounded async runner，完整 Smart HTTP
+  clone/push/pull 语义保持真实执行。
+
+闭环状态：`Complete`。

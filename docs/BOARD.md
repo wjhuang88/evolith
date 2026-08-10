@@ -4,25 +4,27 @@
 > validation evidence and lifecycle state. Update owner docs first, then reflect the current
 > operating state here.
 >
-> **2026-08-10 执行进展**：SEC-01、SEC-02、DATA-01、DATA-02 已解除。ADR-0010 将 EVO-118-E / DEPLOY-01 调整为目标产品开发与清理后的最终发布 Gate；关闭前可继续开发，但不得上线。H-A/H-B / Iterations 066/067 已 Closed / Complete；H-C / Iteration 068 Review / Partial。
+> **2026-08-10 执行进展**：SEC-01、SEC-02、DATA-01、DATA-02 已解除。ADR-0010 将 EVO-118-E / DEPLOY-01 调整为目标产品开发与清理后的最终发布 Gate；关闭前可继续开发，但不得上线。H-A/H-B/H-C 与 Iterations 066/067/068 已 Done / Closed / Complete，EVENT-01 Durable Outbox 基础 Gate 已解除。
 
 ## Now
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C/D/F、G-B/C/D、H-A/H-B Done；G-A Partial，H-C Review / Partial；E 保留为最终发布 Gate。 |
+| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C/D/F、G-B/C/D、H Done；G-A Partial；E 保留为最终发布 Gate。 |
 | EVO-118-G-A CI Merge Gates | Review / Partial | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056；本地门禁通过，Branch Protection 远端 403 residual。 |
-| EVO-118-H-C Durable Push Event Integration | Review / Partial | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | 核心 producer/subscriber 与双数据库证据通过；完整 Smart HTTP E2E pull clone 失败归 EVO-125。 |
-| Iteration 068 | Review / Partial | [Iteration](iterations/ITERATION-068.md) | H-C 核心 durable event 闭环通过；等待 EVO-125 修复后重跑完整 Git E2E。 |
 
 ## Review
 
-Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 057~059、061~067 Closed / Complete。Iteration 068 当前为唯一 Review / Partial runtime Iteration，等待 EVO-125 处置。
+Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 057~059、061~068 Closed / Complete。当前无 runtime Review iteration。
 
 ## Done
 
 | Item | State | Owner Doc | Evidence |
 |------|-------|-----------|----------|
+| EVO-118-H Durable Event Epic | Done / Complete | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | H-A/B/C 全部 Done；recoverable claim、Worker runtime、Push producer/subscriber、双数据库与完整 Smart HTTP E2E 闭合，EVENT-01 基础 Gate 解除。 |
+| EVO-118-H-C Durable Push Event Integration | Done / Complete | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | Iteration 068；Push durable event、幂等 metadata subscriber、reconcile、双数据库与完整 Git E2E 闭合。 |
+| Iteration 068 | Closed / Complete | [Iteration](iterations/ITERATION-068.md) | EVO-125 bounded async Git runner 后聚焦 clone/push/pull 连续 3/3 通过，workspace 与治理门禁闭合。 |
+| EVO-125 Git Smart HTTP E2E Reliability | Done / Complete | [Item](backlog/active/EVO-125-git-smart-http-e2e-hang.md) | 同步 Git 子进程改为 20 秒 bounded async runner；真实 E2E 连续 3/3 通过。 |
 | EVO-118-H-B Outbox Worker Runtime | Done / Complete | [Item](backlog/active/EVO-118-H-B-outbox-worker-runtime.md) | Iteration 067；独立 Worker、bounded delivery、SQLite/PG 101 backlog/crash recovery、confirmed replay、workspace gates 与 Navigator 闭合。 |
 | Iteration 067 | Closed / Complete | [Iteration](iterations/ITERATION-067.md) | continuous/once/replay、SIGINT、stable error code、双数据库进程证据完成；EVO-125 独立承接既有 Git E2E 不稳定。 |
 | EVO-118-H-A Recoverable Outbox Claims | Done / Complete | [Item](backlog/active/EVO-118-H-A-recoverable-outbox-claims.md) | Iteration 066；paired 012 upgrade、SQLite 8/8、真实 PostgreSQL concurrent/upgrade 1/1、infra/check/clippy 与 Navigator 闭合。 |
@@ -58,7 +60,6 @@ Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 0
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-H Durable Event Epic | In Progress | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | H-A/H-B Done；H-C / Iteration 068 Review / Partial，EVENT-01 未关闭。 |
 | EVO-121 Product Experience Convergence | In Progress | [Epic](backlog/active/EVO-121-product-experience-convergence.md) | EVO-121-C/D Done；其余四个子 Story 按各自依赖激活，不得用空路由、假数据或 Legacy 兼容页提前拼 Shell。 |
 | EVO-105/106/107/104 Agent Write Loop | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖 EVO-118-B/F/H 与 Repo UI 基础；不得绕过 Typed Capability、Policy 和 Durable Event。 |
 | EVO-108/109 Index/Discovery | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖稳定 Push/Commit Event 与 EVO-118-H；EVO-110 已 Dropped。 |
@@ -70,7 +71,7 @@ Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 0
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-H-C Durable Push Event Integration | Review / Partial | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | Iteration 068；核心 producer/subscriber 通过，完整 Git E2E pull clone 认证失败归 EVO-125。 |
+| EVO-105/106 Agent Write Foundation | Proposed / next DoR | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | EVO-118-B/F/H 与 Repo UI 基础已满足；激活前仍需按 Story 依赖与安全门禁 refinement。 |
 
 ## Later
 
@@ -93,6 +94,6 @@ Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 0
 - EVO-118-C/Iteration 052 已由 PR #5 合并并关闭；实现 head `de762e2dae6bf5716e54c64e2277cb2e26592e36`，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`，final-head CI #137 / run `30682419168` 全绿，SEC-02 已解除。
 - EVO-112-A 的 2026-06-29 本地历史成果已按冲突恢复流程迁移为 Iteration 054；历史事实保留，当前顺序由 ADR-0010 重排。
 - EVO-118-D / Iteration 053 已由 PR #7 合并并关闭；final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，merge commit `932def05717b678f6f44dc23f137933d56158957`，required workflows 全绿，独立 Navigator `Complete`，DATA-01 已解除。
-- 当前启动顺序：EVO-118-G-B/C/D、EVO-120、EVO-112-C 与 EVO-121-C 已完成，G-A/H 保留 Partial residual；下一候选须重新执行 DoR，并按 EVO-121-D → EVO-105/106/107/104 → EVO-121-E/B → EVO-108/109 → EVO-121-A/F → EVO-111 → EVO-122-A/B/C → EVO-118-E（最终生产收敛）推进。
+- 当前启动顺序：EVO-118-G-B/C/D/H、EVO-120、EVO-112-C 与 EVO-121-C/D 已完成，G-A 保留 Partial residual；下一候选须重新执行 DoR，并按 EVO-105/106/107/104 → EVO-121-E/B → EVO-108/109 → EVO-121-A/F → EVO-111 → EVO-122-A/B/C → EVO-118-E（最终生产收敛）推进。
 - 安全、数据损坏或基础构建失败允许显式 P0 插队；DEPLOY-01 关闭前不得上线，但不阻塞普通产品开发。
 - Board 只反映 owner docs；Gate 关闭必须由 Story 验收、最新 exact-head CI、独立 Navigator 和实际验证共同证明。

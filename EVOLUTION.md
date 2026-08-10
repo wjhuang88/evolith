@@ -35,6 +35,12 @@
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
 
+### 2026-08-10 异步 E2E 不得用同步子进程阻塞 runtime
+**现象**: Smart HTTP 真实 clone/push/pull E2E 的前两次 clone 与 push 成功，但最后一次 clone 偶发在 39 秒后报认证失败，历史运行还出现 224 秒和数小时无进展；API key 状态与服务端直接鉴权均正常。
+**根因**: `#[actix_rt::test]` 内使用 `std::process::Command::output` 同步等待 Git，阻塞测试 runtime 的调度与服务生命周期；错误表面表现为 Git 认证失败，容易误判为 RBAC 或 credential 缺陷。
+**方案**: 完整 E2E 改用 `tokio::process::Command`，每个 Git 阶段设置 20 秒总 timeout、`kill_on_drop(true)` 和脱敏阶段名；真实场景连续 3/3、完整 suite 4/4 与 workspace 全量测试通过。
+**教训**: 异步集成测试调用真实外部进程时必须异步等待并设置总 timeout；只给服务端 subprocess 限时不能防止测试客户端阻塞 runtime。
+
 ## 2026-08-09 - Fresh schema 不能替代 existing-row migration upgrade 证据
 
 - Trigger: EVO-118-H-A Navigator 复核 `012_outbox_claim_leases` 时发现 SQLite/PostgreSQL 测试只从空库执行到最新 schema。

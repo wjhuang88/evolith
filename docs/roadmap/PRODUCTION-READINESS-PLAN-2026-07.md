@@ -105,9 +105,11 @@ S1 安全与数据基线已关闭。DEPLOY-01 不属于普通开发前置：
 H-A / Iteration 066 已 Done / Closed / Complete：paired 012 upgrade、lease/fencing、stale
 recovery 与 PostgreSQL concurrent claim 已验证。H-B / Iteration 067 已 Done / Closed /
 Complete：独立 Worker、bounded delivery、双数据库积压恢复与 confirmed replay 已验证。
-EVENT-01 仍等待 H-C 的真实 Push producer/subscriber 接入。
+H-C / Iteration 068 已 Done / Closed / Complete：真实 Push producer/subscriber、reconcile、
+SQLite/PostgreSQL 与完整 Smart HTTP E2E 已验证，EVENT-01 Durable Outbox 基础 Gate 已关闭。
 
-S2 在 S1 后按依赖推进；DATA-02 已关闭，当前下一候选为 EVO-118-G；不得为了恢复产品进度跳过 REL-01 或 EVENT-01。
+S2 在 S1 后按依赖推进；DATA-02 与 EVENT-01 已关闭，REL-01 仍保留 G-A 远端证据 residual；
+下一候选按 DoR 从 EVO-105/106 产品链选择，不得绕过既有权限与事件边界。
 
 ### Product P1 — Repo-centric Web
 
