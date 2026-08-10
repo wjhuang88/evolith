@@ -32,7 +32,7 @@
 | [EVO-118-E](EVO-118-E-production-build-deployment-convergence.md) | 最终 Embedded Frontend 生产构建/部署收敛 | Proposed / final release gate | P0 | F/G/H + 目标 MVP + legacy cleanup | 最后执行 |
 | [EVO-118-F](EVO-118-F-repo-lifecycle-consistency.md) | Repo DB/FS 生命周期一致性与真实 Initial Commit | Done / Complete | P1 | EVO-118-D Done | Iteration 055 Closed |
 | [EVO-118-G](EVO-118-G-runtime-reliability-gates.md) | PR CI、readiness、限流和生产 fail-closed 接线 | In Progress | P1 | EVO-118-B Done | G-A Review/Partial；G-B/C/D Complete |
-| [EVO-118-H](EVO-118-H-durable-outbox-events.md) | Durable Outbox/Worker 为 Webhook/Indexer/Agent Event 提供可靠事件 | In Progress（H-A/H-B Done；H-C Proposed） | P1 | EVO-118-G | Iteration 060 Partial；066/067 Complete |
+| [EVO-118-H](EVO-118-H-durable-outbox-events.md) | Durable Outbox/Worker 为 Webhook/Indexer/Agent Event 提供可靠事件 | In Progress（H-A/H-B Done；H-C Review / Partial） | P1 | EVO-118-G | Iteration 060 Partial；066/067 Complete；068 Review / Partial |
 
 ## 阶段 Gate
 
@@ -86,9 +86,9 @@ EVO-118-E 在目标 MVP、EVO-118-F/G/H 和 legacy cleanup 完成后执行。它
 
 ## 当前执行入口
 
-1. Iteration 060 保持 Closed / Partial；H-A / Iteration 066 与 H-B / Iteration 067 均 Done / Complete；下一切片为 H-C。
+1. Iteration 060 保持 Closed / Partial；H-A / Iteration 066 与 H-B / Iteration 067 均 Done / Complete；H-C 已由 Iteration 068 实现并进入 Review / Partial，等待 EVO-125 残余处置。
 2. PR #7 final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，merge commit `932def05717b678f6f44dc23f137933d56158957`；DATA-01 Closed。
-3. G-B/C/D 已完成本地验收；G-A 仍有远端 Branch Protection residual；H-A/H-B 已关闭 claim recovery、PG concurrency 与 Worker runtime，H-C 后续。
+3. G-B/C/D 已完成本地验收；G-A 仍有远端 Branch Protection residual；H-A/H-B 已关闭 claim recovery、PG concurrency 与 Worker runtime；H-C 核心 Push durable event 已实现，完整 Smart HTTP E2E 残余归 EVO-125。
 4. EVO-118-E 按 ADR-0010 最后执行；当前仍不得把安全/数据 Gate 完成解释为平台生产就绪。
 
 ## 残余工作归口

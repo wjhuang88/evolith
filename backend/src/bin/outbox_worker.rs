@@ -1,10 +1,15 @@
+use api::services::repo_push_event::RepoPushEventHandler;
 use async_trait::async_trait;
 use common::error::{AppError, Result};
 use domain::repository::OutboxRepository;
 use domain::{OutboxEvent, OutboxHandler, OutboxRuntime, OutboxWorker};
 use infra::config::{AppConfig, OutboxWorkerConfig};
 use infra::db::pool::DatabasePool;
-use infra::db::{create_pool, PgOutboxRepository, SqliteOutboxRepository};
+use infra::db::{
+    create_pool, PgGitRepoRepository, PgOutboxRepository, SqliteGitRepoRepository,
+    SqliteOutboxRepository,
+};
+use std::sync::Arc;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
@@ -18,17 +23,17 @@ enum Command {
     Help,
 }
 
-struct ProbeHandler;
+struct WorkerHandler {
+    repo_push: RepoPushEventHandler,
+}
 
 #[async_trait]
-impl OutboxHandler for ProbeHandler {
+impl OutboxHandler for WorkerHandler {
     async fn deliver(&self, event: &OutboxEvent) -> Result<()> {
         if event.event_type == PROBE_EVENT_TYPE {
             Ok(())
         } else {
-            Err(AppError::ServiceUnavailableError(
-                "no registered outbox handler".to_string(),
-            ))
+            self.repo_push.deliver(event).await
         }
     }
 }
@@ -59,21 +64,51 @@ async fn run() -> Result<()> {
                 .run(&pool)
                 .await
                 .map_err(|error| AppError::DatabaseError(error.to_string()))?;
-            execute(command, SqliteOutboxRepository::new(pool), &worker_config).await
+            let handler = WorkerHandler {
+                repo_push: RepoPushEventHandler::new(
+                    Arc::new(SqliteGitRepoRepository::new(pool.clone())),
+                    &app_config.git_storage.base_path,
+                ),
+            };
+            execute(
+                command,
+                SqliteOutboxRepository::new(pool),
+                handler,
+                &worker_config,
+            )
+            .await
         }
         DatabasePool::Postgres(pool) => {
             sqlx::migrate!("./migrations/postgres")
                 .run(&pool)
                 .await
                 .map_err(|error| AppError::DatabaseError(error.to_string()))?;
-            execute(command, PgOutboxRepository::new(pool), &worker_config).await
+            let handler = WorkerHandler {
+                repo_push: RepoPushEventHandler::new(
+                    Arc::new(PgGitRepoRepository::new(pool.clone())),
+                    &app_config.git_storage.base_path,
+                ),
+            };
+            execute(
+                command,
+                PgOutboxRepository::new(pool),
+                handler,
+                &worker_config,
+            )
+            .await
         }
     }
 }
 
-async fn execute<R>(command: Command, repository: R, config: &OutboxWorkerConfig) -> Result<()>
+async fn execute<R, H>(
+    command: Command,
+    repository: R,
+    handler: H,
+    config: &OutboxWorkerConfig,
+) -> Result<()>
 where
     R: OutboxRepository,
+    H: OutboxHandler,
 {
     if let Command::Replay { event_id } = command {
         let event = repository
@@ -86,7 +121,7 @@ where
     let once = matches!(command, Command::Run { once: true });
     let worker = OutboxWorker::new(
         repository,
-        ProbeHandler,
+        handler,
         config.batch_size,
         config.base_backoff_seconds,
         config.lease_seconds,

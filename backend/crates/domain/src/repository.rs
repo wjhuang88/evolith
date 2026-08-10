@@ -197,6 +197,7 @@ pub trait GitRepoRepository: Send + Sync {
 #[async_trait]
 pub trait OutboxRepository: Send + Sync {
     async fn enqueue(&self, event: NewOutboxEvent) -> Result<OutboxEvent>;
+    async fn enqueue_idempotent(&self, event: NewOutboxEvent) -> Result<OutboxEvent>;
     async fn claim_due(
         &self,
         limit: u32,

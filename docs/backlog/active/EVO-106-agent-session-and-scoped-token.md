@@ -37,6 +37,8 @@
 - 依赖 EVO-103 Repo Context API（agent 通过此读取 repo 内容）
 - 依赖 EVO-105 Commit API（agent 通过此写 commit）
 - 不依赖外部 agent engine 实现（mock 即可走通 Evolith 侧）
+- 依赖 EVO-118-H-C 建立的 Durable Outbox/idempotent subscriber boundary；Session event
+  producer 在本 Story 事务中 enqueue，不能依赖进程内异步任务。
 
 ## Governing ADRs, Specs Or Decisions
 

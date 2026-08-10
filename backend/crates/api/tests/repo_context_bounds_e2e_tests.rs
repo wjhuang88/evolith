@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 use api::routes;
+use api::services::repo_push_event::RepoPushEventHandler;
 use api::state::AppState;
 use common::execution::{CompositeProvider, ExecutionProvider};
 use domain::api_key::NewApiKey;
@@ -18,6 +19,7 @@ use domain::repository::{
     ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,
     SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
+use domain::OutboxWorker;
 use infra::config::{
     AppConfig, AppMetaConfig, DatabaseConfig, GitStorageConfig, JwtConfig, LogConfig,
     RateLimitConfig, RedisConfig, SandboxConfig, ServerConfig, SmtpConfig, StorageConfig,
@@ -25,8 +27,8 @@ use infra::config::{
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
-    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
-    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
+    SqliteInvitationRepository, SqliteOutboxRepository, SqliteSkillRepository,
+    SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
@@ -44,6 +46,8 @@ const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_cen
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
 const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
+const MIGRATION_011: &str = include_str!("../../../migrations/sqlite/011_outbox_events.sql");
+const MIGRATION_012: &str = include_str!("../../../migrations/sqlite/012_outbox_claim_leases.sql");
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse<T> {
@@ -124,6 +128,8 @@ async fn setup_test_db() -> (SqlitePool, TempDir) {
         MIGRATION_008,
         MIGRATION_009,
         MIGRATION_010,
+        MIGRATION_011,
+        MIGRATION_012,
     ] {
         for statement in sql.split(';') {
             let trimmed = statement.trim();
@@ -235,7 +241,9 @@ fn build_app_state(pool: SqlitePool, base_path: String) -> AppState {
             as Arc<dyn InvitationRepository>,
         api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone()))
             as Arc<dyn ApiKeyRepository>,
-        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)) as Arc<dyn GitRepoRepository>,
+        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool.clone()))
+            as Arc<dyn GitRepoRepository>,
+        outbox_repo: Arc::new(SqliteOutboxRepository::new(pool)),
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         execution_provider: execution_provider.clone(),
@@ -914,26 +922,42 @@ async fn test_push_updates_repo_default_branch_metadata() {
         String::from_utf8_lossy(&push_out.stderr)
     );
 
-    let mut updated = None;
-    for _ in 0..40 {
-        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-        let candidate = pool_repo_find(&pool, repo_uuid).await;
-        if candidate.last_commit_sha.is_some() {
-            updated = Some(candidate);
-            break;
-        }
-    }
+    let pending_events: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM outbox_events \
+         WHERE event_type='repo.push.completed.v1' AND status='pending'",
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("count pending push events");
+    assert!(pending_events >= 1, "push should persist a durable event");
+
+    let worker = OutboxWorker::new(
+        SqliteOutboxRepository::new(pool.clone()),
+        RepoPushEventHandler::new(
+            Arc::new(SqliteGitRepoRepository::new(pool.clone())),
+            &base_path,
+        ),
+        10,
+        1,
+        60,
+        5,
+    )
+    .expect("build outbox worker");
+    let batch = worker.process_once().await.expect("deliver push event");
+    assert!(batch.delivered >= 1, "push event should be delivered");
+
+    let updated = pool_repo_find(&pool, repo_uuid).await;
     drop(shutdown_tx);
     let _ = _server_task.await;
 
-    let updated = updated.expect(
-        "last_commit_sha should be set after push (background task did not complete within 10s)",
-    );
     assert!(
         updated.last_committed_at.is_some(),
-        "last_committed_at should be set after push"
+        "last_committed_at should be set after durable event delivery"
     );
-    let sha = updated.last_commit_sha.as_ref().unwrap();
+    let sha = updated
+        .last_commit_sha
+        .as_ref()
+        .expect("last_commit_sha should be set after durable event delivery");
     assert_eq!(sha.len(), 40, "expected 40-char hex sha, got {}", sha);
 }
 

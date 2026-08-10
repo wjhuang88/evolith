@@ -38,6 +38,8 @@
 
 - 依赖 EVO-102 policy 解析器
 - 依赖 EVO-103 smart HTTP（commit 走 API 而非 git CLI）
+- 依赖 EVO-118-H-C 的 `repo.push.completed.v1` / Durable Outbox producer-subscriber contract；
+  Commit/Promote 必须在各自业务事务中 enqueue typed event，不回退到 handler spawn。
 - 软依赖 EVO-104 UX U-04 决策（agent branch 命名约定）
 
 ## Governing ADRs, Specs Or Decisions

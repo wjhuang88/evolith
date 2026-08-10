@@ -260,6 +260,10 @@ mod tests {
             Err(AppError::InternalError("unused test operation".to_string()))
         }
 
+        async fn enqueue_idempotent(&self, _event: NewOutboxEvent) -> Result<OutboxEvent> {
+            Err(AppError::InternalError("unused test operation".to_string()))
+        }
+
         async fn claim_due(
             &self,
             _limit: u32,

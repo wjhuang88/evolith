@@ -22,7 +22,7 @@ Iteration 060 已交付 schema/repository 最小边界，但剩余范围包含 c
 | --- | --- | --- | --- | --- |
 | [EVO-118-H-A](EVO-118-H-A-recoverable-outbox-claims.md) | 可回收 lease/fencing claim + PostgreSQL 并发互斥 | Done / Complete | Iteration 060 boundary | Iteration 066 |
 | [EVO-118-H-B](EVO-118-H-B-outbox-worker-runtime.md) | 常驻 Worker 生命周期、积压恢复与 replay | Done / Complete | H-A Done | Iteration 067 |
-| [EVO-118-H-C](EVO-118-H-C-durable-push-event-integration.md) | 现有 Push 派生工作接入 Durable Event 与幂等 subscriber | Proposed | H-B | - |
+| [EVO-118-H-C](EVO-118-H-C-durable-push-event-integration.md) | 现有 Push 派生工作接入 Durable Event 与幂等 subscriber | Review / Partial | H-B Done | Iteration 068 |
 
 父 Epic 只在 H-A/B/C 全部 Done、EVENT-01 证据同步且未来 producer/consumer 约束已写入
 EVO-105/106/107/108 后进入 Done。Commit/Promote/Agent Session 尚未实现，因此其具体事件

@@ -8,6 +8,7 @@ pub mod errors;
 pub mod git_repo;
 pub mod outbox;
 pub mod policy;
+pub mod repo_push_event;
 pub mod repository;
 pub mod skill;
 pub mod snippet;
@@ -23,6 +24,10 @@ pub use outbox::{
     OutboxStatus, OutboxWorker,
 };
 pub use policy::{AgentPolicy, DefaultAction, EvolithPolicy, Scope};
+pub use repo_push_event::{
+    RepoPushCompletedPayload, REPO_PUSH_AGGREGATE_TYPE, REPO_PUSH_COMPLETED_EVENT_TYPE,
+    REPO_PUSH_MAX_ATTEMPTS,
+};
 pub use repository::{
     ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,
     SnippetRepository, TenantRepository, ToolRepository, UserRepository,

@@ -89,7 +89,7 @@ cargo run --bin outbox-worker -- replay <event-uuid> --confirm
 - `run` 持续领取，到 SIGINT 后等待当前有界 batch 完成并正常退出。
 - `run --once` 领取至多一个 batch，适合 smoke、维护任务和进程测试。
 - `replay` 只接受 `dead_letter`，且必须显式 `--confirm`；其他状态不变并非零退出。
-- 当前唯一成功 handler 是无副作用的 `system.outbox.probe`。真实 Push producer/subscriber 与生产 supervisor/replica 归 EVO-118-H-C；未知事件必须失败。
+- 已注册无副作用的 `system.outbox.probe` 与真实 `repo.push.completed.v1` subscriber；未知事件必须失败。Push producer/reconcile 由 EVO-118-H-C 提供，生产 supervisor/replica 仍归 EVO-118-E。
 - Worker 与 HTTP Server 必须指向同一数据库。SQLite 是单进程 Lite 路径；生产并发路径是 PostgreSQL。
 
 Worker 不打印 payload、idempotency key 或 handler 原始错误；`last_error` 只保存稳定错误码。

@@ -3,7 +3,7 @@
 > 基线日期：2026-08-09
 > 状态：Active release gate
 > 归口：[EVO-118 Production Readiness and Security Hardening](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)
-> 当前执行：EVO-118-D/F 与 DATA-01/DATA-02 已关闭；G-B/C/D Complete，G-A Partial；H-A/H-B / Iterations 066/067 Done / Complete，H-C 待续；EVO-112-A/B/C、EVO-120 与 EVO-121-C/D 已完成。EVO-118-E 按 ADR-0010 保留为最终发布 Gate。
+> 当前执行：EVO-118-D/F 与 DATA-01/DATA-02 已关闭；G-B/C/D Complete，G-A Partial；H-A/H-B / Iterations 066/067 Done / Complete，H-C / Iteration 068 Review / Partial；EVO-112-A/B/C、EVO-120 与 EVO-121-C/D 已完成。EVO-118-E 按 ADR-0010 保留为最终发布 Gate。
 > 复核方式：代码、配置、部署文件、测试证据、Backlog 与路线图交叉审查。
 
 ## 1. 结论
@@ -136,8 +136,8 @@ Infrastructure
 - Iteration 053：Closed / Complete。
 - DATA-01：Closed。
 - EVO-118-F：Done / Complete；Iteration 055：Closed / Complete；DATA-02：Closed。
-- EVO-118-G-B/C/D：Done / Complete；G-A 因远端 Branch Protection 403 保持 Review / Partial。EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B / Iterations 066/067 Done / Complete，H-C 待续，EVENT-01 未关闭。
-- EVO-112-A/B/C、EVO-120 与 EVO-121-C/D：Done / Complete；Iterations 054/061/062/063/064/065 Closed / Complete。依赖复核确认 EVO-105/106 不能绕过 H；H-B 完成后下一依赖切片是 H-C。
+- EVO-118-G-B/C/D：Done / Complete；G-A 因远端 Branch Protection 403 保持 Review / Partial。EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B / Iterations 066/067 Done / Complete，H-C / Iteration 068 Review / Partial，EVENT-01 未关闭；完整 Git Smart HTTP E2E 残余归 EVO-125。
+- EVO-112-A/B/C、EVO-120 与 EVO-121-C/D：Done / Complete；Iterations 054/061/062/063/064/065 Closed / Complete。依赖复核确认 EVO-105/106 不能绕过 H；当前由 Iteration 068 推进 H-C。
 - EVO-118-E 保持 Proposed / final release gate。
 - SEC-01、SEC-02、DATA-01、DATA-02 已解除；DEPLOY-01 仍开放，因此仍不得声明生产就绪或发布外部 Alpha。
 - Subscription conninfo 不属于 DATA-01 普通联合归档，必须通过独立安全运维流程重建；多副本共享 Git 存储、runtime reliability 与 durable events 继续由后续 Story 归口。

@@ -4,18 +4,20 @@
 > validation evidence and lifecycle state. Update owner docs first, then reflect the current
 > operating state here.
 >
-> **2026-08-10 执行进展**：SEC-01、SEC-02、DATA-01、DATA-02 已解除。ADR-0010 将 EVO-118-E / DEPLOY-01 调整为目标产品开发与清理后的最终发布 Gate；关闭前可继续开发，但不得上线。H-A/H-B / Iterations 066/067 已 Closed / Complete。
+> **2026-08-10 执行进展**：SEC-01、SEC-02、DATA-01、DATA-02 已解除。ADR-0010 将 EVO-118-E / DEPLOY-01 调整为目标产品开发与清理后的最终发布 Gate；关闭前可继续开发，但不得上线。H-A/H-B / Iterations 066/067 已 Closed / Complete；H-C / Iteration 068 Review / Partial。
 
 ## Now
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C/D/F、G-B/C/D、H-A/H-B Done；G-A Partial，H-C 待续；E 保留为最终发布 Gate。 |
+| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C/D/F、G-B/C/D、H-A/H-B Done；G-A Partial，H-C Review / Partial；E 保留为最终发布 Gate。 |
 | EVO-118-G-A CI Merge Gates | Review / Partial | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056；本地门禁通过，Branch Protection 远端 403 residual。 |
+| EVO-118-H-C Durable Push Event Integration | Review / Partial | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | 核心 producer/subscriber 与双数据库证据通过；完整 Smart HTTP E2E pull clone 失败归 EVO-125。 |
+| Iteration 068 | Review / Partial | [Iteration](iterations/ITERATION-068.md) | H-C 核心 durable event 闭环通过；等待 EVO-125 修复后重跑完整 Git E2E。 |
 
 ## Review
 
-Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 057~059、061~067 Closed / Complete。当前无 Active runtime Iteration。
+Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 057~059、061~067 Closed / Complete。Iteration 068 当前为唯一 Review / Partial runtime Iteration，等待 EVO-125 处置。
 
 ## Done
 
@@ -56,7 +58,7 @@ Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 0
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-H Durable Event Epic | In Progress | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | H-A/H-B Done；H-C Push integration 待续，EVENT-01 未关闭。 |
+| EVO-118-H Durable Event Epic | In Progress | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | H-A/H-B Done；H-C / Iteration 068 Review / Partial，EVENT-01 未关闭。 |
 | EVO-121 Product Experience Convergence | In Progress | [Epic](backlog/active/EVO-121-product-experience-convergence.md) | EVO-121-C/D Done；其余四个子 Story 按各自依赖激活，不得用空路由、假数据或 Legacy 兼容页提前拼 Shell。 |
 | EVO-105/106/107/104 Agent Write Loop | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖 EVO-118-B/F/H 与 Repo UI 基础；不得绕过 Typed Capability、Policy 和 Durable Event。 |
 | EVO-108/109 Index/Discovery | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖稳定 Push/Commit Event 与 EVO-118-H；EVO-110 已 Dropped。 |
@@ -68,7 +70,7 @@ Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 0
 
 | Item | State | Owner Doc | Gate |
 |------|-------|-----------|------|
-| EVO-118-H-C Durable Push Event Integration | Proposed | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | 依赖 H-B 已满足；需先按 START-ITERATION 做 DoR 与库存盘点，不自动激活。 |
+| EVO-118-H-C Durable Push Event Integration | Review / Partial | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | Iteration 068；核心 producer/subscriber 通过，完整 Git E2E pull clone 认证失败归 EVO-125。 |
 
 ## Later
 

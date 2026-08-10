@@ -76,6 +76,25 @@ async fn duplicate_idempotency_key_is_rejected() {
 }
 
 #[tokio::test]
+async fn idempotent_enqueue_reuses_same_event_and_rejects_key_collision() {
+    let pool = setup_test_db().await;
+    let repo = SqliteOutboxRepository::new(pool);
+    let first = repo
+        .enqueue_idempotent(event("idempotent-key", 3))
+        .await
+        .expect("first idempotent enqueue");
+    let duplicate = repo
+        .enqueue_idempotent(event("idempotent-key", 3))
+        .await
+        .expect("same event is idempotent");
+    assert_eq!(duplicate.id, first.id);
+
+    let mut collision = event("idempotent-key", 3);
+    collision.payload = serde_json::json!({"sha":"different"});
+    assert!(repo.enqueue_idempotent(collision).await.is_err());
+}
+
+#[tokio::test]
 async fn invalid_attempt_and_lease_bounds_are_rejected() {
     let pool = setup_test_db().await;
     let repo = SqliteOutboxRepository::new(pool);

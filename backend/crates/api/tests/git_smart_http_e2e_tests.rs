@@ -16,13 +16,15 @@ use tokio::sync::oneshot;
 
 use api::middleware::csrf::CsrfMiddleware;
 use api::routes;
+use api::services::repo_push_event::{reconcile_repo_push_completed, RepoPushEventHandler};
 use api::state::AppState;
 use common::execution::{CompositeProvider, ExecutionProvider};
 use domain::api_key::NewApiKey;
 use domain::repository::{
-    ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,
-    SnippetRepository, TenantRepository, ToolRepository, UserRepository,
+    ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, OutboxRepository,
+    SkillRepository, SnippetRepository, TenantRepository, ToolRepository, UserRepository,
 };
+use domain::{OutboxWorker, RepoPushCompletedPayload};
 use infra::config::{
     AppConfig, AppMetaConfig, DatabaseConfig, GitStorageConfig, JwtConfig, LogConfig,
     RateLimitConfig, RedisConfig, SandboxConfig, ServerConfig, SmtpConfig, StorageConfig,
@@ -30,8 +32,8 @@ use infra::config::{
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
-    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
-    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
+    SqliteInvitationRepository, SqliteOutboxRepository, SqliteSkillRepository,
+    SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
@@ -49,6 +51,8 @@ const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_cen
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
 const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
+const MIGRATION_011: &str = include_str!("../../../migrations/sqlite/011_outbox_events.sql");
+const MIGRATION_012: &str = include_str!("../../../migrations/sqlite/012_outbox_claim_leases.sql");
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse<T> {
@@ -122,6 +126,8 @@ async fn setup_test_db() -> (SqlitePool, TempDir) {
     run_migration_sql(&pool, MIGRATION_008).await;
     run_migration_sql(&pool, MIGRATION_009).await;
     run_migration_sql(&pool, MIGRATION_010).await;
+    run_migration_sql(&pool, MIGRATION_011).await;
+    run_migration_sql(&pool, MIGRATION_012).await;
 
     (pool, db_dir)
 }
@@ -234,7 +240,9 @@ fn build_app_state(pool: SqlitePool, base_path: String) -> AppState {
             as Arc<dyn InvitationRepository>,
         api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone()))
             as Arc<dyn ApiKeyRepository>,
-        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)) as Arc<dyn GitRepoRepository>,
+        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool.clone()))
+            as Arc<dyn GitRepoRepository>,
+        outbox_repo: Arc::new(SqliteOutboxRepository::new(pool)),
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         execution_provider: execution_provider.clone(),
@@ -407,13 +415,16 @@ async fn start_test_server_on_runtime(
     pool: SqlitePool,
     base_path: String,
 ) -> (u16, oneshot::Sender<()>) {
+    start_test_server_with_state(build_app_state(pool, base_path)).await
+}
+
+async fn start_test_server_with_state(state: AppState) -> (u16, oneshot::Sender<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to port");
     let port = listener
         .local_addr()
         .expect("Failed to get local addr")
         .port();
 
-    let state = build_app_state(pool, base_path);
     let app_data = web::Data::new(state);
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
@@ -439,6 +450,84 @@ async fn start_test_server_on_runtime(
 
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
     (port, shutdown_tx)
+}
+
+struct FailAfterReconcileOutbox {
+    calls: std::sync::atomic::AtomicUsize,
+}
+
+#[async_trait::async_trait]
+impl OutboxRepository for FailAfterReconcileOutbox {
+    async fn enqueue(
+        &self,
+        _event: domain::NewOutboxEvent,
+    ) -> common::error::Result<domain::OutboxEvent> {
+        Err(common::error::AppError::DatabaseError(
+            "injected outbox failure".to_string(),
+        ))
+    }
+
+    async fn enqueue_idempotent(
+        &self,
+        event: domain::NewOutboxEvent,
+    ) -> common::error::Result<domain::OutboxEvent> {
+        if self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 0 {
+            return Err(common::error::AppError::DatabaseError(
+                "injected outbox failure".to_string(),
+            ));
+        }
+        let now = chrono::Utc::now();
+        Ok(domain::OutboxEvent {
+            id: Uuid::new_v4(),
+            event_type: event.event_type,
+            aggregate_type: event.aggregate_type,
+            aggregate_id: event.aggregate_id,
+            payload: event.payload,
+            idempotency_key: event.idempotency_key,
+            status: domain::OutboxStatus::Pending,
+            attempts: 0,
+            max_attempts: event.max_attempts,
+            next_attempt_at: now,
+            last_error: None,
+            claim_token: None,
+            lease_expires_at: None,
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    async fn claim_due(
+        &self,
+        _limit: u32,
+        _now: chrono::DateTime<chrono::Utc>,
+        _lease_duration: chrono::Duration,
+    ) -> common::error::Result<Vec<domain::OutboxEvent>> {
+        Ok(Vec::new())
+    }
+
+    async fn mark_delivered(&self, _id: Uuid, _claim_token: Uuid) -> common::error::Result<()> {
+        Ok(())
+    }
+
+    async fn mark_failed(
+        &self,
+        _id: Uuid,
+        _claim_token: Uuid,
+        _error: &str,
+        _next_attempt_at: chrono::DateTime<chrono::Utc>,
+    ) -> common::error::Result<()> {
+        Ok(())
+    }
+
+    async fn replay_dead_letter(
+        &self,
+        _id: Uuid,
+        _now: chrono::DateTime<chrono::Utc>,
+    ) -> common::error::Result<domain::OutboxEvent> {
+        Err(common::error::AppError::NotFoundError(
+            "unused replay".to_string(),
+        ))
+    }
 }
 
 fn run_git(args: &[&str], dir: &Path, env_vars: &[(&str, &str)]) -> std::process::Output {
@@ -567,6 +656,99 @@ async fn test_receive_pack_with_read_only_api_key_is_forbidden() {
 }
 
 #[actix_rt::test]
+async fn receive_pack_does_not_report_success_when_post_push_enqueue_fails() {
+    let (pool, _db_dir) = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("git storage temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+    let api_key_value = "evo_sk_git_enqueue_failure_12345";
+    let (token, tenant_id, _user_id) = register_and_create_api_key(
+        pool.clone(),
+        base_path.clone(),
+        "git-enqueue-failure@example.com",
+        "gitenqueuefailure",
+        api_key_value,
+    )
+    .await;
+    let repo_id = create_repo_via_api(
+        pool.clone(),
+        base_path.clone(),
+        &token,
+        &tenant_id,
+        "enqueue-failure-repo",
+    )
+    .await;
+    let before_sha: Option<String> =
+        sqlx::query_scalar("SELECT last_commit_sha FROM git_repos WHERE id=?")
+            .bind(&repo_id)
+            .fetch_one(&pool)
+            .await
+            .expect("read seeded metadata");
+
+    let mut state = build_app_state(pool.clone(), base_path.clone());
+    state.outbox_repo = Arc::new(FailAfterReconcileOutbox {
+        calls: std::sync::atomic::AtomicUsize::new(0),
+    });
+    let (port, _shutdown) = start_test_server_with_state(state).await;
+
+    let work_dir = TempDir::new().expect("work tree temp dir");
+    let work_path = work_dir.path();
+    assert!(run_git(&["init", "-b", "main"], work_path, &[])
+        .status
+        .success());
+    std::fs::write(work_path.join("failure.txt"), "durable boundary\n").expect("write test file");
+    assert!(run_git(&["add", "failure.txt"], work_path, &[])
+        .status
+        .success());
+    assert!(run_git(
+        &[
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=Test",
+            "commit",
+            "-m",
+            "enqueue failure",
+        ],
+        work_path,
+        &[],
+    )
+    .status
+    .success());
+    let local_sha = run_git(&["rev-parse", "HEAD"], work_path, &[]);
+    let local_sha = String::from_utf8(local_sha.stdout)
+        .expect("local SHA UTF-8")
+        .trim()
+        .to_string();
+    let push_url = format!(
+        "http://gituser:{}@127.0.0.1:{}/repos/{}",
+        api_key_value, port, repo_id
+    );
+    let push = run_git(
+        &["push", "--force", &push_url, "HEAD:refs/heads/main"],
+        work_path,
+        &[],
+    );
+    assert!(
+        !push.status.success(),
+        "post-push enqueue failure must not be reported as success"
+    );
+
+    let tenant_uuid = Uuid::parse_str(&tenant_id).expect("tenant UUID");
+    let repo_uuid = Uuid::parse_str(&repo_id).expect("repo UUID");
+    let repo_path = service_git::repo_path(Path::new(&base_path), tenant_uuid, repo_uuid);
+    let (disk_sha, _) = service_git::resolve_ref(&repo_path, "refs/heads/main")
+        .expect("Git ref remains available for reconciliation");
+    assert_eq!(disk_sha, local_sha);
+    let metadata_sha: Option<String> =
+        sqlx::query_scalar("SELECT last_commit_sha FROM git_repos WHERE id=?")
+            .bind(&repo_id)
+            .fetch_one(&pool)
+            .await
+            .expect("read metadata after injected failure");
+    assert_eq!(metadata_sha, before_sha);
+}
+
+#[actix_rt::test]
 async fn test_git_clone_push_pull_e2e() {
     let (pool, _db_dir) = setup_test_db().await;
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
@@ -591,7 +773,7 @@ async fn test_git_clone_push_pull_e2e() {
     )
     .await;
 
-    let (port, _shutdown) = start_test_server_on_runtime(pool, base_path).await;
+    let (port, _shutdown) = start_test_server_on_runtime(pool.clone(), base_path.clone()).await;
 
     let clone_dir = TempDir::new().expect("Failed to create clone dir");
     let clone_path = clone_dir.path();
@@ -653,6 +835,110 @@ async fn test_git_clone_push_pull_e2e() {
         "git push failed: stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
+
+    let pushed_sha = run_git(&["rev-parse", "HEAD"], work_path, &[]);
+    assert!(pushed_sha.status.success(), "git rev-parse failed");
+    let pushed_sha = String::from_utf8(pushed_sha.stdout)
+        .expect("SHA is UTF-8")
+        .trim()
+        .to_string();
+    let events: Vec<(String, String, String)> = sqlx::query_as(
+        "SELECT id,status,payload FROM outbox_events \
+         WHERE event_type='repo.push.completed.v1' ORDER BY created_at",
+    )
+    .fetch_all(&pool)
+    .await
+    .expect("read durable push events");
+    assert!(
+        events
+            .iter()
+            .any(|(_, status, payload)| { status == "pending" && payload.contains(&pushed_sha) }),
+        "pushed commit must be pending for a restarted worker"
+    );
+    assert!(
+        events
+            .iter()
+            .all(|(_, _, payload)| !payload.contains(api_key_value)),
+        "outbox payload must not persist Git credentials"
+    );
+
+    let worker = OutboxWorker::new(
+        SqliteOutboxRepository::new(pool.clone()),
+        RepoPushEventHandler::new(
+            Arc::new(SqliteGitRepoRepository::new(pool.clone())),
+            &base_path,
+        ),
+        10,
+        1,
+        60,
+        5,
+    )
+    .expect("build restarted worker");
+    let batch = worker.process_once().await.expect("deliver push events");
+    assert!(batch.delivered >= 1, "push event should be delivered");
+    let metadata_sha: Option<String> =
+        sqlx::query_scalar("SELECT last_commit_sha FROM git_repos WHERE id=?")
+            .bind(&repo_id)
+            .fetch_one(&pool)
+            .await
+            .expect("read repo metadata");
+    assert_eq!(metadata_sha.as_deref(), Some(pushed_sha.as_str()));
+    let tenant_uuid = Uuid::parse_str(&tenant_id).expect("tenant UUID");
+    let repo_uuid = Uuid::parse_str(&repo_id).expect("repo UUID");
+    let repo_path = service_git::repo_path(Path::new(&base_path), tenant_uuid, repo_uuid);
+    let outbox = SqliteOutboxRepository::new(pool.clone());
+    let first = reconcile_repo_push_completed(&outbox, tenant_uuid, repo_uuid, "main", &repo_path)
+        .await
+        .expect("first reconcile")
+        .expect("default branch event");
+    let duplicate =
+        reconcile_repo_push_completed(&outbox, tenant_uuid, repo_uuid, "main", &repo_path)
+            .await
+            .expect("duplicate reconcile")
+            .expect("default branch event");
+    assert_eq!(first.id, duplicate.id, "reconcile must be idempotent");
+    let duplicate_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM outbox_events WHERE idempotency_key=?")
+            .bind(&first.idempotency_key)
+            .fetch_one(&pool)
+            .await
+            .expect("count idempotent events");
+    assert_eq!(duplicate_count, 1);
+
+    let forged = RepoPushCompletedPayload::new(
+        Uuid::new_v4(),
+        repo_uuid,
+        "main".to_string(),
+        "b".repeat(40),
+        chrono::Utc::now(),
+    )
+    .expect("well-formed forged payload");
+    let forged = outbox
+        .enqueue(forged.into_outbox_event().expect("forged outbox event"))
+        .await
+        .expect("enqueue forged event");
+    let worker = OutboxWorker::new(
+        SqliteOutboxRepository::new(pool.clone()),
+        RepoPushEventHandler::new(
+            Arc::new(SqliteGitRepoRepository::new(pool.clone())),
+            &base_path,
+        ),
+        1,
+        1,
+        30,
+        5,
+    )
+    .expect("build negative worker");
+    let batch = worker.process_once().await.expect("process forged event");
+    assert_eq!(batch.failed, 1);
+    let forged_result: (String, Option<String>) =
+        sqlx::query_as("SELECT status,last_error FROM outbox_events WHERE id=?")
+            .bind(forged.id.to_string())
+            .fetch_one(&pool)
+            .await
+            .expect("read forged event result");
+    assert_eq!(forged_result.0, "failed");
+    assert_eq!(forged_result.1.as_deref(), Some("FORBIDDEN"));
 
     let pull_dir = TempDir::new().expect("Failed to create pull dir");
     let pull_path = pull_dir.path();

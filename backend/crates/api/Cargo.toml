@@ -19,6 +19,7 @@ tracing-subscriber.workspace = true
 validator.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 jsonwebtoken.workspace = true
@@ -45,7 +46,6 @@ infra.workspace = true
 common.workspace = true
 
 [dev-dependencies]
-async-trait.workspace = true
 sqlx.workspace = true
 actix-rt = "2"
 actix-http = "3"

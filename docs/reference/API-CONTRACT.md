@@ -1849,13 +1849,18 @@ the git subprocess being spawned.
 
 - **Auth:** JWT or API key with `repo:write` / `write` / `admin` / `commit` / `commit:*`
 - **CSRF:** exempt (standard git clients do not send CSRF)
-- **Description:** Streaming push endpoint. Pipes request body to
-  `git receive-pack --stateless-rpc <path>` stdin and streams stdout
-  to the response. Subprocess timeout: 30s. After a successful push
-  to the default branch, the server updates
-  `git_repos.last_commit_sha` / `last_committed_at` in the background
-  (see [Push metadata sync](#push-metadata-sync-eVO-116)); a failure
-  to update metadata is logged but does not fail the push.
+- **Description:** Push endpoint. Pipes request body to
+  `git receive-pack --stateless-rpc <path>` stdin with an 8 MiB bounded
+  result buffer and a 30s subprocess timeout. A successful default-branch
+  receive-pack persists `repo.push.completed.v1` before returning HTTP 200;
+  the independent Outbox Worker then refreshes metadata with at-least-once,
+  idempotent delivery. If durable persistence fails after Git moved the ref,
+  the endpoint returns `503 Service Unavailable` with `Retry-After: 1`,
+  never a false success.
+- The `GET info/refs?service=git-receive-pack` handshake also idempotently
+  reconciles the current default-branch fact. This repairs a Git/DB split when
+  a retry is otherwise reported as `up-to-date`; an unavailable database
+  fails the handshake before a new ref update.
 
 ### `Content-Type` advertisement types
 
@@ -2067,22 +2072,24 @@ interface DiffEntryDto {
 
 ## Push metadata sync <a id="push-metadata-sync-eVO-116"></a>
 
-> After a successful `git push` to the default branch via
-> `POST /repos/{repo_id}/git-receive-pack`, the server resolves
-> `refs/heads/{default_branch}` via gix and updates
-> `git_repos.last_commit_sha` and `last_committed_at`.
+> A successful default-branch push produces a typed durable
+> `repo.push.completed.v1` event. The Outbox Worker resolves the current Git
+> ref and updates `git_repos.last_commit_sha` and `last_committed_at`.
 
-- This runs after the git subprocess reports a successful receive-pack
-  result in the same detached streaming task. The metadata write is
-  bounded by `CONTEXT_BLOCKING_TIMEOUT`; failure is logged and not sent
-  as a git protocol failure.
+- The producer runs before HTTP success is returned; it is not a detached
+  post-push metadata task. The receive-pack advertisement is also a bounded
+  reconcile entry point for the current default-branch fact.
 - Pushes to a non-default branch do NOT update default-branch metadata
   (per-branch metadata is future work).
-- If the metadata update fails (e.g. resolve error, DB write error,
-  timeout), the failure is logged at WARN level and the push response
-  is NOT affected. The repo continues to function; the next successful
-  push to the default branch will reconcile.
-- Implementation: `git_smart_http_handlers::update_repo_metadata_after_push`.
+- If event persistence fails after Git moved the ref, HTTP returns 503 and
+  preserves the Git fact for reconcile; the next receive-pack advertisement
+  retries the idempotent enqueue. Subscriber failures use bounded retry and
+  dead-letter semantics from the Outbox Worker.
+- Payload contains only tenant/repo/default branch/commit facts. Credentials,
+  Authorization headers, raw pack data and arbitrary request headers are not
+  persisted or logged. Idempotency is keyed by Repo + default branch + commit.
+- Implementation: `api::services::repo_push_event` and
+  `git_smart_http_handlers`.
 
 ---
 

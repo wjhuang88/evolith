@@ -157,8 +157,8 @@ Evolith 是 Git-centric AI development platform：
 - EVO-118-D Done / Merged，Iteration 053 Closed / Complete。
 - EVO-118-F Done / Complete，Iteration 055 Closed / Complete，DATA-02 已关闭。
 - EVO-118-G 已拆为 G-A/B/C/D；G-B/C/D Complete，G-A 因远端 Branch Protection 证据保持 Partial。
-- EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B / Iterations 066/067 Done / Complete，H-C 待续，EVENT-01 未关闭。
-- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。EVO-105/106 不能绕过 H，下一依赖切片是 H-C。
+- EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B / Iterations 066/067 Done / Complete，H-C / Iteration 068 Review / Partial，EVENT-01 未关闭；EVO-125 负责完整 Smart HTTP E2E 残余。
+- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。EVO-105/106 不能绕过 H，H-C 核心已实现但等待 Review / Partial 收口。
 - EVO-118-E 保持 Proposed / final release gate。
 
 ### Current Order

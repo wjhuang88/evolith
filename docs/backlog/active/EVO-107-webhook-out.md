@@ -36,6 +36,8 @@
 
 - 依赖 EVO-105 commit/promote 触发事件
 - 依赖 EVO-106 agent session 用于 session_id 关联
+- 依赖 EVO-118-H-C 的 typed durable event/worker contract；Webhook 外发必须作为后续
+  subscriber 复用 Outbox，不在 HTTP handler 中直接 spawn 或把出站失败伪装成功。
 
 ## Governing ADRs, Specs Or Decisions
 

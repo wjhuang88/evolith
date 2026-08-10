@@ -69,6 +69,26 @@ async fn postgres_claims_are_disjoint_and_expired_claims_are_fenced() {
         .run(&pool)
         .await
         .expect("upgrade PostgreSQL through 012");
+    let first = PgOutboxRepository::new(pool.clone())
+        .enqueue_idempotent(event("postgres-idempotent", 3))
+        .await
+        .expect("first PostgreSQL idempotent enqueue");
+    let duplicate = PgOutboxRepository::new(pool.clone())
+        .enqueue_idempotent(event("postgres-idempotent", 3))
+        .await
+        .expect("duplicate PostgreSQL idempotent enqueue");
+    assert_eq!(duplicate.id, first.id);
+    let mut collision = event("postgres-idempotent", 3);
+    collision.payload = serde_json::json!({"sha":"different"});
+    assert!(PgOutboxRepository::new(pool.clone())
+        .enqueue_idempotent(collision)
+        .await
+        .is_err());
+    sqlx::query("DELETE FROM outbox_events WHERE id=$1")
+        .bind(first.id)
+        .execute(&pool)
+        .await
+        .expect("remove idempotency fixture before claim assertions");
     let upgraded: (String, Option<Uuid>, Option<chrono::DateTime<Utc>>) = sqlx::query_as(
         "SELECT status, claim_token, lease_expires_at FROM outbox_events WHERE id=$1",
     )

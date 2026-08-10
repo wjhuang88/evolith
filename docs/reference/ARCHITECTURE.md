@@ -237,7 +237,9 @@ Git Client
   -> metadata/outbox/reconcile
 ```
 
-已实现 subprocess timeout、流式响应和 Repo tenant 检查。
+已实现 subprocess timeout、Upload Pack 流式响应、Receive Pack 有界结果、Repo tenant 检查和
+Push durable producer/reconcile。Receive Pack 成功响应前必须完成 typed Outbox enqueue；Worker
+按当前 Git ref 幂等刷新 metadata，旧/乱序事件只做 no-op。
 
 待硬化：
 
@@ -318,12 +320,14 @@ Worker
 
 目标是 at-least-once + 幂等，不追求跨系统 exactly-once。归口 EVO-118-H。
 
-当前 H-A/H-B 基础已具备：SQLite/PostgreSQL Outbox claim 使用有界 lease 与 fencing token；
+当前 H-A/H-B/H-C 基础已具备：SQLite/PostgreSQL Outbox claim 使用有界 lease 与 fencing token；
 过期 claim 可恢复，旧 Worker ACK/NACK 不能覆盖新 owner，最后一次 attempt 过期进入
 dead-letter。独立 `outbox-worker` 支持 continuous、one-batch 与 confirmed replay，强制
 `batch × delivery timeout < lease`，优雅停止等待当前有界 batch，日志和 `last_error` 只暴露
-稳定错误码。当前仅注册无副作用 `system.outbox.probe`；真实 Push producer/subscriber、幂等
-业务 handler 与生产 supervisor 仍归 H-C/EVO-118-E，不得把 H-B 解释为 EVENT-01 已关闭。
+稳定错误码。H-C 已注册 `repo.push.completed.v1` producer/subscriber：payload 只含非敏感
+Repo/tenant/ref/commit facts，idempotency key 由 Repo/default branch/commit 派生，Worker
+以当前 Git ref 防止旧事件回写；生产 supervisor 仍归 EVO-118-E，EVENT-01 在 Commit/Promote、
+Webhook、Indexer 等后续 producer/consumer 约束同步前保持开放。
 
 ## 7. 安全边界
 

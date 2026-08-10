@@ -92,6 +92,62 @@ impl OutboxRepository for SqliteOutboxRepository {
             .map_err(|e| AppError::DatabaseError(e.to_string()))?;
         row_to_event(&row)
     }
+    async fn enqueue_idempotent(&self, event: NewOutboxEvent) -> Result<OutboxEvent> {
+        if event.max_attempts == 0 {
+            return Err(AppError::ValidationError(
+                "outbox max_attempts must be at least 1".to_string(),
+            ));
+        }
+        let id = Uuid::new_v4();
+        let now = Utc::now().to_rfc3339();
+        let payload = serde_json::to_string(&event.payload)
+            .map_err(|error| AppError::ValidationError(error.to_string()))?;
+        let mut transaction = self
+            .pool
+            .begin()
+            .await
+            .map_err(|error| AppError::DatabaseError(error.to_string()))?;
+        sqlx::query(
+            "INSERT INTO outbox_events \
+             (id,event_type,aggregate_type,aggregate_id,payload,idempotency_key,max_attempts, \
+              next_attempt_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) \
+             ON CONFLICT(idempotency_key) DO NOTHING",
+        )
+        .bind(id.to_string())
+        .bind(&event.event_type)
+        .bind(&event.aggregate_type)
+        .bind(&event.aggregate_id)
+        .bind(&payload)
+        .bind(&event.idempotency_key)
+        .bind(i64::from(event.max_attempts))
+        .bind(&now)
+        .bind(&now)
+        .bind(&now)
+        .execute(&mut *transaction)
+        .await
+        .map_err(|error| AppError::DatabaseError(error.to_string()))?;
+        let row = sqlx::query("SELECT * FROM outbox_events WHERE idempotency_key=?")
+            .bind(&event.idempotency_key)
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(|error| AppError::DatabaseError(error.to_string()))?;
+        let persisted = row_to_event(&row)?;
+        if persisted.event_type != event.event_type
+            || persisted.aggregate_type != event.aggregate_type
+            || persisted.aggregate_id != event.aggregate_id
+            || persisted.payload != event.payload
+            || persisted.max_attempts != event.max_attempts
+        {
+            return Err(AppError::ConflictError(
+                "outbox idempotency key conflicts with another event".to_string(),
+            ));
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|error| AppError::DatabaseError(error.to_string()))?;
+        Ok(persisted)
+    }
     async fn claim_due(
         &self,
         limit: u32,
