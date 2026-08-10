@@ -1,11 +1,12 @@
 //! Repository traits for database abstraction
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use uuid::Uuid;
 
 use crate::audit::AuditLog;
-use crate::git_repo::{GitRepo, NewGitRepo, UpdateGitRepo};
+use crate::git_repo::{GitRepo, NewGitRepo, RepoLifecycleStatus, UpdateGitRepo};
+use crate::outbox::{NewOutboxEvent, OutboxEvent};
 use crate::user::{TenantRole, UpdateUser};
 use crate::Invitation;
 use crate::{
@@ -180,10 +181,35 @@ pub trait GitRepoRepository: Send + Sync {
     async fn find_by_tenant(&self, tenant_id: Uuid) -> Result<Vec<GitRepo>>;
     async fn update(&self, id: Uuid, repo: UpdateGitRepo) -> Result<GitRepo>;
     async fn delete(&self, id: Uuid) -> Result<()>;
+    async fn update_lifecycle_status(
+        &self,
+        id: Uuid,
+        status: RepoLifecycleStatus,
+    ) -> Result<GitRepo>;
     async fn update_last_commit(
         &self,
         id: Uuid,
         sha: &str,
         committed_at: DateTime<Utc>,
     ) -> Result<()>;
+}
+
+#[async_trait]
+pub trait OutboxRepository: Send + Sync {
+    async fn enqueue(&self, event: NewOutboxEvent) -> Result<OutboxEvent>;
+    async fn claim_due(
+        &self,
+        limit: u32,
+        now: DateTime<Utc>,
+        lease_duration: Duration,
+    ) -> Result<Vec<OutboxEvent>>;
+    async fn mark_delivered(&self, id: Uuid, claim_token: Uuid) -> Result<()>;
+    async fn mark_failed(
+        &self,
+        id: Uuid,
+        claim_token: Uuid,
+        error: &str,
+        next_attempt_at: DateTime<Utc>,
+    ) -> Result<()>;
+    async fn replay_dead_letter(&self, id: Uuid, now: DateTime<Utc>) -> Result<OutboxEvent>;
 }

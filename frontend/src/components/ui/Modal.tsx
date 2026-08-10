@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -51,20 +52,22 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
       
       {/* Modal Content */}
       <div
-        className={`relative w-full ${sizeClasses[size]}} rounded-lg bg-white shadow-xl dark:bg-gray-900`}
+        className={`relative w-full ${sizeClasses[size]} rounded-[8px] border border-border bg-card text-card-foreground shadow-xl`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between border-b px-6 py-4 dark:border-gray-800">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h2 className="text-lg font-semibold">{title}</h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              className="rounded-[8px] p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Close"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -74,7 +77,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t px-6 py-4 dark:border-gray-800">
+          <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4">
             {footer}
           </div>
         )}

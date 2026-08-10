@@ -314,6 +314,104 @@ pub async fn get_commits(
     }
 }
 
+pub async fn get_commit_detail(
+    req: actix_web::HttpRequest,
+    path: web::Path<(Uuid, Uuid, String)>,
+    query: web::Query<RefQuery>,
+    user: AuthenticatedUser,
+    state: web::Data<AppState>,
+) -> impl Responder {
+    if let Some(resp) = forbid_if_api_key_lacks(&req) {
+        return resp;
+    }
+    let (tenant_id, repo_id, sha) = path.into_inner();
+
+    if user.tenant_id != tenant_id {
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "FORBIDDEN",
+            "You do not have access to this tenant",
+        ));
+    }
+
+    let repo = match state.git_repo_repo.find_by_id(repo_id).await {
+        Ok(Some(repo)) if repo.tenant_id == tenant_id => repo,
+        Ok(Some(_)) => {
+            return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+                "FORBIDDEN",
+                "Repo does not belong to this tenant",
+            ));
+        }
+        Ok(None) => {
+            return HttpResponse::NotFound()
+                .json(ApiResponse::<()>::error("NOT_FOUND", "Repo not found"));
+        }
+        Err(e) => {
+            tracing::error!("Failed to find repo: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to find repo",
+            ));
+        }
+    };
+
+    let base_path = Path::new(&state.git_storage_base_path);
+    let abs = service_git::repo_path(base_path, repo.tenant_id, repo.id);
+    let git_ref = query.git_ref.clone().unwrap_or(repo.default_branch.clone());
+    let sha_for_blocking = sha.clone();
+    let ref_for_blocking = git_ref.clone();
+    let blocking = web::block(move || {
+        service_git::read_commit_detail(&abs, &sha_for_blocking, &ref_for_blocking)
+    });
+    let timed = run_with_timeout(blocking).await;
+    let result = match timed {
+        Ok(inner) => inner,
+        Err(e) => {
+            tracing::error!("Blocking task panicked: {}", e);
+            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                "INTERNAL_ERROR",
+                "Failed to read commit detail",
+            ));
+        }
+    };
+
+    match result {
+        Ok(detail) => {
+            let changes = detail
+                .changes
+                .into_iter()
+                .map(|entry| DiffEntryDto {
+                    path: entry.path,
+                    change_type: entry.change_type,
+                    old_oid: entry.old_oid,
+                    new_oid: entry.new_oid,
+                })
+                .collect();
+            HttpResponse::Ok().json(ApiResponse::success(CommitDetailDto {
+                sha: detail.sha,
+                author_name: detail.author_name,
+                author_email: detail.author_email,
+                authored_at: detail.authored_at,
+                committer_name: detail.committer_name,
+                committer_email: detail.committer_email,
+                committed_at: detail.committed_at,
+                message: detail.message,
+                parents: detail.parents,
+                ref_name: detail.git_ref,
+                changes,
+            }))
+        }
+        Err(e) => {
+            tracing::error!(
+                "Failed to read commit detail sha={} ref={}: {}",
+                sha,
+                git_ref,
+                e
+            );
+            map_context_error(e)
+        }
+    }
+}
+
 pub async fn get_diff(
     req: actix_web::HttpRequest,
     path: web::Path<(Uuid, Uuid)>,

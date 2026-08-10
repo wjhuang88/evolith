@@ -26,6 +26,10 @@ ADR-0002-cli-friendly-interface-replaces-snippet.md
 | [ADR-0004](ADR-0004-git-centric-storage.md) | Accepted | 内容存储从 DB 列迁移到 Git 仓库文件（2026-06-23 方向调整） |
 | [ADR-0005](ADR-0005-deprecate-sandbox-runtime.md) | Accepted | 废弃 Skill 沙箱执行，仅保留 FaaS 形态（2026-06-23 方向调整） |
 | [ADR-0006](ADR-0006-smart-http-via-git-subprocess.md) | Accepted | Smart HTTP 经 `git` CLI subprocess 实现（gix 已发布 crate 无服务端协议能力） |
+| [ADR-0007](ADR-0007-agent-write-and-production-delivery-boundaries.md) | Accepted | Agent 写入 Policy/Scoped Token 边界与单一 Embedded Frontend 生产交付 |
+| [ADR-0008](ADR-0008-repo-centric-interaction-architecture.md) | Accepted | Repo-centric 主流程、首次使用、Repo 内导航与能力发现的信息架构 |
+| [ADR-0009](ADR-0009-no-prelaunch-registry-compatibility.md) | Accepted | 未上线阶段取消旧 Registry 双写/迁移兼容，改为 Repo-derived 承接后直接删除 |
+| [ADR-0010](ADR-0010-final-production-convergence-after-product-completion.md) | Accepted | EVO-118-E 在目标产品开发与清理完成后执行；DEPLOY-01 只阻止上线，不阻止继续开发 |
 
 ## 模板
 

@@ -270,6 +270,8 @@ components:
     padding: 64px 32px
 ---
 
+> 本文件主要记录品牌/营销视觉 token、组件与响应式参考。Authenticated product 的任务密度、页面编排和视觉 profile 以 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md) 与 [ADR-0008](../decisions/ADR-0008-repo-centric-interaction-architecture.md) 为准；营销页的 oversized display、彩色 block 和负 letter spacing 不直接用于 Dashboard、Repo、Workspace 或 Settings。
+
 ## Overview
 
 Figma's marketing canvas is, at the system level, an editor-clean black-and-white frame. The chrome — top nav, body type, footer, primary CTA — is monochrome. Headlines are oversized `{typography.display-xl}` set in `figmaSans` with aggressive negative tracking, body copy hovers around weight 320–340 of the same variable family, and small mono `{typography.eyebrow}` and `{typography.caption}` labels (figmaMono, all-caps, positive tracking) act as section markers. Every CTA is a pill — `{rounded.pill}` — and the primary action across the entire site is the same black `{components.button-primary}` paired with the same white `{components.button-secondary}`.

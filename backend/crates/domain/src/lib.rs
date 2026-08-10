@@ -6,6 +6,7 @@ pub mod api_key;
 pub mod audit;
 pub mod errors;
 pub mod git_repo;
+pub mod outbox;
 pub mod policy;
 pub mod repository;
 pub mod skill;
@@ -16,7 +17,11 @@ pub mod user;
 
 pub use api_key::{ApiKey, ApiKeyStatus, NewApiKey};
 pub use errors::DomainError;
-pub use git_repo::{GitRepo, NewGitRepo, RepoVisibility, UpdateGitRepo};
+pub use git_repo::{GitRepo, NewGitRepo, RepoLifecycleStatus, RepoVisibility, UpdateGitRepo};
+pub use outbox::{
+    NewOutboxEvent, OutboxBatchResult, OutboxEvent, OutboxHandler, OutboxRunStats, OutboxRuntime,
+    OutboxStatus, OutboxWorker,
+};
 pub use policy::{AgentPolicy, DefaultAction, EvolithPolicy, Scope};
 pub use repository::{
     ApiKeyRepository, AuditRepository, GitRepoRepository, InvitationRepository, SkillRepository,

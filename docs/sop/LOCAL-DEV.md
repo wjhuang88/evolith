@@ -60,6 +60,8 @@ bun run build
 
 SQLite lite 模式默认使用内存库，每次后端重启都会清空数据。当前 migrations 中的 `test@example.com` 和 `admin@example.com` 仅为历史种子示例，密码哈希是占位值，不应假定可登录。
 
+> 已知缺陷：`DATABASE__URL=:memory:` 与多连接 pool 可能让连接看到不同内存数据库，导致多请求 smoke 偶发 `no such table`。修复归 [EVO-124](../backlog/active/EVO-124-sqlite-memory-pool-isolation.md)；修复前，长流程验收应显式使用 `sqlite:/tmp/<task>.db?mode=rwc` 一类隔离临时文件，并在结束后按测试环境策略处置。
+
 推荐在每次 lite 启动后通过注册流程创建临时账号：
 
 ```bash

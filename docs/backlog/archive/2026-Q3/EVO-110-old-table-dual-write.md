@@ -1,17 +1,19 @@
 # EVO-110 旧表（skills / snippets / tools）双写适配
 
+> **Decision update (2026-08-08): Dropped.** 项目尚未上线，[ADR-0009](../../../decisions/ADR-0009-no-prelaunch-registry-compatibility.md) 决定不建设旧表双写、回填或旧 API 兼容层。以下内容保留为被否决方案的历史上下文；Repo-derived 承接与直接清理归 [EVO-122](../../active/EVO-122-retire-prelaunch-registry-backend.md)。
+
 ## Required Reads
 
-- [Product Backlog](../PRODUCT-BACKLOG.md)
-- [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
-- 父 Epic: [EVO-100](EVO-100-git-centric-platform-foundation.md)
-- 依赖: [EVO-108](EVO-108-skill-cli-mcp-indexer.md)
+- [Product Backlog](../../PRODUCT-BACKLOG.md)
+- [Git-Centric Platform Proposal](../../../proposals/GIT-CENTRIC-PLATFORM.md)
+- 父 Epic: [EVO-100](../../active/EVO-100-git-centric-platform-foundation.md)
+- 依赖: [EVO-108](../../active/EVO-108-skill-cli-mcp-indexer.md)
 
 ## Summary
 
 - 类型：tech-debt / compatibility
 - 优先级：P1
-- 状态：Proposed
+- 状态：Dropped
 - 父 Epic: EVO-100
 
 ## Problem Or Outcome
@@ -38,7 +40,7 @@
 
 ## Governing ADRs, Specs Or Decisions
 
-- [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
+- [ADR-0004 Git-Centric Storage](../../../decisions/ADR-0004-git-centric-storage.md)
 
 ## Acceptance Criteria
 

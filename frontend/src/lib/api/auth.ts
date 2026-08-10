@@ -1,4 +1,4 @@
-import { apiClient, setToken, clearToken, buildQueryString } from './client';
+import { apiClient, setToken, clearToken } from './client';
 import type {
   ApiResponse,
   AuthToken,

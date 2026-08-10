@@ -2,6 +2,7 @@
 #
 # Trigger:
 # - pull requests targeting main, providing exact-head merge-gate evidence;
+# - pushes to main, re-running the same merge-gate checks after merge;
 # - semver tags (vX.Y.Z) for release validation;
 # - manual workflow dispatch for explicit re-runs.
 #
@@ -12,8 +13,6 @@
 # Frontend builds first (single job, shared filesystem) so backend tests can
 # link against the embedded frontend/dist/ via rust-embed-for-web.
 #
-# Frontend lint currently depends on the repository's pending ESLint flat-config migration, so it
-# is not part of the hard-required PR gate. Release/manual runs retain it.
 name: ci
 
 on:
@@ -21,6 +20,8 @@ on:
     branches:
       - main
   push:
+    branches:
+      - main
     tags:
       - "v*.*.*"
   workflow_dispatch:
@@ -108,8 +109,7 @@ jobs:
         working-directory: frontend
         run: bun run build
 
-      - name: Frontend lint (release/manual)
-        if: github.event_name != 'pull_request'
+      - name: Frontend lint
         working-directory: frontend
         run: bun run lint
 

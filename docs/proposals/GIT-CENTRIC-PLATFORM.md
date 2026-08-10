@@ -126,9 +126,9 @@ CREATE TABLE cli_index (...);       -- path matches 'cli/*/interface.yaml' 或 '
 CREATE TABLE mcp_tool_index (...);  -- path matches 'mcp/*/tool.yaml' 或 'tool.yaml'
 ```
 
-### 4.3 旧表处理（materialized cache 模式）
+### 4.3 旧表处理（已被替代）
 
-旧 `skills` / `snippets` / `tools` 表保留为 materialized cache，所有写入路径收敛到 `POST /repos/{id}/files`，由 indexer 同步双写。MVP 完成后评估是否升级为 view。
+本 Proposal 原建议把旧 `skills` / `snippets` / `tools` 作为 materialized cache 并由 Indexer 双写。项目未上线，[ADR-0009](../decisions/ADR-0009-no-prelaunch-registry-compatibility.md) 已否决该方案：不做双写/回填/兼容窗口，Repo-derived read/execute 承接后由 EVO-122 直接删除旧 runtime/table。
 
 ### 4.4 .evolith/policy.yaml 约定
 
@@ -159,13 +159,16 @@ agents:
 - EVO-106 Agent Session API + Scoped Token
 - EVO-107 Webhook Out（push / promote → external agent）
 
+> 2026-08-08 更新：跨页面产品主流程、Repo 内导航与首次使用入口已由 [ADR-0008](../decisions/ADR-0008-repo-centric-interaction-architecture.md) 决定，实施以 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md) 和 [EVO-121](../backlog/active/EVO-121-product-experience-convergence.md) 为准；本 Proposal 的历史 UX/兼容描述不再作为页面编排事实源。
+
 ### Phase 3 — Skill / CLI / MCP Indexer（Pages 式能力）
 - EVO-108 Indexer 服务（git push 触发 + 路径 pattern 识别）
 - EVO-109 Discovery API + Pages 式发现 UI
-- EVO-110 旧表双写适配（保持 `GET /skills/{id}` 等接口兼容）
+- EVO-110 旧表双写适配 — Dropped（ADR-0009）
 
 ### Phase 4 — 废弃 Skill 沙箱执行
 - EVO-111 删 `service-skill` 执行层 + bollard 依赖 + sandbox 镜像
+- EVO-122 Repo-derived execute 承接 + legacy Registry runtime/table 删除
 
 ### Phase 5 — 高级扩展
 - SSH（russh）
@@ -230,7 +233,7 @@ EV0-104 Vibe Coding Web UI 在进入迭代前必须完成 UX 议题决策：
 |------|------|------|
 | `gix` push 能力缺口 | agent 写 commit 必须用 git CLI subprocess | Phase 1 临时 subprocess + 标 EVOLUTION；长期等 `gix-push` |
 | `gix` 仍 pre-1.0 | 月度 breaking change 风险 | 锁定 minor 版本；CI 跟跑 |
-| 现有 skill/CLI/MCP TEXT 数据迁移 | dump + commit + backfill 必须无损 | 双写 + 老路径兼容 + 回填脚本 dry-run + SHA-256 校验 |
+| 旧 Registry consumer 未清完就删表 | runtime crash 或 MCP execute 退化 | EVO-122 分三阶段：Repo-derived execute → consumer inventory/runtime 删除 → 双数据库 drop |
 | Sandbox 删除影响 `cargo test` | 部分集成测试会失败 | 删除前 sandbox 相关测试归类 `[ignore]` 或删除 |
 | 旧 backlog 项依赖 skill 生命周期/存储语义 | 方向冲突 | Phase 0 末统一 rebase（见 §6.1） |
 | Agent engine 外部项目尚未完成 | Phase 2 联调无下游 | mock external engine；不阻塞 Evolith 推进 |
@@ -281,11 +284,11 @@ EVO-100 (Epic: Git-Centric Platform Foundation)
   ├── EVO-109 Discovery API + Pages 式发现 UI
   │     依赖 EVO-108（index）
   │
-  ├── EVO-110 旧表双写适配
-  │     依赖 EVO-108
+  ├── EVO-111 废弃 Skill 沙箱执行
+  │     作为 legacy runtime 清理前置
   │
-  └── EVO-111 废弃 Skill 沙箱执行
-        独立（最后执行，作为清理收尾）
+  └── EVO-122 Repo-derived 承接与 legacy backend 删除
+        依赖 EVO-108/109 + EVO-111 + EVO-121-F
 
 EVO-104 (Story: Vibe Coding Web UI)
   依赖 EVO-103 / EVO-105 / EVO-106（前端依赖后端 API）
@@ -297,16 +300,18 @@ EVO-104 (Story: Vibe Coding Web UI)
 1. Iteration 042：EVO-101 + EVO-102（git_repos schema + policy parser）— Done
 2. Remediation：EVO-113（方向变更评审缺口修复）
 3. Iteration N：EVO-103（Repo CRUD + Smart HTTP + Repo Context API）
-4. Iteration N+1：EVO-112（Repo Management UI）
+4. Iteration N+1：EVO-120 + EVO-112-B（Repo onboarding + Overview-first Repo Detail；按小批次分别激活）
 5. Iteration N+2：EVO-105 + EVO-106 + EVO-107（commit/promote + agent session）
 6. Iteration N+3：EVO-104（vibe coding UI，UX gate 已解除，仍需后端依赖就绪）
-7. Iteration N+4：EVO-108 + EVO-109 + EVO-110（indexer + discovery + dual-write）
-8. Iteration N+5：EVO-111（sandbox 清理收尾）
+7. Iteration N+4：EVO-108 + EVO-109（indexer + discovery；EVO-110 Dropped）
+8. 按依赖穿插 EVO-121 子 Story（entry/settings → activity/dashboard → shell/legacy UI 删除）
+9. Iteration N+5：EVO-111 → EVO-122-A/B/C（sandbox 与 legacy Registry backend 清理）
 
 ## 相关链接
 
 - [ADR-0004 Git-Centric Storage](../decisions/ADR-0004-git-centric-storage.md)
 - [ADR-0005 Deprecate Sandbox Runtime](../decisions/ADR-0005-deprecate-sandbox-runtime.md)
+- [ADR-0009 No Pre-launch Registry Compatibility](../decisions/ADR-0009-no-prelaunch-registry-compatibility.md)
 - [Product Backlog](../backlog/PRODUCT-BACKLOG.md)
 - [实施路线图](../roadmap/IMPLEMENTATION-ROADMAP.md)
 - [EVOLUTION.md](../../EVOLUTION.md)（2026-06-23 方向变更记录）

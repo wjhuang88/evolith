@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
-use domain::git_repo::{GitRepo, NewGitRepo, RepoVisibility, UpdateGitRepo};
+use domain::git_repo::{GitRepo, NewGitRepo, RepoLifecycleStatus, RepoVisibility, UpdateGitRepo};
 use domain::repository::GitRepoRepository;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -31,6 +31,18 @@ fn row_to_git_repo(row: &sqlx::sqlite::SqliteRow) -> std::result::Result<GitRepo
     };
     let auto_merge_int: i64 = row.get("auto_merge");
     let require_review_int: i64 = row.get("require_review");
+    let lifecycle_status = match row.get::<String, _>("lifecycle_status").as_str() {
+        "CREATING" => RepoLifecycleStatus::Creating,
+        "ACTIVE" => RepoLifecycleStatus::Active,
+        "ERROR" => RepoLifecycleStatus::Error,
+        "DELETING" => RepoLifecycleStatus::Deleting,
+        value => {
+            return Err(sqlx::Error::Decode(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Unknown lifecycle status: {value}"),
+            ))))
+        }
+    };
 
     let id_str: String = row.get("id");
     let tenant_id_str: String = row.get("tenant_id");
@@ -62,6 +74,7 @@ fn row_to_git_repo(row: &sqlx::sqlite::SqliteRow) -> std::result::Result<GitRepo
         visibility,
         auto_merge: auto_merge_int != 0,
         require_review: require_review_int != 0,
+        lifecycle_status,
         last_commit_sha: row.get("last_commit_sha"),
         last_committed_at,
         created_at: DateTime::parse_from_rfc3339(&created_at_str)
@@ -108,8 +121,9 @@ impl GitRepoRepository for SqliteGitRepoRepository {
         sqlx::query(
             r#"INSERT INTO git_repos (
                 id, tenant_id, name, description, default_branch, storage_path,
-                visibility, auto_merge, require_review, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+                visibility, auto_merge, require_review, created_at, updated_at,
+                lifecycle_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
         )
         .bind(id.to_string())
         .bind(tenant_id.to_string())
@@ -122,6 +136,7 @@ impl GitRepoRepository for SqliteGitRepoRepository {
         .bind(require_review)
         .bind(now.to_rfc3339())
         .bind(now.to_rfc3339())
+        .bind("CREATING")
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(format!("Failed to create git repo: {}", e)))?;
@@ -218,6 +233,31 @@ impl GitRepoRepository for SqliteGitRepoRepository {
             .await
             .map_err(|e| AppError::DatabaseError(format!("Failed to delete git repo: {}", e)))?;
         Ok(())
+    }
+
+    async fn update_lifecycle_status(
+        &self,
+        id: Uuid,
+        status: RepoLifecycleStatus,
+    ) -> Result<GitRepo> {
+        let value = match status {
+            RepoLifecycleStatus::Creating => "CREATING",
+            RepoLifecycleStatus::Active => "ACTIVE",
+            RepoLifecycleStatus::Error => "ERROR",
+            RepoLifecycleStatus::Deleting => "DELETING",
+        };
+        sqlx::query("UPDATE git_repos SET lifecycle_status = ?, updated_at = ? WHERE id = ?")
+            .bind(value)
+            .bind(Utc::now().to_rfc3339())
+            .bind(id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                AppError::DatabaseError(format!("Failed to update repo lifecycle: {e}"))
+            })?;
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFoundError("Git repo not found".to_string()))
     }
 
     async fn update_last_commit(

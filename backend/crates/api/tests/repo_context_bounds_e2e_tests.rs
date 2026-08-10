@@ -43,6 +43,7 @@ const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_rep
 const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
+const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse<T> {
@@ -122,6 +123,7 @@ async fn setup_test_db() -> (SqlitePool, TempDir) {
         MIGRATION_007,
         MIGRATION_008,
         MIGRATION_009,
+        MIGRATION_010,
     ] {
         for statement in sql.split(';') {
             let trimmed = statement.trim();

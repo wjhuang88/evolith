@@ -9,12 +9,15 @@ import { useAuthStore } from '@/stores';
 import { reposApi } from '@/lib/api/repos';
 import { membersApi } from '@/lib/api/members';
 import type { Repo, Member } from '@/lib/api/types';
+import { usePermission } from '@/hooks/usePermission';
+import { canAccessSettingsSection } from '@/lib/settings-policy';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();
   const { user, tenant } = useAuthStore();
+  const { tenantRole } = usePermission();
   const [repos, setRepos] = useState<Repo[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,7 @@ export default function DashboardPage() {
           title={t('dashboard.stats.members')}
           value={loading ? '...' : members.length.toString()}
           description={t('dashboard.stats.membersDesc')}
-          href="/tenant/members"
+          href="/settings/members"
         />
         <StatCard
           title={t('dashboard.stats.withCommits')}
@@ -116,8 +119,10 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             <QuickActionButton label={t('dashboard.quickActions.newRepo')} href="/repos/new" />
             <QuickActionButton label={t('dashboard.quickActions.browseRepos')} href="/repos" />
-            <QuickActionButton label={t('dashboard.quickActions.teamMembers')} href="/tenant/members" />
-            <QuickActionButton label={t('dashboard.quickActions.apiKeys')} href="/tenant/api-keys" />
+            <QuickActionButton label={t('dashboard.quickActions.teamMembers')} href="/settings/members" />
+            {canAccessSettingsSection(tenantRole, 'api-keys') && (
+              <QuickActionButton label={t('dashboard.quickActions.apiKeys')} href="/settings/api-keys" />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -193,11 +198,13 @@ export default function DashboardPage() {
                   <span className="font-medium capitalize">{user?.tenant_role || 'member'}</span>
                 </div>
               </div>
-              <Link to="/tenant/billing">
-                <Button variant="outline" className="mt-4 w-full">
-                  {t('dashboard.organization.manageSubscription')}
-                </Button>
-              </Link>
+              {canAccessSettingsSection(tenantRole, 'billing') && (
+                <Link to="/settings/billing">
+                  <Button variant="outline" className="mt-4 w-full">
+                    {t('dashboard.organization.manageSubscription')}
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 
@@ -213,15 +220,19 @@ export default function DashboardPage() {
                 <Link to="/repos" className="block text-sm text-primary hover:underline">
                   → {t('dashboard.quickLinks.browseRepos')}
                 </Link>
-                <Link to="/tenant/api-keys" className="block text-sm text-primary hover:underline">
-                  → {t('dashboard.quickLinks.manageApiKeys')}
-                </Link>
-                <Link to="/tenant/members" className="block text-sm text-primary hover:underline">
+                {canAccessSettingsSection(tenantRole, 'api-keys') && (
+                  <Link to="/settings/api-keys" className="block text-sm text-primary hover:underline">
+                    → {t('dashboard.quickLinks.manageApiKeys')}
+                  </Link>
+                )}
+                <Link to="/settings/members" className="block text-sm text-primary hover:underline">
                   → {t('dashboard.quickLinks.inviteTeamMembers')}
                 </Link>
-                <Link to="/tenant/settings" className="block text-sm text-primary hover:underline">
-                  → {t('dashboard.quickLinks.orgSettings')}
-                </Link>
+                {canAccessSettingsSection(tenantRole, 'workspace') && (
+                  <Link to="/settings/workspace" className="block text-sm text-primary hover:underline">
+                    → {t('dashboard.quickLinks.orgSettings')}
+                  </Link>
+                )}
               </div>
             </CardContent>
           </Card>

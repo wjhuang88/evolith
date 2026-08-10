@@ -2,7 +2,7 @@
 
 mod test_helpers;
 
-use domain::git_repo::{NewGitRepo, RepoVisibility, UpdateGitRepo};
+use domain::git_repo::{NewGitRepo, RepoLifecycleStatus, RepoVisibility, UpdateGitRepo};
 use domain::repository::{GitRepoRepository, TenantRepository};
 use domain::tenant::CreateTenantRequest;
 use infra::db::{SqliteGitRepoRepository, SqliteTenantRepository};
@@ -52,6 +52,25 @@ async fn test_create_git_repo() {
     assert!(created.require_review);
     assert!(created.storage_path.contains(&tenant.id.to_string()));
     assert!(created.storage_path.ends_with(".git"));
+    assert_eq!(created.lifecycle_status, RepoLifecycleStatus::Creating);
+}
+
+#[tokio::test]
+async fn test_update_repo_lifecycle_status() {
+    let pool = setup_test_db().await;
+    let tenant = setup_tenant(&pool).await;
+    let repo = SqliteGitRepoRepository::new(pool);
+    let created = repo
+        .create(make_new_repo("lifecycle-repo"), tenant.id)
+        .await
+        .unwrap();
+
+    let updated = repo
+        .update_lifecycle_status(created.id, RepoLifecycleStatus::Error)
+        .await
+        .unwrap();
+
+    assert_eq!(updated.lifecycle_status, RepoLifecycleStatus::Error);
 }
 
 #[tokio::test]

@@ -39,6 +39,7 @@ const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_rep
 const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
+const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse<T> {
@@ -74,12 +75,30 @@ struct TenantInfo {
 struct RepoResponseData {
     id: String,
     name: String,
+    lifecycle_status: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct RepoListData {
     repos: Vec<RepoResponseData>,
     total: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct ReconcileEntryData {
+    repo_id: String,
+    classification: String,
+    action: String,
+    quarantine_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ReconcileData {
+    apply: bool,
+    consistent: usize,
+    db_only: usize,
+    disk_only: usize,
+    entries: Vec<ReconcileEntryData>,
 }
 
 fn strip_leading_comments(sql: &str) -> &str {
@@ -114,6 +133,7 @@ async fn setup_test_db() -> SqlitePool {
     run_migration_sql(&pool, MIGRATION_007).await;
     run_migration_sql(&pool, MIGRATION_008).await;
     run_migration_sql(&pool, MIGRATION_009).await;
+    run_migration_sql(&pool, MIGRATION_010).await;
 
     pool
 }
@@ -288,6 +308,7 @@ async fn test_create_repo_returns_201_with_disk_repo() {
     assert!(result.success);
     let data = result.data.expect("Expected data");
     assert_eq!(data.name, "my-repo");
+    assert_eq!(data.lifecycle_status, "ACTIVE");
     assert!(!data.id.is_empty());
 
     let repo_id = Uuid::parse_str(&data.id).expect("Invalid repo UUID");
@@ -302,21 +323,16 @@ async fn test_create_repo_returns_201_with_disk_repo() {
         disk_path
     );
 
-    let readme = disk_path.join("README.md");
-    let policy = disk_path.join(".evolith").join("policy.yaml");
-    let agents = disk_path.join(".evolith").join("agents.yaml");
-    assert!(
-        readme.exists(),
-        "README.md should exist with seed_template: true"
-    );
-    assert!(
-        policy.exists(),
-        ".evolith/policy.yaml should exist with seed_template: true"
-    );
-    assert!(
-        agents.exists(),
-        ".evolith/agents.yaml should exist with seed_template: true"
-    );
+    let (sha, _) = service_git::resolve_ref(&disk_path, "refs/heads/main")
+        .expect("seed_template should create main ref");
+    let paths: Vec<_> = service_git::read_file_tree(&disk_path, &sha)
+        .expect("seed commit tree should be readable")
+        .into_iter()
+        .map(|entry| entry.name)
+        .collect();
+    assert!(paths.contains(&"README.md".to_string()));
+    assert!(paths.contains(&".evolith/policy.yaml".to_string()));
+    assert!(paths.contains(&".evolith/agents.yaml".to_string()));
 }
 
 #[actix_rt::test]
@@ -367,6 +383,7 @@ async fn test_create_repo_without_seed_template_has_no_seed_files() {
     let result: ApiResponse<RepoResponseData> =
         serde_json::from_slice(&body).expect("Failed to parse response");
     let data = result.data.expect("Expected data");
+    assert_eq!(data.lifecycle_status, "ACTIVE");
     let repo_id = Uuid::parse_str(&data.id).expect("Invalid repo UUID");
     let tenant_uuid = Uuid::parse_str(&tenant_id).expect("Invalid tenant UUID");
     let disk_path = temp_dir
@@ -375,20 +392,197 @@ async fn test_create_repo_without_seed_template_has_no_seed_files() {
         .join(format!("{}.git", repo_id));
     assert!(disk_path.exists(), "Disk bare repo should exist");
 
-    let readme = disk_path.join("README.md");
-    let policy = disk_path.join(".evolith").join("policy.yaml");
-    let agents = disk_path.join(".evolith").join("agents.yaml");
     assert!(
-        !readme.exists(),
-        "README.md should NOT exist without seed_template"
+        service_git::resolve_ref(&disk_path, "refs/heads/main").is_err(),
+        "repo without seed_template should not contain an initial commit"
     );
-    assert!(
-        !policy.exists(),
-        ".evolith/policy.yaml should NOT exist without seed_template"
+}
+
+#[actix_rt::test]
+async fn test_reconcile_classifies_and_repairs_db_disk_split() {
+    let pool = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+    let app_state = build_app_state(pool, base_path.clone());
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "reconcile@example.com",
+            "username": "reconcile",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert!(register_resp.status().is_success());
+    let register_body = test::read_body(register_resp).await;
+    let auth_data: AuthResponseData =
+        serde_json::from_slice::<ApiResponse<AuthResponseData>>(&register_body)
+            .unwrap()
+            .data
+            .unwrap();
+    let tenant_id = Uuid::parse_str(&auth_data.tenant.id).unwrap();
+    let token = auth_data.token;
+
+    let create_req = test::TestRequest::post()
+        .uri(&format!("/api/v1/tenant/{tenant_id}/repos"))
+        .insert_header(("Authorization", format!("Bearer {token}")))
+        .set_json(serde_json::json!({"name": "db-only"}))
+        .to_request();
+    let create_resp = test::call_service(&app, create_req).await;
+    assert_eq!(create_resp.status(), actix_web::http::StatusCode::CREATED);
+    let created: RepoResponseData = serde_json::from_slice::<ApiResponse<RepoResponseData>>(
+        &test::read_body(create_resp).await,
+    )
+    .unwrap()
+    .data
+    .unwrap();
+    let db_only_id = Uuid::parse_str(&created.id).unwrap();
+    let db_only_path = temp_dir
+        .path()
+        .join(tenant_id.to_string())
+        .join(format!("{db_only_id}.git"));
+    std::fs::remove_dir_all(&db_only_path).unwrap();
+
+    let disk_only_id = Uuid::new_v4();
+    service_git::init_bare_repo(temp_dir.path(), tenant_id, disk_only_id).unwrap();
+
+    let dry_run_req = test::TestRequest::post()
+        .uri(&format!("/api/v1/tenant/{tenant_id}/repos/reconcile"))
+        .insert_header(("Authorization", format!("Bearer {token}")))
+        .set_json(serde_json::json!({"apply": false}))
+        .to_request();
+    let dry_run_resp = test::call_service(&app, dry_run_req).await;
+    assert_eq!(dry_run_resp.status(), actix_web::http::StatusCode::OK);
+    let dry_run: ReconcileData =
+        serde_json::from_slice::<ApiResponse<ReconcileData>>(&test::read_body(dry_run_resp).await)
+            .unwrap()
+            .data
+            .unwrap();
+    assert!(!dry_run.apply);
+    assert_eq!(dry_run.db_only, 1);
+    assert_eq!(dry_run.disk_only, 1);
+    assert!(dry_run.consistent == 0);
+    assert!(dry_run.entries.iter().all(|entry| entry.action == "NONE"));
+
+    let apply_req = test::TestRequest::post()
+        .uri(&format!("/api/v1/tenant/{tenant_id}/repos/reconcile"))
+        .insert_header(("Authorization", format!("Bearer {token}")))
+        .set_json(serde_json::json!({"apply": true}))
+        .to_request();
+    let apply_resp = test::call_service(&app, apply_req).await;
+    assert_eq!(apply_resp.status(), actix_web::http::StatusCode::OK);
+    let applied: ReconcileData =
+        serde_json::from_slice::<ApiResponse<ReconcileData>>(&test::read_body(apply_resp).await)
+            .unwrap()
+            .data
+            .unwrap();
+    assert!(applied.apply);
+    assert!(applied
+        .entries
+        .iter()
+        .any(|entry| entry.repo_id == db_only_id.to_string() && entry.action == "MARKED_ERROR"));
+    let quarantined = applied
+        .entries
+        .iter()
+        .find(|entry| entry.repo_id == disk_only_id.to_string())
+        .and_then(|entry| entry.quarantine_path.as_ref())
+        .expect("disk-only repo should have quarantine path");
+    assert_eq!(
+        applied
+            .entries
+            .iter()
+            .find(|entry| entry.repo_id == disk_only_id.to_string())
+            .unwrap()
+            .classification,
+        "DISK_ONLY"
     );
-    assert!(
-        !agents.exists(),
-        ".evolith/agents.yaml should NOT exist without seed_template"
+    assert!(temp_dir.path().join(quarantined).exists());
+    assert!(!db_only_path.exists());
+}
+
+#[actix_rt::test]
+async fn test_reconcile_rejects_member_and_cross_tenant_jwt() {
+    let pool = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+    let jwt = JwtHandler::new(&create_test_config(base_path.clone()).jwt);
+    let app_state = build_app_state(pool, base_path);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let target_register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "reconcile-target@example.com",
+            "username": "reconciletarget",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let target_register_resp = test::call_service(&app, target_register_req).await;
+    assert!(target_register_resp.status().is_success());
+    let target_auth: AuthResponseData = serde_json::from_slice::<ApiResponse<AuthResponseData>>(
+        &test::read_body(target_register_resp).await,
+    )
+    .unwrap()
+    .data
+    .unwrap();
+    let target_tenant_id = Uuid::parse_str(&target_auth.tenant.id).unwrap();
+    let target_user_id = Uuid::parse_str(&target_auth.user.id).unwrap();
+
+    let (member_token, _) = jwt
+        .generate_token(target_user_id, "user", target_tenant_id, "member")
+        .unwrap();
+    let member_req = test::TestRequest::post()
+        .uri(&format!(
+            "/api/v1/tenant/{target_tenant_id}/repos/reconcile"
+        ))
+        .insert_header(("Authorization", format!("Bearer {member_token}")))
+        .set_json(serde_json::json!({"apply": true}))
+        .to_request();
+    let member_resp = test::call_service(&app, member_req).await;
+    assert_eq!(member_resp.status(), actix_web::http::StatusCode::FORBIDDEN);
+
+    let foreign_register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "reconcile-foreign@example.com",
+            "username": "reconcileforeign",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let foreign_register_resp = test::call_service(&app, foreign_register_req).await;
+    assert!(foreign_register_resp.status().is_success());
+    let foreign_auth: AuthResponseData = serde_json::from_slice::<ApiResponse<AuthResponseData>>(
+        &test::read_body(foreign_register_resp).await,
+    )
+    .unwrap()
+    .data
+    .unwrap();
+
+    let cross_tenant_req = test::TestRequest::post()
+        .uri(&format!(
+            "/api/v1/tenant/{target_tenant_id}/repos/reconcile"
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", foreign_auth.token)))
+        .set_json(serde_json::json!({"apply": true}))
+        .to_request();
+    let cross_tenant_resp = test::call_service(&app, cross_tenant_req).await;
+    assert_eq!(
+        cross_tenant_resp.status(),
+        actix_web::http::StatusCode::FORBIDDEN
     );
 }
 

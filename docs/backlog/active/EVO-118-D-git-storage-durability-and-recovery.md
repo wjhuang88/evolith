@@ -21,13 +21,13 @@
 - 当时 `main` 为 `711e63227aeb5089a1858b6f38ef0c06374a7f97`，包含 PR #5 与 post-merge PR #6。
 - 当时没有开放或重叠的 EVO-118-D / Iteration 053 实现；Iteration 018/019/020/025/026/027 已记录继续阻塞、替代或延期 disposition。
 - [Iteration 053](../../iterations/ITERATION-053.md) 已在运行时代码之前建立 Planned 基线并激活，本 Story 是 DATA-01 owner。
-- EVO-118-E 保持 Ready，不与本 Story 同时实施。
+- EVO-118-E 当时保持 Ready，不与本 Story 同时实施；按 ADR-0010 现作为最终发布 Gate。
 - 当时生产 Compose 未为 Backend 挂载 Git Storage，`scripts/backup.sh` 仅覆盖 PostgreSQL，readiness 未检查 Git Storage。
 
 2026-08-02 主线漂移复核：
 
 - 当前 `main` 已推进到 `38c19b19cff5aab7a08ac40a1cf417e1712e1b07`；PR #8 合入 EVO-112-A Repo UI Shell，PR #9 写回 Iteration 054 merge closure。
-- Iteration 054 已 Closed / Complete，不是 Active/Review WIP，不替代或关闭 Iteration 053；EVO-112-B 仍暂停等待 EVO-118 S1。
+- Iteration 054 已 Closed / Complete，不是 Active/Review WIP，不替代或关闭 Iteration 053；EVO-112-B 后续等待 F/G/H 直接边界稳定。
 - PR #7 仍是唯一开放 PR，保持 Draft；漂移前 Head `608ad6acd20229498898eaf16afaff6ec8a79878` 落后 `main` 4 个提交且不可合并。
 - 本 Story 采用“从最新 `main` 建立新基线并迁移 DATA-01 改动”的方式跟进，必须保留 Repo UI 与 Iteration 054 的已合并事实，不得回滚主线。
 - 基线同步后所有 exact-head CI、恢复演练与 Navigator 证据必须重新建立；旧 Head 的通过项只能作为定位线索。
@@ -184,7 +184,7 @@
 - 独立 Navigator 于 2026-08-04 对最终 exact Head 返回 `Complete`，Blocking findings 为 None；Subscription credential archive boundary 与 ambient `psqlrc` 两项 finding 均判定 Resolved。
 - PR #7 已转 Ready，并于 2026-08-04 以 squash 方式合并到 `main`；merge commit：`932def05717b678f6f44dc23f137933d56158957`。
 - DATA-01 已关闭；本 Story 为 `Done / Complete / Merged`，Iteration 053 为 `Closed / Complete`。
-- EVO-118-E 仍为 `Ready / Not Started`，只是下一候选，不在本次收口中自动启动。
+- EVO-118-E 当时为 `Ready / Not Started`，只是下一候选，不在本次收口中自动启动；现已按 ADR-0010 后移为最终发布 Gate。
 
 ## 闭环台账
 
@@ -202,7 +202,7 @@
 - PR #7：Merged；final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，merge commit `932def05717b678f6f44dc23f137933d56158957`。
 - Navigator：Complete；最终 exact Head 无 blocking finding。
 - DATA-01：Closed；联合 PostgreSQL + Git durability/recovery Gate 已解除。
-- EVO-118-E：Ready / Not Started；等待 deliberate activation，不在本 PR 中提前实施。
+- EVO-118-E：最终发布 Gate；不在本 PR 中提前实施。
 
 ## 解锁内容
 

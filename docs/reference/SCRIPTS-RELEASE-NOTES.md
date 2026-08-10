@@ -10,6 +10,8 @@
 - **最终验收**：final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`；`ci` #204 / run `30838250911` 与 `data-durability-container` #50 / run `30838250875` 均成功；独立 Navigator 返回 `Complete`，无 blocking finding。
 - **合并**：PR #7 于 2026-08-04 squash merged，merge commit `932def05717b678f6f44dc23f137933d56158957`。
 - **治理状态**：EVO-118-D Done / Complete / Merged；Iteration 053 Closed / Complete；DATA-01 Closed；EVO-118-E 保持 Ready / Not Started。
+
+- **2026-08-08 当前口径**：EVO-118-F / Iteration 055 / DATA-02 已关闭；EVO-118-G 为下一候选但尚未启动。按 ADR-0010，EVO-118-E 保持为目标产品开发与 legacy cleanup 后的最终 DEPLOY-01 发布 Gate。
 - **稳定边界**：普通联合归档继续排除 Subscription conninfo；恢复只面向真正空目标并使用 `psql -X`；单实例持久性不扩展为多副本共享或自动故障转移声明。
 
 ### EVO-118-D Navigator 第三次整改 — Subscription 凭据边界与 psql startup isolation

@@ -81,6 +81,14 @@ impl SmtpMailer {
     /// # Errors
     /// Returns an error if the SMTP transport cannot be built.
     pub fn new(config: &SmtpConfig) -> Result<Self> {
+        if config.host.trim().is_empty() || config.port == 0 {
+            return Err(AppError::ConfigError(
+                "SMTP host and port must be configured".to_string(),
+            ));
+        }
+        let _: Mailbox = format!("{} <{}>", config.from_name, config.from_address)
+            .parse()
+            .map_err(|e| AppError::ConfigError(format!("Invalid SMTP from address: {}", e)))?;
         let credentials = Credentials::new(config.username.clone(), config.password.clone());
 
         let transport = AsyncSmtpTransport::<Tokio1Executor>::relay(&config.host)
@@ -275,13 +283,8 @@ impl Mailer for ConsoleMailer {
         token: &str,
         base_url: &str,
     ) -> Result<()> {
-        info!(
-            to = %to,
-            subject = "Verify your Evolith account",
-            username = %username,
-            link = format!("{}/verify-email?token={}", base_url, token),
-            "[ConsoleMailer] Would send verification email"
-        );
+        let _ = (token, base_url);
+        info!(to = %to, subject = "Verify your Evolith account", username = %username, "[ConsoleMailer] Would send verification email (token redacted)");
         Ok(())
     }
 
@@ -292,13 +295,8 @@ impl Mailer for ConsoleMailer {
         token: &str,
         base_url: &str,
     ) -> Result<()> {
-        info!(
-            to = %to,
-            subject = "Reset your Evolith password",
-            username = %username,
-            link = format!("{}/reset-password?token={}", base_url, token),
-            "[ConsoleMailer] Would send password reset email"
-        );
+        let _ = (token, base_url);
+        info!(to = %to, subject = "Reset your Evolith password", username = %username, "[ConsoleMailer] Would send password reset email (token redacted)");
         Ok(())
     }
 
@@ -310,14 +308,8 @@ impl Mailer for ConsoleMailer {
         token: &str,
         base_url: &str,
     ) -> Result<()> {
-        info!(
-            to = %to,
-            subject = format!("You've been invited to {} on Evolith", tenant_name),
-            inviter = %inviter_name,
-            tenant = %tenant_name,
-            link = format!("{}/join?token={}", base_url, token),
-            "[ConsoleMailer] Would send invitation email"
-        );
+        let _ = (token, base_url);
+        info!(to = %to, subject = format!("You've been invited to {} on Evolith", tenant_name), inviter = %inviter_name, tenant = %tenant_name, "[ConsoleMailer] Would send invitation email (token redacted)");
         Ok(())
     }
 }
@@ -325,21 +317,22 @@ impl Mailer for ConsoleMailer {
 /// Factory function to create a mailer based on configuration.
 ///
 /// Returns `SmtpMailer` if `config.enabled == true`, otherwise returns `ConsoleMailer`.
-pub fn create_mailer(config: &SmtpConfig) -> Box<dyn Mailer> {
+pub fn create_mailer(config: &SmtpConfig, production: bool) -> Result<Box<dyn Mailer>> {
     if config.enabled {
         match SmtpMailer::new(config) {
-            Ok(mailer) => Box::new(mailer),
+            Ok(mailer) => Ok(Box::new(mailer)),
             Err(e) => {
-                tracing::warn!(
-                    error = %e,
-                    "[create_mailer] Failed to create SmtpMailer, falling back to ConsoleMailer"
-                );
-                Box::new(ConsoleMailer)
+                if production {
+                    Err(e)
+                } else {
+                    tracing::warn!(error = %e, "[create_mailer] SMTP unavailable in development; using ConsoleMailer");
+                    Ok(Box::new(ConsoleMailer))
+                }
             }
         }
     } else {
         info!("[create_mailer] SMTP disabled, using ConsoleMailer");
-        Box::new(ConsoleMailer)
+        Ok(Box::new(ConsoleMailer))
     }
 }
 
@@ -378,7 +371,7 @@ mod tests {
     #[test]
     fn test_create_mailer_enabled() {
         let config = test_smtp_config();
-        let mailer = create_mailer(&config);
+        let mailer = create_mailer(&config, true).expect("valid SMTP config");
         drop(mailer);
     }
 
@@ -388,8 +381,26 @@ mod tests {
             enabled: false,
             ..test_smtp_config()
         };
-        let mailer = create_mailer(&config);
+        let mailer = create_mailer(&config, false).expect("development fallback");
         drop(mailer);
+    }
+
+    #[test]
+    fn production_invalid_smtp_fails_closed() {
+        let config = SmtpConfig {
+            from_address: "not-an-email".to_string(),
+            ..test_smtp_config()
+        };
+        assert!(create_mailer(&config, true).is_err());
+    }
+
+    #[test]
+    fn development_invalid_smtp_uses_console_fallback() {
+        let config = SmtpConfig {
+            from_address: "not-an-email".to_string(),
+            ..test_smtp_config()
+        };
+        assert!(create_mailer(&config, false).is_ok());
     }
 
     #[tokio::test]

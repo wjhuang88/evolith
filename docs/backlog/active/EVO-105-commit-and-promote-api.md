@@ -43,7 +43,8 @@
 ## Governing ADRs, Specs Or Decisions
 
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
-- 待补：policy 评估与 default_action 行为细节（写在 EVO-102 规范文档）
+- [ADR-0007 Agent 写入授权与生产交付边界](../../decisions/ADR-0007-agent-write-and-production-delivery-boundaries.md)
+- Policy 评估与 `default_action` 行为细节已固定：身份/capability → Agent path scope → `block` → `protected_paths` → `default_action`；path scope 拒绝返回 403，不降级为 `require_review`。
 
 ## Acceptance Criteria
 
@@ -54,6 +55,7 @@
   - default_action=block → 返回 403，commit 拒绝
 - [ ] protected_paths 命中测试：用户/agent 修改 `SKILL.md` 且 default_action=auto_merge 时强制 require_review
 - [ ] agents[].scopes 评估：agent 修改未授权路径返回 403
+- [ ] `commit:<scope>` 解析为结构化 Repo/Branch/Path 限制，不得解释为通用写权限
 - [ ] `POST /repos/{id}/promote` 实现：fast-forward 时直接指回；非 fast-forward 时创建 merge commit（默认策略）；返回新 default_branch oid
 - [ ] agent branch 自动命名遵循 `agent/{session_id}/{feature_slug}`（slug 由 LLM 或用户提供）
 - [ ] audit log 记录：commit / promote / block 全部事件，含 actor (user_id 或 session_id)、policy 决策、commit oid

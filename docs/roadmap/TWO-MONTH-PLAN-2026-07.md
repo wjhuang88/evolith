@@ -45,7 +45,7 @@
 | 周期 | 主目标 | 候选 Backlog | 原计划交付结果 | 原计划关键验证 | 2026-07-30 状态 |
 |------|--------|--------------|----------------|------------------|-----------------|
 | Week 1 | Repo UI 基础入口 | EVO-112-A | `/repos`、创建、导航、Dashboard | type-check/build/Playwright | 未启动；S1 后恢复 |
-| Week 2 | Repo Detail 只读浏览 | EVO-112-B | Files/Commits/Settings/clone URL | push 后 UI 查看 | 未启动；S1 后恢复 |
+| Week 2 | Repo Detail 只读浏览 | EVO-112-B | Files/Commits/Settings/clone URL | push 后 UI 查看 | Done / Complete；Iteration 061 |
 | Week 3 | Commit API + Policy | EVO-105-A | file ops、commit、三态决策 | policy matrix/repo E2E/audit | 未启动；依赖 EVO-118-B/F/H |
 | Week 4 | Promote + 写路径硬化 | EVO-105-B | FF/merge/conflict | promote/RBAC/clippy | 未启动；依赖 EVO-118-B/F/H |
 | Week 5 | Agent Session + Token | EVO-106-A/B | Session、Scoped Token、Event | scope 403/state/agent mock | 未启动；依赖 EVO-118-B/H |

@@ -5,7 +5,6 @@ import { useParams, useRouter } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
-import { Input } from '@/components/ui';
 import { skillsApi } from '@/lib/api/skills';
 import type { Skill } from '@/lib/api/types';
 

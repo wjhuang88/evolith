@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { resolveAuthenticatedEntry } from '@/lib/entry';
 
 export default function JoinPage() {
   const { t } = useTranslation();
@@ -18,6 +19,26 @@ export default function JoinPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [invitationAccepted, setInvitationAccepted] = useState(false);
+  const [entryError, setEntryError] = useState(false);
+  const redirect = searchParams.get('redirect');
+
+  const resolveEntry = async () => {
+    const tenantId = useAuthStore.getState().tenant?.id;
+    if (!tenantId) {
+      setEntryError(true);
+      return;
+    }
+    setIsLoading(true);
+    setEntryError(false);
+    try {
+      router.replace(await resolveAuthenticatedEntry(tenantId, redirect));
+    } catch {
+      setEntryError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -49,7 +70,8 @@ export default function JoinPage() {
           isLoading: false,
           error: null,
         });
-        router.push('/dashboard');
+        setInvitationAccepted(true);
+        await resolveEntry();
         return;
       }
       setError(response.error?.message || t('auth.joinPage.acceptFailed'));
@@ -86,6 +108,16 @@ export default function JoinPage() {
                   {t('auth.joinPage.backToSignIn')}
                 </Button>
               </Link>
+            </div>
+          ) : invitationAccepted ? (
+            <div className="space-y-4 text-center">
+              <h2 className="text-lg font-semibold">{t('auth.joinPage.accepted')}</h2>
+              <p className="text-sm text-muted-foreground">{t('auth.entry.loadDescription')}</p>
+              {entryError && (
+                <Button type="button" variant="outline" className="w-full" onClick={resolveEntry} disabled={isLoading}>
+                  {isLoading ? t('common.loading') : t('common.retry')}
+                </Button>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

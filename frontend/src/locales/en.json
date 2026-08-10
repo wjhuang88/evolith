@@ -63,36 +63,32 @@
   },
   "landing": {
     "hero": {
-      "title": "Ship Code at AI Speed",
-      "subtitle": "Evolith is the AI-native git platform where developers and AI agents collaborate. Host repos, vibe-code with built-in AI, and publish agent skills — all in one place.",
-      "getStarted": "Start Building Free",
-      "learnMore": "Learn More"
+      "eyebrow": "Git-centric AI development",
+      "title": "Code, context, and evidence in one Git home.",
+      "subtitle": "Evolith hosts real Git repositories and makes every change inspectable. The foundation is available now; controlled Agent workflows and repo-derived discovery are being built in public view.",
+      "getStarted": "Create an account",
+      "learnMore": "See product status"
     },
-    "features": {
-      "title": "Everything You Need",
-      "subtitle": "The complete platform for AI-native development",
-      "tools": {
-        "title": "Git Hosting, Reimagined",
-        "description": "Full git repository hosting with AI-native collaboration. Every repo is agent-ready out of the box."
-      },
-      "skills": {
-        "title": "Vibe Coding",
-        "description": "Write, review, and ship code with AI agents that commit directly to your repos. No copy-paste, no context switching."
-      },
-      "interfaces": {
-        "title": "Agent Skills Hub",
-        "description": "Publish skills, MCP tools, and CLI interfaces from any repo. AI agents discover and use them automatically — like npm for AI."
-      }
+    "demo": {
+      "verified": "Evidence available",
+      "commit": "Latest commit evidence"
+    },
+    "status": {
+      "eyebrow": "Honest product status",
+      "title": "Built from the repository outward.",
+      "subtitle": "Future capabilities are visible here, but they are not presented as shipping features.",
+      "tags": {"available":"Available now","development":"In development","planned":"Planned"},
+      "available": {"title":"Git repositories and commit evidence","description":"Create, clone, push, browse files, inspect commits, and follow changed-file evidence from a real Git repository."},
+      "development": {"title":"Controlled Agent work","description":"Commit, promote, review, session, and durable event workflows are being implemented behind explicit policy boundaries."},
+      "planned": {"title":"Repo-derived capability discovery","description":"Skills, MCP tools, and CLI capabilities will be discovered from repository content instead of a separate legacy registry."}
     },
     "cta": {
-      "title": "Ready to Build with AI?",
-      "subtitle": "Join the next generation of developers shipping code with AI agents.",
-      "button": "Start Building Now"
+      "title": "Start with the source of truth.",
+      "subtitle": "Create a repository, push code, and inspect the evidence that future Agent workflows will build on.",
+      "button": "Create your workspace"
     },
     "footer": {
-      "docs": "Documentation",
-      "privacy": "Privacy Policy",
-      "terms": "Terms of Service"
+      "status": "Alpha foundation · not production-ready"
     }
   },
   "auth": {
@@ -182,7 +178,19 @@
       "invalidLink": "This invitation link is invalid or missing a token.",
       "passwordsNoMatch": "Passwords do not match.",
       "passwordTooShort": "Password must be at least 8 characters.",
-      "acceptFailed": "Failed to accept invitation. The link may be invalid or expired."
+      "acceptFailed": "Failed to accept invitation. The link may be invalid or expired.",
+      "accepted": "Invitation accepted"
+    },
+    "entry": {
+      "loadingTitle": "Finding your workspace",
+      "loadingDescription": "Checking your repository inventory before choosing the next screen.",
+      "loadDescription": "Your account is signed in, but the repository check failed. Retry before continuing; no onboarding state has been assumed.",
+      "errorTitle": "We couldn't resolve your entry",
+      "errorDescription": "The repository check failed. Retry to continue without losing your session.",
+      "forbiddenTitle": "Repository access is unavailable",
+      "forbiddenDescription": "Your organization role cannot list repositories. Ask an administrator to review your access.",
+      "missing-tenantTitle": "Organization context is unavailable",
+      "missing-tenantDescription": "Sign in again to restore the organization required for repository routing."
     },
     "verifyEmailPage": {
       "verifying": "Verifying Email",
@@ -266,6 +274,8 @@
     "loading": "Loading repositories...",
     "failedToLoad": "Failed to load repositories",
     "failedToConnect": "Failed to connect to server",
+    "forbiddenTitle": "Repository access denied",
+    "forbiddenDescription": "You do not have permission to view this repository. The requested URL has been preserved.",
     "searchPlaceholder": "Search repositories by name or description",
     "sortBy": "Sort by",
     "sortUpdated": "Recently updated",
@@ -310,7 +320,9 @@
       },
       "nextTitle": "What's next?",
       "nextDesc": "You can clone, push, and browse files from the repository detail page (coming in the next iteration)."
-    }
+    },
+    "detail": {"loading":"Loading repository...","loadFailed":"Failed to load repository","notFound":"Repository not found","back":"Back to repositories","tabs":"Repository sections","overview":"Overview","files":"Files","commits":"Commits","settings":"Settings","overviewTitle":"Repository overview","noDescription":"No description","noReadme":"No README.md in this repository","branch":"Default branch","latestCommit":"Latest commit","policy":"Policy","reviewRequired":"Review required","autoMerge":"Auto-merge enabled","browseCode":"Browse code","binaryFile":"Binary file","emptyFile":"Empty file","emptyFiles":"No files in this repository","selectFile":"Select a file to view","noCommits":"No commits yet","committedBy":"by {{author}} · {{when}}","loadMore":"Load more","description":"Description","visibility":"Visibility","autoMergeSetting":"Allow auto-merge","requireReviewSetting":"Require review","cloneUrl":"Clone URL","copyCloneUrl":"Copy clone URL","save":"Save changes","saving":"Saving...","saved":"Saved","saveFailed":"Save failed","deleteFailed":"Delete failed","invalidName":"Use a valid repository name (1-128 letters, numbers, dots, hyphens, or underscores)","dangerZone":"Danger zone","delete":"Delete repository","deleteHint":"This permanently removes {{name}} and its Git storage.","confirmDelete":"Delete repository","typeNameToDelete":"Type {{name}} to confirm deletion.","policyLoadFailed":"Policy could not be loaded","noPolicy":"No .evolith/policy.yaml found","defaultAction":"Default action","protectedPaths":"Protected paths","agents":"Agents"},
+    "commitEvidence": {"loading":"Loading commit evidence...","loadFailed":"Failed to load commit evidence","notFound":"Commit not found on this repository ref","back":"Back to commits","title":"Commit evidence","message":"Commit message","identity":"Identity and provenance","author":"Author","committer":"Committer","ref":"Verified ref","parents":"Parents","rootCommit":"Root commit — no parents","changes":"Changed files ({{count}})","noChanges":"No changed files","status":"Status","path":"Path","oldObject":"Old object","newObject":"New object","changeType":{"added":"Added","deleted":"Deleted","modified":"Modified"}}
   },
   "tools": {
     "title": "MCP Tools",
@@ -528,6 +540,7 @@
     "settings": {
       "title": "Settings",
       "subtitle": "Manage your organization settings and preferences",
+      "readOnly": "Workspace settings are read-only until the tenant settings API is implemented (EVO-012).",
       "org": {
         "title": "Organization",
         "desc": "Basic information about your organization",
@@ -686,6 +699,20 @@
   },
   "settings": {
     "title": "Settings",
+    "subtitle": "Manage your account and workspace",
+    "navigationLabel": "Settings sections",
+    "sections": {
+      "profile": "Profile",
+      "workspace": "Workspace",
+      "members": "Members",
+      "apiKeys": "API keys",
+      "billing": "Billing"
+    },
+    "forbidden": {
+      "title": "You do not have access to this setting",
+      "description": "Your workspace role does not allow this management action. Ask an owner or administrator if you need access.",
+      "action": "Back to profile"
+    },
     "language": "Language",
     "theme": "Theme",
     "light": "Light",
@@ -736,50 +763,47 @@
     }
   },
   "onboarding": {
-    "skip": "Skip",
-    "back": "Back",
-    "getStarted": "Get Started",
-    "step1": {
-      "title": "Welcome to Evolith",
-      "subtitle": "Hello {{username}}, let's get you set up!",
-      "feature1": {
-        "title": "MCP Tools",
-        "description": "Encapsulate and share tools via MCP protocol"
-      },
-      "feature2": {
-        "title": "Hybrid Skills",
-        "description": "Create and execute skills with server-side code"
-      },
-        "feature3": {
-          "title": "CLI Interfaces",
-          "description": "Machine-readable interface definitions for LLM and CLI consumption"
-        }
-    },
-    "step2": {
-      "title": "Create Your First Tool",
-      "subtitle": "Let's create a simple MCP tool to get started",
-      "nameLabel": "Tool Name",
-      "namePlaceholder": "my-first-tool",
+    "checking": "Checking your repositories…",
+    "eyebrow": "Your first repository",
+    "title": "Welcome to Evolith",
+    "subtitle": "Create a real Git repository to establish your code context. You can browse its files as soon as it is ready.",
+    "form": {
+      "title": "Create your first repository",
+      "description": "Evolith will initialize the repository with a main branch and starter content.",
+      "nameLabel": "Repository name",
+      "namePlaceholder": "my-first-repo",
+      "nameHint": "Use letters, numbers, periods, underscores, or hyphens.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "What does this tool do?",
-      "schemaLabel": "Schema (JSON)",
-      "schemaPlaceholder": "{ \"type\": \"object\" }",
-      "invalidSchema": "Invalid JSON schema format",
-      "failedToCreate": "Failed to create tool",
-      "creating": "Creating...",
-      "createTool": "Create Tool"
-    },
-    "step3": {
-      "title": "You're All Set!",
-      "subtitle": "Your account is ready to go",
-      "nextSteps": {
-        "title": "What's Next",
-        "exploreTools": "Explore and manage your MCP tools",
-        "readDocs": "Read the documentation to learn more",
-        "inviteTeam": "Invite team members to collaborate"
+      "descriptionPlaceholder": "What are you building?",
+      "visibilityLabel": "Visibility",
+      "visibility": {
+        "private": {
+          "title": "Private",
+          "description": "Only authorized organization members can access it."
+        },
+        "public": {
+          "title": "Public",
+          "description": "Visible according to the repository access policy."
+        }
       },
-      "viewDocs": "View Documentation",
-      "goToDashboard": "Go to Dashboard"
+      "defaultBranchLabel": "Default branch",
+      "autoMerge": "Allow automatic merge",
+      "requireReview": "Require review before merge",
+      "nextStep": "Next: review the README and browse the repository files.",
+      "create": "Create repository",
+      "creating": "Creating repository…",
+      "validation": {
+        "nameRequired": "Repository name is required.",
+        "nameInvalid": "Use at most 128 letters, numbers, periods, underscores, or hyphens."
+      }
+    },
+    "errors": {
+      "missingTenant": "Your organization context is unavailable. Sign in again and retry.",
+      "loadTitle": "We couldn't check your repositories",
+      "loadDescription": "Your account is still signed in. Retry the repository check before creating anything.",
+      "forbiddenTitle": "Repository access is unavailable",
+      "forbiddenDescription": "Your organization role cannot list repositories. Ask an administrator to review your access.",
+      "createFailed": "Repository creation failed. Your input has been preserved."
     }
   }
 }

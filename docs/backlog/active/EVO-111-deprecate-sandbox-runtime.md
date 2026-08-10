@@ -5,6 +5,7 @@
 - [Product Backlog](../PRODUCT-BACKLOG.md)
 - [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
 - [ADR-0005 Deprecate Sandbox Runtime](../../decisions/ADR-0005-deprecate-sandbox-runtime.md)
+- [ADR-0009 No Pre-launch Registry Compatibility](../../decisions/ADR-0009-no-prelaunch-registry-compatibility.md)
 - 父 Epic: [EVO-100](EVO-100-git-centric-platform-foundation.md)
 
 ## Summary
@@ -39,7 +40,8 @@
 ## Dependencies And Blockers
 
 - 无硬依赖；可作为 Phase 4 收尾执行
-- 软依赖 EVO-110（旧 execute API 在 EVO-110 期间仍可能被引用；EV0-111 收口前必须完成 EV0-110）
+- EVO-110 已由 ADR-0009 Dropped；本 Story 不等待双写兼容
+- EVO-122-B 反向依赖本 Story，确保删除整个 legacy Registry runtime 前先移除 Sandbox execute 分支
 
 ## Governing ADRs, Specs Or Decisions
 

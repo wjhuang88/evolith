@@ -23,7 +23,6 @@ uuid.workspace = true
 chrono.workspace = true
 jsonwebtoken.workspace = true
 
-actix-governor.workspace = true
 actix-web-prom.workspace = true
 prometheus.workspace = true
 
@@ -46,6 +45,7 @@ infra.workspace = true
 common.workspace = true
 
 [dev-dependencies]
+async-trait.workspace = true
 sqlx.workspace = true
 actix-rt = "2"
 actix-http = "3"

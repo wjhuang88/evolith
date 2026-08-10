@@ -21,7 +21,7 @@
 
 > **先让底座安全、可持久化、可构建、可恢复，再把底座暴露给用户和 Agent。**
 
-截至 2026-08-04，SEC-01、SEC-02、DATA-01 已关闭；当前执行焦点转为 DEPLOY-01。
+截至 2026-08-08，SEC-01、SEC-02、DATA-01、DATA-02 已关闭；按 ADR-0010，继续推进 G/H 与产品改造，DEPLOY-01 在最终发布阶段执行。
 
 ## 2. 当前产品判断
 
@@ -72,25 +72,20 @@
    - squash merge commit `932def05717b678f6f44dc23f137933d56158957`；
    - 生产 Git 持久卷、Git readiness、PostgreSQL + Git 联合备份、安全恢复、inventory、故障矩阵和空环境演练完成；
    - Subscription credential 与 `psqlrc` 环境隔离边界闭合。
-4. **EVO-118-E Production Build and Deployment Convergence — Ready**
-   - Embedded Frontend 单一交付形态；
-   - 修复 Docker build context；
-   - clean build、启动和 Smoke Test；
-   - 明确 Nginx 仅作为可选 Gateway。
-
-S1 全部关闭前：
+S1 安全与数据基线已关闭。DEPLOY-01 不属于普通开发前置：
 
 - 不发布外部 Alpha；
 - 不宣称生产就绪；
 - 不让新的 Agent 写入能力进入生产；
-- EVO-112 可以做设计/refinement，但不应抢占实现 WIP。
+- EVO-112、Onboarding、Agent、Discovery 和 Experience Convergence 可按下方依赖继续开发；仍不得发布外部 Alpha。
 
 ### Stabilization S2 — 数据一致性与可靠性
 
-1. **EVO-118-F Repo Lifecycle Consistency**
-   - `CREATING/ACTIVE/ERROR` 或等价状态；
-   - 删除 trash/reconcile；
-   - Seed Template 形成真实 Initial Commit。
+1. **EVO-118-F Repo Lifecycle Consistency — Done / DATA-02 Closed**
+   - `CREATING/ACTIVE/ERROR/DELETING` 状态与失败补偿；
+   - DB/FS Reconcile 与 disk-only quarantine；
+   - Seed Template 形成真实 Initial Commit；
+   - SQLite/PostgreSQL、权限负向和失败注入证据通过。
 2. **EVO-118-G Runtime Reliability Gates**
    - PR/Main CI；
    - readiness 失败返回 503；
@@ -102,16 +97,28 @@ S1 全部关闭前：
    - Worker 重试、幂等和失败记录；
    - 为 EVO-107 Webhook 和 EVO-108 Indexer 提供可靠基础。
 
-S2 可以在 S1 后按依赖推进；不得为了恢复产品进度跳过 DATA-02 或 EVENT-01。
+2026-08-09 refinement：Iteration 060 的 schema/repository boundary 保持 Closed / Partial；
+剩余范围拆为 H-A recoverable claims、H-B Worker runtime、H-C durable Push integration，按
+依赖顺序执行。尚不存在的 Commit/Promote/Agent Session producer 由 EVO-105/106 在本边界
+完成后接入，避免 H 与产品 Story 形成循环依赖。
+
+H-A / Iteration 066 已 Done / Closed / Complete：paired 012 upgrade、lease/fencing、stale
+recovery 与 PostgreSQL concurrent claim 已验证。H-B / Iteration 067 已 Done / Closed /
+Complete：独立 Worker、bounded delivery、双数据库积压恢复与 confirmed replay 已验证。
+EVENT-01 仍等待 H-C 的真实 Push producer/subscriber 接入。
+
+S2 在 S1 后按依赖推进；DATA-02 已关闭，当前下一候选为 EVO-118-G；不得为了恢复产品进度跳过 REL-01 或 EVENT-01。
 
 ### Product P1 — Repo-centric Web
 
 S1 关闭后恢复：
 
-1. EVO-112-A Repo UI Shell；
-2. EVO-112-B Repo Detail Read-only。
+1. EVO-112-A Repo UI Shell（Done）；
+2. EVO-120 First-run Repo Onboarding；
+3. EVO-112-B Overview-first Repo Detail Read-only。
+4. EVO-112-C Repo Commit Evidence Detail（Done / Iteration 063 Closed / Complete）。
 
-目标仍是尽快让用户看到真正的 Git-centric 产品，但不能以牺牲发布门禁为代价。
+2026-08-08 交互架构校准后，首次使用不再创建 Tool，而是创建/导入 Repo 并进入 Overview。该调整仅重排未来未启动工作，不覆写既有 Planned Iteration 基线。产品流程以 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md) 和 [ADR-0008](../decisions/ADR-0008-repo-centric-interaction-architecture.md) 为准。
 
 ### Product P2 — Agent Write Loop
 
@@ -135,9 +142,27 @@ S1 关闭后恢复：
 依赖：EVO-118-H + 稳定 Push/Commit 事件。
 
 1. EVO-108 Indexer；
-2. EVO-109 Discovery API/UI；
-3. EVO-110 旧表兼容；
-4. EVO-111 Sandbox 删除收尾。
+2. EVO-109 Discovery API/UI。
+
+ADR-0009 已取消 EVO-110 双写兼容；旧 runtime/schema 清理由 EVO-111/EVO-122 在 Repo-derived 合约承接后直接完成。
+
+### Product P4 — Experience Convergence
+
+归口：[EVO-121](../backlog/active/EVO-121-product-experience-convergence.md)，按依赖穿插在 P1-P3 之后：
+
+1. EVO-121-C/D：public/auth entry resolver 与 Settings IA；
+2. EVO-121-E/B：Durable Activity 与 task-first Dashboard；
+3. EVO-121-A/F：最终 App Shell 与旧 Registry UI 删除。
+
+目标页面、路由和状态边界以 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md) 为准。旧 UI/API 不承担线上兼容义务；后端按 ADR-0009 / EVO-122 直接收敛。
+
+### Final Release P5 — Production Convergence
+
+归口：EVO-118-E。
+
+进入条件：EVO-118-F/G/H、目标 MVP owner Story、EVO-111 与 EVO-122-A/B/C 全部完成。
+
+该阶段以最终代码面执行 clean production build、Embedded Frontend 单一交付、Compose/Gateway 路径和全协议 Smoke，关闭 DEPLOY-01。它是 External Alpha/生产发布 Gate，不是前述开发阶段的进入条件。
 
 ## 4. 启动顺序
 
@@ -147,16 +172,21 @@ S1 关闭后恢复：
 EVO-118-A Done
 → EVO-118-B Done
 → EVO-118-C Done
-→ EVO-118-D（Next）
-→ EVO-118-E
-→ EVO-118-F / G / H（按依赖）
-→ EVO-112
+→ EVO-118-D Done
+→ EVO-118-F Done
+→ EVO-118-G / H（G-B/C/D Done；G-A/H Partial residual）
+→ EVO-120 Done / EVO-112-A/B/C Done
+→ EVO-121-C / D
 → EVO-105 / 106 / 107 / 104
-→ EVO-108 / 109 / 110
+→ EVO-121-E / B
+→ EVO-108 / 109
+→ EVO-121-A / F
 → EVO-111
+→ EVO-122-A / B / C
+→ EVO-118-E（最终生产构建、部署与发布 Smoke）
 ```
 
-如果出现安全或数据损坏修复，可以插队；普通 UI、视觉优化、内部文档页、计费增强不得绕过 S1。
+如果出现安全、数据损坏或基础构建失败，可以显式插队；DEPLOY-01 关闭前不得上线，但普通产品开发不得被其静默阻塞。
 
 ## 5. Gate 解除标准
 

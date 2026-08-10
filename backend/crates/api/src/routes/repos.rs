@@ -6,6 +6,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/repos")
             .route("", web::get().to(repo_handlers::list_repos))
             .route("", web::post().to(repo_handlers::create_repo))
+            .route("/reconcile", web::post().to(repo_handlers::reconcile_repos))
             .route("/{repo_id}", web::get().to(repo_handlers::get_repo))
             .route("/{repo_id}", web::patch().to(repo_handlers::update_repo))
             .route("/{repo_id}", web::delete().to(repo_handlers::delete_repo))
@@ -20,6 +21,10 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route(
                 "/{repo_id}/commits",
                 web::get().to(repo_context_handlers::get_commits),
+            )
+            .route(
+                "/{repo_id}/commits/{sha}",
+                web::get().to(repo_context_handlers::get_commit_detail),
             )
             .route(
                 "/{repo_id}/diff",

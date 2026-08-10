@@ -15,10 +15,20 @@ pub struct GitRepo {
     pub visibility: RepoVisibility,
     pub auto_merge: bool,
     pub require_review: bool,
+    pub lifecycle_status: RepoLifecycleStatus,
     pub last_commit_sha: Option<String>,
     pub last_committed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum RepoLifecycleStatus {
+    Creating,
+    Active,
+    Error,
+    Deleting,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

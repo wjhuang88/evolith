@@ -176,7 +176,7 @@ GIT_STORAGE_PATH='/var/lib/evolith/git' \
 bash scripts/git-storage-inventory.sh
 ```
 
-下列任一情况必须非零退出：DB-only Repo、disk-only Repo、路径格式异常、symlink、意外/孤儿目录、无效 bare repository、`git fsck` 失败、默认 Branch 缺失、数据库 last Commit 缺失或 refs 不匹配。完整 Repo create/delete 状态机与自动 Reconciler 仍归 EVO-118-F。
+下列任一情况必须非零退出：DB-only Repo、disk-only Repo、路径格式异常、symlink、意外/孤儿目录、无效 bare repository、`git fsck` 失败、默认 Branch 缺失、数据库 last Commit 缺失或 refs 不匹配。Repo create/delete 状态机与租户级 Reconciler 已由 EVO-118-F 关闭；发布盘点仍保持更严格的非零退出门禁。
 
 ## 7. 发布验证矩阵
 

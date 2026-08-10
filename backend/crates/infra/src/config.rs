@@ -114,6 +114,78 @@ pub struct GitStorageConfig {
     pub base_path: String,
 }
 
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct OutboxWorkerConfig {
+    pub batch_size: u32,
+    pub poll_interval_ms: u64,
+    pub lease_seconds: u64,
+    pub delivery_timeout_seconds: u64,
+    pub base_backoff_seconds: u64,
+    pub default_max_attempts: u32,
+}
+
+#[derive(Deserialize)]
+struct OutboxWorkerConfigRoot {
+    outbox: OutboxWorkerConfig,
+}
+
+impl OutboxWorkerConfig {
+    pub fn from_env() -> Result<Self, ConfigError> {
+        let root: OutboxWorkerConfigRoot = Config::builder()
+            .set_default("outbox.batch_size", 10)?
+            .set_default("outbox.poll_interval_ms", 500)?
+            .set_default("outbox.lease_seconds", 60)?
+            .set_default("outbox.delivery_timeout_seconds", 5)?
+            .set_default("outbox.base_backoff_seconds", 1)?
+            .set_default("outbox.default_max_attempts", 10)?
+            .add_source(Environment::default().separator("__"))
+            .build()?
+            .try_deserialize()?;
+        root.outbox.validate()?;
+        Ok(root.outbox)
+    }
+
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        if self.batch_size == 0 || self.batch_size > 1000 {
+            return Err(ConfigError::Message(
+                "Outbox batch_size must be between 1 and 1000".to_string(),
+            ));
+        }
+        if self.poll_interval_ms == 0 || self.poll_interval_ms > 60_000 {
+            return Err(ConfigError::Message(
+                "Outbox poll_interval_ms must be between 1 and 60000".to_string(),
+            ));
+        }
+        if self.lease_seconds == 0
+            || self.lease_seconds > 86_400
+            || self.delivery_timeout_seconds == 0
+            || self.delivery_timeout_seconds > 3_600
+            || self.base_backoff_seconds == 0
+            || self.base_backoff_seconds > 3_600
+        {
+            return Err(ConfigError::Message(
+                "Outbox lease must be 1..86400 seconds; delivery timeout and backoff must be 1..3600 seconds"
+                    .to_string(),
+            ));
+        }
+        if self.default_max_attempts == 0 || self.default_max_attempts > 100 {
+            return Err(ConfigError::Message(
+                "Outbox default_max_attempts must be between 1 and 100".to_string(),
+            ));
+        }
+        let batch_timeout = u64::from(self.batch_size)
+            .checked_mul(self.delivery_timeout_seconds)
+            .ok_or_else(|| ConfigError::Message("Outbox batch timeout overflow".to_string()))?;
+        if batch_timeout >= self.lease_seconds {
+            return Err(ConfigError::Message(
+                "Outbox batch_size * delivery_timeout_seconds must be less than lease_seconds"
+                    .to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         let config = Config::builder()
@@ -351,5 +423,57 @@ mod tests {
         config.database.url = "postgres://localhost/evolith".to_string();
 
         config.validate().expect("postgresql alias should be valid");
+    }
+
+    fn valid_outbox_config() -> OutboxWorkerConfig {
+        OutboxWorkerConfig {
+            batch_size: 10,
+            poll_interval_ms: 500,
+            lease_seconds: 60,
+            delivery_timeout_seconds: 5,
+            base_backoff_seconds: 1,
+            default_max_attempts: 10,
+        }
+    }
+
+    #[test]
+    fn outbox_config_accepts_bounded_batch() {
+        valid_outbox_config()
+            .validate()
+            .expect("valid outbox config");
+    }
+
+    #[test]
+    fn outbox_config_rejects_batch_that_can_outlive_lease() {
+        let mut config = valid_outbox_config();
+        config.batch_size = 12;
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn outbox_config_rejects_zero_and_unbounded_values() {
+        let mut config = valid_outbox_config();
+        config.poll_interval_ms = 0;
+        assert!(config.validate().is_err());
+
+        let mut config = valid_outbox_config();
+        config.default_max_attempts = 101;
+        assert!(config.validate().is_err());
+
+        let mut config = valid_outbox_config();
+        config.batch_size = 1001;
+        assert!(config.validate().is_err());
+
+        let mut config = valid_outbox_config();
+        config.lease_seconds = 86_401;
+        assert!(config.validate().is_err());
+
+        let mut config = valid_outbox_config();
+        config.delivery_timeout_seconds = 3_601;
+        assert!(config.validate().is_err());
+
+        let mut config = valid_outbox_config();
+        config.base_backoff_seconds = 3_601;
+        assert!(config.validate().is_err());
     }
 }

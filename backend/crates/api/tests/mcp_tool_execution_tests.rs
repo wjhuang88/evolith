@@ -40,6 +40,7 @@ const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_rep
 const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
+const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
 
 fn strip_leading_comments(sql: &str) -> &str {
     let mut result = sql;
@@ -73,6 +74,7 @@ async fn setup_test_db() -> SqlitePool {
     run_migration_sql(&pool, MIGRATION_007).await;
     run_migration_sql(&pool, MIGRATION_008).await;
     run_migration_sql(&pool, MIGRATION_009).await;
+    run_migration_sql(&pool, MIGRATION_010).await;
 
     pool
 }

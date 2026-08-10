@@ -56,7 +56,7 @@ export function usePermission() {
  * const { canInvite, canRemoveMember, canTransferOwnership } = useMemberPermissions();
  */
 export function useMemberPermissions() {
-  const { can, isOwner, isAdmin } = usePermission();
+  const { isOwner, isAdmin } = usePermission();
   
   return {
     // Member management permissions
@@ -90,7 +90,7 @@ export function useTenantPermissions() {
  * Hook for checking resource management permissions
  */
 export function useResourcePermissions() {
-  const { can, isOwner, isAdmin } = usePermission();
+  const { isAdmin } = usePermission();
   
   return {
     // Tools

@@ -1,6 +1,7 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::process::{Command, Output};
 use std::time::Duration;
 
 use gix::bstr::BStr;
@@ -80,6 +81,22 @@ pub struct CommitInfo {
     pub author_email: String,
     pub message: String,
     pub timestamp: i64,
+}
+
+/// Complete, immutable evidence for one commit within a verified ref context.
+#[derive(Debug, Clone)]
+pub struct CommitDetail {
+    pub sha: String,
+    pub author_name: String,
+    pub author_email: String,
+    pub authored_at: i64,
+    pub committer_name: String,
+    pub committer_email: String,
+    pub committed_at: i64,
+    pub message: String,
+    pub parents: Vec<String>,
+    pub git_ref: String,
+    pub changes: Vec<DiffEntry>,
 }
 
 /// A single change in a diff between two refs.
@@ -249,18 +266,44 @@ pub fn repo_path(base_path: &Path, tenant_id: Uuid, repo_id: Uuid) -> PathBuf {
         .join(format!("{}.git", repo_id))
 }
 
+fn ensure_real_directory(path: &Path, context: &str) -> Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+            Err(GitStorageError::InitError(format!(
+                "{context} must be a real directory: {}",
+                path.display()
+            )))
+        }
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => std::fs::create_dir(path)
+            .map_err(|error| {
+                GitStorageError::InitError(format!(
+                    "failed to create {context} {}: {}",
+                    path.display(),
+                    error
+                ))
+            }),
+        Err(error) => Err(GitStorageError::InitError(format!(
+            "failed to inspect {context} {}: {}",
+            path.display(),
+            error
+        ))),
+    }
+}
+
 pub fn init_bare_repo(base_path: &Path, tenant_id: Uuid, repo_id: Uuid) -> Result<PathBuf> {
     let path = repo_path(base_path, tenant_id, repo_id);
-
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            GitStorageError::InitError(format!(
-                "Failed to create parent directory {}: {}",
-                parent.display(),
-                e
-            ))
-        })?;
-    }
+    std::fs::create_dir_all(base_path).map_err(|error| {
+        GitStorageError::InitError(format!(
+            "failed to create storage root {}: {}",
+            base_path.display(),
+            error
+        ))
+    })?;
+    ensure_real_directory(
+        &base_path.join(tenant_id.to_string()),
+        "tenant storage directory",
+    )?;
 
     gix::init_bare(&path).map_err(|e| {
         GitStorageError::InitError(format!(
@@ -273,38 +316,119 @@ pub fn init_bare_repo(base_path: &Path, tenant_id: Uuid, repo_id: Uuid) -> Resul
     Ok(path)
 }
 
-pub fn write_seed_files(storage_path: &Path, repo_name: &str, default_branch: &str) -> Result<()> {
-    let readme_path = storage_path.join("README.md");
-    let readme_content = format!("# {}\n\nDefault branch: `{}`\n", repo_name, default_branch);
+fn run_git(args: &[&str], working_dir: Option<&Path>) -> Result<Output> {
+    let mut command = Command::new("git");
+    command.args(args);
+    if let Some(path) = working_dir {
+        command.current_dir(path);
+    }
+    let output = command
+        .output()
+        .map_err(|error| GitStorageError::SubprocessError(error.to_string()))?;
+    if output.status.success() {
+        Ok(output)
+    } else {
+        Err(GitStorageError::SubprocessError(format!(
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        )))
+    }
+}
 
-    std::fs::write(&readme_path, &readme_content).map_err(|e| GitStorageError::SeedWriteError {
-        path: readme_path.display().to_string(),
-        source: e,
+pub fn seed_initial_commit(
+    storage_path: &Path,
+    repo_name: &str,
+    default_branch: &str,
+) -> Result<String> {
+    run_git(&["check-ref-format", "--branch", default_branch], None)?;
+    let worktree = storage_path
+        .parent()
+        .ok_or(GitStorageError::NoBasePath)?
+        .join(format!(".seed-{}", Uuid::new_v4()));
+    std::fs::create_dir(&worktree).map_err(|source| GitStorageError::SeedWriteError {
+        path: worktree.display().to_string(),
+        source,
     })?;
 
-    let evolith_dir = storage_path.join(".evolith");
-    std::fs::create_dir_all(&evolith_dir).map_err(|e| GitStorageError::SeedWriteError {
-        path: evolith_dir.display().to_string(),
-        source: e,
-    })?;
+    let result = (|| {
+        run_git(
+            &["init", "--initial-branch", default_branch],
+            Some(&worktree),
+        )?;
+        run_git(&["config", "user.name", "Evolith"], Some(&worktree))?;
+        run_git(
+            &["config", "user.email", "noreply@evolith.local"],
+            Some(&worktree),
+        )?;
 
-    let policy_path = evolith_dir.join("policy.yaml");
-    let policy_content = "default_action: require_review\n";
+        let readme_path = worktree.join("README.md");
+        let readme_content = format!("# {}\n\nDefault branch: `{}`\n", repo_name, default_branch);
 
-    std::fs::write(&policy_path, policy_content).map_err(|e| GitStorageError::SeedWriteError {
-        path: policy_path.display().to_string(),
-        source: e,
-    })?;
+        std::fs::write(&readme_path, &readme_content).map_err(|e| {
+            GitStorageError::SeedWriteError {
+                path: readme_path.display().to_string(),
+                source: e,
+            }
+        })?;
 
-    let agents_path = evolith_dir.join("agents.yaml");
-    let agents_content = "agents: []\n";
+        let evolith_dir = worktree.join(".evolith");
+        std::fs::create_dir_all(&evolith_dir).map_err(|e| GitStorageError::SeedWriteError {
+            path: evolith_dir.display().to_string(),
+            source: e,
+        })?;
 
-    std::fs::write(&agents_path, agents_content).map_err(|e| GitStorageError::SeedWriteError {
-        path: agents_path.display().to_string(),
-        source: e,
-    })?;
+        let policy_path = evolith_dir.join("policy.yaml");
+        let policy_content = "default_action: require_review\n";
 
-    Ok(())
+        std::fs::write(&policy_path, policy_content).map_err(|e| {
+            GitStorageError::SeedWriteError {
+                path: policy_path.display().to_string(),
+                source: e,
+            }
+        })?;
+
+        let agents_path = evolith_dir.join("agents.yaml");
+        let agents_content = "agents: []\n";
+
+        std::fs::write(&agents_path, agents_content).map_err(|e| {
+            GitStorageError::SeedWriteError {
+                path: agents_path.display().to_string(),
+                source: e,
+            }
+        })?;
+
+        run_git(&["add", "."], Some(&worktree))?;
+        run_git(&["commit", "-m", "Initial commit"], Some(&worktree))?;
+        let storage = storage_path
+            .to_str()
+            .ok_or_else(|| GitStorageError::InvalidInput("storage path is not UTF-8".into()))?;
+        let destination = format!("HEAD:refs/heads/{default_branch}");
+        run_git(&["push", storage, &destination], Some(&worktree))?;
+        run_git(
+            &[
+                "--git-dir",
+                storage,
+                "symbolic-ref",
+                "HEAD",
+                &format!("refs/heads/{default_branch}"),
+            ],
+            None,
+        )?;
+        let output = run_git(&["rev-parse", "HEAD"], Some(&worktree))?;
+        String::from_utf8(output.stdout)
+            .map(|sha| sha.trim().to_string())
+            .map_err(|error| GitStorageError::ReadError(error.to_string()))
+    })();
+
+    if let Err(error) = std::fs::remove_dir_all(&worktree) {
+        tracing::warn!(
+            "Failed to remove seed worktree {}: {}",
+            worktree.display(),
+            error
+        );
+    }
+    result
 }
 
 pub fn remove_repo(storage_path: &Path) -> Result<()> {
@@ -312,6 +436,95 @@ pub fn remove_repo(storage_path: &Path) -> Result<()> {
         path: storage_path.display().to_string(),
         source: e,
     })
+}
+
+/// Return tenant repo ids represented by direct `<uuid>.git` directories.
+/// Other entries, including symlinks and quarantine data, are ignored.
+pub fn inventory_tenant_repos(base_path: &Path, tenant_id: Uuid) -> Result<HashSet<Uuid>> {
+    let tenant_path = base_path.join(tenant_id.to_string());
+    match std::fs::symlink_metadata(&tenant_path) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+            return Err(GitStorageError::ReadError(format!(
+                "tenant storage must be a real directory: {}",
+                tenant_path.display()
+            )));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(HashSet::new());
+        }
+        Err(error) => {
+            return Err(GitStorageError::ReadError(format!(
+                "failed to inspect tenant storage {}: {}",
+                tenant_path.display(),
+                error
+            )));
+        }
+    }
+
+    let entries = std::fs::read_dir(&tenant_path).map_err(|error| {
+        GitStorageError::ReadError(format!(
+            "failed to inventory tenant storage {}: {}",
+            tenant_path.display(),
+            error
+        ))
+    })?;
+    let mut repo_ids = HashSet::new();
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            GitStorageError::ReadError(format!(
+                "failed to read tenant storage entry in {}: {}",
+                tenant_path.display(),
+                error
+            ))
+        })?;
+        let file_type = entry.file_type().map_err(|error| {
+            GitStorageError::ReadError(format!(
+                "failed to inspect tenant storage entry {}: {}",
+                entry.path().display(),
+                error
+            ))
+        })?;
+        if !file_type.is_dir() {
+            continue;
+        }
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        let Some(id) = name.strip_suffix(".git") else {
+            continue;
+        };
+        if let Ok(id) = Uuid::parse_str(id) {
+            repo_ids.insert(id);
+        }
+    }
+    Ok(repo_ids)
+}
+
+/// Move an unowned repo into a tenant-scoped quarantine directory without deleting it.
+pub fn quarantine_repo(base_path: &Path, tenant_id: Uuid, repo_id: Uuid) -> Result<PathBuf> {
+    let source = repo_path(base_path, tenant_id, repo_id);
+    let source_metadata =
+        std::fs::symlink_metadata(&source).map_err(|error| GitStorageError::RemoveError {
+            path: source.display().to_string(),
+            source: error,
+        })?;
+    if source_metadata.file_type().is_symlink() || !source_metadata.is_dir() {
+        return Err(GitStorageError::ReadError(format!(
+            "repo storage must be a real directory: {}",
+            source.display()
+        )));
+    }
+    let quarantine_root = base_path.join(".reconcile-trash");
+    ensure_real_directory(&quarantine_root, "reconcile quarantine directory")?;
+    let quarantine_dir = quarantine_root.join(tenant_id.to_string());
+    ensure_real_directory(&quarantine_dir, "tenant reconcile quarantine directory")?;
+    let destination = quarantine_dir.join(format!("{}.git.{}", repo_id, Uuid::new_v4()));
+    std::fs::rename(&source, &destination).map_err(|error| GitStorageError::RemoveError {
+        path: source.display().to_string(),
+        source: error,
+    })?;
+    Ok(destination)
 }
 
 /// Run `git <service> --advertise-refs --stateless-rpc <repo_path>` and return
@@ -536,6 +749,115 @@ pub fn read_commits(repo_path: &Path, git_ref: &str, limit: usize) -> Result<Vec
     Ok(commits)
 }
 
+/// Read one exact commit and prove that it is reachable from `git_ref`.
+///
+/// The returned diff is a bounded, structured list of changed files. Root commits are compared
+/// with an empty tree by treating every blob in their tree as an addition.
+pub fn read_commit_detail(repo_path: &Path, sha: &str, git_ref: &str) -> Result<CommitDetail> {
+    if sha.len() != 40 || !sha.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(GitStorageError::InvalidInput(
+            "commit sha must be exactly 40 hexadecimal characters".to_string(),
+        ));
+    }
+    if git_ref.trim().is_empty() {
+        return Err(GitStorageError::InvalidInput(
+            "ref must not be empty".to_string(),
+        ));
+    }
+
+    let repo = gix::open(repo_path).map_err(|e| {
+        GitStorageError::ReadError(format!(
+            "failed to open repo at {}: {}",
+            repo_path.display(),
+            e
+        ))
+    })?;
+
+    let target_id = repo
+        .rev_parse_single(BStr::new(sha))
+        .map_err(|e| GitStorageError::NotFound(format!("commit '{}' not found: {}", sha, e)))?;
+    let target = target_id
+        .object()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to resolve commit: {}", e)))?
+        .into_commit();
+    if !target.id.to_string().eq_ignore_ascii_case(sha) {
+        return Err(GitStorageError::NotFound(format!(
+            "commit '{}' not found",
+            sha
+        )));
+    }
+
+    let ref_id = repo
+        .rev_parse_single(BStr::new(git_ref))
+        .map_err(|e| GitStorageError::NotFound(format!("ref '{}' not found: {}", git_ref, e)))?;
+    let ref_commit = ref_id
+        .object()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to resolve ref: {}", e)))?
+        .into_commit();
+    let reachable = if ref_commit.id == target.id {
+        true
+    } else {
+        ref_id
+            .ancestors()
+            .all()
+            .map_err(|e| GitStorageError::ReadError(format!("failed to walk ref: {}", e)))?
+            .any(|info| info.is_ok_and(|entry| entry.id == target.id))
+    };
+    if !reachable {
+        return Err(GitStorageError::NotFound(format!(
+            "commit '{}' is not reachable from ref '{}'",
+            sha, git_ref
+        )));
+    }
+
+    let decoded = target
+        .decode()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to decode commit: {}", e)))?;
+    let author = decoded
+        .author()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to read author: {}", e)))?;
+    let committer = decoded
+        .committer()
+        .map_err(|e| GitStorageError::ReadError(format!("failed to read committer: {}", e)))?;
+    let parents: Vec<String> = decoded.parents().map(|id| id.to_string()).collect();
+
+    let changes = if let Some(parent) = parents.first() {
+        read_diff(repo_path, parent, sha)?
+    } else {
+        let entries = read_file_tree(repo_path, sha)?;
+        let blobs: Vec<_> = entries.into_iter().filter(|entry| !entry.is_tree).collect();
+        if blobs.len() > DIFF_MAX_ENTRIES {
+            return Err(GitStorageError::ResourceExceeded(format!(
+                "diff exceeds max {} entries",
+                DIFF_MAX_ENTRIES
+            )));
+        }
+        blobs
+            .into_iter()
+            .map(|entry| DiffEntry {
+                path: entry.name,
+                change_type: "added".to_string(),
+                old_oid: String::new(),
+                new_oid: entry.oid,
+            })
+            .collect()
+    };
+
+    Ok(CommitDetail {
+        sha: target.id.to_string(),
+        author_name: author.name.to_string(),
+        author_email: author.email.to_string(),
+        authored_at: author.time().map(|time| time.seconds).unwrap_or(0),
+        committer_name: committer.name.to_string(),
+        committer_email: committer.email.to_string(),
+        committed_at: committer.time().map(|time| time.seconds).unwrap_or(0),
+        message: decoded.message.to_string(),
+        parents,
+        git_ref: git_ref.to_string(),
+        changes,
+    })
+}
+
 /// Read diff between two refs.
 pub fn read_diff(repo_path: &Path, base_ref: &str, head_ref: &str) -> Result<Vec<DiffEntry>> {
     let repo = gix::open(repo_path).map_err(|e| {
@@ -684,6 +1006,88 @@ mod tests {
     use tokio::sync::Mutex;
 
     static PATH_LOCK: Mutex<()> = Mutex::const_new(());
+
+    #[tokio::test]
+    async fn seed_initial_commit_creates_cloneable_branch() {
+        let _guard = PATH_LOCK.lock().await;
+        let root = std::env::temp_dir().join(format!("evolith-seed-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let tenant_id = Uuid::new_v4();
+        let repo_id = Uuid::new_v4();
+        let repo_path = init_bare_repo(&root, tenant_id, repo_id).unwrap();
+
+        let sha = seed_initial_commit(&repo_path, "seeded-repo", "main").unwrap();
+        let (resolved, _) = resolve_ref(&repo_path, "refs/heads/main").unwrap();
+        assert_eq!(sha, resolved);
+
+        let tree = read_file_tree(&repo_path, &sha).unwrap();
+        let paths: Vec<_> = tree.into_iter().map(|entry| entry.name).collect();
+        assert!(paths.contains(&"README.md".to_string()));
+        assert!(paths.contains(&".evolith/policy.yaml".to_string()));
+        assert!(paths.contains(&".evolith/agents.yaml".to_string()));
+
+        let detail = read_commit_detail(&repo_path, &sha, "main").unwrap();
+        assert_eq!(detail.sha, sha);
+        assert!(detail.parents.is_empty());
+        assert_eq!(detail.git_ref, "main");
+        assert!(detail
+            .changes
+            .iter()
+            .any(|entry| entry.path == "README.md" && entry.change_type == "added"));
+        assert!(matches!(
+            read_commit_detail(&repo_path, "not-a-sha", "main"),
+            Err(GitStorageError::InvalidInput(_))
+        ));
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn inventory_and_quarantine_are_tenant_scoped() {
+        let root = std::env::temp_dir().join(format!("evolith-inventory-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let tenant_id = Uuid::new_v4();
+        let other_tenant_id = Uuid::new_v4();
+        let repo_id = Uuid::new_v4();
+        let other_repo_id = Uuid::new_v4();
+        init_bare_repo(&root, tenant_id, repo_id).unwrap();
+        init_bare_repo(&root, other_tenant_id, other_repo_id).unwrap();
+        std::fs::write(
+            root.join(tenant_id.to_string()).join("not-a-repo"),
+            b"ignored",
+        )
+        .unwrap();
+
+        let inventory = inventory_tenant_repos(&root, tenant_id).unwrap();
+        assert_eq!(inventory, HashSet::from([repo_id]));
+
+        let quarantined = quarantine_repo(&root, tenant_id, repo_id).unwrap();
+        assert!(quarantined.exists());
+        assert!(!repo_path(&root, tenant_id, repo_id).exists());
+        assert!(repo_path(&root, other_tenant_id, other_repo_id).exists());
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn tenant_storage_symlink_is_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let root = std::env::temp_dir().join(format!("evolith-symlink-{}", Uuid::new_v4()));
+        let outside = std::env::temp_dir().join(format!("evolith-outside-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        let tenant_id = Uuid::new_v4();
+        symlink(&outside, root.join(tenant_id.to_string())).unwrap();
+
+        assert!(init_bare_repo(&root, tenant_id, Uuid::new_v4()).is_err());
+        assert!(inventory_tenant_repos(&root, tenant_id).is_err());
+        assert!(std::fs::read_dir(&outside).unwrap().next().is_none());
+
+        std::fs::remove_dir_all(root).unwrap();
+        std::fs::remove_dir_all(outside).unwrap();
+    }
 
     #[tokio::test]
     #[cfg(unix)]

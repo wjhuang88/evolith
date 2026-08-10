@@ -13,6 +13,7 @@ GIT_STORAGE__BASE_PATH
 JWT__SECRET
 SANDBOX__ENABLED
 RATE_LIMIT__UNAUTHENTICATED_RPM
+OUTBOX__LEASE_SECONDS
 ```
 
 不要使用 `DATABASE_TYPE`、`DATABASE_URL` 这类单下划线形式表达应用嵌套配置。`scripts/backup.sh`、`scripts/restore.sh` 和 `scripts/git-storage-inventory.sh` 是独立运维入口，按脚本契约使用 `DATABASE_URL` 与 `GIT_STORAGE_PATH`，不要与应用配置变量混淆。
@@ -75,6 +76,26 @@ LOG__LEVEL=info
 
 `GET /health/live` 只表示进程存活。Docker/K8s 的 readiness/healthcheck 应使用 `/health/ready`，liveness 使用 `/health/live`。
 
+## Durable Outbox Worker
+
+`outbox-worker` 是与 HTTP Server 同仓库构建、独立运行的进程：
+
+```bash
+cargo run --bin outbox-worker -- run
+cargo run --bin outbox-worker -- run --once
+cargo run --bin outbox-worker -- replay <event-uuid> --confirm
+```
+
+- `run` 持续领取，到 SIGINT 后等待当前有界 batch 完成并正常退出。
+- `run --once` 领取至多一个 batch，适合 smoke、维护任务和进程测试。
+- `replay` 只接受 `dead_letter`，且必须显式 `--confirm`；其他状态不变并非零退出。
+- 当前唯一成功 handler 是无副作用的 `system.outbox.probe`。真实 Push producer/subscriber 与生产 supervisor/replica 归 EVO-118-H-C；未知事件必须失败。
+- Worker 与 HTTP Server 必须指向同一数据库。SQLite 是单进程 Lite 路径；生产并发路径是 PostgreSQL。
+
+Worker 不打印 payload、idempotency key 或 handler 原始错误；`last_error` 只保存稳定错误码。
+配置必须满足 `OUTBOX__BATCH_SIZE × OUTBOX__DELIVERY_TIMEOUT_SECONDS < OUTBOX__LEASE_SECONDS`，
+否则进程拒绝启动，避免 batch 尚未完成时租约已被其他 Worker 回收。
+
 ## 联合备份、恢复与 inventory 脚本变量
 
 这些变量属于脚本接口，不由 `AppConfig` 读取：
@@ -116,6 +137,12 @@ HTTP Tool 的生产默认策略不是环境变量开关，而是代码级 fail-c
 | `DATABASE__URL` | 数据库连接串 | `:memory:` |
 | `DATABASE__MAX_CONNECTIONS` | 数据库连接池大小 | `10` |
 | `DATABASE__SEED_DATABASE` | 是否写入开发种子数据 | `false` |
+| `OUTBOX__BATCH_SIZE` | 每次最多领取的事件数，范围 1~1000 | `10` |
+| `OUTBOX__POLL_INTERVAL_MS` | 空闲轮询间隔，范围 1~60000 ms | `500` |
+| `OUTBOX__LEASE_SECONDS` | claim 租约秒数，范围 1~86400；必须大于整个 batch 的最坏投递预算 | `60` |
+| `OUTBOX__DELIVERY_TIMEOUT_SECONDS` | 单事件 handler 硬超时秒数，范围 1~3600 | `5` |
+| `OUTBOX__BASE_BACKOFF_SECONDS` | 指数退避基数秒数，范围 1~3600 | `1` |
+| `OUTBOX__DEFAULT_MAX_ATTEMPTS` | producer 默认最大尝试次数，范围 1~100；H-C 接入时使用 | `10` |
 | `GIT_STORAGE__BASE_PATH` | Bare Repository 根目录；布局为 `<tenant UUID>/<repo UUID>.git` | `/srv/evolith/repos` |
 | `REDIS__URL` | Redis 地址 | `redis://localhost:6379` |
 | `JWT__SECRET` | JWT 签名密钥 | dev only |
@@ -139,9 +166,12 @@ HTTP Tool 的生产默认策略不是环境变量开关，而是代码级 fail-c
 | `SMTP__PASSWORD` | SMTP 密码 | 空 |
 | `SMTP__FROM_ADDRESS` | 发件地址 | `noreply@evolith.io` |
 | `SMTP__FROM_NAME` | 发件名称 | `Evolith` |
-| `RATE_LIMIT__UNAUTHENTICATED_RPM` | 未认证请求限流 | `30` |
-| `RATE_LIMIT__AUTHENTICATED_RPM` | 已认证请求限流 | `300` |
-| `RATE_LIMIT__API_KEY_RPM` | API key 请求限流 | `1000` |
+| `RATE_LIMIT__UNAUTHENTICATED_RPM` | 按 direct peer IP 的未认证请求每分钟限流 | `30` |
+| `RATE_LIMIT__AUTHENTICATED_RPM` | 按 JWT user ID 的请求每分钟限流 | `300` |
+| `RATE_LIMIT__API_KEY_RPM` | 按 API key ID 的全局每分钟上限；同时执行 Key 自身每小时上限 | `1000` |
+
+当前 caller-aware limiter 在单进程内由所有 Actix worker 共享；多实例 Redis-backed
+安全状态与生产 fail-closed 由 EVO-118-G-D 收敛，不能把这里的计数描述为集群全局配额。
 
 `mysql` 当前不受主服务支持。配置校验和连接池创建都会快速返回
 `MySQL repositories are not implemented`，不会先建立 MySQL 连接池再在 `main.rs` 中拒绝。
@@ -185,3 +215,5 @@ VITE_API_URL=http://localhost:8080/api/v1
 | 开发 JWT secret 用于生产 | 启动失败或安全风险 | 生产设置强随机密钥 |
 | SMTP disabled | 邮件不会真实发送 | 开发看 ConsoleMailer，生产启用 SMTP |
 | HTTP Tool 使用明文 `http` 或私网地址 | 创建、更新或执行被安全边界拒绝 | 使用公网 `https` 目标；不要依赖生产 bypass |
+| Outbox `batch × timeout >= lease` | 当前批次可能在完成前失去 claim ownership | 增大 lease、减小 batch 或缩短 timeout；无效配置会拒绝启动 |
+| 未注册的 Outbox event type | 事件进入 retry/dead-letter，不会假成功 | H-C 为业务事件注册 handler；仅使用 probe 做运行态诊断 |

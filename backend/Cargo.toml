@@ -9,6 +9,10 @@ license.workspace = true
 name = "evolith"
 path = "src/main.rs"
 
+[[bin]]
+name = "outbox-worker"
+path = "src/bin/outbox_worker.rs"
+
 [lints]
 workspace = true
 
@@ -18,7 +22,6 @@ common.workspace = true
 infra.workspace = true
 actix-web.workspace = true
 actix-cors.workspace = true
-actix-governor.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
@@ -31,6 +34,12 @@ service-tool.workspace = true
 uuid.workspace = true
 rust-embed-for-web.workspace = true
 actix-web-rust-embed-responder.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+serde_json.workspace = true
 
 [workspace]
 resolver = "2"
@@ -145,9 +154,6 @@ hex = "0.4"
 
 # Redis (async + connection pooling via deadpool)
 redis = { version = "1.2.2", features = ["tokio-comp", "connection-manager"] }
-
-# Rate limiting
-actix-governor = "0.10.0"
 
 # Email (async SMTP)
 lettre = { version = "0.11.22", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder", "hostname"] }

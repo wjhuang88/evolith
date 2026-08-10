@@ -29,7 +29,8 @@ Evolith 当前支持 SQLite 和 PostgreSQL：
 4. 新增 PostgreSQL migration。
 5. 更新 SQLite repository。
 6. 更新 PostgreSQL repository。
-7. 增加或更新 repository tests。
+7. 增加或更新 repository tests；新增 migration 还需从直接前一版本携带代表性已有行
+   升级，验证数据、状态与默认值保留。fresh schema 通过不能单独替代 upgrade 证据。
 8. 运行验证。
 
 ## 验证命令
@@ -41,6 +42,15 @@ cargo test --workspace
 ```
 
 如变更涉及 PostgreSQL 特性，应使用 full 模式或本地 PostgreSQL 额外验证。
+
+Migration 验证至少区分两条路径：
+
+1. fresh：空库执行全部 migration 后 repository round trip 通过；
+2. upgrade：执行到直接前一版本，写入能覆盖本次约束/默认值/状态变化的代表性数据，再
+   执行新 migration 并验证原数据与语义保留。
+
+若 migration 只影响全新表且前一版本不存在可升级行，应在 Story/Iteration 明确记录
+upgrade 场景不适用；不得默认为 fresh test 已覆盖升级安全。
 
 验证与 SQLite/PostgreSQL 双侧状态必须纳入
 [任务收口与完成声明](TASK-CLOSURE.md)；任一适用数据库路径未覆盖时不得声明

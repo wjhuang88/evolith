@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
-import { billingApi, type ResourceUsage, type UsageResponse } from '@/lib/api';
+import { billingApi, type UsageResponse } from '@/lib/api';
 
 interface UsageDisplayProps {
   tenantId: string;

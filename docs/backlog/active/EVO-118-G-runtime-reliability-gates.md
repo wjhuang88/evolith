@@ -1,15 +1,32 @@
 # EVO-118-G 运行可靠性与发布门禁接线
 
-- **类型**：Technical / Reliability / Release
-- **状态**：Proposed
+- **类型**：Epic / Reliability / Release
+- **状态**：In Progress
 - **优先级**：P1
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
-- **依赖**：EVO-118-B、EVO-118-E
+- **依赖**：EVO-118-B（Done）
 - **影响范围**：backend / CI / deploy / config / docs / tests
 
 ## 工程目标
 
 让已有配置和健康能力真正进入运行链路，避免“配置字段存在、测试函数存在，但生产门禁没有接线”的假完整状态。
+
+## 拆分理由
+
+本项包含 CI、readiness、调用者限流和关键依赖降级四个可独立验收结果，不能用一个
+0.5-2 天 Story 真实表达完成边界。保留 EVO-118-G 作为父 Epic，以子 Story 分批关闭
+REL-01；父项不直接进入 Iteration。
+
+## 子 Story
+
+| 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 |
+| --- | --- | --- | --- | --- |
+| [EVO-118-G-A](EVO-118-G-A-ci-merge-gates.md) | PR/main 自动执行完整前后端质量门禁 | Review / Partial | EVO-118-B Done | Iteration 056 |
+| [EVO-118-G-B](EVO-118-G-B-runtime-readiness.md) | liveness/readiness 与部署 healthcheck 真实反映依赖 | Done / Complete | G-A | Iteration 057 |
+| [EVO-118-G-C](EVO-118-G-C-caller-aware-rate-limits.md) | 匿名/JWT/API Key/单 Key 分层限流 | Done / Complete | G-B | Iteration 058 |
+| [EVO-118-G-D](EVO-118-G-D-production-dependency-fail-closed.md) | SMTP/Redis 按职责生产 fail closed 且开发日志脱敏 | Done / Complete | G-C | Iteration 059 |
+
+父 Epic 仅在 G-A/B/C/D 均 Done、REL-01 证据同步且残余归口完成后进入 Done。
 
 ## 已确认失败模式
 
@@ -68,8 +85,14 @@
 - 匿名/JWT/API Key/单 Key 限流集成测试。
 - SMTP production 配置失败启动测试与日志脱敏检查。
 - Redis 普通缓存降级和安全状态 fail-closed 测试。
-- clean production smoke test。
+- development/CI smoke test；最终 production smoke 归 EVO-118-E。
 
 ## 解锁内容
 
 解除 REL-01 Gate；让生产发布、回滚和后续 Agent/Indexer 能依赖真实运行门禁。
+
+## 状态归口
+
+- 子 Story 分别记录命令、负向测试和残余；父项汇总 REL-01。
+- 每个子 Story 完成后同步本表、Product Backlog、Iteration Index 和 Board。
+- 最终 production image/Compose 全协议 Smoke 仍归 EVO-118-E，不由本 Epic 提前关闭。
