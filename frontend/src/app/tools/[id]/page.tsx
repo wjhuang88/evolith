@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
 import { toolsApi } from '@/lib/api/tools';

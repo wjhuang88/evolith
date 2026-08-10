@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { Link, useRouter, useSearchParams } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { hrefWithRedirect } from '@/lib/entry-policy';
 
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const loginHref = hrefWithRedirect('/login', searchParams.get('redirect'));
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
@@ -109,19 +111,19 @@ export default function VerifyEmailPage() {
             <p className="mb-6 text-muted-foreground">{message}</p>
 
             {status === 'success' && (
-              <Button onClick={() => router.push('/login')} className="w-full">
+              <Button onClick={() => router.push(loginHref)} className="w-full">
                 {t('auth.verifyEmailPage.goToLogin')}
               </Button>
             )}
 
             {status === 'error' && (
               <div className="space-y-3">
-                <Button onClick={() => router.push('/login')} variant="outline" className="w-full">
+                <Button onClick={() => router.push(loginHref)} variant="outline" className="w-full">
                   {t('auth.verifyEmailPage.goToLogin')}
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   {t('auth.verifyEmailPage.needNewLink')}{' '}
-                  <Link to="/login"className="text-primary hover:underline">{t('auth.verifyEmailPage.loginToResend')}</Link>
+                  <Link to={loginHref} className="text-primary hover:underline">{t('auth.verifyEmailPage.loginToResend')}</Link>
                 </p>
               </div>
             )}

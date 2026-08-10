@@ -16,7 +16,7 @@ const BILLING_ENABLED = false;
 
 export default function BillingPage() {
   const { t } = useTranslation();
-  const { user, tenant } = useAuthStore();
+  const { tenant } = useAuthStore();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);

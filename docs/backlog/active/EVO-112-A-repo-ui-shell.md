@@ -5,7 +5,7 @@
 - Product Backlog: [`../PRODUCT-BACKLOG.md`](../PRODUCT-BACKLOG.md)
 - 父 Epic: [`EVO-100`](EVO-100-git-centric-platform-foundation.md)
 - 父 Story: [`EVO-112`](EVO-112-repo-management-ui.md)
-- 同级子 Story: [`EVO-112-B`](EVO-112-B-repo-detail-read-only.md)（详情只读；EVO-118 S1 后恢复）
+- 同级子 Story: [`EVO-112-B`](EVO-112-B-repo-detail-read-only.md)（详情只读；F/G/H 直接边界稳定后恢复）
 - Two-month plan: [`../../roadmap/TWO-MONTH-PLAN-2026-07.md`](../../roadmap/TWO-MONTH-PLAN-2026-07.md)
 - Design system: [`../../reference/DESIGN.md`](../../reference/DESIGN.md)（Figma tokens；颜色 / 字号 / 间距必须用 token，不硬编码）
 - API contract: [`../../reference/API-CONTRACT.md`](../../reference/API-CONTRACT.md)（§16 Repos）
@@ -162,7 +162,7 @@ Scenario: 未登录用户访问 /repos
 
 ## Residual Work Destination
 
-- `/repos/:id` 详情页（Files / Commits / Settings Tab）— 归 `EVO-112-B`（EVO-118 S1 后重新排期）
+- `/repos/:id` 详情页（Files / Commits / Settings Tab）— 归 `EVO-112-B`（F/G/H 直接边界稳定后重新排期）
 - Dashboard "Recent commits" 列表（按 repo 聚合）— 需要 commit 历史 API（`EVO-105` 范围）；本 Story 仅做静态计数（`repos[i].last_commit_sha` 存在即 +1），不做"最近 5 条 commit 列表"
 - Repo 详情 Settings Tab 的 policy.yaml 可视化、删除二次确认、clone URL 复制 — `EVO-112-B`
 - 移动端深度适配（NavigationDrawer / hamburger） — 本 Story 保留现有 MobileNav 模式，未做深度改造；后续 EVO 评估

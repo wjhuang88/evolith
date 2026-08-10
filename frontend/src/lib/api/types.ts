@@ -116,7 +116,7 @@ export interface CreateToolRequest {
   is_public?: boolean;
 }
 
-export interface UpdateToolRequest extends Partial<CreateToolRequest> {}
+export type UpdateToolRequest = Partial<CreateToolRequest>;
 
 // ============================================
 // Skill Types
@@ -148,7 +148,7 @@ export interface CreateSkillRequest {
   is_public?: boolean;
 }
 
-export interface UpdateSkillRequest extends Partial<CreateSkillRequest> {}
+export type UpdateSkillRequest = Partial<CreateSkillRequest>;
 
 // ============================================
 // CLI Interface Types
@@ -190,7 +190,7 @@ export interface CreateCliInterfaceRequest {
   is_public?: boolean;
 }
 
-export interface UpdateCliInterfaceRequest extends Partial<CreateCliInterfaceRequest> {}
+export type UpdateCliInterfaceRequest = Partial<CreateCliInterfaceRequest>;
 
 // ============================================
 // Payment & Billing Types
@@ -419,3 +419,39 @@ export interface CreateRepoRequest {
 }
 
 export type UpdateRepoRequest = Partial<CreateRepoRequest>;
+
+export interface FileTreeEntry {
+  name: string;
+  kind: 'blob' | 'tree';
+  oid: string;
+  is_tree: boolean;
+}
+
+export interface CommitInfo {
+  sha: string;
+  author_name: string;
+  author_email: string;
+  message: string;
+  timestamp: number;
+}
+
+export interface DiffEntry {
+  path: string;
+  change_type: 'added' | 'deleted' | 'modified';
+  old_oid: string;
+  new_oid: string;
+}
+
+export interface CommitDetail {
+  sha: string;
+  author_name: string;
+  author_email: string;
+  authored_at: number;
+  committer_name: string;
+  committer_email: string;
+  committed_at: number;
+  message: string;
+  parents: string[];
+  ref_name: string;
+  changes: DiffEntry[];
+}

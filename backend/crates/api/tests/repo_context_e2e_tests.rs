@@ -25,8 +25,8 @@ use infra::config::{
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
-    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
-    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
+    SqliteInvitationRepository, SqliteOutboxRepository, SqliteSkillRepository,
+    SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
@@ -43,6 +43,9 @@ const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_rep
 const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
+const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
+const MIGRATION_011: &str = include_str!("../../../migrations/sqlite/011_outbox_events.sql");
+const MIGRATION_012: &str = include_str!("../../../migrations/sqlite/012_outbox_claim_leases.sql");
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse<T> {
@@ -115,6 +118,21 @@ struct CommitData {
 }
 
 #[derive(Debug, Deserialize)]
+struct CommitDetailData {
+    sha: String,
+    author_name: String,
+    author_email: String,
+    authored_at: i64,
+    committer_name: String,
+    committer_email: String,
+    committed_at: i64,
+    message: String,
+    parents: Vec<String>,
+    ref_name: String,
+    changes: Vec<DiffEntryData>,
+}
+
+#[derive(Debug, Deserialize)]
 struct DiffResponseData {
     entries: Vec<DiffEntryData>,
 }
@@ -162,6 +180,9 @@ async fn setup_test_db() -> (SqlitePool, TempDir) {
     run_migration_sql(&pool, MIGRATION_007).await;
     run_migration_sql(&pool, MIGRATION_008).await;
     run_migration_sql(&pool, MIGRATION_009).await;
+    run_migration_sql(&pool, MIGRATION_010).await;
+    run_migration_sql(&pool, MIGRATION_011).await;
+    run_migration_sql(&pool, MIGRATION_012).await;
 
     (pool, db_dir)
 }
@@ -274,7 +295,9 @@ fn build_app_state(pool: SqlitePool, base_path: String) -> AppState {
             as Arc<dyn InvitationRepository>,
         api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone()))
             as Arc<dyn ApiKeyRepository>,
-        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)) as Arc<dyn GitRepoRepository>,
+        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool.clone()))
+            as Arc<dyn GitRepoRepository>,
+        outbox_repo: Arc::new(SqliteOutboxRepository::new(pool)),
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         execution_provider: execution_provider.clone(),
@@ -727,6 +750,130 @@ async fn test_commits_returns_list_sorted_by_time_desc() {
 }
 
 #[actix_rt::test]
+async fn test_commit_detail_returns_verified_metadata_parents_and_changes() {
+    let (pool, _db_dir) = setup_test_db().await;
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let base_path = temp_dir.path().to_string_lossy().to_string();
+    let (token, tenant_id, _user_id) = register_and_create_api_key(
+        pool.clone(),
+        base_path.clone(),
+        "commit-detail@example.com",
+        "commitdetail",
+        "evo_sk_repo_context_commit_detail",
+    )
+    .await;
+    let repo_id = create_repo_via_api(
+        pool.clone(),
+        base_path.clone(),
+        &token,
+        &tenant_id,
+        "commit-detail-repo",
+    )
+    .await;
+    let bare_path = temp_dir
+        .path()
+        .join(&tenant_id)
+        .join(format!("{}.git", repo_id));
+    let work_dir = TempDir::new().expect("Failed to create work dir");
+    push_to_bare_repo(&bare_path, &work_dir, "a.txt", "A\n", "First commit");
+    push_second_commit(&work_dir, "b.txt", "B\n", "Second commit");
+
+    let app_state = build_app_state(pool, base_path);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let list_req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits?ref=main",
+            tenant_id, repo_id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let list_body = test::read_body(test::call_service(&app, list_req).await).await;
+    let list: ApiResponse<CommitListResponseData> =
+        serde_json::from_slice(&list_body).expect("Failed to parse commits response");
+    let commits = list.data.expect("Expected commits").commits;
+    let head = &commits[0].sha;
+    let parent = &commits[1].sha;
+
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits/{}?ref=main",
+            tenant_id, repo_id, head
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+    let body = test::read_body(resp).await;
+    let result: ApiResponse<CommitDetailData> =
+        serde_json::from_slice(&body).expect("Failed to parse commit detail");
+    let detail = result.data.expect("Expected commit detail");
+    assert_eq!(detail.sha, *head);
+    assert_eq!(detail.parents, vec![parent.clone()]);
+    assert_eq!(detail.ref_name, "main");
+    assert_eq!(detail.message, "Second commit\n");
+    assert_eq!(detail.author_name, "Test");
+    assert_eq!(detail.author_email, "test@example.com");
+    assert_eq!(detail.committer_name, "Test");
+    assert_eq!(detail.committer_email, "test@example.com");
+    assert!(detail.authored_at > 0);
+    assert!(detail.committed_at > 0);
+    assert!(detail
+        .changes
+        .iter()
+        .any(|change| change.path == "b.txt" && change.change_type == "added"));
+
+    let root_req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits/{}?ref=main",
+            tenant_id, repo_id, parent
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let root_body = test::read_body(test::call_service(&app, root_req).await).await;
+    let root_result: ApiResponse<CommitDetailData> =
+        serde_json::from_slice(&root_body).expect("Failed to parse root commit detail");
+    let root = root_result.data.expect("Expected root commit detail");
+    assert!(root.parents.is_empty());
+    assert!(root
+        .changes
+        .iter()
+        .any(|change| change.path == "a.txt" && change.change_type == "added"));
+
+    let unreachable_req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits/{}?ref={}",
+            tenant_id, repo_id, head, parent
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let unreachable_resp = test::call_service(&app, unreachable_req).await;
+    assert_eq!(
+        unreachable_resp.status(),
+        actix_web::http::StatusCode::NOT_FOUND
+    );
+
+    let invalid_req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits/not-a-sha?ref=main",
+            tenant_id, repo_id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let invalid_resp = test::call_service(&app, invalid_req).await;
+    assert_eq!(
+        invalid_resp.status(),
+        actix_web::http::StatusCode::BAD_REQUEST
+    );
+}
+
+#[actix_rt::test]
 async fn test_diff_between_two_refs_returns_changes() {
     let (pool, _db_dir) = setup_test_db().await;
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
@@ -931,4 +1078,16 @@ async fn test_cross_tenant_private_repo_returns_403() {
 
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
+
+    let detail_req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits/{}?ref=main",
+            tenant_b,
+            repo_id,
+            "0".repeat(40)
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", token_b)))
+        .to_request();
+    let detail_resp = test::call_service(&app, detail_req).await;
+    assert_eq!(detail_resp.status(), actix_web::http::StatusCode::FORBIDDEN);
 }

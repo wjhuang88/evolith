@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
@@ -10,17 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { user, tenant } = useAuthStore();
-  const [tenantName, setTenantName] = useState(tenant?.name || '');
-  const [saving, setSaving] = useState(false);
-  
   const currentUserRole = user?.tenant_role as string || 'member';
-  const canEditSettings = currentUserRole === 'owner' || currentUserRole === 'admin';
-
-  const handleSave = async () => {
-    setSaving(true);
-    // TODO: Call API to save settings
-    setTimeout(() => setSaving(false), 1000);
-  };
 
   return (
     <div className="container mx-auto py-8">
@@ -32,6 +21,10 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6 max-w-3xl">
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          {t('tenant.settings.readOnly')}
+        </div>
+
         {/* Organization Settings */}
         <Card>
           <CardHeader>
@@ -45,9 +38,8 @@ export default function SettingsPage() {
               </label>
               <Input
                 id="tenantName"
-                value={tenantName}
-                onChange={(e) => setTenantName(e.target.value)}
-                disabled={!canEditSettings}
+                value={tenant?.name || ''}
+                disabled
                 className="mt-1 w-full max-w-md"
               />
             </div>
@@ -74,11 +66,6 @@ export default function SettingsPage() {
                 {tenant?.plan || 'Free'}
               </p>
             </div>
-            {canEditSettings && (
-              <Button onClick={handleSave} disabled={saving} className="mt-4">
-                {saving ? t('common.saving') : t('tenant.settings.org.saveChanges')}
-              </Button>
-            )}
           </CardContent>
         </Card>
 
@@ -94,7 +81,7 @@ export default function SettingsPage() {
                 <p className="font-medium text-foreground">{t('tenant.settings.security.twoFactor')}</p>
                 <p className="text-sm text-muted-foreground">{t('tenant.settings.security.twoFactorDesc')}</p>
               </div>
-              <Button variant="outline" size="sm" disabled={!canEditSettings} className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" disabled className="w-full sm:w-auto">
                 {t('common.enable')}
               </Button>
             </div>
@@ -106,6 +93,7 @@ export default function SettingsPage() {
               <select 
                 className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm"
                 defaultValue="24h"
+                disabled
               >
                 <option value="1h">{t('tenant.settings.security.1h')}</option>
                 <option value="24h">{t('tenant.settings.security.24h')}</option>
@@ -118,7 +106,7 @@ export default function SettingsPage() {
                 <p className="font-medium text-foreground">{t('tenant.settings.security.apiKeyReq')}</p>
                 <p className="text-sm text-muted-foreground">{t('tenant.settings.security.apiKeyReqDesc')}</p>
               </div>
-              <Button variant="outline" size="sm" disabled={!canEditSettings} className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" disabled className="w-full sm:w-auto">
                 {t('common.configure')}
               </Button>
             </div>
@@ -140,6 +128,7 @@ export default function SettingsPage() {
               <input 
                 type="checkbox" 
                 defaultChecked 
+                disabled
                 className="h-4 w-4 rounded border-input"
               />
             </div>
@@ -151,6 +140,7 @@ export default function SettingsPage() {
               <input 
                 type="checkbox" 
                 defaultChecked 
+                disabled
                 className="h-4 w-4 rounded border-input"
               />
             </div>
@@ -162,6 +152,7 @@ export default function SettingsPage() {
               <input 
                 type="checkbox" 
                 defaultChecked 
+                disabled
                 className="h-4 w-4 rounded border-input"
               />
             </div>
@@ -180,7 +171,7 @@ export default function SettingsPage() {
                 <p className="font-medium text-foreground">{t('tenant.settings.danger.deleteOrg')}</p>
                 <p className="text-sm text-muted-foreground">{t('tenant.settings.danger.deleteOrgDesc')}</p>
               </div>
-              <Button variant="destructive" size="sm" disabled={currentUserRole !== 'owner'} className="w-full sm:w-auto">
+              <Button variant="destructive" size="sm" disabled className="w-full sm:w-auto">
                 {t('common.delete')}
               </Button>
             </div>

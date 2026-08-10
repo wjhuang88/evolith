@@ -1,18 +1,42 @@
 'use client';
 
 import { useState } from 'react';
-import { Link, useRouter } from '@/lib/router';
+import { Link, useRouter, useSearchParams } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { resolveAuthenticatedEntry } from '@/lib/entry';
+import { hrefWithRedirect } from '@/lib/entry-policy';
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const [searchParams] = useSearchParams();
   const { login, isLoading, error, clearError } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isResolvingEntry, setIsResolvingEntry] = useState(false);
+  const [entryError, setEntryError] = useState(false);
+  const redirect = searchParams.get('redirect');
+
+  const resolveEntry = async () => {
+    const tenantId = useAuthStore.getState().tenant?.id;
+    if (!tenantId) {
+      setEntryError(true);
+      return;
+    }
+
+    setIsResolvingEntry(true);
+    setEntryError(false);
+    try {
+      router.replace(await resolveAuthenticatedEntry(tenantId, redirect));
+    } catch {
+      setEntryError(true);
+    } finally {
+      setIsResolvingEntry(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +44,8 @@ export default function LoginPage() {
     
     try {
       await login(email, password);
-      router.push('/dashboard');
+      if (!useAuthStore.getState().isAuthenticated) return;
+      await resolveEntry();
     } catch {
       // Error is handled in store
     }
@@ -44,6 +69,14 @@ export default function LoginPage() {
             {error && (
               <div className="rounded-md bg-error/10 p-3 text-sm text-error">
                 {error}
+              </div>
+            )}
+            {entryError && (
+              <div className="space-y-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <p>{t('auth.entry.loadDescription')}</p>
+                <Button type="button" variant="outline" size="sm" onClick={resolveEntry}>
+                  {t('common.retry')}
+                </Button>
               </div>
             )}
 
@@ -76,21 +109,21 @@ export default function LoginPage() {
             </div>
 
             <div className="text-right text-sm">
-              <Link to="/forgot-password"className="text-primary hover:underline">{t('auth.loginPage.forgotPassword')}</Link>
+              <Link to={hrefWithRedirect('/forgot-password', redirect)} className="text-primary hover:underline">{t('auth.loginPage.forgotPassword')}</Link>
             </div>
 
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || isResolvingEntry}
             >
-              {isLoading ? t('auth.loginPage.signingIn') : t('auth.loginPage.signIn')}
+              {isLoading || isResolvingEntry ? t('auth.loginPage.signingIn') : t('auth.loginPage.signIn')}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.loginPage.noAccount')}{' '}
-            <Link to="/register"className="text-primary hover:underline">{t('auth.loginPage.signUp')}</Link>
+            <Link to={hrefWithRedirect('/register', redirect)} className="text-primary hover:underline">{t('auth.loginPage.signUp')}</Link>
           </div>
         </div>
       </div>

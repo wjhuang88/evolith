@@ -19,6 +19,7 @@ pub struct CreateApiKeyRequest {
     pub expires_in_days: Option<i32>,
 
     /// Rate limit per hour (optional)
+    #[validate(range(min = 1, max = 1_000_000))]
     pub rate_limit: Option<i32>,
 }
 
@@ -140,5 +141,18 @@ mod tests {
             "permissions": ["admin"]
         });
         assert!(serde_json::from_value::<CreateApiKeyRequest>(payload).is_err());
+    }
+
+    #[test]
+    fn rejects_non_positive_rate_limit() {
+        for value in [-1, 0] {
+            let request = CreateApiKeyRequest {
+                name: "invalid-limit".to_string(),
+                permissions: None,
+                expires_in_days: None,
+                rate_limit: Some(value),
+            };
+            assert!(request.validate().is_err());
+        }
     }
 }

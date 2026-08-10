@@ -63,36 +63,32 @@
   },
   "landing": {
     "hero": {
-      "title": "以 AI 的速度交付代码",
-      "subtitle": "Evolith 是 AI 原生的 Git 平台，让开发者与 AI 智能体无缝协作。托管仓库、在线 Vibe Coding、自动发布 Agent 技能——一个平台，全面覆盖。",
-      "getStarted": "免费开始构建",
-      "learnMore": "了解更多"
+      "eyebrow": "以 Git 为中心的 AI 开发",
+      "title": "代码、上下文与证据，共处一个 Git 主场。",
+      "subtitle": "Evolith 托管真实 Git 仓库，让每次变更都有据可查。基础能力现已可用；受控 Agent 工作流与仓库派生发现能力正在公开建设中。",
+      "getStarted": "创建账户",
+      "learnMore": "查看产品状态"
     },
-    "features": {
-      "title": "一站式解决方案",
-      "subtitle": "AI 原生开发所需的完整能力",
-      "tools": {
-        "title": "AI 原生 Git 托管",
-        "description": "完整的 Git 仓库托管，内置 AI 协作能力。每个仓库开箱即用，Agent 随时参与开发。"
-      },
-      "skills": {
-        "title": "Vibe Coding",
-        "description": "与 AI 智能体一起编码、审查和交付。Agent 直接向你的仓库提交代码，告别复制粘贴。"
-      },
-      "interfaces": {
-        "title": "Agent 技能中心",
-        "description": "从任意仓库发布 Skill、MCP 工具和 CLI 接口。Agent 自动发现并使用——就像 AI 领域的 npm。"
-      }
+    "demo": {
+      "verified": "证据可用",
+      "commit": "最新提交证据"
+    },
+    "status": {
+      "eyebrow": "真实产品状态",
+      "title": "从仓库向外生长。",
+      "subtitle": "未来能力在此可见，但不会被包装成已经交付的功能。",
+      "tags": {"available":"现已可用","development":"开发中","planned":"已规划"},
+      "available": {"title":"Git 仓库与提交证据","description":"创建、克隆、推送和浏览真实 Git 仓库，并从提交下钻到文件变更证据。"},
+      "development": {"title":"受控 Agent 工作","description":"Commit、Promote、审查、Session 与持久事件工作流正在明确策略边界下建设。"},
+      "planned": {"title":"仓库派生能力发现","description":"Skill、MCP Tool 与 CLI 能力将从仓库内容派生，不再依赖独立的旧 Registry。"}
     },
     "cta": {
-      "title": "准备好与 AI 一起构建了吗？",
-      "subtitle": "加入新一代使用 AI 智能体交付代码的开发者。",
-      "button": "立即开始"
+      "title": "从事实源开始。",
+      "subtitle": "创建仓库、推送代码，并查看未来 Agent 工作流赖以构建的提交证据。",
+      "button": "创建工作空间"
     },
     "footer": {
-      "docs": "文档",
-      "privacy": "隐私政策",
-      "terms": "服务条款"
+      "status": "Alpha 基础版 · 尚未达到生产就绪"
     }
   },
   "auth": {
@@ -182,7 +178,19 @@
       "invalidLink": "此邀请链接无效或缺少令牌。",
       "passwordsNoMatch": "两次输入的密码不一致。",
       "passwordTooShort": "密码长度至少为 8 个字符。",
-      "acceptFailed": "接受邀请失败，链接可能无效或已过期。"
+      "acceptFailed": "接受邀请失败，链接可能无效或已过期。",
+      "accepted": "邀请已接受"
+    },
+    "entry": {
+      "loadingTitle": "正在查找你的工作空间",
+      "loadingDescription": "正在检查仓库库存，以决定下一步页面。",
+      "loadDescription": "账号已登录，但仓库检查失败。请重试后继续；系统不会假定你没有仓库。",
+      "errorTitle": "无法确定入口",
+      "errorDescription": "仓库检查失败。重试即可继续，当前会话不会丢失。",
+      "forbiddenTitle": "仓库访问不可用",
+      "forbiddenDescription": "你的组织角色不能列出仓库，请联系管理员检查权限。",
+      "missing-tenantTitle": "组织上下文不可用",
+      "missing-tenantDescription": "请重新登录，以恢复仓库路由所需的组织信息。"
     },
     "verifyEmailPage": {
       "verifying": "验证邮箱",
@@ -266,6 +274,8 @@
     "loading": "正在加载仓库...",
     "failedToLoad": "加载仓库失败",
     "failedToConnect": "无法连接服务器",
+    "forbiddenTitle": "无权访问仓库",
+    "forbiddenDescription": "你没有查看此仓库的权限；当前请求地址已保留。",
     "searchPlaceholder": "按名称或描述搜索仓库",
     "sortBy": "排序",
     "sortUpdated": "最近更新",
@@ -310,7 +320,9 @@
       },
       "nextTitle": "接下来可以做什么？",
       "nextDesc": "你可以在仓库详情页（下一个迭代提供）中克隆、推送和浏览文件。"
-    }
+    },
+    "detail": {"loading":"正在加载仓库...","loadFailed":"加载仓库失败","notFound":"未找到仓库","back":"返回仓库列表","tabs":"仓库分区","overview":"概览","files":"文件","commits":"提交","settings":"设置","overviewTitle":"仓库概览","noDescription":"暂无描述","noReadme":"仓库中没有 README.md","branch":"默认分支","latestCommit":"最新提交","policy":"策略","reviewRequired":"需要审查","autoMerge":"已启用自动合并","browseCode":"浏览代码","binaryFile":"二进制文件","emptyFile":"空文件","emptyFiles":"仓库暂无文件","selectFile":"选择文件查看","noCommits":"暂无提交","committedBy":"{{author}} 提交于 {{when}}","loadMore":"加载更多","description":"描述","visibility":"可见性","autoMergeSetting":"允许自动合并","requireReviewSetting":"需要审查","cloneUrl":"克隆地址","copyCloneUrl":"复制克隆地址","save":"保存更改","saving":"保存中...","saved":"已保存","saveFailed":"保存失败","deleteFailed":"删除失败","invalidName":"请输入有效仓库名称（1-128 位字母、数字、点、连字符或下划线）","dangerZone":"危险操作","delete":"删除仓库","deleteHint":"这将永久删除 {{name}} 及其 Git 存储。","confirmDelete":"删除仓库","typeNameToDelete":"请输入 {{name}} 以确认删除。","policyLoadFailed":"策略加载失败","noPolicy":"未找到 .evolith/policy.yaml","defaultAction":"默认动作","protectedPaths":"受保护路径","agents":"Agent"},
+    "commitEvidence": {"loading":"正在加载提交证据...","loadFailed":"加载提交证据失败","notFound":"当前仓库 Ref 中未找到该提交","back":"返回提交列表","title":"提交证据","message":"提交消息","identity":"身份与来源","author":"作者","committer":"提交者","ref":"已验证 Ref","parents":"父提交","rootCommit":"根提交 — 无父提交","changes":"变更文件（{{count}}）","noChanges":"没有变更文件","status":"状态","path":"路径","oldObject":"旧对象","newObject":"新对象","changeType":{"added":"新增","deleted":"删除","modified":"修改"}}
   },
   "tools": {
     "title": "MCP 工具",
@@ -528,6 +540,7 @@
     "settings": {
       "title": "设置",
       "subtitle": "管理您的组织设置和偏好",
+      "readOnly": "租户设置 API（EVO-012）实现前，工作区设置仅供查看。",
       "org": {
         "title": "组织",
         "desc": "组织的基本信息",
@@ -686,6 +699,20 @@
   },
   "settings": {
     "title": "设置",
+    "subtitle": "管理个人账户与工作区",
+    "navigationLabel": "设置分区",
+    "sections": {
+      "profile": "个人资料",
+      "workspace": "工作区",
+      "members": "成员",
+      "apiKeys": "API 密钥",
+      "billing": "计费"
+    },
+    "forbidden": {
+      "title": "您无权访问此设置",
+      "description": "当前工作区角色不允许执行此管理操作。如需访问，请联系所有者或管理员。",
+      "action": "返回个人资料"
+    },
     "language": "语言",
     "theme": "主题",
     "light": "浅色",
@@ -736,50 +763,47 @@
     }
   },
   "onboarding": {
-    "skip": "跳过",
-    "back": "返回",
-    "getStarted": "开始使用",
-    "step1": {
-      "title": "欢迎使用 Evolith",
-      "subtitle": "你好 {{username}}，让我们帮你设置好一切！",
-      "feature1": {
-        "title": "MCP 工具",
-        "description": "通过 MCP 协议封装和共享工具"
-      },
-      "feature2": {
-        "title": "混合技能",
-        "description": "创建和执行支持服务端代码的技能"
-      },
-        "feature3": {
-          "title": "CLI 接口",
-          "description": "面向大模型和 CLI 调用的机器可读接口定义"
-        }
-    },
-    "step2": {
-      "title": "创建你的第一个工具",
-      "subtitle": "让我们创建一个简单的 MCP 工具来开始吧",
-      "nameLabel": "工具名称",
-      "namePlaceholder": "my-first-tool",
+    "checking": "正在检查你的仓库…",
+    "eyebrow": "你的第一个仓库",
+    "title": "欢迎使用 Evolith",
+    "subtitle": "创建真实 Git 仓库来建立代码上下文。仓库就绪后即可浏览文件。",
+    "form": {
+      "title": "创建第一个仓库",
+      "description": "Evolith 将使用 main 分支和初始内容初始化仓库。",
+      "nameLabel": "仓库名称",
+      "namePlaceholder": "my-first-repo",
+      "nameHint": "可使用字母、数字、句点、下划线或连字符。",
       "descriptionLabel": "描述",
-      "descriptionPlaceholder": "这个工具做什么？",
-      "schemaLabel": "Schema (JSON)",
-      "schemaPlaceholder": "{ \"type\": \"object\" }",
-      "invalidSchema": "JSON Schema 格式无效",
-      "failedToCreate": "创建工具失败",
-      "creating": "创建中...",
-      "createTool": "创建工具"
-    },
-    "step3": {
-      "title": "一切就绪！",
-      "subtitle": "您的账号已就绪",
-      "nextSteps": {
-        "title": "接下来",
-        "exploreTools": "浏览和管理您的 MCP 工具",
-        "readDocs": "阅读文档了解更多信息",
-        "inviteTeam": "邀请团队成员协作"
+      "descriptionPlaceholder": "你准备构建什么？",
+      "visibilityLabel": "可见性",
+      "visibility": {
+        "private": {
+          "title": "私有",
+          "description": "仅获授权的组织成员可以访问。"
+        },
+        "public": {
+          "title": "公开",
+          "description": "按仓库访问策略对外可见。"
+        }
       },
-      "viewDocs": "查看文档",
-      "goToDashboard": "前往仪表盘"
+      "defaultBranchLabel": "默认分支",
+      "autoMerge": "允许自动合并",
+      "requireReview": "合并前必须审查",
+      "nextStep": "下一步：查看 README 并浏览仓库文件。",
+      "create": "创建仓库",
+      "creating": "正在创建仓库…",
+      "validation": {
+        "nameRequired": "仓库名称不能为空。",
+        "nameInvalid": "最多 128 个字符，只能使用字母、数字、句点、下划线或连字符。"
+      }
+    },
+    "errors": {
+      "missingTenant": "组织上下文不可用，请重新登录后重试。",
+      "loadTitle": "无法检查仓库",
+      "loadDescription": "账号仍保持登录。创建任何内容前，请重试仓库检查。",
+      "forbiddenTitle": "无法访问仓库",
+      "forbiddenDescription": "你的组织角色不能查看仓库，请联系管理员检查权限。",
+      "createFailed": "仓库创建失败，已保留你的输入。"
     }
   }
 }

@@ -61,6 +61,30 @@
 /* Dark theme overrides — applied when html.dark is present */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Keep semantic tokens in sync with the theme class. Components using
+   bg-background/text-foreground/etc. should switch with the whole shell. */
+:root.dark {
+  color-scheme: dark;
+
+  --color-background: #0b0b0b;
+  --color-foreground: #f5f5f5;
+  --color-muted: #171717;
+  --color-muted-foreground: #a3a3a3;
+  --color-border: #2a2a2a;
+  --color-input: #2a2a2a;
+  --color-ring: #f5f5f5;
+  --color-card: #111111;
+  --color-card-foreground: #f5f5f5;
+  --color-popover: #111111;
+  --color-popover-foreground: #f5f5f5;
+  --color-primary: #f5f5f5;
+  --color-primary-foreground: #0b0b0b;
+  --color-secondary: #1f1f1f;
+  --color-secondary-foreground: #f5f5f5;
+  --color-accent: #1f1f1f;
+  --color-accent-foreground: #f5f5f5;
+}
+
 @layer base {
   *,
   ::before,

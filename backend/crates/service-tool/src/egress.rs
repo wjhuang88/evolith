@@ -598,12 +598,11 @@ mod tests {
                     let mut request = [0_u8; 4096];
                     let _ = socket.read(&mut request).await;
                     tokio::time::sleep(Duration::from_millis(40)).await;
-                    let response = b"HTTP/1.1 302 Found\r\
-Location: /slow-redirect\r\
-Content-Length: 0\r\
-Connection: close\r\
-\r\
-";
+                    let response = b"HTTP/1.1 302 Found\r\n\
+Location: /slow-redirect\r\n\
+Content-Length: 0\r\n\
+Connection: close\r\n\
+\r\n";
                     let _ = socket.write_all(response).await;
                 });
             }

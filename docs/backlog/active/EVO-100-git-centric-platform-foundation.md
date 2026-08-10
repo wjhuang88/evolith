@@ -31,7 +31,7 @@
 
 ## 拆分理由
 
-整个方向调整涉及多个独立验收的工程结果（git service、policy 规范、smart HTTP、commit API、agent session、webhook、indexer、双写适配、sandbox 清理），跨越多层（backend / db / frontend API 契约 / deploy），明显超过 2 天交付窗口，必须按 Epic 拆分。
+整个方向调整涉及多个独立验收的工程结果（git service、policy 规范、smart HTTP、commit API、agent session、webhook、indexer、产品体验收敛、legacy runtime 清理），跨越多层（backend / db / frontend API 契约 / deploy），明显超过 2 天交付窗口，必须按 Epic 拆分。
 
 ## 子 Story
 
@@ -42,16 +42,20 @@
 | [EVO-103](EVO-103-repo-context-and-smart-http.md) | Repo 托管父项（拆为 A/B/C；B 再拆为 B-1/B-2，见 [EVO-103](EVO-103-repo-context-and-smart-http.md)） | Done | EVO-101 | Phase 1 |
 | [EVO-113](EVO-113-direction-pivot-review-remediation.md) | 方向变更评审缺口修复：安全默认策略、状态同步、断链、reference 与 manifest 风险门禁 | Done | EVO-101, EVO-102 | Remediation |
 | [EVO-116](EVO-116-evo-103-acceptance-hardening.md) | EVO-103 验收硬化：API key scope、Context API 资源边界、push 后 repo metadata、性能证据和 API contract 补齐 | Done | EVO-103 | Iteration 049 |
-| [EVO-112](EVO-112-repo-management-ui.md) | 仓库列表 / 创建 / 详情页（Files + Commits + Settings）+ 导航重构（Repos 为主入口）+ Dashboard repo-centric 改版；父项已拆为 A/B 子项 | Proposed | EVO-103 | Phase 2 |
+| [EVO-112](EVO-112-repo-management-ui.md) | 仓库列表 / 创建 + Overview-first Repo Detail + Commit Evidence；父项拆为 A/B/C 子项 | Done / Complete | EVO-103 | Iterations 054/061/063 |
 | [EVO-112-A](EVO-112-A-repo-ui-shell.md) | `/repos` 列表 + `/repos/new` 创建 + repo-centric 导航（Repos / Dashboard / Settings）+ Dashboard repo-centric 改版 + 旧 Tools/Skills/Interfaces 降级 Legacy | Done | EVO-103-A (Done) + EVO-116 (Done) | ITERATION-054（历史成果恢复；Closed / Complete） |
-| [EVO-112-B](EVO-112-B-repo-detail-read-only.md) | `/repos/:id` Files / Commits / Settings 三 Tab 只读浏览 + clone URL 复制 + 删除二次确认 | Proposed / paused | EVO-112-A + EVO-103-C (Done) + EVO-118 S1 | S1 关闭后重新排期 |
+| [EVO-120](EVO-120-first-run-repo-onboarding.md) | 首次使用创建 Repo，进入真实 Repo Overview；无 import contract 时隐藏导入 | Done / Complete | EVO-112-A/B + EVO-118-F（Done） | Iteration 062（Closed / Complete） |
+| [EVO-112-B](EVO-112-B-repo-detail-read-only.md) | `/repos/:id` Overview / Files / Commits / Settings + clone URL + 删除二次确认 | Done / Complete | EVO-112-A + EVO-103-C (Done) + EVO-118-F | Iteration 061（Closed / Complete） |
+| [EVO-112-C](EVO-112-C-repo-commit-evidence-detail.md) | `/repos/:id/commits/:sha` Commit 证据页 + 必要 read API | Done / Complete | EVO-112-B + EVO-103-C | Iteration 063（Closed / Complete） |
 | [EVO-105](EVO-105-commit-and-promote-api.md) | `POST /repos/{id}/commits`（policy 评估 + 三态）+ `POST /repos/{id}/promote` + agent branch 自动命名 | Proposed | EVO-102, EVO-103 | Phase 2 |
 | [EVO-106](EVO-106-agent-session-and-scoped-token.md) | `agent_sessions` 表 + `POST /agent-sessions` + scoped token + 权限模型 | Proposed | EVO-103 | Phase 2 |
 | [EVO-107](EVO-107-webhook-out.md) | `webhook_deliveries` 表 + push/promote 事件触发 POST + retry 指数退避 + 失败记录 | Proposed | EVO-105, EVO-106 | Phase 2 |
 | [EVO-108](EVO-108-skill-cli-mcp-indexer.md) | Indexer 服务监听 git push 事件 → 扫描 `SKILL.md`/`interface.yaml`/`tool.yaml` → 解析 frontmatter → 更新 `skill_index`/`cli_index`/`mcp_tool_index` | Proposed | EVO-103 | Phase 3 |
 | [EVO-109](EVO-109-discovery-api-and-pages-ui.md) | `GET /skills?q=`/`GET /cli-interfaces?q=`/`GET /mcp-tools?q=` 跨仓搜索 + Repo 详情页 "此仓包含 X skill/Y CLI/Z MCP tool" 标签页 | Proposed | EVO-108 | Phase 3 |
-| [EVO-110](EVO-110-old-table-dual-write.md) | 旧 `skills`/`snippets`/`tools` 表双写适配（写入路径收敛到 `POST /repos/{id}/files`，由 indexer 同步双写）；保留 `GET /skills/{id}` 等 API 兼容 | Proposed | EVO-108 | Phase 3 |
+| [EVO-110](../archive/2026-Q3/EVO-110-old-table-dual-write.md) | 旧表双写/回填/兼容方案 | Dropped | ADR-0009：未上线，不建设兼容层 | Archive |
+| [EVO-122](EVO-122-retire-prelaunch-registry-backend.md) | Repo-derived execute 承接后删除 legacy API/runtime/table | Proposed / paused | EVO-108/109, EVO-111, EVO-121-F | Cleanup |
 | [EVO-111](EVO-111-deprecate-sandbox-runtime.md) | 删除 service-skill 执行层 + bollard 依赖 + sandbox 镜像 + `SANDBOX__*` 配置 + `POST /skills/{id}/execute`；`ExecutionProvider` 简化为仅 HttpProxy | Proposed | 无（最后执行） | Phase 4 |
+| [EVO-121](EVO-121-product-experience-convergence.md) | App Shell、任务型 Dashboard、统一入口、Settings、Activity 与旧 Registry UI 删除 | Proposed / paused | EVO-120/112-B/104/109 + EVO-118-H | Product convergence |
 
 ## Dependencies And Blockers
 
@@ -64,9 +68,10 @@
 
 - [ ] Phase 1 完成：用户可在 Web UI 创建 repo；`git clone http://.../repos/{id}` 完整可用；`.evolith/policy.yaml` 解析生效
 - [ ] Phase 2 完成：vibe coding **conversation-first UI** MVP 可用（file tree 抽屉化，文件内容/diff 作为 contextual artifact）；agent session 创建/完成/审计全链路贯通
-- [ ] Phase 3 完成：push 一个含 `SKILL.md` 的 commit → `skill_index` 在 5s 内更新；`GET /skills?q=` 跨仓搜索可用；旧 API 兼容
-- [ ] Phase 4 完成：`cargo test --workspace` 全绿；`cargo clippy --workspace --all-targets -- -D warnings` 0 errors；前端 bundle 中无 sandbox 相关依赖
+- [ ] Phase 3 完成：push 一个含 `SKILL.md` 的 commit → `skill_index` 在 5s 内更新；Repo-derived Discovery 可用并携带 provenance
+- [ ] Phase 4 完成：EVO-110 保持 Dropped；旧 UI/API/domain/repository/table 与 Sandbox 删除；Repo-derived MCP execute 通过安全门禁
 - [ ] 文档同步：`PRODUCT-BACKLOG.md` / `IMPLEMENTATION-ROADMAP.md` / `EVOLUTION.md` / `BOARD.md` / `docs/README.md` 反映新方向；旧项 Dropped/Superseded 标注完整
+- [ ] Product Interaction Architecture 的 Route Ownership Matrix 全部由 Done Story 覆盖，旧 Registry UI 不再构成产品入口
 
 ## Validation Evidence Required
 

@@ -4,6 +4,8 @@
 
 - [Product Backlog](../PRODUCT-BACKLOG.md)
 - [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
+- [Product Interaction Architecture](../../design/PRODUCT-INTERACTION-ARCHITECTURE.md)
+- [ADR-0008 Repo-centric Interaction Architecture](../../decisions/ADR-0008-repo-centric-interaction-architecture.md)
 - 父 Epic: [EVO-100](EVO-100-git-centric-platform-foundation.md)
 - 依赖: [EVO-108](EVO-108-skill-cli-mcp-indexer.md)
 
@@ -41,14 +43,13 @@
 
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
 - [Design System — Figma tokens](../../reference/DESIGN.md)
+- [ADR-0008 Repo-centric Interaction Architecture](../../decisions/ADR-0008-repo-centric-interaction-architecture.md)
 
-## UX Decisions Required
+## UX Decisions
 
-> 实施期可定，不阻塞进入迭代。
-
-- [ ] **U-14 Repo 详情页资源展示形态** — 候选：Tab 切换（Files / Skills / CLIs / MCP tools）/ 卡片网格 / 列表 / 侧边栏 drawer。默认推荐 Tab + 卡片视图。决策维度：视觉权重、移动端适配、与 file tree 的协调。
-- [ ] **U-15 跨仓搜索结果展示** — 候选：每条结果含 repo 来源 / 链接到 git blob / 链接到 repo 详情页。默认推荐"repo 来源 + 链接到 blob"。
-- [ ] **U-16 资源链接跳转行为** — 候选：跳转到 git blob 视图（看文件）/ 跳转到 MCP 调用 page（立即试用）/ 跳转到 CLI 命令 page（立即执行）。默认推荐 git blob 视图（MCP/CLI 调用需要 tenant 权限，Phase 5+ 评估）。
+- [x] **U-14 Repo 详情页资源展示形态** — 单一 Resources Tab，按 Skill / CLI / MCP 分组的高密度列表；移动端折叠为分组 section，不拆成三个顶级 Tab。
+- [x] **U-15 跨仓搜索结果展示** — 每条结果必须显示 Repo、Ref、Path、Commit、更新时间和类型；主链接打开 source blob，Repo 名链接到 Overview。
+- [x] **U-16 资源链接跳转行为** — MVP 打开 git blob 视图；不提供尚无权限/执行契约的 MCP 调用或 CLI 执行入口。
 
 ## Acceptance Criteria
 
@@ -56,7 +57,7 @@
 - [ ] 3 个 repo 内资源列表 endpoints
 - [ ] 模糊匹配 name + description（LIKE %q%）
 - [ ] 标签 / 关键字过滤（`?tags=ai,llm`）
-- [ ] Repo 详情页 Resources tab：分卡片展示 skill / CLI / MCP tool，每卡片显示 name、description、version、path、blob 链接
+- [ ] Repo 详情页 Resources tab：按类型分组的列表展示 name、description、version、Repo/Ref/Path/Commit provenance 与 blob 链接
 - [ ] 所有 UI 颜色 / 字号使用 `docs/reference/DESIGN.md` token
 - [ ] `cargo test --workspace` 与 `cargo clippy --workspace --all-targets -- -D warnings` 全绿
 - [ ] `bun run build` 0 errors，前端 tsc 通过

@@ -17,6 +17,8 @@ async-trait.workspace = true
 validator.workspace = true
 regex.workspace = true
 lazy_static.workspace = true
+tokio.workspace = true
+tracing.workspace = true
 
 # Internal crates
 common.workspace = true

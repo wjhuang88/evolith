@@ -12,8 +12,6 @@ import type { Repo } from '@/lib/api/types';
 
 type SortKey = 'updated' | 'name' | 'created';
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-
 function formatRelative(iso: string | null, locale: string): string {
   if (!iso) return '';
   const then = new Date(iso).getTime();

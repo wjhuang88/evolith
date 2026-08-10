@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from '@/lib/router';
+import { useRouteLocation, useRouter } from '@/lib/router';
 import { useAuthStore } from '@/stores/authStore';
 import { getToken } from '@/lib/api';
+import { loginHrefFor, routeTarget } from '@/lib/entry-policy';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,7 +12,8 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  const location = useRouteLocation();
+  const target = routeTarget(location);
   const { isAuthenticated, isLoading, fetchUser } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
@@ -21,8 +23,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
       if (!token) {
         // No token, redirect to login
-        const redirectParam = new URLSearchParams({ redirect: pathname });
-        router.push(`/login?${redirectParam.toString()}`);
+        router.replace(loginHrefFor(target));
         return;
       }
 
@@ -37,7 +38,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     checkAuth();
-  }, [pathname, fetchUser, isLoading, router]);
+  }, [target, fetchUser, isLoading, router]);
 
   // Check if we should redirect (no token)
   const token = getToken();

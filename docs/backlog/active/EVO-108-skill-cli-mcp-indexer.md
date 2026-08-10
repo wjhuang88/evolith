@@ -39,6 +39,8 @@
 
 - 依赖 EVO-103 smart HTTP 写事件
 - 依赖 EVO-105 commit API 触发点
+- 依赖 EVO-118-H-C 的 `repo.push.completed.v1` durable producer/consumer boundary；Indexer
+  订阅必须保留 Repo/Ref/Path/Commit provenance，并支持重复 delivery 幂等。
 - 间接依赖现有 `service-skill/src/parser.rs` / `service-snippet/src/parser.rs` / `service-tool/src/mcp.rs` 的 frontmatter 解析逻辑（可复用或迁移）
 
 ## Governing ADRs, Specs Or Decisions

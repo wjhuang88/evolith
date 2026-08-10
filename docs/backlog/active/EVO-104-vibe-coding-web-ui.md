@@ -5,8 +5,11 @@
 - [Product Backlog](../PRODUCT-BACKLOG.md)
 - [Design System — Figma tokens](../../reference/DESIGN.md)
 - [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
+- [Product Interaction Architecture](../../design/PRODUCT-INTERACTION-ARCHITECTURE.md)
+- [ADR-0008 Repo-centric Interaction Architecture](../../decisions/ADR-0008-repo-centric-interaction-architecture.md)
 - [Git-Centric Platform Proposal](../../proposals/GIT-CENTRIC-PLATFORM.md)
 - [Backend Repo Context API item file](EVO-103-repo-context-and-smart-http.md)
+- [Commit Evidence Detail](EVO-112-C-repo-commit-evidence-detail.md)
 
 ## Summary
 
@@ -22,7 +25,7 @@
 
 ## Problem Or Outcome
 
-为 git-centric 平台提供在线 vibe coding 体验：用户在 Web UI 中浏览/编辑 repo 文件、与外部 agent engine 协作完成开发、提交 commit。Repo 是主用例，skill/mcp/cli 是 Pages 式衍生能力（详见 EVO-108）。
+为 git-centric 平台提供在线 vibe coding 体验：用户从 Repo Detail 进入 `/repos/:id/workspace`，在 Repo、Ref 和 Policy 上下文中与外部 agent engine 协作完成开发并形成可追溯 commit。Repo 是主用例，skill/mcp/cli 是 Pages 式衍生能力（详见 EVO-108）。
 
 ## Goal And Non-Goals
 
@@ -33,7 +36,7 @@
   - 不实现 web 终端 — 后期评估。
   - 不实现 skill/mcp 详情页 UI（EVO-109 范围）。
 
-## UX Decisions Required Before Implementation
+## UX Decisions
 
 > U-01 ~ U-05 已在 [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)
 > 完成决策。EVO-104 不再被 UX 调研门禁阻塞；仍需等待 EVO-103 / EVO-105 /
@@ -43,9 +46,9 @@
 
 - [x] **U-01 编辑器选型** [Decided: CodeMirror 6]
   - 候选：A. Monaco Editor（VS Code 内核，~5MB bundle）；B. CodeMirror 6（轻量，~200KB）；C. Theia（重型 IDE 框架）。
-  - 默认推荐：**B. CodeMirror 6**（bundle 体积小，Vite chunk 拆分友好；可独立引入语言包）。
+  - 决策：**B. CodeMirror 6**（bundle 体积小，Vite chunk 拆分友好；可独立引入语言包）。
   - 决策维度：bundle 体积、语言支持（Python/TS/Go/Rust 等）、diff 模式、多光标、性能、LSP client 集成能力。
-  - **待确认**：(a) 体积 vs 功能优先级的取舍；(b) 是否需要 Monaco 多光标 / Inlay Hint / 高级代码补全能力；(c) 是否依赖 LSP（Language Server Protocol）做跳转/补全；(d) Monaco bundle 通过 rust-embed-for-web 嵌入后端发布物时的体积叠加。
+  - MVP 边界：不集成 LSP、Inlay Hint 或 Monaco 专属能力；语言包按需加载，并在 production build 记录 editor chunk 体积。
 
 - [x] **U-02 主布局形态** [Revised: conversation-first workspace；file tree 抽屉化；文件内容作为 artifact]
   - 候选：A. 三栏（file tree / editor / chat panel，宽度可拖动）；B. 两栏 + Tab（file tree + editor，chat 走 Tab 切换）；C. 单栏 + 命令面板（VS Code 风格，cmd+k 唤起 chat）。
@@ -56,42 +59,39 @@
 
 - [x] **U-03 Chat 流式架构** [Decided: SSE 下行事件流 + POST 上行命令]
   - 候选：A. WebSocket（双向）；B. SSE / Server-Sent Events（单向 server→client）；C. Long polling。
-  - 默认推荐：**B. SSE**（单向，足够 agent 推送 token 增量与事件；client 用普通 POST 发送消息）。
+  - 决策：**B. SSE**（单向，足够 agent 推送 token 增量与事件；client 用普通 POST 发送消息）。
   - 决策维度：外部 agent engine 是否支持流式、断线重连策略、是否需要"双向"（用户在 agent 执行中追加指令 / 中断 agent）。
-  - **待确认**：(a) agent engine 的事件协议是否已就绪；(b) "用户中断 agent" 是否 MVP 必需（决定是否必须 WebSocket）；(c) SSE 在代理（Nginx / CDN）后的兼容性。
+  - 实施约束：用户中断走独立 POST command；SSE 支持 event cursor/reconnect，并在 EVO-118-E 的生产代理 Smoke Test 中验证无 buffering。
 
 - [x] **U-04 Agent Branch 心智模型** [Decided: 自动 agent session branch]
   - 问题：用户在 UI 中如何理解"agent 在一个独立分支上工作"？
   - 候选：A. 自动分支 `agent/{session-id}/{feature-name}`，顶栏显示当前分支；B. 每个 vibe session 视为独立 workspace，不直接映射 git branch，commit 时才合并；C. 每条用户消息创建一个分支（`agent/msg-{n}`），UI 显示分支链。
-  - 默认推荐：**A. 自动分支**（最贴近 git 原生心智；与 `.evolith/policy.yaml` 的 auto_merge / require_review 配合直接）。
+  - 决策：**A. 自动分支**（最贴近 git 原生心智；与 `.evolith/policy.yaml` 的 auto_merge / require_review 配合直接）。
   - 决策维度：与 auto_merge / require_review 配合的清晰度、用户对 branch 的心智负担、与后续 promote 流程的衔接。
-  - **待确认**：(a) 是否需要"work in progress"显式分支 vs 直推临时分支；(b) agent 完成任务后，分支是自动 archive 还是保留可继续迭代；(c) 多 agent 并行协作（同一 repo 两个 session）的分支命名冲突处理。
+  - 生命周期：agent 完成后分支默认保留；session UUID 防止并行冲突；自动 archive 不进 MVP。
 
 - [x] **U-05 直推直合三态视觉反馈** [Decided: 持续状态徽章 + inline policy explanation]
   - 问题：commit 进入 `auto_merge` / `require_review` / `block` 三种状态时，UI 如何视觉区分？
   - 候选：file tree 上加状态徽章 / 底部 commit 按钮颜色变化 / toast 通知 / commit history 列表染色 / 顶栏 branch 标签染色。
-  - 默认推荐：**状态徽章（file tree + branch 标签）+ commit 按钮旁 inline 提示**。
+  - 决策：**状态徽章（branch/context）+ action 旁 inline 提示 + stream result event**。
   - 决策维度：用户首次使用如何告知"auto_merge 已生效"、错误状态的明显程度（block 应显眼但不应恐慌）。
-  - **待确认**：(a) 徽章颜色规范（沿用 Figma design system token：`semantic-success` `#1ea64a`、`block-coral` `#f3c9b6` 等）；(b) 是否需要"动效"提示状态变化；(c) block 状态是否需要阻止 UI 后续操作（form 禁用）。
+  - 实施约束：颜色只用 semantic token；不依赖动效传达状态；`block` 禁用 commit/promote，但仍允许编辑、查看 diff 和复制原因。
 
-### P1 — 实施期可定，不阻塞进入迭代
+### P1 — 已决策
 
-- [ ] **U-06 Diff Viewer 形态** [实施期调研]
+- [x] **U-06 Diff Viewer 形态** [Decided: inline 默认，可切换 side-by-side]
   - 候选：inline（VS Code 默认）/ side-by-side / 混合（用户切换）。
   - 多文件 diff 展示策略：单页多文件 diff / 文件树式 diff 选择 / 顶部 tab 切换。
-  - 默认推荐：**inline**，提供切换按钮。
-  - **待确认**：是否需要在 diff 上展示 agent reasoning 摘要（"agent 改这一行的原因"）。
+  - 决策：**inline** 默认，提供 side-by-side 切换；agent rationale 作为相邻 stream event/artifact metadata，不覆盖在 diff 行上。
 
-- [ ] **U-07 Commit 消息生成** [实施期调研]
+- [x] **U-07 Commit 消息生成** [Decided: LLM/Agent 生成 + 用户可编辑 + Conventional Commit]
   - 候选：用户手写 / LLM 基于 diff 生成 / Conventional Commits 模板填充（`feat:` / `fix:` 引导）。
-  - 默认推荐：**LLM 生成 + 用户可编辑**。
-  - **待确认**：(a) agent 自己 commit 时的消息格式（是否带 `(agent)` 后缀或 `Co-authored-by` trailer）；(b) 多文件 commit 是否生成统一消息还是按文件拆 commit。
+  - 决策：**LLM 生成 + 用户可编辑**；每个 coherent result 形成一个候选消息，格式遵循项目 Agent commit 规则，不添加隐藏 `(agent)` 后缀。
 
-- [ ] **U-08 文件冲突处理（agent vs user）** [实施期调研]
+- [x] **U-08 文件冲突处理（agent vs user）** [Decided: promote conflict fail closed]
   - 场景：agent 在 branch 上编辑，user 在 main 上编辑同一文件，promote 时冲突。
   - 候选：乐观锁（agent commit 失败提示）/ 悲观锁（agent 编辑时锁文件）/ 自动 3-way merge / 推迟到 promote 阶段处理。
-  - 默认推荐：**MVP 不处理**（agent branch 与 main 隔离，无冲突场景）；Phase 5 promote 阶段再评估。
-  - **待确认**：是否需要在 agent 编辑时显示 "locked by agent" 提示，避免用户重复编辑。
+  - 决策：Session 保存 base Ref；promote 时 target 已前移则返回 conflict，保留 agent branch，UI 提供 refresh/rebase 后重试；MVP 不静默 auto-merge，也不做编辑期文件锁。
 
 ### P2 — 后期扩展，明确 out of MVP scope
 
@@ -106,8 +106,10 @@
 - 依赖 EVO-100 / EVO-101（Git Service + `git_repos` 表）
 - 依赖 EVO-103（Repo Context API + Commit/Promote API 后端）
 - 依赖 EVO-106（Agent Session API + Scoped Token）
+- 依赖 EVO-112-C（terminal result 的稳定 Commit deep link）
 - **UX 调研前置门禁**：已解除。U-01 ~ U-05 已写入 [Vibe Coding UI Design Decisions](../../design/vibe-coding-ui-decisions.md)。
 - 设计约束：所有 UI 实现须遵循 `docs/reference/DESIGN.md` 的 Figma token；颜色 / 字号 / 间距不允许硬编码。
+- 产品约束：Workspace 必须是 Repo 内路由，并遵循 ADR-0008 的 Repo-centric 页面职责与主流程。
 
 ## Acceptance Criteria
 
@@ -123,7 +125,7 @@
   5. 直推直合 commit / promote 流程，含 `auto_merge` / `require_review` / `block` 三态视觉反馈
   6. branch 切换 + diff viewer + commit history
 - 验收标准：
-  - [x] UX 议题 U-01 ~ U-05 完成决策并写入 design doc；design doc 链接加到本文件 Required Reads
+  - [x] UX 议题 U-01 ~ U-08 完成决策并写入 design doc；design doc 链接加到本文件 Required Reads
   - [ ] 桌面端 MVP：session stream 为默认主界面；file tree 可从 rail / drawer 打开；文件和 diff 可作为 artifact 打开
   - [ ] 用户可创建文件、编辑、提交 commit（`auto_merge` / `require_review` / `block` 三态都验证）
   - [ ] 用户可与 agent 通过 prompt / session stream 交互；agent 操作以 event + artifact card 形式实时反映（通过 SSE 流式推送）
@@ -144,7 +146,7 @@
 
 ## Residual Work Destination
 
-- U-06 ~ U-13 议题列表保留在本文件；实施期如有结论，更新到 design doc 或本文件
+- U-09 ~ U-13 为明确 out of MVP；若重新进入范围，独立评估并建 Story
 - 与本 epic 相关但未列入的 UX 子议题另开 EVO
 - 后期扩展项（U-09 / U-10 / U-11 / U-12 / U-13）独立评估后另开 EVO
 

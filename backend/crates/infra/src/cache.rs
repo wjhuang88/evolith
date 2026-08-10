@@ -312,19 +312,22 @@ pub async fn create_redis_connection(
 ///
 /// A boxed cache trait object. Redis is preferred for production;
 /// in-memory cache is used as a fallback or for development.
-pub async fn create_cache(config: &RedisConfig) -> Box<dyn Cache> {
+pub async fn create_cache(config: &RedisConfig, production: bool) -> Result<Box<dyn Cache>> {
     match create_redis_connection(config).await {
         Ok(conn) => {
             tracing::info!("Connected to Redis cache at {}", config.url);
-            Box::new(RedisCache::new(conn)) as Box<dyn Cache>
+            Ok(Box::new(RedisCache::new(conn)) as Box<dyn Cache>)
         }
         Err(e) => {
-            tracing::warn!(
-                "Failed to connect to Redis at {}: {}. Falling back to in-memory cache.",
-                config.url,
-                e
-            );
-            Box::new(InMemoryCache::new()) as Box<dyn Cache>
+            if production {
+                Err(AppError::ConfigError(format!(
+                    "Redis is required in production: {}",
+                    e
+                )))
+            } else {
+                tracing::warn!("Failed to connect to Redis in development: {}. Falling back to in-memory cache.", e);
+                Ok(Box::new(InMemoryCache::new()) as Box<dyn Cache>)
+            }
         }
     }
 }
@@ -460,5 +463,28 @@ mod tests {
         cache.set("test", "value").await.expect("set failed");
         let result = cache.get("test").await.expect("get failed");
         assert_eq!(result, Some("value".to_string()));
+    }
+
+    #[tokio::test]
+    async fn production_invalid_redis_fails_closed() {
+        let config = RedisConfig {
+            url: "not-a-redis-url".to_string(),
+        };
+        assert!(create_cache(&config, true).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn development_invalid_redis_falls_back_to_memory() {
+        let config = RedisConfig {
+            url: "not-a-redis-url".to_string(),
+        };
+        let cache = create_cache(&config, false)
+            .await
+            .expect("development fallback");
+        cache.set("fallback", "ok").await.expect("set");
+        assert_eq!(
+            cache.get("fallback").await.expect("get").as_deref(),
+            Some("ok")
+        );
     }
 }

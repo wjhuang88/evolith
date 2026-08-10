@@ -1,4 +1,4 @@
-import { apiClient, buildQueryString } from './client';
+import { apiClient } from './client';
 import type {
   ApiResponse,
   Plan,

@@ -25,8 +25,8 @@ use infra::config::{
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
-    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
-    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
+    SqliteInvitationRepository, SqliteOutboxRepository, SqliteSkillRepository,
+    SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
@@ -42,6 +42,7 @@ const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_rep
 const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
+const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
 
 fn strip_leading_comments(sql: &str) -> &str {
     let mut result = sql;
@@ -77,6 +78,7 @@ async fn setup_test_db() -> SqlitePool {
         MIGRATION_007,
         MIGRATION_008,
         MIGRATION_009,
+        MIGRATION_010,
     ] {
         for statement in migration.split(';') {
             let statement = strip_leading_comments(statement.trim());
@@ -185,7 +187,9 @@ fn build_app_state(pool: SqlitePool) -> AppState {
             as Arc<dyn InvitationRepository>,
         api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone()))
             as Arc<dyn ApiKeyRepository>,
-        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)) as Arc<dyn GitRepoRepository>,
+        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool.clone()))
+            as Arc<dyn GitRepoRepository>,
+        outbox_repo: Arc::new(SqliteOutboxRepository::new(pool)),
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         execution_provider,

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use common::error::{AppError, Result};
-use domain::git_repo::{GitRepo, NewGitRepo, RepoVisibility, UpdateGitRepo};
+use domain::git_repo::{GitRepo, NewGitRepo, RepoLifecycleStatus, RepoVisibility, UpdateGitRepo};
 use domain::repository::GitRepoRepository;
 use sqlx::PgPool;
 use sqlx::Row;
@@ -29,6 +29,18 @@ fn row_to_git_repo(row: &sqlx::postgres::PgRow) -> std::result::Result<GitRepo, 
             ))));
         }
     };
+    let lifecycle_status = match row.get::<String, _>("lifecycle_status").as_str() {
+        "CREATING" => RepoLifecycleStatus::Creating,
+        "ACTIVE" => RepoLifecycleStatus::Active,
+        "ERROR" => RepoLifecycleStatus::Error,
+        "DELETING" => RepoLifecycleStatus::Deleting,
+        value => {
+            return Err(sqlx::Error::Decode(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Unknown lifecycle status: {value}"),
+            ))))
+        }
+    };
 
     Ok(GitRepo {
         id: row.get("id"),
@@ -40,6 +52,7 @@ fn row_to_git_repo(row: &sqlx::postgres::PgRow) -> std::result::Result<GitRepo, 
         visibility,
         auto_merge: row.get("auto_merge"),
         require_review: row.get("require_review"),
+        lifecycle_status,
         last_commit_sha: row.get("last_commit_sha"),
         last_committed_at: row.get("last_committed_at"),
         created_at: row.get("created_at"),
@@ -62,8 +75,9 @@ impl GitRepoRepository for PgGitRepoRepository {
         sqlx::query(
             r#"INSERT INTO git_repos (
                 id, tenant_id, name, description, default_branch, storage_path,
-                visibility, auto_merge, require_review, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
+                visibility, auto_merge, require_review, created_at, updated_at,
+                lifecycle_status
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"#,
         )
         .bind(id)
         .bind(tenant_id)
@@ -76,6 +90,7 @@ impl GitRepoRepository for PgGitRepoRepository {
         .bind(repo.require_review.unwrap_or(true))
         .bind(now)
         .bind(now)
+        .bind("CREATING")
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::DatabaseError(format!("Failed to create git repo: {}", e)))?;
@@ -162,6 +177,31 @@ impl GitRepoRepository for PgGitRepoRepository {
             .await
             .map_err(|e| AppError::DatabaseError(format!("Failed to delete git repo: {}", e)))?;
         Ok(())
+    }
+
+    async fn update_lifecycle_status(
+        &self,
+        id: Uuid,
+        status: RepoLifecycleStatus,
+    ) -> Result<GitRepo> {
+        let value = match status {
+            RepoLifecycleStatus::Creating => "CREATING",
+            RepoLifecycleStatus::Active => "ACTIVE",
+            RepoLifecycleStatus::Error => "ERROR",
+            RepoLifecycleStatus::Deleting => "DELETING",
+        };
+        sqlx::query("UPDATE git_repos SET lifecycle_status = $1, updated_at = $2 WHERE id = $3")
+            .bind(value)
+            .bind(Utc::now())
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                AppError::DatabaseError(format!("Failed to update repo lifecycle: {e}"))
+            })?;
+        self.find_by_id(id)
+            .await?
+            .ok_or_else(|| AppError::NotFoundError("Git repo not found".to_string()))
     }
 
     async fn update_last_commit(

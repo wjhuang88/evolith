@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Link, useRouter } from '@/lib/router';
+import { Link } from '@/lib/router';
 import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +9,6 @@ import { apiClient } from '@/lib/api/client';
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);

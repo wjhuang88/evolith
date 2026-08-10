@@ -1,13 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Link } from '@/lib/router';
+import { Link, useSearchParams } from '@/lib/router';
 import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { hrefWithRedirect } from '@/lib/entry-policy';
 
 export default function RegisterPage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect');
+  const loginHref = hrefWithRedirect('/login', redirect);
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -129,7 +133,7 @@ export default function RegisterPage() {
               )}
 
               <div className="mt-6 space-y-3">
-                <Link to="/login"><Button className="w-full">{t('auth.registerPage.goToLogin')}</Button></Link>
+                <Link to={loginHref}><Button className="w-full">{t('auth.registerPage.goToLogin')}</Button></Link>
                 <p className="text-sm text-muted-foreground">
                   {t('auth.registerPage.didntReceive')}{' '}
                   <button
@@ -282,7 +286,7 @@ export default function RegisterPage() {
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.registerPage.alreadyHaveAccount')}{' '}
-            <Link to="/login"className="font-medium text-primary hover:underline">{t('auth.registerPage.signIn')}</Link>
+            <Link to={loginHref} className="font-medium text-primary hover:underline">{t('auth.registerPage.signIn')}</Link>
           </p>
         </div>
       </div>

@@ -1,10 +1,11 @@
 # EVO-118-F Repo 生命周期一致性与 Initial Commit
 
 - **类型**：Technical / Data Consistency
-- **状态**：Proposed
+- **状态**：Done / Complete
 - **优先级**：P1
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
-- **依赖**：EVO-118-D、EVO-118-E
+- **依赖**：EVO-118-D（Done）
+- **当前迭代**：Iteration 055
 - **影响范围**：backend / domain / db / git storage / tests / docs
 
 ## 工程目标
@@ -71,3 +72,27 @@
 ## 解锁内容
 
 解除 DATA-02 Gate；为 Repo UI、Commit/Promote 和生产恢复提供可信生命周期边界。
+
+## 验收结果
+
+- [x] 创建先落 `CREATING`；初始化、Seed 或激活失败返回错误并保留 `ERROR`，不返回假成功。
+- [x] 删除先进入 `DELETING`；磁盘删除失败保留 `ERROR` 元数据供 Reconciler 定位。
+- [x] Seed 生成真实 Initial Commit、默认 Branch/HEAD、README 和 `.evolith/*`。
+- [x] Reconcile dry-run 分类 DB-only / disk-only / consistent；apply 将 DB-only 标记 `ERROR`，disk-only 仅隔离不删除。
+- [x] Reconcile 仅允许同租户 Owner/Admin JWT；Member、跨租户 JWT 和 API Key 均被拒绝。
+- [x] SQLite/PostgreSQL migration、repository 与历史 009 -> 010 upgrade 行为一致。
+- [x] Tenant storage symlink 路径逃逸被拒绝；初始化、Seed 和删除失败均有注入测试。
+
+## 验证证据
+
+- `cargo fmt --all -- --check`：通过。
+- `cargo test --workspace`：通过，包含 API、Git client、Repo Context、生命周期与文档测试。
+- `cargo clippy --workspace --all-targets -- -D warnings`：通过；仅有上游 `proc-macro-error2` future-incompat 提示。
+- `cargo test -p api --test repo_e2e_tests test_reconcile`：2 passed，覆盖 repair、Member 与跨租户 JWT 拒绝。
+- PostgreSQL 16 专用测试库执行 `postgres_repo_lifecycle_upgrade_and_repository_round_trip`：通过；历史记录升级为 `ACTIVE`，新记录从 `CREATING` 完成状态 round trip。
+- Navigator 阶段复核：`Complete`；未发现阻断项，确认未知 disk-only Git 数据只隔离、权限 fail closed、双数据库证据完整。
+
+## 残余工作
+
+- Durable event、runtime readiness/CI 与最终生产构建分别继续归 EVO-118-H、EVO-118-G、EVO-118-E；不属于本 Story。
+- 多实例共享 Git Storage、跨区域复制、LFS 和对象存储未纳入本 Story。

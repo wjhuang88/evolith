@@ -3,7 +3,7 @@ managed_by: "agent-project-governance"
 profile: "high-risk"
 status: "conformant"
 initialized_at: "2026-05-28"
-last_audited_at: "2026-06-25"
+last_audited_at: "2026-08-08"
 
 governance:
   skill_name: "agent-project-governance"
@@ -69,6 +69,12 @@ risk_gates:
   - signal: "sandbox execution is accepted for removal"
     gate: "new work must not depend on sandbox execute; legacy references stay marked until EVO-111 removes code/config"
     owner: "docs/decisions/ADR-0005-deprecate-sandbox-runtime.md"
+  - signal: "pre-launch Registry UI/API/tables still exist while Git is the capability fact source"
+    gate: "do not add dual-write, fallback or legacy UUID identity; switch read/execute consumers to Repo/Commit/Path before paired SQLite/PostgreSQL removal"
+    owner: "docs/decisions/ADR-0009-no-prelaunch-registry-compatibility.md"
+  - signal: "final production image and deployment convergence"
+    gate: "keep DEPLOY-01 open for release while allowing non-production development; run EVO-118-E only after target MVP, reliability gates, and legacy cleanup complete"
+    owner: "docs/decisions/ADR-0010-final-production-convergence-after-product-completion.md"
 
 migration:
   legacy_assets:

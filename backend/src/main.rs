@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_governor::Governor;
 use actix_web::{middleware, middleware::from_fn, web, App, HttpServer};
 use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -13,7 +12,7 @@ use api::configure_routes;
 mod frontend;
 
 use api::middleware::csrf::CsrfMiddleware;
-use api::middleware::rate_limit::create_unauthenticated_limiter;
+use api::middleware::rate_limit::{caller_rate_limit_middleware, CallerRateLimiter};
 use api::middleware::request_id::RequestIdMiddleware;
 use api::middleware::security_headers::SecurityHeadersMiddleware;
 use api::state::AppState;
@@ -24,10 +23,11 @@ use infra::config::AppConfig;
 use infra::db::pool::{create_pool, DatabasePool};
 use infra::db::{
     PgApiKeyRepository, PgAuditRepository, PgGitRepoRepository, PgInvitationRepository,
-    PgSkillRepository, PgSnippetRepository, PgTenantRepository, PgToolRepository, PgUserRepository,
-    SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
-    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
-    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
+    PgOutboxRepository, PgSkillRepository, PgSnippetRepository, PgTenantRepository,
+    PgToolRepository, PgUserRepository, SqliteApiKeyRepository, SqliteAuditRepository,
+    SqliteGitRepoRepository, SqliteInvitationRepository, SqliteOutboxRepository,
+    SqliteSkillRepository, SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository,
+    SqliteUserRepository,
 };
 use infra::mailer::create_mailer;
 use service_auth::{Argon2Hasher, JwtHandler};
@@ -58,11 +58,13 @@ async fn main() -> Result<()> {
 
     let db_pool = create_pool(&config.database).await?;
 
-    // Initialize cache (Redis if available, falls back to in-memory)
-    let cache: Arc<dyn infra::cache::Cache> = Arc::from(create_cache(&config.redis).await);
+    // Initialize cache; production fails closed when Redis is unavailable.
+    let cache: Arc<dyn infra::cache::Cache> =
+        Arc::from(create_cache(&config.redis, config.is_production()).await?);
 
-    // Initialize mailer (SMTP if enabled, falls back to console)
-    let mailer: Arc<dyn infra::mailer::Mailer> = Arc::from(create_mailer(&config.smtp));
+    // Initialize mailer; production fails closed when enabled SMTP is invalid.
+    let mailer: Arc<dyn infra::mailer::Mailer> =
+        Arc::from(create_mailer(&config.smtp, config.is_production())?);
 
     let docker_sandbox: Option<Arc<dyn ExecutionProvider>> = if config.sandbox.enabled {
         let sandbox_config = SandboxConfig::from_infra(&config.sandbox);
@@ -143,7 +145,8 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 audit_repo: Arc::new(SqliteAuditRepository::new(pool.clone())),
                 invitation_repo: Arc::new(SqliteInvitationRepository::new(pool.clone())),
                 api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone())),
-                git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)),
+                git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool.clone())),
+                outbox_repo: Arc::new(SqliteOutboxRepository::new(pool)),
                 cache: cache.clone(),
                 mailer: mailer.clone(),
                 execution_provider: execution_provider.clone(),
@@ -177,7 +180,8 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
                 audit_repo: Arc::new(PgAuditRepository::new(pool.clone())),
                 invitation_repo: Arc::new(PgInvitationRepository::new(pool.clone())),
                 api_key_repo: Arc::new(PgApiKeyRepository::new(pool.clone())),
-                git_repo_repo: Arc::new(PgGitRepoRepository::new(pool)),
+                git_repo_repo: Arc::new(PgGitRepoRepository::new(pool.clone())),
+                outbox_repo: Arc::new(PgOutboxRepository::new(pool)),
                 cache: cache.clone(),
                 mailer: mailer.clone(),
                 execution_provider: execution_provider.clone(),
@@ -193,16 +197,15 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
     let host = config.server.host.clone();
     let port = config.server.port;
     let is_dev = config.is_development();
-    let rate_limit_config = config.rate_limit.clone();
+    let rate_limiter = web::Data::new(CallerRateLimiter::new(config.rate_limit.clone()));
 
     HttpServer::new(move || {
-        let governor_config = create_unauthenticated_limiter(&rate_limit_config);
-
         App::new()
             .app_data(app_state.clone())
+            .app_data(rate_limiter.clone())
             .wrap(CsrfMiddleware::new())
+            .wrap(from_fn(caller_rate_limit_middleware))
             .wrap(from_fn(api::middleware::rbac::rbac_middleware))
-            .wrap(Governor::new(&governor_config))
             .wrap(RequestIdMiddleware::new())
             .wrap(middleware::Logger::default())
             .wrap(cors_configuration(is_dev))

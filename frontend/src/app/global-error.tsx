@@ -11,7 +11,7 @@ interface GlobalErrorProps {
   reset: () => void;
 }
 
-export default function GlobalError({ error, reset }: GlobalErrorProps) {
+export default function GlobalError({ error, reset: _reset }: GlobalErrorProps) {
   const { t } = useTranslation();
   useEffect(() => {
     // Log error to error reporting service

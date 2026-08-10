@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { Link, useRouter, useSearchParams } from '@/lib/router';
+import { Link, useSearchParams } from '@/lib/router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +9,6 @@ import { apiClient } from '@/lib/api/client';
 
 function ResetPasswordForm() {
   const { t } = useTranslation();
-  const router = useRouter();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   

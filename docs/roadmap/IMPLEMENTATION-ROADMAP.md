@@ -103,22 +103,22 @@ Handler 不应长期直接编排权限、DB、文件系统、审计和异步任�
 
 - EVO-118-A：Done；生产就绪事实、Security SOP、Backlog、Roadmap、Release Gate 已建立。
 
-### S1 P0 Release Blockers
+### S1 Safety Baseline And Final Release Gate
 
 | Story | Gate | 状态 | 完成结果 |
 |-------|------|------|----------|
 | EVO-118-B | SEC-01 | Done / Closed | API Key Owner/Admin 管理、Typed Capability、MCP execute、负向权限测试 |
 | EVO-118-C | SEC-02 | Done / Closed | HTTP Tool DNS/IP/Redirect/Metadata/私网防护、受控 Egress、稳定权限/API 契约 |
-| EVO-118-D | DATA-01 | Ready / Next | Git 持久卷、PostgreSQL+Git 备份、空环境恢复演练 |
-| EVO-118-E | DEPLOY-01 | Ready | Embedded Frontend 单一交付、clean build 和生产 Smoke Test |
+| EVO-118-D | DATA-01 | Done / Closed | Git 持久卷、PostgreSQL+Git 备份、空环境恢复演练 |
+| EVO-118-E | DEPLOY-01 | Proposed / final release gate | 目标 MVP、F/G/H 与 legacy cleanup 完成后的 Embedded Frontend 单一交付、clean build 和生产 Smoke Test |
 
-S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生产；Repo UI 可以 refinement，但不抢占实现 WIP。
+DEPLOY-01 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生产；普通产品开发可在非生产环境按依赖继续。
 
 ### S2 Consistency and Reliability
 
 | Story | Gate | 完成结果 |
 |-------|------|----------|
-| EVO-118-F | DATA-02 | Repo lifecycle 状态、补偿/Reconcile、真实 Initial Commit |
+| EVO-118-F | DATA-02 Done / Closed | Repo lifecycle 状态、补偿/Reconcile、真实 Initial Commit |
 | EVO-118-G | REL-01 | PR/Main CI、readiness 503、分级限流、邮件/Redis fail-closed |
 | EVO-118-H | EVENT-01 | Durable Outbox + Worker + 幂等重试和死信 |
 
@@ -126,12 +126,14 @@ S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生�
 
 ### Phase E'-1.5 Repo-centric Web
 
-归口：EVO-112，建议拆为：
+归口：EVO-120、EVO-112，按小批次拆为：
 
-1. Repo UI Shell：`/repos`、创建、导航、Dashboard；
-2. Repo Detail Read-only：Files、Commits、Settings、Clone URL。
+1. EVO-112-A Repo UI Shell：`/repos`、创建和历史第一阶段导航（Done）；
+2. EVO-120 First-run Repo Onboarding；
+3. EVO-112-B Overview-first Repo Detail：Overview、Files、Commits、Settings、Clone URL。
+4. EVO-112-C Commit Evidence：稳定 commit deep link、changed files 与 diff 证据（Done / Iteration 063 Closed / Complete）。
 
-进入条件：EVO-118 S1 关闭。
+进入条件：EVO-118-F/G/H 的直接边界满足对应 Story；不等待最终 EVO-118-E。
 
 ### Phase E'-2 Agent Write Loop + Vibe Coding
 
@@ -154,7 +156,7 @@ S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生�
 
 ### Phase E'-3 Capability Index and Discovery
 
-归口：EVO-108、109、110。
+归口：EVO-108、109。
 
 进入条件：
 
@@ -165,15 +167,30 @@ S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生�
 结果：
 
 - Repo 中 `SKILL.md`、`interface.yaml`、`tool.yaml` 可在有界时间内进入索引；
-- Discovery API/UI 可跨 Repo 查询；
-- 旧 API 在迁移窗口内保持兼容。
+- Discovery API/UI 可跨 Repo 查询并保留 Repo/Ref/Path/Commit provenance。
+
+### Phase E'-3.5 Product Experience Convergence
+
+归口：[EVO-121](../backlog/active/EVO-121-product-experience-convergence.md)。本 Epic 不作为单一 Iteration 激活，六个子 Story 按依赖进入：
+
+1. EVO-121-C/D ✓：public/auth entry 与 Settings IA 已完成；
+2. EVO-121-E/B：Durable Activity 与 task-first Dashboard；
+3. EVO-121-A/F：目标 App Shell 收口并删除旧 Registry UI。
+
+完成边界以 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md) 的 Route Ownership Matrix 为准。项目尚未上线，前端不建设旧路由兼容、迁移向导或 Legacy 菜单。
 
 ### Phase E'-4 Legacy Cleanup
 
-归口：EVO-111。
+归口：EVO-111、EVO-121-F、EVO-122。
 
 - 删除 legacy Docker Skill Sandbox、bollard 和执行 facade；
+- Repo-derived MCP execute 承接后删除旧 Registry API/domain/repository/table；
+- SQLite/PostgreSQL 配对 migration，不做双写、回填或兼容窗口；
 - 不在核心链路稳定前为清理而冒险。
+
+### Final Release Phase
+
+归口：EVO-118-E。仅在 F/G/H、目标 MVP 和 legacy cleanup 完成后执行最终 clean build、单一 Embedded Frontend 镜像、Compose/Gateway 与完整协议 Smoke，关闭 DEPLOY-01。
 
 ## 6. 当前严格启动顺序
 
@@ -181,16 +198,21 @@ S1 未关闭前，不发布外部 Alpha，不将 Agent 写入能力部署到生�
 EVO-118-A ✓
 → EVO-118-B ✓
 → EVO-118-C ✓
-→ EVO-118-D（Next）
-→ EVO-118-E
-→ EVO-118-F / G / H（按依赖和 WIP）
-→ EVO-112
+→ EVO-118-D ✓
+→ EVO-118-F ✓
+→ EVO-118-G / H（G-B/C/D ✓；G-A/H Partial residual）
+→ EVO-120 ✓ / EVO-112-A/B/C ✓
+→ EVO-121-C/D ✓
 → EVO-105 / 106 / 107 / 104
-→ EVO-108 / 109 / 110
+→ EVO-121-E / B
+→ EVO-108 / 109
+→ EVO-121-A / F
 → EVO-111
+→ EVO-122-A / B / C
+→ EVO-118-E（最终生产构建与部署收敛）
 ```
 
-P0 安全、数据损坏或生产构建问题允许显式插队；普通 UI、视觉、内部文档、计费增强不得静默绕过 S1。
+P0 安全、数据损坏或基础构建失败允许显式插队；DEPLOY-01 关闭前不得上线，但普通 UI、视觉、内部文档、计费增强可按依赖开发。
 
 ## 7. 阶段完成标准
 

@@ -37,16 +37,19 @@
 - 依赖 EVO-103 Repo Context API（agent 通过此读取 repo 内容）
 - 依赖 EVO-105 Commit API（agent 通过此写 commit）
 - 不依赖外部 agent engine 实现（mock 即可走通 Evolith 侧）
+- 依赖 EVO-118-H-C 建立的 Durable Outbox/idempotent subscriber boundary；Session event
+  producer 在本 Story 事务中 enqueue，不能依赖进程内异步任务。
 
 ## Governing ADRs, Specs Or Decisions
 
 - [ADR-0004 Git-Centric Storage](../../decisions/ADR-0004-git-centric-storage.md)
+- [ADR-0007 Agent 写入授权与生产交付边界](../../decisions/ADR-0007-agent-write-and-production-delivery-boundaries.md)
 
 ## Acceptance Criteria
 
 - [ ] `agent_sessions` 表 + Repository trait + 双实现 + migration
-- [ ] `scoped_tokens` 表（或复用 `api_keys` 扩展 scopes 字段）：包含 scopes 数组、expires_at、revoked_at
-- [ ] `POST /api/v1/agent-sessions` 实现：JWT 形式 token，payload 含 session_id、repo_id、scopes、exp
+- [ ] 独立 `scoped_tokens` 表：存储 token hash、typed capabilities、session/repo/tenant 绑定、expires_at、revoked_at
+- [ ] `POST /api/v1/agent-sessions` 实现：一次性返回 opaque token；后续请求使用 `X-Agent-Session`，服务端检查 hash、状态、有效期和资源绑定
 - [ ] Token 校验 middleware：`X-Agent-Session` header 携带 token；校验 scope 是否允许操作
 - [ ] Session 创建需 RBAC 校验：用户对 repo 有 owner/admin 权限才可创建 session
 - [ ] Session 状态机转换规则：`completed` / `failed` / `expired` 不可回退为 `active`

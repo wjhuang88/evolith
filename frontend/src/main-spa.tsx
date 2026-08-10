@@ -28,8 +28,12 @@ import TenantSettingsPage from './app/tenant/settings/page';
 import TenantMembersPage from './app/tenant/members/page';
 import TenantBillingPage from './app/tenant/billing/page';
 import TenantApiKeysPage from './app/tenant/api-keys/page';
+import { SettingsAccessGuard, SettingsLayout } from './app/settings/layout';
 import ReposPage from './app/repos/page';
 import NewRepoPage from './app/repos/new/page';
+import RepoDetailPage from './app/repos/[id]/page';
+import CommitEvidencePage from './app/repos/[id]/commits/[sha]/page';
+import { AuthGuard } from './components/AuthGuard';
 
 function NotFound() {
   return (
@@ -55,12 +59,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/join" element={<JoinPage />} />
             <Route path="/accept-invitation" element={<JoinPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/onboarding" element={<AuthGuard><OnboardingPage /></AuthGuard>} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/repos" element={<ReposPage />} />
             <Route path="/repos/new" element={<NewRepoPage />} />
+            <Route path="/repos/:id" element={<RepoDetailPage />} />
+            <Route path="/repos/:id/commits/:sha" element={<CommitEvidencePage />} />
+            <Route path="/repos/:id/:tab" element={<RepoDetailPage />} />
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/tools/new" element={<ToolNewPage />} />
             <Route path="/tools/:id" element={<ToolDetailPage />} />
@@ -73,10 +79,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="/snippets" element={<Navigate to="/interfaces" replace />} />
             <Route path="/snippets/new" element={<Navigate to="/interfaces/new" replace />} />
             <Route path="/snippets/:id" element={<Navigate to="/interfaces/:id" replace />} />
-            <Route path="/tenant/settings" element={<TenantSettingsPage />} />
-            <Route path="/tenant/members" element={<TenantMembersPage />} />
-            <Route path="/tenant/billing" element={<TenantBillingPage />} />
-            <Route path="/tenant/api-keys" element={<TenantApiKeysPage />} />
+            <Route path="/settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="/settings/profile" replace />} />
+              <Route path="profile" element={<SettingsAccessGuard section="profile"><ProfilePage /></SettingsAccessGuard>} />
+              <Route path="workspace" element={<SettingsAccessGuard section="workspace"><TenantSettingsPage /></SettingsAccessGuard>} />
+              <Route path="members" element={<SettingsAccessGuard section="members"><TenantMembersPage /></SettingsAccessGuard>} />
+              <Route path="api-keys" element={<SettingsAccessGuard section="api-keys"><TenantApiKeysPage /></SettingsAccessGuard>} />
+              <Route path="billing" element={<SettingsAccessGuard section="billing"><TenantBillingPage /></SettingsAccessGuard>} />
+            </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </LayoutWrapper>

@@ -13,21 +13,22 @@
 | `docs/decisions/` | 已接受重大技术/产品取舍 | 重大边界变化时写 ADR |
 | `docs/roadmap/` | 阶段顺序和当前执行计划 | 排序/阶段目标变化时更新 |
 | `docs/proposals/` | 未满足 Backlog DoR 的候选方案 | Agent 不从 Proposal 直接开工 |
+| `docs/design/` | 产品交互、页面编排和实施级体验决策 | 产品流程变化时更新，并由 ADR/Backlog 约束 |
 | `docs/archive/` | 历史快照和非活跃记录 | 不作为默认执行入口 |
 | `docs/BOARD.md` | 派生运营视图 | 只反映 owner docs，不自行定义状态 |
 | `EVOLUTION.md` | 故障速查和经验写回 | 按 EVOLUTION-FEEDBACK 判断 |
 
 ## 当前最高优先级入口
 
-1. [EVO-118-E Production Build Convergence](backlog/active/EVO-118-E-production-build-deployment-convergence.md) — 当前下一 Ready / Not Started P0，负责关闭 DEPLOY-01；必须 deliberate activation。
-2. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC-01、SEC-02、DATA-01 已解除，DEPLOY-01 仍开放。
-3. [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 当前执行顺序 owner；D 已完成，下一步 E。
-4. [EVO-118 Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — A/B/C/D Done，E Ready / Not Started，F~H Proposed。
+1. [EVO-118-G Runtime Reliability](backlog/active/EVO-118-G-runtime-reliability-gates.md) — 下一候选，尚未启动；负责关闭 REL-01。
+2. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC-01、SEC-02、DATA-01、DATA-02 已解除，DEPLOY-01 仍开放。
+3. [Production Readiness Plan](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 当前执行顺序 owner；EVO-118-E 已按 ADR-0010 移到最后。
+4. [EVO-118 Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — A/B/C/D Done，F In Progress，E 为最终发布 Gate。
 5. [EVO-118-D Git Durability and Recovery](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) 与 [Iteration 053](iterations/ITERATION-053.md) — Done / Closed；PR #7 merged `932def0`，DATA-01 Closed。
 6. [Permissions](reference/PERMISSIONS.md) 与 [API Contract](reference/API-CONTRACT.md) — 当前稳定授权与出站安全契约。
 7. [Security Review SOP](sop/SECURITY-REVIEW.md) 与 [Release SOP](sop/RELEASE.md) — 后续 DEPLOY-01 与生产 Gate 的强制审查入口。
 
-> 当前顺序：EVO-118-E（Ready / Not Started）→ F/G/H → EVO-112-B（A 已完成）→ Agent/Vibe/Indexer 主线。原 Two-Month Plan 保留为历史计划基线，不再作为当前激活顺序。
+> 当前顺序：EVO-121-C / Iteration 064 已 Closed / Complete（EVO-118-G/H 保留 Partial residual，EVO-120、EVO-112-A/B/C 已完成）→ EVO-121-D（下一候选，未激活）→ Agent/Vibe → EVO-121-E/B → Indexer/Discovery → EVO-121-A/F → EVO-111 → EVO-122-A/B/C → EVO-118-E 最终生产收敛。原 Two-Month Plan 保留为历史计划基线。
 
 ## Root Entrypoints
 
@@ -49,6 +50,7 @@
 - [计费](reference/BILLING.md) — Stripe、订阅和用量设计。
 - [测试](reference/TESTING.md) — 测试策略、位置和历史用例状态。
 - [前端设计系统](reference/DESIGN.md) — 视觉 Token、组件和页面参考。
+- [产品交互架构](design/PRODUCT-INTERACTION-ARCHITECTURE.md) — 目标业务流、Route Ownership Matrix、页面编排和交付门禁。
 - [脚本发布说明](reference/SCRIPTS-RELEASE-NOTES.md) — 脚本行为变更记录；backup/restore/inventory 改动必须同步。
 
 ## SOP
@@ -74,17 +76,24 @@
 
 - [Operating Board](BOARD.md) — 当前 Now/Done/Blocked/Next/Later 派生视图。
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
-- [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic；A/B/C Done，D In Progress，E Ready。
-- [EVO-118-D](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) — In Progress；Iteration 053 当前 Story owner，负责 DATA-01。
-- [Iteration 053](iterations/ITERATION-053.md) — Active；计划基线、失败模式、BDD、验证矩阵和闭环台账 owner。
+- [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic；A/B/C/D Done，F In Progress，E 为最终发布 Gate。
+- [EVO-118-D](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) — Done / Merged；DATA-01 Closed。
+- [Iteration 053](iterations/ITERATION-053.md) — Closed / Complete；记录 durability、restore、Navigator 和 merge evidence。
 - [EVO-118-B](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) — Done；SEC-01 已解除。
 - [EVO-118-C](backlog/active/EVO-118-C-http-tool-egress-security.md) — Done / Complete / Merged；SEC-02 已解除。
 - [Iteration 052](iterations/ITERATION-052.md) — Closed / Complete；记录 EVO-118-C exact-head CI、Navigator 与合并证据。
-- [迭代目录](iterations/README.md) — 迭代索引和库存；当前 Active 为 Iteration 053。
+- [Iteration 055](iterations/ITERATION-055.md) — Closed / Complete；EVO-118-F 与 DATA-02 已关闭。
+- [迭代目录](iterations/README.md) — 迭代索引和库存。
 - [决策记录](decisions/README.md) — ADR 目录。
 - [ADR-0004 Git-Centric Storage](decisions/ADR-0004-git-centric-storage.md) — Git 事实源方向。
 - [ADR-0005 Deprecate Sandbox](decisions/ADR-0005-deprecate-sandbox-runtime.md) — legacy Sandbox 删除。
 - [ADR-0006 Smart HTTP via Git subprocess](decisions/ADR-0006-smart-http-via-git-subprocess.md) — Git 协议实现边界。
+- [ADR-0007 Agent write and delivery boundaries](decisions/ADR-0007-agent-write-and-production-delivery-boundaries.md) — Policy/Scoped Token 与单一 Embedded Frontend 交付边界。
+- [ADR-0008 Repo-centric Interaction Architecture](decisions/ADR-0008-repo-centric-interaction-architecture.md) — 最终产品流程、路由与旧 UI 退场决策。
+- [ADR-0009 No Pre-launch Registry Compatibility](decisions/ADR-0009-no-prelaunch-registry-compatibility.md) — 取消双写/回填/旧 API 兼容，Repo-derived 承接后直接清理。
+- [EVO-120 First-run Repo Onboarding](backlog/active/EVO-120-first-run-repo-onboarding.md) — 无 Repo 用户的真实首次使用入口。
+- [EVO-121 Product Experience Convergence](backlog/active/EVO-121-product-experience-convergence.md) — App Shell、Dashboard、Entry、Settings、Activity 与 Legacy UI 删除 Epic。
+- [EVO-122 Retire Pre-launch Registry Backend](backlog/active/EVO-122-retire-prelaunch-registry-backend.md) — Repo-derived MCP execute、legacy runtime 与双数据库表清理 Epic。
 
 ## Roadmap / Proposals
 

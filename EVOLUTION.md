@@ -27,12 +27,28 @@
 | 16 | EVO-112-A 创建 repo 后跳转 `/repos/:id` 出现 404 | shell 切片先交付，但创建成功路径指向尚未实现的 EVO-112-B 详情页 | 详情页未交付前返回 `/repos`；已知后续能力不能作为当前可用路径的 fallback |
 | 17 | `frontend/src/lib/api/members` 返回 `ApiResponse` 而非 `Member[]` | 后端 handler 走统一 `ApiResponse<T>` 包装；前端按字段读取 `.data?.members` | 在调用方 `membersResponse?.data?.members ?? []` 而不是直接把响应赋给 `setState` |
 | 18 | `tenant?.id` 在闭包中被 TypeScript 推断为 `string \| undefined` | TS 对可选链的窄化在闭包边界不可靠；尤其 `await` 之后 | 在闭包外显式 `const tid: string = tenantId` 二次断言后使用 |
+| 19 | 新 migration 在 fresh schema 通过，但已有环境升级仍可能失败或丢状态 | 测试只从空库执行全部 migration，没有从前一版本携带已有行升级 | 双数据库从前一 migration 建表并插入代表性行，再执行新 migration 验证数据/状态保留 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-08-10 异步 E2E 不得用同步子进程阻塞 runtime
+**现象**: Smart HTTP 真实 clone/push/pull E2E 的前两次 clone 与 push 成功，但最后一次 clone 偶发在 39 秒后报认证失败，历史运行还出现 224 秒和数小时无进展；API key 状态与服务端直接鉴权均正常。
+**根因**: `#[actix_rt::test]` 内使用 `std::process::Command::output` 同步等待 Git，阻塞测试 runtime 的调度与服务生命周期；错误表面表现为 Git 认证失败，容易误判为 RBAC 或 credential 缺陷。
+**方案**: 完整 E2E 改用 `tokio::process::Command`，每个 Git 阶段设置 20 秒总 timeout、`kill_on_drop(true)` 和脱敏阶段名；真实场景连续 3/3、完整 suite 4/4 与 workspace 全量测试通过。
+**教训**: 异步集成测试调用真实外部进程时必须异步等待并设置总 timeout；只给服务端 subprocess 限时不能防止测试客户端阻塞 runtime。
+
+## 2026-08-09 - Fresh schema 不能替代 existing-row migration upgrade 证据
+
+- Trigger: EVO-118-H-A Navigator 复核 `012_outbox_claim_leases` 时发现 SQLite/PostgreSQL 测试只从空库执行到最新 schema。
+- Symptom: paired migration 文件和 fresh install 都成功，但没有证据证明 `011` 中已有 Outbox Event 在升级后仍保留状态、payload 与可空 lease 字段。
+- Root cause: 把“最新 schema 可创建”误当成“生产式增量 upgrade 安全”；fresh 路径不会暴露 ALTER 对已有行的默认值、约束或类型兼容问题。
+- Fix: SQLite/PostgreSQL 均先执行到 `011`、插入代表性 delivered event，再执行 `012`，验证原状态保留且新增 token/lease 为 NULL；PostgreSQL 继续运行真实并发 claim。
+- Prevention: 新 migration 除 fresh schema/repository 测试外，必须从直接前一版本携带代表性已有行升级；schema 或语义变化时检查数据和状态保留，不能只检查列存在。
+- Promoted to rule/check: `docs/sop/DATABASE-MIGRATION.md`；`outbox_repo_tests::sqlite_011_to_012_upgrade_preserves_existing_events`；`pg_outbox_claim_tests::postgres_claims_are_disjoint_and_expired_claims_are_fenced`。
 
 ### 2026-08-02 - 仓库管理 UI 可拆分，但不能把 404 当作 fallback（EVO-112-A）
 **现象**: 用户 2026-06-24 反馈 "git 相关的页面都没有出现"。EVO-103（Repo CRUD + Context API）已 Done，但前端没有仓库管理页面。完整 Vibe Coding 编辑器 EVO-104 仍依赖 UX U-01~U-05 之外的 API/UI 依赖。

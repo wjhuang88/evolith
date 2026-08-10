@@ -20,7 +20,7 @@
 - **双数据库一致性**：Schema 或 Repository 行为变化同时考虑 SQLite/PostgreSQL migration、实现和测试。
 - **重大取舍写 ADR**：技术栈、部署、认证、存储和数据边界变化必须写决策记录。
 - **脚本行为变更写 Release Note**：参数、默认值、退出码、顺序或副作用变化同步 `SCRIPTS-RELEASE-NOTES.md`。
-- **生产就绪 Gate 优先**：EVO-118 S1 的 SEC-01/SEC-02 已关闭；DATA-01（Git 耐久性）与 DEPLOY-01（生产构建）关闭前，不把 Repo UI 或 Agent 写入部署为外部 Alpha/生产，也不得声明生产就绪。
+- **开发与上线 Gate 分离**：SEC-01/SEC-02/DATA-01/DATA-02 已关闭；按 ADR-0010，EVO-118-E / DEPLOY-01 在目标产品开发与清理完成后执行。关闭前可继续开发，但不得发布 External Alpha/生产或声明生产就绪。
 - **安全敏感变更强制审查**：认证、API Key、MCP Tool、Git 写入、Webhook、出站 HTTP、备份和生产配置必须读 `SECURITY-REVIEW.md`。
 - **Git 是代码事实源**：Git Repo 保存代码和历史；PostgreSQL 保存身份、权限、元数据、索引和事件状态。不要把数据库兼容行描述为新能力事实源。
 - **Agent 写入受策略控制**：Agent Scoped Token 默认走 Commit/Promote + PolicyEvaluator；不得把 `commit:<scope>` 当作通用 Smart HTTP write。
@@ -111,21 +111,23 @@
 6. Sandbox 默认关闭且待 EVO-111 删除；新功能不得依赖它。
 7. Git Smart HTTP 使用 git subprocess；Repo Context 使用 `gix`。
 8. Git Repo 在文件系统；多实例不能只共享 PostgreSQL。
-9. 当前生产 Compose/备份的 Git 持久化与恢复仍被 EVO-118-D 阻断。
-10. Embedded Frontend 已是目标交付形态，但 production build/Compose 收敛仍归 EVO-118-E。
+9. Git 单实例持久化与恢复已由 EVO-118-D 关闭；Repo 生命周期一致性已由 EVO-118-F 关闭。
+10. Embedded Frontend 已是目标交付形态；production build/Compose 最终收敛归 EVO-118-E，并按 ADR-0010 在产品开发与清理后执行。
 11. API Key 管理、Typed Capability 与 MCP `execute` 已由 EVO-118-B 硬化；历史 legacy Key 仍需按权限合约轮换，不能重新接受任意权限字符串。
 12. HTTP Tool Egress/SSRF 已由 EVO-118-C 关闭：生产默认仅允许受策略约束的 HTTPS 公网目标；未来 Webhook/其他租户可控出站必须复用统一 Egress Policy。
 13. `.evolith/policy.yaml` Parser 已有，不代表策略三态已经执行；行为归 EVO-105。
 14. `commit:<scope>` 当前不能被视为真实 Branch/Path 限制；Agent 写入设计必须重新验证。
-15. Repo 创建/删除存在 DB/FS 分裂；Seed 文件不是有效 Git Commit，归 EVO-118-F。
+15. Repo 创建/删除已通过 EVO-118-F 生命周期状态与 Reconciler 收敛；Seed 是真实 Initial Commit。后续不得退回 best-effort warning 或直接删除未知 disk-only 数据。
 16. Push 后内存异步任务不是可靠事件边界；Webhook/Indexer 依赖 EVO-118-H。
 17. CI 当前历史配置为 Tag-driven；PR/Main Gate 归 EVO-118-G。
 18. `/health` 成功不证明 DB/Git Storage ready；发布使用 readiness 503 语义。
 19. SMTP/Redis 的生产降级必须按职责 fail closed，不能用开发 fallback 返回假成功。
 20. 文件或代码存在不等于完成；验证、状态同步和残余归口缺失时必须报告 `Partial`。
-21. EVO-118 S1 当前只剩 EVO-118-D/E；EVO-112-A 的历史本地成果虽已恢复，但不要按旧 Two-Month Plan 继续启动 EVO-112-B。
+21. EVO-118 的 SEC-01/SEC-02/DATA-01/DATA-02 已关闭；当前先推进 G/H 与目标产品链，EVO-118-E 保留为最后发布 Gate。
 22. GitHub Actions required CI 通过不等于安全/发布复验通过；必须同时关闭 Navigator、稳定契约和治理状态。
 23. 实现 PR 合并后仍需回写 merge commit、owner Story/Iteration、Gate 和派生入口；合并本身不会自动完成治理收口。
+24. 项目尚未上线；ADR-0009 已取消 EVO-110 旧表双写、回填和旧 API 兼容。Repo-derived read/execute 承接后由 EVO-121-F/EVO-122 直接删除旧 UI/runtime/table，不得重新建设 Legacy 兼容层。
+25. Actix/Tokio 异步 E2E 调用真实 Git 客户端必须使用异步、有界 subprocess；同步 `Command::output` 会阻塞 runtime，并可能伪装成 Smart HTTP 认证失败。
 
 ## Current Project Baseline
 
@@ -144,18 +146,21 @@ Evolith 是 Git-centric AI development platform：
 
 - Engineering foundation：较完整。
 - Git backend：Alpha foundation。
-- Web product：EVO-112-A Repo UI Shell 已实现；Repo Detail 与 Vibe Coding 仍未实现。
+- Web product：EVO-112-A/B/C Repo UI、Repo Detail、Commit Evidence 与 EVO-120 Onboarding 已实现；最终 Entry/App Shell/Dashboard/Settings/Activity 与 Vibe Coding 仍未实现。
 - Agent loop：Commit/Promote/Session/Webhook 未实现。
-- Production：SEC-01/SEC-02/DATA-01 已关闭；仍被 DEPLOY-01 生产构建阻断。
+- Production：SEC-01/SEC-02/DATA-01/DATA-02 已关闭；仍被 DEPLOY-01 生产构建阻断。
 
 不得把 EVO-103/116 或已关闭的安全 Gate 描述成平台整体生产就绪。
 
 ### Current Execution State
 
 - `main` 已包含 PR #7 / EVO-118-D；merge commit `932def05717b678f6f44dc23f137933d56158957`，DATA-01 已关闭。
-- EVO-118-D Done / Merged，Iteration 053 Closed / Complete；当前没有 Active runtime Iteration。
-- EVO-118-E 保持 Ready / Not Started，是下一候选，但必须重新执行 START-ITERATION，不得自动启动。
-- EVO-112-A 已完成；EVO-112-B 仍等待 S1 的 DEPLOY-01 关闭。
+- EVO-118-D Done / Merged，Iteration 053 Closed / Complete。
+- EVO-118-F Done / Complete，Iteration 055 Closed / Complete，DATA-02 已关闭。
+- EVO-118-G 已拆为 G-A/B/C/D；G-B/C/D Complete，G-A 因远端 Branch Protection 证据保持 Partial。
+- EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B/H-C 与 Iterations 066/067/068 Done / Closed / Complete，EVENT-01 Durable Outbox 基础 Gate 已解除；EVO-125 已关闭完整 Smart HTTP E2E 残余。
+- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。EVO-105/106 的 H 硬依赖已满足，下一候选需按 DoR 重新激活。
+- EVO-118-E 保持 Proposed / final release gate。
 
 ### Current Order
 
@@ -164,12 +169,18 @@ EVO-118-A ✓
 → EVO-118-B ✓
 → EVO-118-C ✓
 → EVO-118-D ✓
-→ EVO-118-E（Next / Ready）
-→ EVO-118-F/G/H
-→ EVO-112-B（EVO-112-A ✓）
+→ EVO-118-F ✓
+→ EVO-118-G-A/B/C/D（G-B/C/D ✓；G-A Partial residual）
+→ EVO-118-H-A ✓ → H-B ✓ → H-C ✓（EVENT-01 基础 Gate ✓）
+→ EVO-120 ✓ / EVO-112-A/B/C ✓
+→ EVO-121-C/D ✓
 → EVO-105/106/107/104
-→ EVO-108/109/110
+→ EVO-121-E/B
+→ EVO-108/109
+→ EVO-121-A/F
 → EVO-111
+→ EVO-122-A/B/C
+→ EVO-118-E（Final production convergence）
 ```
 
 ## Development Baseline

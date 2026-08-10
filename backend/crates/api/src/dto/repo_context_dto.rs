@@ -54,6 +54,21 @@ pub struct CommitListResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub struct CommitDetailDto {
+    pub sha: String,
+    pub author_name: String,
+    pub author_email: String,
+    pub authored_at: i64,
+    pub committer_name: String,
+    pub committer_email: String,
+    pub committed_at: i64,
+    pub message: String,
+    pub parents: Vec<String>,
+    pub ref_name: String,
+    pub changes: Vec<DiffEntryDto>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct DiffEntryDto {
     pub path: String,
     pub change_type: String,

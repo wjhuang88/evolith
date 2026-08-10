@@ -1,15 +1,17 @@
-# EVO-118-E Embedded Frontend 生产构建与部署收敛
+# EVO-118-E 最终生产构建与部署收敛
 
 - **类型**：Technical / Deploy / Release
-- **状态**：Ready
+- **状态**：Proposed / final release gate
 - **优先级**：P0
 - **父 Epic**：[EVO-118](EVO-118-production-readiness-and-security-hardening.md)
-- **依赖**：EVO-118-A merge
+- **依赖**：EVO-118-F/G/H、目标 MVP 产品 Story、EVO-111、EVO-122-A/B/C 全部完成
+- **交付决策**：[ADR-0007](../../decisions/ADR-0007-agent-write-and-production-delivery-boundaries.md) 已确定生产默认使用单一 Embedded Frontend 后端镜像；Nginx 仅为可选 Gateway/SSL/反向代理。
+- **顺序决策**：[ADR-0010](../../decisions/ADR-0010-final-production-convergence-after-product-completion.md) 已确定本 Story 在改造、产品开发和 legacy cleanup 完成后执行；DEPLOY-01 关闭前禁止上线，但不阻塞开发。
 - **影响范围**：Dockerfile / Compose / frontend / backend / gateway / docs / tests
 
 ## 工程目标
 
-统一 Evolith 的生产交付形态，确保从干净 checkout 能构建包含正确前端静态资源的后端镜像，并让 Nginx 只承担可选 Gateway/SSL/反代职责。
+在目标 MVP 开发和清理完成后统一 Evolith 的最终生产交付形态，确保从干净 checkout 能构建包含正确前端静态资源的后端镜像，并让 Nginx 只承担可选 Gateway/SSL/反代职责。
 
 ## 已确认失败模式
 
@@ -54,6 +56,7 @@
 - 不重写 React/Vite 前端。
 - 不将 Nginx 作为必须的静态前端服务器重新确立。
 - Git 数据恢复归 EVO-118-D。
+- 不作为 Repo UI、Agent、Discovery 或 legacy cleanup 的开发前置 Gate。
 
 ## 最小验证
 
@@ -73,4 +76,11 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## 解锁内容
 
-解除 DEPLOY-01 Gate；为外部 Alpha、CI 主线和后续 Repo UI 提供可信的生产交付路径。
+解除 DEPLOY-01 Gate；为 External Alpha/生产发布提供可信的最终交付路径。关闭前可以继续开发，但不得上线或声明生产就绪。
+
+## 进入条件
+
+- EVO-118-F/G/H 已关闭 DATA-02、REL-01、EVENT-01。
+- Product Interaction Architecture 的目标 MVP owner Story 已完成，主业务闭环通过真实数据验证。
+- EVO-111 与 EVO-122-A/B/C 已完成 legacy runtime/schema cleanup。
+- 启动前重新执行 START-ITERATION，并以当时 final head 盘点 route、API、worker、migration、配置和脚本范围。

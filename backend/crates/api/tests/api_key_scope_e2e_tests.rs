@@ -24,8 +24,8 @@ use infra::config::{
 };
 use infra::db::{
     SqliteApiKeyRepository, SqliteAuditRepository, SqliteGitRepoRepository,
-    SqliteInvitationRepository, SqliteSkillRepository, SqliteSnippetRepository,
-    SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
+    SqliteInvitationRepository, SqliteOutboxRepository, SqliteSkillRepository,
+    SqliteSnippetRepository, SqliteTenantRepository, SqliteToolRepository, SqliteUserRepository,
 };
 use service_auth::{Argon2Hasher, JwtHandler};
 use service_skill::executor::{DefaultSkillExecutor, SkillExecutor};
@@ -42,6 +42,7 @@ const MIGRATION_007: &str = include_str!("../../../migrations/sqlite/007_git_rep
 const MIGRATION_008: &str = include_str!("../../../migrations/sqlite/008_git_centric_quotas.sql");
 const MIGRATION_009: &str =
     include_str!("../../../migrations/sqlite/009_safe_repo_policy_defaults.sql");
+const MIGRATION_010: &str = include_str!("../../../migrations/sqlite/010_repo_lifecycle.sql");
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse<T> {
@@ -112,6 +113,7 @@ async fn setup_test_db() -> SqlitePool {
         MIGRATION_007,
         MIGRATION_008,
         MIGRATION_009,
+        MIGRATION_010,
     ] {
         for statement in sql.split(';') {
             let trimmed = statement.trim();
@@ -223,7 +225,9 @@ fn build_app_state(pool: SqlitePool, base_path: String) -> AppState {
             as Arc<dyn InvitationRepository>,
         api_key_repo: Arc::new(SqliteApiKeyRepository::new(pool.clone()))
             as Arc<dyn ApiKeyRepository>,
-        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool)) as Arc<dyn GitRepoRepository>,
+        git_repo_repo: Arc::new(SqliteGitRepoRepository::new(pool.clone()))
+            as Arc<dyn GitRepoRepository>,
+        outbox_repo: Arc::new(SqliteOutboxRepository::new(pool)),
         cache: Arc::new(infra::cache::InMemoryCache::new()),
         mailer: Arc::new(infra::mailer::ConsoleMailer),
         execution_provider: execution_provider.clone(),
@@ -448,6 +452,22 @@ async fn test_execute_only_api_key_cannot_read_repo_context() {
         actix_web::http::StatusCode::FORBIDDEN,
         "execute-only key must NOT access Context API"
     );
+
+    let detail_req = test::TestRequest::get()
+        .uri(&format!(
+            "/api/v1/tenant/{}/repos/{}/commits/{}?ref=main",
+            tenant_id,
+            repo_id,
+            "0".repeat(40)
+        ))
+        .insert_header(("Authorization", basic_auth_header(api_key_value)))
+        .to_request();
+    let detail_resp = test::call_service(&app, detail_req).await;
+    assert_eq!(
+        detail_resp.status(),
+        actix_web::http::StatusCode::FORBIDDEN,
+        "execute-only key must NOT access commit evidence"
+    );
 }
 
 #[actix_rt::test]
@@ -506,6 +526,18 @@ async fn test_api_key_cannot_manage_other_api_keys() {
         create_resp.status(),
         actix_web::http::StatusCode::FORBIDDEN,
         "API key (even admin) must NOT be able to create keys"
+    );
+
+    let reconcile_req = test::TestRequest::post()
+        .uri(&format!("/api/v1/tenant/{}/repos/reconcile", tenant_id))
+        .insert_header(("Authorization", basic_auth_header(api_key_value)))
+        .set_json(serde_json::json!({"apply": true}))
+        .to_request();
+    let reconcile_resp = test::call_service(&app, reconcile_req).await;
+    assert_eq!(
+        reconcile_resp.status(),
+        actix_web::http::StatusCode::FORBIDDEN,
+        "API key (even legacy admin/write) must NOT reconcile repo storage"
     );
 }
 

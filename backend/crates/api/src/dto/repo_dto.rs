@@ -34,6 +34,7 @@ pub struct RepoResponse {
     pub visibility: String,
     pub auto_merge: bool,
     pub require_review: bool,
+    pub lifecycle_status: String,
     pub last_commit_sha: Option<String>,
     pub last_committed_at: Option<String>,
     pub created_at: String,
@@ -44,4 +45,10 @@ pub struct RepoResponse {
 pub struct RepoListResponse {
     pub repos: Vec<RepoResponse>,
     pub total: usize,
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct ReconcileReposRequest {
+    #[serde(default)]
+    pub apply: bool,
 }

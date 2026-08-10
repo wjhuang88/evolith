@@ -1,13 +1,13 @@
 # 架构设计
 
-> 本文档描述 Evolith 当前代码、运行边界和已接受的演进方向。当前完成度与发布 Gate 见 [生产就绪与项目完成度基线](PRODUCTION-READINESS-BASELINE.md)；临时执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
+> 本文档描述 Evolith 当前代码、运行边界和已接受的演进方向。当前完成度与发布 Gate 见 [生产就绪与项目完成度基线](PRODUCTION-READINESS-BASELINE.md)；页面编排见 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md)；legacy backend 退场见 [ADR-0009](../decisions/ADR-0009-no-prelaunch-registry-compatibility.md)；执行顺序见 [Production Readiness Plan](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md)。
 
 ## 1. 架构定位
 
 Evolith 当前采用**前后端分离开发、单进程交付的模块化单体架构**：
 
 - 后端是 Rust Workspace，通过多个 crate 划分 API、领域、基础设施和业务模块。
-- 默认发布物是一个 `evolith` Actix-web 进程；未来可增加同仓库 Worker 运行模式。
+- HTTP 发布物是 `evolith` Actix-web 进程；Durable Event 另有同仓库 `outbox-worker` 独立运行入口，最终生产 supervisor/replica 编排仍归后续交付 Gate。
 - React + Vite 静态 SPA 通过 `rust-embed-for-web` 嵌入后端发布物。
 - Nginx 或平台负载均衡只作为可选 Gateway、TLS 终止和反向代理层。
 - SQLite 用于 Lite 开发；PostgreSQL 是生产主数据库。
@@ -41,7 +41,7 @@ Evolith 当前采用**前后端分离开发、单进程交付的模块化单体�
 │ - Repo Context via gix                                       │
 │ - policy.yaml parser                                         │
 │                                                              │
-│ Compatibility Modules                                        │
+│ Pre-launch Legacy Modules (pending removal)                  │
 │ - Tool / Skill / CLI legacy APIs                             │
 │ - HTTP Tool executor                                         │
 │ - Docker Sandbox disabled by default, pending removal        │
@@ -61,8 +61,8 @@ Evolith 当前采用**前后端分离开发、单进程交付的模块化单体�
 ### 当前成熟度说明
 
 - Repo CRUD、Smart HTTP 和 Context API 是可用的 Git 后端 Alpha 基础。
-- Repo UI、Commit/Promote、Agent Session、Webhook、Vibe Coding 和 Indexer 仍在 Backlog。
-- API Key/MCP 授权、HTTP Tool SSRF、Git 数据持久化和生产构建尚有 P0 Gate。
+- Repo UI Shell 已实现；Repo Detail/Commit Evidence、Commit/Promote、Agent Session、Webhook、Vibe Coding、Activity 和 Indexer 仍在 Backlog。
+- API Key/MCP 授权、HTTP Tool SSRF 与 Git 数据持久化 Gate 已关闭；生产构建 DEPLOY-01 仍开放。
 - 因此“基础能力已实现”不能等价为“外部 Alpha/生产可用”。
 
 ## 3. 事实源与数据边界
@@ -93,7 +93,7 @@ Smart HTTP 使用 Git subprocess；Repo Context 使用 `gix`。两条路径职�
 - Repo 元数据和生命周期状态；
 - 审计、Agent Session、Outbox/Event（目标）；
 - Capability Index；
-- legacy Tool / Skill / CLI 兼容数据。
+- 当前仍存在、但由 ADR-0009 / EVO-122 计划删除的 legacy Tool / Skill / CLI 数据。
 
 PostgreSQL 是生产主路径；SQLite 是 Lite 开发和本地测试。Schema、Repository 行为和测试必须双轨考虑，但允许对生产并发语义明确记录 SQLite 限制。
 
@@ -192,13 +192,14 @@ React Router + Zustand + TanStack Query + Axios + i18next
 Bun package manager and script runtime
 ```
 
-当前用户路由仍主要是：
+当前用户路由包括：
 
 - Dashboard；
+- Repositories list/create；
 - Tools / Skills / Interfaces；
 - Tenant settings / members / billing / API keys。
 
-Repo-centric 路由和 Vibe Coding Workspace 尚未实现。因此当前前端应描述为 legacy Registry UI + Git-centric migration pending，而不是完整 AI-native Git 产品。
+Repo Detail、Commit Evidence、Vibe Coding Workspace、Discover 和 Activity 尚未实现。因此当前前端应描述为 Repo UI Shell + pre-launch legacy UI，而不是完整 AI-native Git 产品；目标页面编排见 Product Interaction Architecture，旧 UI 由 EVO-121-F 直接删除。
 
 目标构建顺序：
 
@@ -236,7 +237,9 @@ Git Client
   -> metadata/outbox/reconcile
 ```
 
-已实现 subprocess timeout、流式响应和 Repo tenant 检查。
+已实现 subprocess timeout、Upload Pack 流式响应、Receive Pack 有界结果、Repo tenant 检查和
+Push durable producer/reconcile。Receive Pack 成功响应前必须完成 typed Outbox enqueue；Worker
+按当前 Git ref 幂等刷新 metadata，旧/乱序事件只做 no-op。
 
 待硬化：
 
@@ -262,7 +265,7 @@ Tree、Blob、Commit、Diff 上限必须继续保留，且在读取/遍历过程
 
 ### 6.4 MCP HTTP Tool
 
-当前 MCP `tools/call` 可触发真实出站 HTTP。现有实现的租户归属和响应体上限是有用基础，但生产安全边界尚未闭合。
+当前 MCP `tools/call` 可触发真实出站 HTTP。EVO-118-B/C 已关闭 Typed Capability、tenant hiding 与 Egress/SSRF Gate；ADR-0009 / EVO-122-A 将进一步把执行身份从旧 Tool 行收敛为 Repo/Commit/Path provenance，且不得回退现有安全边界。
 
 目标流程：
 
@@ -317,6 +320,16 @@ Worker
 
 目标是 at-least-once + 幂等，不追求跨系统 exactly-once。归口 EVO-118-H。
 
+当前 H-A/H-B/H-C 基础已具备：SQLite/PostgreSQL Outbox claim 使用有界 lease 与 fencing token；
+过期 claim 可恢复，旧 Worker ACK/NACK 不能覆盖新 owner，最后一次 attempt 过期进入
+dead-letter。独立 `outbox-worker` 支持 continuous、one-batch 与 confirmed replay，强制
+`batch × delivery timeout < lease`，优雅停止等待当前有界 batch，日志和 `last_error` 只暴露
+稳定错误码。H-C 已注册 `repo.push.completed.v1` producer/subscriber：payload 只含非敏感
+Repo/tenant/ref/commit facts，idempotency key 由 Repo/default branch/commit 派生，Worker
+以当前 Git ref 防止旧事件回写；生产 supervisor 仍归 EVO-118-E。Commit/Promote、Webhook、
+Indexer 等后续 producer/consumer 约束已同步至 EVO-105/106/107/108，EVENT-01 Durable Outbox
+基础 Gate 已关闭；具体业务接入仍由各 owner Story 验收。
+
 ## 7. 安全边界
 
 ### 已具备的基础
@@ -370,13 +383,13 @@ Worker
 | 能力 | 当前判断 |
 |------|----------|
 | Git Repo / Smart HTTP / Context | 当前主线，后端 Alpha 基础已具备 |
-| Repo UI / Commit / Session / Vibe Coding | 产品主线，等待 EVO-118 Gate |
+| Repo UI / Commit / Session / Vibe Coding | 产品主线，按 EVO-118-F/G/H 直接边界推进；最终发布归 EVO-118-E |
 | Skill / MCP / CLI Indexer | 计划由 Git Repo 派生 |
-| DB-centric Registry | Compatibility，不是新功能事实源 |
+| DB-centric Registry | Pre-launch legacy，ADR-0009 决定不建设兼容层；由 EVO-121-F/EVO-122 删除 |
 | Docker Skill Sandbox | 默认关闭，ADR-0005 已决定删除 |
 | Snippet 模型 | historical/compatibility，不作为新产品概念 |
 
-新功能不得以 legacy Sandbox 或旧 Registry 为硬依赖。
+新功能不得以 legacy Sandbox 或旧 Registry 为硬依赖，也不得新增双写、fallback 或旧 UUID 身份。
 
 ## 10. 发布判断
 

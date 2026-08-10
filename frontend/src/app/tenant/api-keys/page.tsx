@@ -276,7 +276,7 @@ export default function ApiKeysPage() {
         </Card>
       )}
 
-      {canManageApiKeys && (
+      {canManageApiKeys && !error && (
         <Card>
           <CardContent className="p-0">
             {isLoading ? (

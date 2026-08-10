@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse};
-use chrono::{TimeZone, Utc};
 use domain::api_key::ApiKey;
 use futures_util::StreamExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -9,9 +8,14 @@ use tokio::sync::mpsc;
 
 use crate::middleware::api_key_scope::{api_key_allows_repo_read, api_key_allows_repo_write};
 use crate::middleware::auth::AuthenticatedUser;
+use crate::services::repo_push_event::{
+    enqueue_repo_push_completed, reconcile_repo_push_completed,
+};
 use crate::state::AppState;
 
 use service_git::{advertise_refs, spawn_rpc, GitService, GIT_SUBPROCESS_TIMEOUT};
+
+const RECEIVE_PACK_RESPONSE_LIMIT: usize = 8 * 1024 * 1024;
 
 pub async fn info_refs(
     req: HttpRequest,
@@ -69,6 +73,35 @@ pub async fn info_refs(
 
     if !abs_path.exists() {
         return HttpResponse::NotFound().body("Repo not found on disk");
+    }
+
+    if service == GitService::ReceivePack {
+        match reconcile_repo_push_completed(
+            state.outbox_repo.as_ref(),
+            repo.tenant_id,
+            repo.id,
+            &repo.default_branch,
+            &abs_path,
+        )
+        .await
+        {
+            Ok(Some(event)) => tracing::debug!(
+                repo_id = %repo.id,
+                event_id = %event.id,
+                "receive-pack advertisement reconciled durable push event"
+            ),
+            Ok(None) => {}
+            Err(error) => {
+                tracing::error!(
+                    repo_id = %repo.id,
+                    error_code = %error.error_code_info().code,
+                    "receive-pack reconciliation failed"
+                );
+                return HttpResponse::ServiceUnavailable()
+                    .insert_header(("Retry-After", "1"))
+                    .body("Git push reconciliation unavailable");
+            }
+        }
     }
 
     match advertise_refs(&abs_path, service).await {
@@ -145,12 +178,17 @@ async fn handle_rpc(
         return HttpResponse::NotFound().body("Repo not found on disk");
     }
 
-    let default_branch = repo.default_branch.clone();
-    let repo_id_for_meta = repo.id;
-    let state_for_meta = state.clone();
-    let abs_path_for_meta = abs_path.clone();
-    let service_for_meta = service;
-    let user_tenant_for_meta = user.tenant_id;
+    if service == GitService::ReceivePack {
+        return handle_receive_pack(
+            state,
+            payload,
+            repo.id,
+            repo.tenant_id,
+            &repo.default_branch,
+            &abs_path,
+        )
+        .await;
+    }
 
     let mut child = match spawn_rpc(&abs_path, service).await {
         Ok(c) => c,
@@ -199,7 +237,6 @@ async fn handle_rpc(
         drop(stdin);
     });
 
-    let default_branch_for_meta = default_branch.clone();
     actix_web::rt::spawn(async move {
         let mut buf = vec![0u8; 8192];
         let stderr_drain = actix_web::rt::spawn(async move {
@@ -242,8 +279,6 @@ async fn handle_rpc(
         })
         .await;
 
-        let push_succeeded = matches!(&rpc_result, Ok(Ok(status)) if status.success());
-
         match rpc_result {
             Ok(Ok(status)) if !status.success() => {
                 tracing::warn!("git subprocess exited with status: {}", status);
@@ -266,17 +301,6 @@ async fn handle_rpc(
             _ => {}
         }
 
-        if push_succeeded && service_for_meta == GitService::ReceivePack {
-            update_repo_metadata_after_push(
-                &state_for_meta,
-                repo_id_for_meta,
-                user_tenant_for_meta,
-                &default_branch_for_meta,
-                &abs_path_for_meta,
-            )
-            .await;
-        }
-
         stderr_drain.abort();
         stdin_task.abort();
     });
@@ -288,76 +312,122 @@ async fn handle_rpc(
         .streaming(output_stream)
 }
 
-async fn update_repo_metadata_after_push(
-    state: &web::Data<AppState>,
+async fn handle_receive_pack(
+    state: web::Data<AppState>,
+    payload: web::Payload,
     repo_id: uuid::Uuid,
-    user_tenant_id: uuid::Uuid,
+    tenant_id: uuid::Uuid,
     default_branch: &str,
     abs_path: &Path,
-) {
-    let ref_name = format!("refs/heads/{}", default_branch);
-    let path_for_blocking = abs_path.to_path_buf();
-    let ref_name_for_blocking = ref_name.clone();
-    let resolve =
-        web::block(move || service_git::resolve_ref(&path_for_blocking, &ref_name_for_blocking));
-    let resolved = match tokio::time::timeout(service_git::CONTEXT_BLOCKING_TIMEOUT, resolve).await
-    {
-        Ok(Ok(resolved)) => resolved,
-        Ok(Err(e)) => {
-            tracing::warn!(
-                "push metadata resolve_ref error for repo {}: {}",
-                repo_id,
-                e
-            );
-            return;
+) -> HttpResponse {
+    let mut child = match spawn_rpc(abs_path, GitService::ReceivePack).await {
+        Ok(child) => child,
+        Err(error) => {
+            tracing::error!(repo_id = %repo_id, error = %error, "failed to start receive-pack");
+            return HttpResponse::InternalServerError().body("Git receive-pack failed");
+        }
+    };
+    let mut stdin = child.stdin.take().expect("stdin should be piped");
+    let mut stdout = child.stdout.take().expect("stdout should be piped");
+    let mut stderr = child.stderr.take().expect("stderr should be piped");
+
+    let mut stdin_task = actix_web::rt::spawn(async move {
+        let mut payload_stream = payload.into_inner();
+        while let Some(chunk) = payload_stream.next().await {
+            let bytes = chunk.map_err(|_| ())?;
+            stdin.write_all(&bytes).await.map_err(|_| ())?;
+        }
+        stdin.shutdown().await.map_err(|_| ())
+    });
+    let stderr_task = actix_web::rt::spawn(async move {
+        let mut stderr_buf = vec![0u8; 8192];
+        while let Ok(read) = stderr.read(&mut stderr_buf).await {
+            if read == 0 {
+                break;
+            }
+            tracing::debug!("git receive-pack emitted stderr");
+        }
+    });
+
+    let mut output = Vec::new();
+    let rpc_result = tokio::time::timeout(GIT_SUBPROCESS_TIMEOUT, async {
+        let mut buffer = vec![0u8; 8192];
+        loop {
+            let read = stdout.read(&mut buffer).await.map_err(|_| ())?;
+            if read == 0 {
+                break;
+            }
+            if output.len().saturating_add(read) > RECEIVE_PACK_RESPONSE_LIMIT {
+                return Err(());
+            }
+            output.extend_from_slice(&buffer[..read]);
+        }
+        let status = child.wait().await.map_err(|_| ())?;
+        (&mut stdin_task).await.map_err(|_| ())??;
+        Ok::<_, ()>(status)
+    })
+    .await;
+
+    stderr_task.abort();
+    let status = match rpc_result {
+        Ok(Ok(status)) => status,
+        Ok(Err(())) => {
+            stdin_task.abort();
+            let _ = child.kill().await;
+            tracing::error!(repo_id = %repo_id, "receive-pack I/O failed or response exceeded limit");
+            return HttpResponse::BadGateway().body("Git receive-pack failed");
         }
         Err(_) => {
-            tracing::warn!(
-                "push metadata resolve_ref timed out for repo {} after {}s",
-                repo_id,
-                service_git::CONTEXT_BLOCKING_TIMEOUT.as_secs()
-            );
-            return;
+            stdin_task.abort();
+            let _ = child.kill().await;
+            tracing::warn!(repo_id = %repo_id, "receive-pack timed out");
+            return HttpResponse::GatewayTimeout().body("Git receive-pack timed out");
         }
     };
-
-    let (sha, timestamp) = match resolved {
-        Ok(t) => t,
-        Err(e) => {
-            tracing::warn!(
-                "push metadata: cannot resolve default branch ref '{}' for repo {}: {}",
-                ref_name,
-                repo_id,
-                e
-            );
-            return;
-        }
-    };
-
-    let committed_at = Utc
-        .timestamp_opt(timestamp, 0)
-        .single()
-        .unwrap_or_else(Utc::now);
-    if let Err(e) = state
-        .git_repo_repo
-        .update_last_commit(repo_id, &sha, committed_at)
-        .await
-    {
-        tracing::warn!(
-            "push metadata update failed for repo {} (push already succeeded): {}",
-            repo_id,
-            e
-        );
-        return;
+    if !status.success() {
+        tracing::warn!(repo_id = %repo_id, %status, "receive-pack rejected push");
+        return HttpResponse::Ok()
+            .insert_header((
+                "Content-Type",
+                GitService::ReceivePack.content_type_result(),
+            ))
+            .body(output);
     }
 
-    tracing::info!(
-        "push metadata updated for repo {} (tenant={}): {} @ {}",
+    let event = enqueue_repo_push_completed(
+        state.outbox_repo.as_ref(),
+        tenant_id,
         repo_id,
-        user_tenant_id,
-        &sha[..sha.len().min(12)],
-        committed_at.to_rfc3339()
-    );
+        default_branch,
+        abs_path,
+    )
+    .await;
+    match event {
+        Ok(event) => {
+            tracing::info!(
+                repo_id = %repo_id,
+                event_id = %event.id,
+                "durable push event persisted"
+            );
+        }
+        Err(error) => {
+            tracing::error!(
+                repo_id = %repo_id,
+                error_code = %error.error_code_info().code,
+                "Git ref changed but durable push event persistence failed; retry or reconcile required"
+            );
+            return HttpResponse::ServiceUnavailable()
+                .insert_header(("Retry-After", "1"))
+                .body("Push requires durable-event reconciliation; retry the push");
+        }
+    }
+
+    HttpResponse::Ok()
+        .insert_header((
+            "Content-Type",
+            GitService::ReceivePack.content_type_result(),
+        ))
+        .body(output)
 }
 
 fn authorize_git_service(req: &HttpRequest, service: GitService) -> Result<(), HttpResponse> {

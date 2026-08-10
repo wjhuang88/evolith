@@ -193,18 +193,25 @@ client.interceptors.request.use((config) => {
 
 ## Rate Limiting
 
-All endpoints are rate-limited by client IP address using a token bucket algorithm.
+All endpoints use caller-aware fixed-window rate limits. Identity is resolved before counting:
 
-| Tier | Default Limit | Applies To |
-|------|--------------|------------|
-| Unauthenticated | 30 requests/minute | Requests without valid JWT or API key |
-| Authenticated | 300 requests/minute | Requests with valid JWT |
-| API Key | 1000 requests/minute | Requests with valid API key |
+| Tier | Default Limit | Counter Key |
+|------|--------------|-------------|
+| Unauthenticated | 30 requests/minute | Direct peer IP |
+| Authenticated | 300 requests/minute | JWT user ID |
+| API Key | 1000 requests/minute | API key ID |
+
+API keys also enforce their persisted `rate_limit` as requests per hour. Both the global
+per-minute API-key limit and the per-key hourly limit must pass; exhausting one key does not consume
+another key's quota, even when they share an IP address.
 
 **Rate limit exceeded response:**
 
 ```
 HTTP/1.1 429 Too Many Requests
+Retry-After: <seconds>
+
+{"success":false,"error":{"code":"RATE_LIMIT_EXCEEDED","message":"Rate limit exceeded"}}
 ```
 
 The rate limits are configurable via environment variables:
@@ -212,7 +219,9 @@ The rate limits are configurable via environment variables:
 - `RATE_LIMIT__AUTHENTICATED_RPM` (default: 300)
 - `RATE_LIMIT__API_KEY_RPM` (default: 1000)
 
-> **Note:** Current implementation applies IP-based rate limiting globally via `actix-governor`. Per-user and per-api-key rate limiting tiers are planned for future phases.
+The current counter is shared by all workers in one process and bounded to 100,000 active buckets.
+Multi-instance Redis-backed security-state behavior and production fail-closed semantics are owned
+by EVO-118-G-D; this contract does not claim cluster-global quotas yet.
 
 ---
 
@@ -1656,8 +1665,8 @@ interface ResourceUsage {
 - **CSRF:** required when using cookie auth
 - **Description:** Create a new git repo in the tenant. The server
   `gix::init_bare`s the repo on disk and (if `seed_template: true`)
-  writes `.evolith/agents.yaml`, `.evolith/policy.yaml`, and
-  `README.md` at the default branch.
+  commits `.evolith/agents.yaml`, `.evolith/policy.yaml`, and
+  `README.md` as a real Initial Commit on the default branch.
 
 **Request:**
 ```typescript
@@ -1734,6 +1743,44 @@ interface RepoListResponse {
 
 ---
 
+### `POST /api/v1/tenant/{tenant_id}/repos/reconcile`
+
+- **Auth:** tenant Owner/Admin JWT only; API key authentication is rejected
+- **CSRF:** required when using cookie auth
+- **Description:** Compare tenant-scoped Repo metadata with on-disk bare repositories. By default
+  this is a read-only inventory. With `apply: true`, DB-only rows are marked `ERROR` and
+  disk-only repositories are moved to the storage quarantine directory; unknown Git data is
+  never deleted by this endpoint.
+
+**Request:**
+```typescript
+interface ReconcileReposRequest {
+  apply?: boolean; // default false
+}
+```
+
+**Response:** `200 OK` with `ApiResponse<RepoReconcileResponse>`.
+```typescript
+interface RepoReconcileResponse {
+  apply: boolean;
+  consistent: number;
+  db_only: number;
+  disk_only: number;
+  entries: Array<{
+    repo_id: string;
+    classification: "CONSISTENT" | "DB_ONLY" | "DISK_ONLY";
+    action: "NONE" | "MARKED_ERROR" | "QUARANTINED";
+    quarantine_path: string | null;
+  }>;
+}
+```
+
+**Errors:**
+- `403 FORBIDDEN` — cross-tenant caller, member role, or API key authentication
+- `500 REPO_RECONCILE_FAILED` — database inventory, storage inventory, status update, or quarantine failed
+
+---
+
 ### Repo Types <a id="repo-types-eVO-103"></a>
 
 ```typescript
@@ -1747,6 +1794,7 @@ interface RepoResponse {
   visibility: "public" | "private";
   auto_merge: boolean;
   require_review: boolean;
+  lifecycle_status: "CREATING" | "ACTIVE" | "ERROR" | "DELETING";
   last_commit_sha: string | null;    // updated after each successful push to default branch
   last_committed_at: string | null;  // ISO 8601
   created_at: string;            // ISO 8601
@@ -1801,13 +1849,18 @@ the git subprocess being spawned.
 
 - **Auth:** JWT or API key with `repo:write` / `write` / `admin` / `commit` / `commit:*`
 - **CSRF:** exempt (standard git clients do not send CSRF)
-- **Description:** Streaming push endpoint. Pipes request body to
-  `git receive-pack --stateless-rpc <path>` stdin and streams stdout
-  to the response. Subprocess timeout: 30s. After a successful push
-  to the default branch, the server updates
-  `git_repos.last_commit_sha` / `last_committed_at` in the background
-  (see [Push metadata sync](#push-metadata-sync-eVO-116)); a failure
-  to update metadata is logged but does not fail the push.
+- **Description:** Push endpoint. Pipes request body to
+  `git receive-pack --stateless-rpc <path>` stdin with an 8 MiB bounded
+  result buffer and a 30s subprocess timeout. A successful default-branch
+  receive-pack persists `repo.push.completed.v1` before returning HTTP 200;
+  the independent Outbox Worker then refreshes metadata with at-least-once,
+  idempotent delivery. If durable persistence fails after Git moved the ref,
+  the endpoint returns `503 Service Unavailable` with `Retry-After: 1`,
+  never a false success.
+- The `GET info/refs?service=git-receive-pack` handshake also idempotently
+  reconciles the current default-branch fact. This repairs a Git/DB split when
+  a retry is otherwise reported as `up-to-date`; an unavailable database
+  fails the handshake before a new ref update.
 
 ### `Content-Type` advertisement types
 
@@ -1932,6 +1985,42 @@ interface CommitDto {
 
 ---
 
+### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}/commits/{sha}?ref={ref}`
+
+- **Auth:** JWT or API key with `repo:read`
+- **CSRF:** not required (GET)
+- **Description:** Return immutable evidence for one exact 40-character commit SHA. `ref`
+  defaults to the Repo default branch and must resolve to a commit from which `sha` is
+  reachable. The structured changed-file diff is bounded by `DIFF_MAX_ENTRIES`; a root commit
+  reports every blob as `added`.
+
+**Response:**
+```typescript
+ApiResponse<CommitDetailDto>
+interface CommitDetailDto {
+  sha: string;
+  author_name: string;
+  author_email: string;
+  authored_at: number;       // unix seconds
+  committer_name: string;
+  committer_email: string;
+  committed_at: number;      // unix seconds
+  message: string;
+  parents: string[];
+  ref_name: string;          // verified reachable ref context
+  changes: DiffEntryDto[];
+}
+```
+
+**Errors:**
+- `400 INVALID_INPUT` — SHA is not exactly 40 hexadecimal characters or `ref` is empty
+- `403 FORBIDDEN` — caller lacks Repo read scope or tenant ownership
+- `404 NOT_FOUND` — Repo, commit or Ref is absent, or commit is not reachable from Ref
+- `413 RESOURCE_EXCEEDED` — changed-file diff exceeds `DIFF_MAX_ENTRIES`
+- `504 TIMEOUT` — bounded blocking Git read exceeded the Context timeout
+
+---
+
 ### `GET /api/v1/tenant/{tenant_id}/repos/{repo_id}/diff?base={ref}&head={ref}`
 
 - **Auth:** JWT or API key with `repo:read`
@@ -1983,22 +2072,24 @@ interface DiffEntryDto {
 
 ## Push metadata sync <a id="push-metadata-sync-eVO-116"></a>
 
-> After a successful `git push` to the default branch via
-> `POST /repos/{repo_id}/git-receive-pack`, the server resolves
-> `refs/heads/{default_branch}` via gix and updates
-> `git_repos.last_commit_sha` and `last_committed_at`.
+> A successful default-branch push produces a typed durable
+> `repo.push.completed.v1` event. The Outbox Worker resolves the current Git
+> ref and updates `git_repos.last_commit_sha` and `last_committed_at`.
 
-- This runs after the git subprocess reports a successful receive-pack
-  result in the same detached streaming task. The metadata write is
-  bounded by `CONTEXT_BLOCKING_TIMEOUT`; failure is logged and not sent
-  as a git protocol failure.
+- The producer runs before HTTP success is returned; it is not a detached
+  post-push metadata task. The receive-pack advertisement is also a bounded
+  reconcile entry point for the current default-branch fact.
 - Pushes to a non-default branch do NOT update default-branch metadata
   (per-branch metadata is future work).
-- If the metadata update fails (e.g. resolve error, DB write error,
-  timeout), the failure is logged at WARN level and the push response
-  is NOT affected. The repo continues to function; the next successful
-  push to the default branch will reconcile.
-- Implementation: `git_smart_http_handlers::update_repo_metadata_after_push`.
+- If event persistence fails after Git moved the ref, HTTP returns 503 and
+  preserves the Git fact for reconcile; the next receive-pack advertisement
+  retries the idempotent enqueue. Subscriber failures use bounded retry and
+  dead-letter semantics from the Outbox Worker.
+- Payload contains only tenant/repo/default branch/commit facts. Credentials,
+  Authorization headers, raw pack data and arbitrary request headers are not
+  persisted or logged. Idempotency is keyed by Repo + default branch + commit.
+- Implementation: `api::services::repo_push_event` and
+  `git_smart_http_handlers`.
 
 ---
 

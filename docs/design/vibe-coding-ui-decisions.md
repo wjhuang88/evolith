@@ -159,15 +159,15 @@
 - `require_review` 是默认安全状态。缺失 `.evolith/policy.yaml` 时 UI 也必须显示 review required，而不是 auto merge。
 - 首次进入 vibe session 时，用 inline hint 解释当前 repo policy；不使用阻塞式 onboarding modal。
 
-## 实施期可定议题
+## U-06 ~ U-08：实施交互决策
 
-这些议题不再阻塞 EVO-104 进入 Ready，但实施中需要在对应 PR/iteration 中补充最终细节。
+| ID | 状态 | 决策 | 归口 |
+|----|------|------|------|
+| U-06 | Decided | Diff 默认 inline，允许切换 side-by-side；多文件通过 changed-files rail 选择 | EVO-104 |
+| U-07 | Decided | Agent/LLM 生成 Conventional Commit 候选，用户可编辑；提交前必须展示最终 message 与 diff summary | EVO-105 / EVO-104 |
+| U-08 | Decided | Session 记录 base Ref；promote 时 target 已前移则返回 conflict、保留 agent branch，并要求 refresh/rebase 后重试；MVP 不静默 auto-merge | EVO-105 |
 
-| ID | 议题 | 默认方向 | 归口 |
-|----|------|----------|------|
-| U-06 | Diff viewer 形态 | inline 默认，允许切换 side-by-side | EVO-104 实施期 |
-| U-07 | Commit 消息生成 | LLM 生成 + 用户可编辑 + Conventional Commit hint | EVO-105 / EVO-104 |
-| U-08 | 文件冲突处理 | MVP 推迟到 promote 阶段处理 | EVO-105 |
+U-08 的“agent branch 与 main 隔离”只降低编辑期冲突，不消除 promote 时的并发变化。UI 必须把 conflict 作为可恢复终态展示，不能将目标 Ref 未移动误报为 promote 成功。
 
 ## Out Of MVP
 
@@ -181,7 +181,7 @@
 
 ## 启动门禁状态
 
-- UX 门禁：解除。U-01 ~ U-05 均为 `Decided`。
+- UX 门禁：解除。U-01 ~ U-08 均为 `Decided`。
 - Product / API 依赖：未解除。EVO-104 仍依赖 EVO-103 / EVO-105 / EVO-106 / EVO-112 达到可集成状态。
 - 下一步：EVO-104 item file 可以引用本文件作为 Required Read，并将 UX 阻塞项改为已完成；不要仅因本文件完成就把 EVO-104 标为 `Ready`。
 
@@ -189,4 +189,5 @@
 
 | 日期 | 类型 | 说明 |
 |------|------|------|
+| 2026-08-08 | decision closure | U-06 ~ U-08 按推荐方向定案；promote conflict 明确 fail closed，不静默合并。 |
 | 2026-06-25 | scope-change | U-02 从桌面三栏常驻布局修订为 Codex/TUI-style conversation-first workspace；文件树抽屉化，文件内容和 diff 作为 contextual artifact 呈现。 |

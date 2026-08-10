@@ -1,5 +1,7 @@
 # ADR-0004: 内容存储从 DB 列迁移到 Git 仓库文件
 
+> 2026-08-08：本 ADR 的 Git 事实源决策继续有效；旧表 materialized cache / Indexer 双写迁移策略已被 [ADR-0009](ADR-0009-no-prelaunch-registry-compatibility.md) 部分替代。
+
 ## 状态
 
 Accepted
@@ -82,6 +84,6 @@ Evolith 当前将 skill / cli interface / mcp tool 的内容存储在 PostgreSQL
 - [EVO-100 Epic: Git-Centric Platform Foundation](../backlog/active/EVO-100-git-centric-platform-foundation.md)
 - [EVO-101 git_repos 表](../backlog/active/EVO-101-git-repos-schema.md)
 - [EVO-108 Indexer 服务](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)
-- [EVO-110 旧表双写适配](../backlog/active/EVO-110-old-table-dual-write.md)
+- [EVO-110 旧表双写适配（Dropped archive）](../backlog/archive/2026-Q3/EVO-110-old-table-dual-write.md)
 - [SERVERLESS-RUNTIME.md](../proposals/SERVERLESS-RUNTIME.md)（历史参考）
 - [EVOLUTION.md](../../EVOLUTION.md)（2026-06-23 方向变更记录）
