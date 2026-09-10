@@ -1,6 +1,6 @@
 # ADR-0004: 内容存储从 DB 列迁移到 Git 仓库文件
 
-> **2026-09-10 amendment**：本 ADR 的核心决策继续有效：Git 是代码、版本历史和 Repo 内能力描述的事实源；PostgreSQL/SQLite 保存身份、权限、Repo metadata、索引和事件状态。其“durable Git repository 必须位于 Evolith 应用 persistent filesystem”的实现后果已由 [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) 更新为 WalGit-backed object-store/WAL data plane。  
+> **2026-09-10 amendment**：本 ADR 的核心决策继续有效：Git 是代码、版本历史和 Repo 内能力描述的事实源；PostgreSQL/SQLite 保存身份、权限、Repo metadata、索引和事件状态。其“durable Git repository 必须位于 Evolith 应用 persistent filesystem”的实现后果已由 [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) 更新为 WalGit-backed object-store/WAL data plane。
 > 2026-08-08 amendment：旧表 materialized cache / Indexer 双写迁移策略已被 [ADR-0009](ADR-0009-no-prelaunch-registry-compatibility.md) 部分替代。
 
 ## 状态
