@@ -1,8 +1,8 @@
 # WalGit-backed Git Data Plane Refactor Design
 
-> 状态：Accepted target design / not yet implemented  
-> 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)  
-> 执行：[EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / [GitHub #12](https://github.com/wjhuang88/evolith/issues/12)  
+> 状态：Accepted target design / not yet implemented
+> 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)
+> 执行：[EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / [GitHub #12](https://github.com/wjhuang88/evolith/issues/12)
 > 当前事实：[Project Status Baseline 2026-09-10](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)
 
 本文描述目标实现结构。除明确标注 Current 的部分外，本文件不得作为“代码已完成”的证据。
