@@ -1,8 +1,8 @@
 # Evolith 实施路线图
 
-> 制定日期：2026-05-15  
-> 最近更新：2026-09-10（WalGit-backed Git Data Plane replan）  
-> 目标：维护阶段级长期路线、Backlog / ADR / Release Gate 归口关系。  
+> 制定日期：2026-05-15
+> 最近更新：2026-09-10（WalGit-backed Git Data Plane replan）
+> 目标：维护阶段级长期路线、Backlog / ADR / Release Gate 归口关系。
 > **当前激活顺序不由本文定义**：请读 [Current Execution Plan 2026-09](CURRENT-EXECUTION-PLAN-2026-09.md)。
 
 本文不是任务池。Agent 不应直接从本文开工：
