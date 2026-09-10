@@ -1,9 +1,9 @@
 # 生产就绪与项目完成度基线
 
-> 基线日期：2026-09-10  
-> 状态：Active release gate  
-> 归口：[EVO-118 Production Readiness and Security Hardening](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)  
-> 整体项目状态：[Project Status Baseline 2026-09-10](PROJECT-STATUS-BASELINE-2026-09-10.md)  
+> 基线日期：2026-09-10
+> 状态：Active release gate
+> 归口：[EVO-118 Production Readiness and Security Hardening](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)
+> 整体项目状态：[Project Status Baseline 2026-09-10](PROJECT-STATUS-BASELINE-2026-09-10.md)
 > 当前执行顺序：[Current Execution Plan 2026-09](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md)
 
 本文只负责**发布 Gate / 环境准入**。当前实现、未来架构和产品计划的统一判断由 Project Status Baseline 负责。
