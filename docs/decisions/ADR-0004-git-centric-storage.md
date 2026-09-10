@@ -1,89 +1,100 @@
 # ADR-0004: 内容存储从 DB 列迁移到 Git 仓库文件
 
-> 2026-08-08：本 ADR 的 Git 事实源决策继续有效；旧表 materialized cache / Indexer 双写迁移策略已被 [ADR-0009](ADR-0009-no-prelaunch-registry-compatibility.md) 部分替代。
+> **2026-09-10 amendment**：本 ADR 的核心决策继续有效：Git 是代码、版本历史和 Repo 内能力描述的事实源；PostgreSQL/SQLite 保存身份、权限、Repo metadata、索引和事件状态。其“durable Git repository 必须位于 Evolith 应用 persistent filesystem”的实现后果已由 [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) 更新为 WalGit-backed object-store/WAL data plane。  
+> 2026-08-08 amendment：旧表 materialized cache / Indexer 双写迁移策略已被 [ADR-0009](ADR-0009-no-prelaunch-registry-compatibility.md) 部分替代。
 
 ## 状态
 
-Accepted
+Accepted / amended by ADR-0009 and ADR-0011
 
 ## 背景
 
-Evolith 当前将 skill / cli interface / mcp tool 的内容存储在 PostgreSQL/SQLite 的 TEXT/JSONB 列中：
+Evolith 早期将 skill / cli interface / mcp tool 的内容存储在 PostgreSQL/SQLite 的 TEXT/JSONB 列中：
 
-- `skills.skill_md` TEXT（SKILL.md 完整正文）
-- `snippets.content` + `snippets.code` TEXT（CLI 元数据 + 代码）
-- `tools.input_schema` + `tools.output_schema` JSONB（MCP tool schema）
+- `skills.skill_md` TEXT；
+- `snippets.content` + `snippets.code` TEXT；
+- `tools.input_schema` + `tools.output_schema` JSONB。
 
-这种存储模型在 prototype 阶段（Phase 1-7）便于快速实现，但与 2026-06-23 提出的方向调整不匹配：
+这种 DB-centric 模型不符合 Git hosting + Agent/Vibe Coding + Repo-derived capability 的产品方向：
 
-1. 用户希望平台重心转向 git 托管；skill/mcp/cli 是 Pages 式衍生能力。
-2. Vibe coding 场景下，用户和 agent 在 repo 上下文中编辑代码；DB 列存储破坏了"以仓库为单位"的边界。
-3. 没有原生版本历史；`(name, version)` 唯一约束只能追踪单版本。
-4. 跨资源原子性差；用户无法把"3 个 skill + 1 个 mcp tool"的变更作为一个 commit 提交。
+1. 代码与能力应处于同一个 repository/version boundary；
+2. Git 原生提供 commit/diff/branch/revert；
+3. 一次 commit 可以原子表达跨多个 Skill/MCP/CLI 文件的变更；
+4. Agent 应在 Repo context 中操作，而不是绕过 Git 修改数据库内容列。
 
-`docs/proposals/GIT-CENTRIC-PLATFORM.md` 详述了完整方向。
-
-## 选项
+## 原选项
 
 | 选项 | 优点 | 缺点 |
 |------|------|------|
-| **A. 保持 DB 列存储** | 改动小；API 兼容 | 与新方向冲突；无版本历史；迁移成本累积 |
-| **B. DB 列迁移到 git 文件 + 指针列** | 与 git-centric 方向一致；版本历史原生；可迁移 | 需 schema 双轨迁移；读路径需 adapter；存量数据迁移风险 |
-| **C. 完全废弃 DB 表，所有读取走 git scan** | schema 最干净 | API breaking；性能差（每次全仓 scan） |
+| A. 保持 DB 列存储 | 改动小 | 与 Git-centric 产品方向冲突，无原生版本历史 |
+| B. 内容迁移到 Git；DB 保留 metadata/index | Git 成为版本事实源；可派生索引 | 需要 Git service、Indexer 和迁移/一致性边界 |
+| C. 所有读取实时扫描 Git、完全无 DB 索引 | schema 简单 | 搜索/发现性能和可运营性差 |
 
 ## 决策
 
-采用 **B**：DB content 列迁移到 git 仓库文件，DB 保留为 metadata 索引 + git 指针 + materialized cache。
+采用 **B 的核心方向**：
 
-具体设计：
+- `git_repos` 是第一类实体；
+- 代码、Commit、Branch、Tag、`.evolith/*`、`SKILL.md`、`interface.yaml`、`tool.yaml` 等内容以 Git repository 为事实源；
+- `skill_index` / `cli_index` / `mcp_tool_index` 从 Git 事件与 Repo 内容派生；
+- PostgreSQL/SQLite 保存用户、租户、权限、Repo metadata、索引、Agent/Audit/Outbox 等状态；
+- 不把 Git object/commit 内容重新搬回数据库作为新的 durable source of truth。
 
-- 新表 `git_repos` 作为第一类实体，无 `resource_type` / `resource_id` 字段（与 GitHub repo 模型对齐）。
-- `skill_index` / `cli_index` / `mcp_tool_index` 表从 git push 事件中发现并索引 `SKILL.md` / `interface.yaml` / `tool.yaml` 文件。
-- 旧 `skills` / `snippets` / `tools` 表保留为 materialized cache；写入路径收敛到 `POST /repos/{id}/files`；由 indexer 同步双写。
-- 迁移期：DB 列保留 nullable，存量数据回填脚本（dump → commit → backfill pointers）。
-- 迁移完成后：逐步降低对 DB 列的依赖，DB 列最终废弃（独立 EVO）。
+## 后续修订
+
+### ADR-0009：取消未上线 Registry 双写兼容
+
+项目尚未上线，不再建设旧 Registry materialized-cache 双写、回填或长期旧 API 兼容。Repo-derived read/execute 承接后直接删除 legacy runtime/table。
+
+### ADR-0011：Git durable storage 演进为 WalGit-backed object store
+
+ADR-0004 决定“**Git 是内容/历史事实源**”，但不要求这个 Git repository 永久绑定单机应用 filesystem。
+
+2026-09-10 起长期目标为：
+
+```text
+Evolith control plane
+  -> service-git v2
+  -> WalGit Git/WAL/Store primitives
+  -> object store = durable Git truth
+  -> local bare repo/pack = disposable cache
+```
+
+因此：
+
+- 当前 filesystem bare repo 在 EVO-126-H 前仍是 runtime fact；
+- 旧 DATA-01/DATA-02 证明的是该 runtime 的单实例 durability/lifecycle 历史基线；
+- EVO-126 新增 GIT-DP-01，负责 object-store/WAL migration、readiness、recovery、protocol/context parity 和 cutover；
+- Git 的事实源地位不变，只改变 physical durability / serving architecture。
+
+## 保留的不变量
+
+- Skill/MCP/CLI 与 Repo 生命周期、Commit provenance 对齐。
+- Agent 写入必须落成真实 Git change/commit/ref publication，不以 DB CRUD 冒充版本控制。
+- Capability Index 是可重建派生数据，不与 Git content 争夺事实源。
+- Repo rename/product metadata 与 physical Git namespace 应解耦；EVO-126 推荐用稳定 tenant/repository identity 映射 WalGit RepoId。
+- 未来任何存储优化不得让 local cache 变成未经声明的第二事实源。
 
 ## 后果
 
 ### 正面
 
-- Skill/MCP/CLI 与 git repo 生命周期一致；agent 可在 repo 上下文中操作。
-- 天然版本历史（git commits）；用户可 revert / diff / branch。
-- 跨资源原子性：一次 commit 可同时修改 3 个 skill + 1 个 mcp tool。
-- Vibe coding UX 自然支持（编辑器直接编辑 SKILL.md）。
-- 与 GitHub Pages 类比心智模型清晰，用户理解成本低。
+- Repo、代码、能力描述和 Agent change 共享统一 Git provenance。
+- Object-store/WAL 演进可以解决节点与 durable Git data 的强耦合，并支持更清晰的多实例/Agent clone 方向。
+- DB 保持擅长的身份、权限、索引、工作流和事件状态，不承担 Git object database。
 
-### 负面
+### 风险
 
-- Schema 改动较大（3 张表加 6+ 列 + 新建 4 张表）。
-- 写入路径从直接 CRUD 改为"写文件 + commit"，latency 略高。
-- 双写期间需保证 DB 与 git 状态一致；indexer 必须可靠。
-- `gix` 服务端能力尚未完全成熟（push 缺）；Phase 1 临时 git CLI subprocess。
-- 旧 API（`GET /skills/{id}`）需通过 materialized cache 保持兼容。
-
-### 缓解
-
-- 双轨 schema + dual-read adapter 避免 API breaking。
-- 回填脚本带 SHA-256 校验；dry-run 模式。
-- Phase 4 评估是否升级为 DB view（消除 materialized cache）。
-
-## 风险
-
-详见 `GIT-CENTRIC-PLATFORM.md` §9。
-
-关键风险：
-
-- 存量数据迁移（mitigated by 回填脚本 + dry-run + SHA-256 校验）。
-- Indexer 失效导致 DB cache 与 git 不一致（mitigated by git push 事件 + 定期全量 reconcile）。
-- `gix` push 能力缺口（mitigated by 临时 git CLI subprocess + 长期等 `gix-push` 合并）。
+- Git data-plane 架构切换必须处理 existing repo migration、DB/Git 一致性、object-store availability、credentials、cost/retention 与 recovery。
+- Indexer 失败仍可能造成派生索引 stale，需要 event + reconcile；不得把 stale index 当作 Git truth。
+- 上游 WalGit pre-1.0，需要 exact pin 和 Evolith-owned adapter boundary。
 
 ## 相关链接
 
+- [ADR-0011 WalGit-backed Git Data Plane](ADR-0011-walgit-backed-git-data-plane.md)
+- [ADR-0009 No Pre-launch Registry Compatibility](ADR-0009-no-prelaunch-registry-compatibility.md)
+- [EVO-126 WalGit Git Data Plane](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md)
+- [EVO-100 Git-Centric Platform Foundation](../backlog/active/EVO-100-git-centric-platform-foundation.md)
+- [EVO-108 Indexer](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)
 - [Git-Centric Platform Proposal](../proposals/GIT-CENTRIC-PLATFORM.md)
-- [ADR-0005 Deprecate Sandbox Runtime](ADR-0005-deprecate-sandbox-runtime.md)
-- [EVO-100 Epic: Git-Centric Platform Foundation](../backlog/active/EVO-100-git-centric-platform-foundation.md)
-- [EVO-101 git_repos 表](../backlog/active/EVO-101-git-repos-schema.md)
-- [EVO-108 Indexer 服务](../backlog/active/EVO-108-skill-cli-mcp-indexer.md)
-- [EVO-110 旧表双写适配（Dropped archive）](../backlog/archive/2026-Q3/EVO-110-old-table-dual-write.md)
-- [SERVERLESS-RUNTIME.md](../proposals/SERVERLESS-RUNTIME.md)（历史参考）
-- [EVOLUTION.md](../../EVOLUTION.md)（2026-06-23 方向变更记录）
+- [Project Status Baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)
