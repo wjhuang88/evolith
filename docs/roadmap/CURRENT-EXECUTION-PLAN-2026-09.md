@@ -1,10 +1,10 @@
 # Evolith 当前执行计划（2026-09）
 
-> 状态：Current execution ordering  
-> 生效：2026-09-10  
-> 触发：WalGit-backed Git Data Plane architecture pivot  
-> 整体基线：[PROJECT-STATUS-BASELINE-2026-09-10](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)  
-> 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)  
+> 状态：Current execution ordering
+> 生效：2026-09-10
+> 触发：WalGit-backed Git Data Plane architecture pivot
+> 整体基线：[PROJECT-STATUS-BASELINE-2026-09-10](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)
+> 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)
 > 当前 P0 Epic：[EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md)
 
 本文自 2026-09-10 起作为**唯一当前激活顺序 owner**。`PRODUCTION-READINESS-PLAN-2026-07.md` 与 `TWO-MONTH-PLAN-2026-07.md` 保留为历史计划基线，不覆写其当时目标、状态和证据。
