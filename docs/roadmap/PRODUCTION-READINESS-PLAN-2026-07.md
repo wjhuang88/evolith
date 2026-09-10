@@ -1,10 +1,10 @@
 # Evolith 生产就绪优先级重排（2026-07-30）
 
-> **2026-09-10 状态变更**：本文完整保留 2026-07/08 的计划与执行证据，作为 **Historical execution baseline**；当前激活顺序已由 [Current Execution Plan 2026-09](CURRENT-EXECUTION-PLAN-2026-09.md) 替代。不得依据本文的旧“下一候选”启动新工作，也不得改写以下历史计划来承载 EVO-126。  
-> 状态：Historical execution baseline / superseded for activation on 2026-09-10  
-> 最近同步：2026-08-10（EVENT-01 已解除；以下正文保留当时逐步同步记录）  
-> 触发：2026-07-30 全面项目体检  
-> 归口：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)  
+> **2026-09-10 状态变更**：本文完整保留 2026-07/08 的计划与执行证据，作为 **Historical execution baseline**；当前激活顺序已由 [Current Execution Plan 2026-09](CURRENT-EXECUTION-PLAN-2026-09.md) 替代。不得依据本文的旧“下一候选”启动新工作，也不得改写以下历史计划来承载 EVO-126。
+> 状态：Historical execution baseline / superseded for activation on 2026-09-10
+> 最近同步：2026-08-10（EVENT-01 已解除；以下正文保留当时逐步同步记录）
+> 触发：2026-07-30 全面项目体检
+> 归口：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)
 > 说明：本文曾替代原“两个月执行规划”作为当前激活顺序；2026-09-10 后同样作为历史计划基线保留，不覆写其原始目标和日期。
 
 ## 1. 重排原因
