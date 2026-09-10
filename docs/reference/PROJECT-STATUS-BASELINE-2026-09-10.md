@@ -1,10 +1,10 @@
 # Evolith 项目整体状态基线（2026-09-10）
 
-> 状态：Current project baseline  
-> 基线日期：2026-09-10  
-> 代码基线：`main` @ `4ffe0633dc2e160fab580bd1ed5b1cdd12245dfe`  
-> 当前执行计划：[CURRENT-EXECUTION-PLAN-2026-09](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md)  
-> Git Data Plane 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)  
+> 状态：Current project baseline
+> 基线日期：2026-09-10
+> 代码基线：`main` @ `4ffe0633dc2e160fab580bd1ed5b1cdd12245dfe`
+> 当前执行计划：[CURRENT-EXECUTION-PLAN-2026-09](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md)
+> Git Data Plane 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)
 > 重构 Epic：[EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / [GitHub #12](https://github.com/wjhuang88/evolith/issues/12)
 
 本文档重新建立“当前实现、已接受目标、未完成计划、发布 Gate”四类事实的统一基线。它不覆盖历史 Iteration/ADR/Release evidence；历史完成结果继续有效，但不得被误读为未来架构已经完成。
