@@ -1,10 +1,11 @@
 # Evolith 生产就绪优先级重排（2026-07-30）
 
-> 状态：Current execution ordering  
-> 最近同步：2026-08-04（DATA-01 已解除）
+> **2026-09-10 状态变更**：本文完整保留 2026-07/08 的计划与执行证据，作为 **Historical execution baseline**；当前激活顺序已由 [Current Execution Plan 2026-09](CURRENT-EXECUTION-PLAN-2026-09.md) 替代。不得依据本文的旧“下一候选”启动新工作，也不得改写以下历史计划来承载 EVO-126。  
+> 状态：Historical execution baseline / superseded for activation on 2026-09-10  
+> 最近同步：2026-08-10（EVENT-01 已解除；以下正文保留当时逐步同步记录）  
 > 触发：2026-07-30 全面项目体检  
 > 归口：[EVO-118](../backlog/active/EVO-118-production-readiness-and-security-hardening.md)  
-> 说明：本文替代原“两个月执行规划”作为当前激活顺序；原规划保留为历史计划基线，不覆写其原始目标和日期。
+> 说明：本文曾替代原“两个月执行规划”作为当前激活顺序；2026-09-10 后同样作为历史计划基线保留，不覆写其原始目标和日期。
 
 ## 1. 重排原因
 
@@ -23,7 +24,7 @@
 
 截至 2026-08-08，SEC-01、SEC-02、DATA-01、DATA-02 已关闭；按 ADR-0010，继续推进 G/H 与产品改造，DEPLOY-01 在最终发布阶段执行。
 
-## 2. 当前产品判断
+## 2. 当前产品判断（历史快照）
 
 | 领域 | 判断 |
 |------|------|
@@ -34,9 +35,9 @@
 | 数据耐久性 | DATA-01 单实例联合耐久性已关闭；Repo 生命周期一致性与多副本共享仍归后续 Gate |
 | 交付链路 | Embedded Frontend 与生产 Docker/Compose 口径不一致 |
 
-详见 [生产就绪与项目完成度基线](../reference/PRODUCTION-READINESS-BASELINE.md)。
+> 该表是当时快照，后续 Repo Web、DATA-02、EVENT-01 等已继续推进。2026-09 当前事实请读 [Project Status Baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)。
 
-## 3. 新的阶段顺序
+## 3. 当时的阶段顺序
 
 ### Stabilization S0 — 治理基线
 
@@ -72,6 +73,7 @@
    - squash merge commit `932def05717b678f6f44dc23f137933d56158957`；
    - 生产 Git 持久卷、Git readiness、PostgreSQL + Git 联合备份、安全恢复、inventory、故障矩阵和空环境演练完成；
    - Subscription credential 与 `psqlrc` 环境隔离边界闭合。
+
 S1 安全与数据基线已关闭。DEPLOY-01 不属于普通开发前置：
 
 - 不发布外部 Alpha；
@@ -97,19 +99,11 @@ S1 安全与数据基线已关闭。DEPLOY-01 不属于普通开发前置：
    - Worker 重试、幂等和失败记录；
    - 为 EVO-107 Webhook 和 EVO-108 Indexer 提供可靠基础。
 
-2026-08-09 refinement：Iteration 060 的 schema/repository boundary 保持 Closed / Partial；
-剩余范围拆为 H-A recoverable claims、H-B Worker runtime、H-C durable Push integration，按
-依赖顺序执行。尚不存在的 Commit/Promote/Agent Session producer 由 EVO-105/106 在本边界
-完成后接入，避免 H 与产品 Story 形成循环依赖。
+2026-08-09 refinement：Iteration 060 的 schema/repository boundary 保持 Closed / Partial；剩余范围拆为 H-A recoverable claims、H-B Worker runtime、H-C durable Push integration，按依赖顺序执行。尚不存在的 Commit/Promote/Agent Session producer 由 EVO-105/106 在本边界完成后接入，避免 H 与产品 Story 形成循环依赖。
 
-H-A / Iteration 066 已 Done / Closed / Complete：paired 012 upgrade、lease/fencing、stale
-recovery 与 PostgreSQL concurrent claim 已验证。H-B / Iteration 067 已 Done / Closed /
-Complete：独立 Worker、bounded delivery、双数据库积压恢复与 confirmed replay 已验证。
-H-C / Iteration 068 已 Done / Closed / Complete：真实 Push producer/subscriber、reconcile、
-SQLite/PostgreSQL 与完整 Smart HTTP E2E 已验证，EVENT-01 Durable Outbox 基础 Gate 已关闭。
+H-A / Iteration 066 已 Done / Closed / Complete：paired 012 upgrade、lease/fencing、stale recovery 与 PostgreSQL concurrent claim 已验证。H-B / Iteration 067 已 Done / Closed / Complete：独立 Worker、bounded delivery、双数据库积压恢复与 confirmed replay 已验证。H-C / Iteration 068 已 Done / Closed / Complete：真实 Push producer/subscriber、reconcile、SQLite/PostgreSQL 与完整 Smart HTTP E2E 已验证，EVENT-01 Durable Outbox 基础 Gate 已关闭。
 
-S2 在 S1 后按依赖推进；DATA-02 与 EVENT-01 已关闭，REL-01 仍保留 G-A 远端证据 residual；
-下一候选按 DoR 从 EVO-105/106 产品链选择，不得绕过既有权限与事件边界。
+S2 在 S1 后按依赖推进；DATA-02 与 EVENT-01 已关闭，REL-01 仍保留 G-A 远端证据 residual；当时下一候选按 DoR 从 EVO-105/106 产品链选择。**该“下一候选”已于 2026-09-10 被 ADR-0011/EVO-126 replan 取代。**
 
 ### Product P1 — Repo-centric Web
 
@@ -117,7 +111,7 @@ S1 关闭后恢复：
 
 1. EVO-112-A Repo UI Shell（Done）；
 2. EVO-120 First-run Repo Onboarding；
-3. EVO-112-B Overview-first Repo Detail Read-only。
+3. EVO-112-B Overview-first Repo Detail Read-only；
 4. EVO-112-C Repo Commit Evidence Detail（Done / Iteration 063 Closed / Complete）。
 
 2026-08-08 交互架构校准后，首次使用不再创建 Tool，而是创建/导入 Repo 并进入 Overview。该调整仅重排未来未启动工作，不覆写既有 Planned Iteration 基线。产品流程以 [Product Interaction Architecture](../design/PRODUCT-INTERACTION-ARCHITECTURE.md) 和 [ADR-0008](../decisions/ADR-0008-repo-centric-interaction-architecture.md) 为准。
@@ -138,6 +132,8 @@ S1 关闭后恢复：
 - `commit:<scope>` 必须落实为 branch/path capability。
 - 所有写入产生可审计事件并进入 Durable Outbox。
 - Webhook 和其他租户可控出站调用必须复用 EVO-118-C Egress Policy。
+
+> 2026-09-10 amendment：该阶段仍是产品目标，但激活前新增 GIT-DP-01 / EVO-126-H 依赖，避免在旧 filesystem/subprocess write path 上固定最终 Agent write architecture。
 
 ### Product P3 — Capability Index and Discovery
 
@@ -162,13 +158,13 @@ ADR-0009 已取消 EVO-110 双写兼容；旧 runtime/schema 清理由 EVO-111/E
 
 归口：EVO-118-E。
 
-进入条件：EVO-118-F/G/H、目标 MVP owner Story、EVO-111 与 EVO-122-A/B/C 全部完成。
+原进入条件：EVO-118-F/G/H、目标 MVP owner Story、EVO-111 与 EVO-122-A/B/C 全部完成。
 
-该阶段以最终代码面执行 clean production build、Embedded Frontend 单一交付、Compose/Gateway 路径和全协议 Smoke，关闭 DEPLOY-01。它是 External Alpha/生产发布 Gate，不是前述开发阶段的进入条件。
+2026-09-10 amendment：最终 release 还必须等待 GIT-DP-01 关闭，并在 WalGit-backed data plane 上重跑 clean build、readiness/recovery 与完整 Git smoke。
 
-## 4. 启动顺序
+## 4. 历史启动顺序
 
-当前建议严格使用以下顺序：
+本文当时记录的顺序为：
 
 ```text
 EVO-118-A Done
@@ -176,8 +172,8 @@ EVO-118-A Done
 → EVO-118-C Done
 → EVO-118-D Done
 → EVO-118-F Done
-→ EVO-118-G / H（G-B/C/D Done；G-A/H Partial residual）
-→ EVO-120 Done / EVO-112-A/B/C Done
+→ EVO-118-G / H
+→ EVO-120 / EVO-112-A/B/C
 → EVO-121-C / D
 → EVO-105 / 106 / 107 / 104
 → EVO-121-E / B
@@ -185,12 +181,12 @@ EVO-118-A Done
 → EVO-121-A / F
 → EVO-111
 → EVO-122-A / B / C
-→ EVO-118-E（最终生产构建、部署与发布 Smoke）
+→ EVO-118-E
 ```
 
-如果出现安全、数据损坏或基础构建失败，可以显式插队；DEPLOY-01 关闭前不得上线，但普通产品开发不得被其静默阻塞。
+**当前不得按上述历史顺序启动。** 2026-09-10 后执行顺序见 [CURRENT-EXECUTION-PLAN-2026-09.md](CURRENT-EXECUTION-PLAN-2026-09.md)：先 EVO-126 A-H / GIT-DP-01，再恢复 Agent Write Loop。
 
-## 5. Gate 解除标准
+## 5. Gate 解除标准（历史 owner + 当前 amendment）
 
 ### Security Gate — Closed
 
@@ -200,12 +196,14 @@ EVO-118-A Done
 - 跨租户访问统一拒绝且不泄露资源存在性；
 - Tool create/update 权限和 API 契约已与实现同步。
 
-### Durability Gate — Open
+### Historical Durability Gate — Closed for filesystem engine
 
 - 后端容器重建后 Git Repo/Commit/Tag 保留；
 - PostgreSQL + Git 备份可以在空环境恢复；
 - Repo 创建/删除故障不产生不可追踪分裂；
 - Git 存储容量和写入失败可观测。
+
+以上由 DATA-01/DATA-02 历史证据关闭。它不代表新 object-store/WAL 架构已经验证；2026-09 新增 **GIT-DP-01** 负责 WalGit-backed migration/readiness/recovery/cutover。
 
 ### Deployment Gate — Open
 
@@ -213,7 +211,8 @@ EVO-118-A Done
 - 生产镜像包含正确 Embedded Frontend；
 - `/api/v1`、`/repos/`、`/mcp`、`/assets/`、SPA fallback 不互相截获；
 - readiness 在依赖故障时返回 503；
-- Smoke Test 覆盖登录、Repo、Git clone/push 和恢复后 clone。
+- Smoke Test 覆盖登录、Repo、Git clone/push 和恢复后 clone；
+- 2026-09 起这些 Git smoke 必须使用最终 WalGit-backed data plane。
 
 ### Agent Gate — Future
 
@@ -221,12 +220,13 @@ EVO-118-A Done
 - Agent Session 可撤销；
 - Policy 三态实际生效；
 - 事件在进程重启后不丢；
-- Webhook/Indexer 幂等且失败有记录。
+- Webhook/Indexer 幂等且失败有记录；
+- GIT-DP-01 已关闭。
 
 ## 6. 计划维护规则
 
-1. 本计划是当前顺序 owner doc；Board 只反映，不得自行改变顺序。
-2. 每个 Story 关闭后更新 EVO-118 父项、Backlog、Board、Iteration、路线图和生产基线。
-3. 日期不再作为完成证据，Gate 和实际验证优先于日历承诺。
-4. 原 [两个月执行规划](TWO-MONTH-PLAN-2026-07.md) 保留为 2026-06-29 发布的历史基线；不得把其原计划段改写为本轮新目标。
-5. 如果业务要求提前恢复 Repo UI，必须显式记录风险接受者、未关闭 Gate 和环境限制；不得默认视为可外部发布。
+1. 本文从 2026-09-10 起是历史执行基线，不再是当前顺序 owner；当前 owner 是 [Current Execution Plan 2026-09](CURRENT-EXECUTION-PLAN-2026-09.md)。
+2. 本文已有 2026-07/08 目标、范围和执行证据必须保留；后续改线只追加 amendment，不将旧段改写成 EVO-126 的实施记录。
+3. 当前 Story 状态与 Required Reads 以 [Product Backlog](../backlog/PRODUCT-BACKLOG.md) 为准。
+4. 原 [Two-Month Plan](TWO-MONTH-PLAN-2026-07.md) 同样保留为更早历史计划基线。
+5. 日期不作为完成证据，Gate、真实命令、负向测试、migration/recovery 和 Review 优先于日历承诺。
