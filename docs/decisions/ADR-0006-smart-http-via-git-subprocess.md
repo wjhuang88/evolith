@@ -1,55 +1,86 @@
 # ADR-0006: Smart HTTP via `git` CLI subprocess（gix 无服务端）
 
+> **2026-09-10 amendment**：本 ADR 继续作为 2026-06 至 EVO-126-H cutover 前的 **current/historical implementation rationale**；其“长期 Smart HTTP 目标”和“receive-pack 永久保持 subprocess”结论已被 [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) supersede。EVO-126-H 完成前不得反向把本状态标成“当前代码已删除 subprocess”。
+
 ## 状态
 
-Accepted（2026-06-26）
+Accepted historical / **Superseded as target by ADR-0011**（原决策 2026-06-26；目标状态更新 2026-09-10）
 
 ## 背景
 
-Evolith 作为 git 托管平台需要 Smart HTTP git 协议（`GET /repos/{id}/info/refs`、`POST /repos/{id}/git-upload-pack`、`POST /repos/{id}/git-receive-pack`），让标准 git 客户端可以 `git clone / push / pull`。项目已用 `gix` crate（纯 Rust）做 bare repo 初始化（EVO-103-A）。
+Evolith 作为 git 托管平台需要 Smart HTTP git 协议（`GET /repos/{id}/info/refs`、`POST /repos/{id}/git-upload-pack`、`POST /repos/{id}/git-receive-pack`），让标准 git 客户端可以 `git clone / push / pull`。项目已用 `gix` crate 做 bare repo 初始化和 Repo Context。
 
-调查发现：**已发布的 `gix` crate 没有任何服务端协议能力**：
+2026-06 调查时，已发布的 `gix` crate 没有可直接满足 Evolith 的完整服务端协议能力：
 
-- 服务端 upload-pack 仅存在于未合并的 [gitoxide PR #2465](https://github.com/GitoxideLabs/gitoxide/pull/2465)（2026-03 开，截至 2026-06 仍未合入）。
-- 服务端 receive-pack 无实现计划（gix 维护者 Byron 在 [tracking issue #307](https://github.com/GitoxideLabs/gitoxide/issues/307) 明确表示“如果赶时间，建议 shell out 到 `git`”）。
+- 服务端 upload-pack 当时仅存在于未合并的 gitoxide 工作；
+- 服务端 receive-pack 没有可用的完整方案；
+- 为避免阻塞 Git Alpha，成熟 `git --stateless-rpc` subprocess 是当时风险最低的实现路径。
 
-所有生产级 Rust git 服务器（如 [loom](https://github.com/ghuntley/loom)）目前都用 `git --stateless-rpc` subprocess 实现全部 Smart HTTP 端点。
+## 当时选项
 
-## 选项
+- **A. 全部 3 端点用 `git` CLI subprocess**：`git upload-pack|receive-pack [--advertise-refs] --stateless-rpc <repo_path>`。
+- **B. 等待 gix 服务端能力**：时间不可控，且 receive-pack 仍存在缺口。
+- **C. 自研完整服务端 Git 协议**：工程量大、风险高。
 
-- **A. 全部 3 端点用 `git` CLI subprocess**：`git upload-pack|receive-pack [--advertise-refs] --stateless-rpc <repo_path>`。需要在生产 Docker 运行时镜像中加入 `git` 二进制。upload-pack / info-refs 在 gix PR #2465 合并后可迁移到纯 gix；receive-pack 永久保持 subprocess。
-- **B. 等 gix PR #2465 合并后用纯 gix 做 upload-pack / info-refs**：PR 未合并，合入时间不定；且 receive-pack 仍无 gix 方案，仍需 subprocess。会无限期阻塞 git 托管主线。
-- **C. 自研服务端 git 协议**（pkt-line 帧 + packfile 生成）：工程量大、易错、无意义重复成熟的 `git` CLI。
+## 原决策
 
-## 决策
+2026-06 选择 **A**：三个 Smart HTTP 端点通过 `git` CLI subprocess 实现。
 
-选 **A**。三个 Smart HTTP 端点全部通过 `git` CLI subprocess 实现。
+- `Command::new("git")`，不经过 shell；固定 service 枚举与参数。
+- `repo_path` 来自 DB identity +受控 base path，不直接取 URL path。
+- timeout/资源上限防止 unbounded child/process work。
+- 生产 runtime 包含 `git` binary。
 
-- 调用形式：`Command::new("git")`（不经过 shell），固定参数向量 `["upload-pack"|"receive-pack", "--advertise-refs"(仅 info/refs), "--stateless-rpc", <repo_path>]`。
-- 安全约束：`repo_path` 始终来自按 repo id 的 DB 查找后拼接 `base_path`，绝不取自 URL；service 参数验证为枚举 {upload-pack, receive-pack}；`tokio::time::timeout` 防止挂起。
-- 生产 Docker 运行时镜像（`debian:bookworm-slim`）新增 `git` 包（见 `backend/Dockerfile` + `docs/reference/SCRIPTS-RELEASE-NOTES.md`）。
-- 迁移策略：gix PR #2465 合并后，把 `info/refs` + `git-upload-pack` 迁移到纯 gix（独立 EVO 跟踪）；**`git-receive-pack` 永久保持 subprocess**（gix 无服务端 receive-pack 计划）。
+该决策成功解锁并支撑了 EVO-103/115/116/125，以及真实 clone/push/pull、Repo UI/Context 和 Durable Push Event 的 Alpha 验证。
+
+## 2026-09-10 新目标
+
+[ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) 接受以下长期架构：
+
+```text
+Evolith Actix adapters
+ -> service-git v2
+ -> walgit-git / walgit-wal / walgit-store / walgit-bundle
+ -> object store durable Git truth
+```
+
+因此：
+
+- `info/refs` / `upload-pack` / `receive-pack` 的 Evolith 主路径不再以“直接对 durable filesystem repo shell out”为长期设计。
+- 可继续使用 `git` CLI 的地方必须属于 WalGit lower-level primitive、明确兼容/辅助实现，或有独立 owner；不能重新形成 Evolith-owned durable filesystem engine。
+- `walgit-server` 的协议 data-plane orchestration 可以按 MIT 许可证吸收/改写，但 Axum Router/Auth/UI/Product Policy 不成为 Evolith 控制面。
+- receive-pack 的 durability/publication 目标改为 WalGit WAL + manifest CAS，并在其上保持 Evolith Policy/Outbox/Audit 语义。
 
 ## 后果
 
-正面：
+### 历史正面结果继续有效
 
-- 立即可用，复用成熟 `git` CLI，协议正确性有保障。
-- 不阻塞 git 托管主线。
-- 与生产级 Rust git 服务器（loom 等）做法一致。
+- Alpha 可以立即使用标准 Git client。
+- 协议正确性复用了成熟 Git CLI。
+- timeout、固定参数、DB-derived path 等安全经验继续作为新实现必须保持的门禁。
 
-负面 / 技术债：
+### 旧实现成为迁移技术债
 
-- 生产镜像必须包含 `git` 二进制（约 +5–10MB；已记入 Dockerfile 与 `SCRIPTS-RELEASE-NOTES.md`）。
-- subprocess 存在安全面（已缓解：无 shell、固定参数、path-from-DB、timeout）。
-- 临时技术债：`upload-pack` / `info-refs` 的 subprocess 待 gix PR #2465 迁移（独立 EVO）；`receive-pack` 为永久 subprocess。
+EVO-126-H 前：
+
+```text
+current runtime = direct git subprocess + persistent filesystem bare repo
+```
+
+EVO-126-H 后目标：
+
+```text
+current runtime = Evolith service-git v2 + WalGit-backed object-store/WAL data plane
+```
+
+只有 cutover、migration/recovery、真实 Git client 和 consumer-inventory 证据完成后，才能删除旧主路径并关闭 GIT-DP-01。
 
 ## 相关链接
 
+- [ADR-0011 WalGit-backed Git Data Plane](ADR-0011-walgit-backed-git-data-plane.md)
+- [EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md)
+- [WalGit Refactor Design](../design/WALGIT-GIT-DATA-PLANE-REFACTOR.md)
+- [Project Status Baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)
 - [EVO-103-B Smart HTTP git 协议](../backlog/active/EVO-103-B-smart-http-git-protocol.md)
-- [EVO-103-B-2 Smart HTTP Endpoints](../backlog/active/EVO-103-B-2-smart-http-endpoints.md)
-- [ADR-0004 Git-Centric Storage](ADR-0004-git-centric-storage.md)
-- [EVOLUTION.md](../../EVOLUTION.md)（subprocess 决策与 actix 中间件 soundness 经验）
-- gitoxide PR [#2465](https://github.com/GitoxideLabs/gitoxide/pull/2465)（服务端 upload-pack，未合并）
-- gitoxide tracking issue [#307](https://github.com/GitoxideLabs/gitoxide/issues/307)（服务端 receive-pack，无计划）
-- 参考实现：[ghuntley/loom](https://github.com/ghuntley/loom)
+- [EVO-125 Git Smart HTTP E2E Reliability](../backlog/active/EVO-125-git-smart-http-e2e-hang.md)
+- [EVOLUTION.md](../../EVOLUTION.md)

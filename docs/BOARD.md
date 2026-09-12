@@ -1,99 +1,78 @@
 # Operating Board
 
-> Derived operating view only. Owner docs define status, scope, acceptance criteria,
-> validation evidence and lifecycle state. Update owner docs first, then reflect the current
-> operating state here.
+> Derived operating view only. Owner docs define status, scope, acceptance criteria, validation evidence and lifecycle state. Update owner docs first, then reflect the current operating state here.
 >
-> **2026-08-10 执行进展**：SEC-01、SEC-02、DATA-01、DATA-02 已解除。ADR-0010 将 EVO-118-E / DEPLOY-01 调整为目标产品开发与清理后的最终发布 Gate；关闭前可继续开发，但不得上线。H-A/H-B/H-C 与 Iterations 066/067/068 已 Done / Closed / Complete，EVENT-01 Durable Outbox 基础 Gate 已解除。
+> **2026-09-10 replan**：当前整体状态以 [Project Status Baseline](reference/PROJECT-STATUS-BASELINE-2026-09-10.md) 为准；当前执行顺序以 [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 为准。新增 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / GIT-DP-01，先完成 WalGit-backed Git Data Plane，再恢复 Agent Write Loop。
 
 ## Now
 
-| Item | State | Owner Doc | Gate |
-|------|-------|-----------|------|
-| EVO-118 Production Readiness Epic | In Progress | [Epic](backlog/active/EVO-118-production-readiness-and-security-hardening.md) | A/B/C/D/F、G-B/C/D、H Done；G-A Partial；E 保留为最终发布 Gate。 |
-| EVO-118-G-A CI Merge Gates | Review / Partial | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056；本地门禁通过，Branch Protection 远端 403 residual。 |
+| Item | State | Owner Doc | Gate / Next action |
+|------|-------|-----------|--------------------|
+| EVO-126 WalGit Git Data Plane | Proposed / accepted direction | [Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) | GIT-DP-01 Open；Epic 不直接进入 Iteration |
+| EVO-126-A Dependency/Toolchain Boundary | **Ready / next** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | 新建 Iteration 后执行 Rust 1.90 + exact WalGit pin + license boundary |
+| EVO-118-G-A CI Merge Gates | Review / Partial residual | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056 保留；Branch Protection 远端证据在 release closure 前处理 |
 
-## Review
+## Planned Sequence
 
-Iteration 056 已 Partial 收口；Iteration 060 Closed / Partial；Iterations 057~059、061~068 Closed / Complete。当前无 runtime Review iteration。
+| Order | Item | State | Dependency |
+|------:|------|-------|------------|
+| 1 | EVO-126-A toolchain/dependency | Ready | none |
+| 2 | EVO-126-B service-git v2 engine boundary | Proposed | A |
+| 3 | EVO-126-C Smart HTTP read | Proposed | B |
+| 4 | EVO-126-E Repo Context parity | Proposed | B |
+| 5 | EVO-126-D WAL receive-pack | Proposed | B |
+| 6 | EVO-126-F object-store operations/migration | Proposed | B + final parity C/D/E |
+| 7 | EVO-126-G bundle-uri | Proposed | C/F |
+| 8 | EVO-126-H cutover/legacy Git engine removal | Proposed | C/D/E/F/G |
 
-## Done
+C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；A/B/H 的边界不可跳过。
 
-| Item | State | Owner Doc | Evidence |
-|------|-------|-----------|----------|
-| EVO-118-H Durable Event Epic | Done / Complete | [Item](backlog/active/EVO-118-H-durable-outbox-events.md) | H-A/B/C 全部 Done；recoverable claim、Worker runtime、Push producer/subscriber、双数据库与完整 Smart HTTP E2E 闭合，EVENT-01 基础 Gate 解除。 |
-| EVO-118-H-C Durable Push Event Integration | Done / Complete | [Item](backlog/active/EVO-118-H-C-durable-push-event-integration.md) | Iteration 068；Push durable event、幂等 metadata subscriber、reconcile、双数据库与完整 Git E2E 闭合。 |
-| Iteration 068 | Closed / Complete | [Iteration](iterations/ITERATION-068.md) | EVO-125 bounded async Git runner 后聚焦 clone/push/pull 连续 3/3 通过，workspace 与治理门禁闭合。 |
-| EVO-125 Git Smart HTTP E2E Reliability | Done / Complete | [Item](backlog/active/EVO-125-git-smart-http-e2e-hang.md) | 同步 Git 子进程改为 20 秒 bounded async runner；真实 E2E 连续 3/3 通过。 |
-| EVO-118-H-B Outbox Worker Runtime | Done / Complete | [Item](backlog/active/EVO-118-H-B-outbox-worker-runtime.md) | Iteration 067；独立 Worker、bounded delivery、SQLite/PG 101 backlog/crash recovery、confirmed replay、workspace gates 与 Navigator 闭合。 |
-| Iteration 067 | Closed / Complete | [Iteration](iterations/ITERATION-067.md) | continuous/once/replay、SIGINT、stable error code、双数据库进程证据完成；EVO-125 独立承接既有 Git E2E 不稳定。 |
-| EVO-118-H-A Recoverable Outbox Claims | Done / Complete | [Item](backlog/active/EVO-118-H-A-recoverable-outbox-claims.md) | Iteration 066；paired 012 upgrade、SQLite 8/8、真实 PostgreSQL concurrent/upgrade 1/1、infra/check/clippy 与 Navigator 闭合。 |
-| Iteration 066 | Closed / Complete | [Iteration](iterations/ITERATION-066.md) | Crash/reclaim、fencing、max-attempt dead-letter、非法边界 fail closed 与双数据库升级证据完成。 |
-| EVO-121-D Settings Information Architecture | Done / Complete | [Item](backlog/active/EVO-121-D-settings-information-architecture.md) | Iteration 065；五个 `/settings/*`、owner/admin/member 矩阵、forbidden、500→Retry、truthful read-only、桌面/390px 与旧路由 404 闭合。 |
-| Iteration 065 | Closed / Complete | [Iteration](iterations/ITERATION-065.md) | Focused 4/4、frontend 三门禁、locale 730、Markdown/diff/old-link checks、浏览器矩阵与 Navigator 无 blocking finding。 |
-| EVO-121-C Public Entry And Auth Routing | Done / Complete | [Item](backlog/active/EVO-121-C-public-entry-and-auth-routing.md) | Iteration 064；完整 deep link、统一 Repo resolver、root/login/join/register/verification、403/5xx + Retry、truthful landing、桌面/390px 与安全负向矩阵闭合。 |
-| Iteration 064 | Closed / Complete | [Iteration](iterations/ITERATION-064.md) | Pure policy 4/4、frontend gates、locale parity、Markdown/diff/governance、真实 SQLite + Git Storage 浏览器证据与 Navigator 无 blocking finding。 |
-| EVO-112-C Commit Evidence Detail | Done / Complete | [Item](backlog/active/EVO-112-C-repo-commit-evidence-detail.md) | Iteration 063；tenant-scoped detail API、Ref reachability、root/structured diff、list deep link、404、桌面/390px 与全量门禁闭合。 |
-| Iteration 063 | Closed / Complete | [Iteration](iterations/ITERATION-063.md) | Backend/Frontend/full workspace gates、locale parity、Markdown/diff/governance checks、浏览器证据与 Navigator 无 blocking finding。 |
-| EVO-112 Repo Management UI | Done / Complete | [Item](backlog/active/EVO-112-repo-management-ui.md) | A/B/C 三个子 Story 全部 Done；Repo shell/list/create、Overview-first detail 与 Commit evidence deep link 形成基础 Repo Web 闭环。 |
-| EVO-120 First-run Repo Onboarding | Done / Complete | [Item](backlog/active/EVO-120-first-run-repo-onboarding.md) | Iteration 062；seeded create -> Overview、普通/既有 Repo 登录分流、安全 redirect、500/403/409/Retry、桌面/390px 与键盘证据通过。 |
-| Iteration 062 | Closed / Complete | [Iteration](iterations/ITERATION-062.md) | 前端三门禁、Markdown links、diff/governance checks 与 Navigator 复核闭合；EVO-124 独立承接 SQLite memory pool 缺陷。 |
-| EVO-112-B Repo Detail Read-only | Done / Complete | [Item](backlog/active/EVO-112-B-repo-detail-read-only.md) | Iteration 061；四子路由、真实 Repo Context/CRUD、README/空/二进制、clipboard、PATCH/DELETE、404 与桌面/390px 浏览器证据通过。 |
-| Iteration 061 | Closed / Complete | [Iteration](iterations/ITERATION-061.md) | 前端三门禁、Markdown links、diff/governance checks 与 Navigator 复核闭合。 |
-| EVO-118-G-B Runtime Readiness | Done / Complete | [Item](backlog/active/EVO-118-G-B-runtime-readiness.md) | Health tests 10/10；runtime live=200、dependency failure ready=503、恢复后 ready=200；Docker/Compose 使用 `/health/ready`。 |
-| Iteration 057 | Closed / Complete | [Iteration](iterations/ITERATION-057.md) | Readiness 单元、运行态故障/恢复和静态配置证据闭合。 |
-| EVO-118-G-C Caller-aware Rate Limits | Done / Complete | [Item](backlog/active/EVO-118-G-C-caller-aware-rate-limits.md) | Caller-aware 专项矩阵、429、窗口恢复和 Git E2E 通过。 |
-| Iteration 058 | Closed / Complete | [Iteration](iterations/ITERATION-058.md) | 限流实现与契约同步完成。 |
-| EVO-118-G-D Dependency Fail Closed | Done / Complete | [Item](backlog/active/EVO-118-G-D-production-dependency-fail-closed.md) | SMTP/Redis 生产 fail-closed、开发 fallback 与 token 脱敏测试通过。 |
-| Iteration 059 | Closed / Complete | [Iteration](iterations/ITERATION-059.md) | 生产关键依赖和日志安全边界闭合。 |
-| EVO-118-F Repo Lifecycle | Done / Complete | [Item](backlog/active/EVO-118-F-repo-lifecycle-consistency.md) | Lifecycle 状态机、真实 Initial Commit、Reconciler、双数据库 migration/repository、失败注入和权限负向矩阵通过；DATA-02 Closed。 |
-| Iteration 055 | Closed / Complete | [Iteration](iterations/ITERATION-055.md) | Workspace tests、strict Clippy、PostgreSQL 009 -> 010 upgrade/round trip 与 Navigator 阶段复核通过。 |
-| EVO-118-D Git Durability and Recovery | Done / Complete / Merged | [Item](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) | PR #7 final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`；CI #204 / `30838250911` 与 container #50 / `30838250875` 成功；Navigator Complete；merge `932def05717b678f6f44dc23f137933d56158957`；DATA-01 Closed。 |
-| Iteration 053 | Closed / Complete | [Iteration](iterations/ITERATION-053.md) | PostgreSQL + Git 联合备份恢复、负向矩阵、独立复验、合并与治理索引收口完成。 |
-| EVO-118-C HTTP Tool Egress Security | Done / Complete / Merged | [Item](backlog/active/EVO-118-C-http-tool-egress-security.md) | PR #5 于 2026-08-02 合并，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`；final-head CI #137 / run `30682419168` 全绿；SEC-02 已解除。 |
-| Iteration 052 | Closed / Complete | [Iteration](iterations/ITERATION-052.md) | 统一 Egress、总 deadline、管理门禁、审计隐藏、负向安全矩阵、稳定契约和合并证据完成。 |
-| EVO-112-A Repo UI Shell | Done / Complete / Merged | [Item](backlog/active/EVO-112-A-repo-ui-shell.md) | PR #8 于 2026-08-02 合并，merge commit `1216624`；exact-head CI run `30712179586` 全绿；创建成功返回 `/repos`。 |
-| Iteration 054 | Closed / Complete | [Iteration](iterations/ITERATION-054.md) | 本地历史成果恢复、冲突迁移、主线重验、Navigator 与 PR #8 merge evidence 已闭环；不关闭最终 DEPLOY-01。 |
-| EVO-119 Global Theme Consistency | Done / Complete | [Item](backlog/active/EVO-119-global-theme-consistency.md) | `:root.dark` 全局语义 token 修复；前端类型检查与构建通过。 |
+## Paused / Waiting for GIT-DP-01
 
-## Blocked Or Paused
+| Item | State | Owner Doc | Reason |
+|------|-------|-----------|--------|
+| EVO-105 Commit/Promote | Proposed / paused for activation | [Item](backlog/active/EVO-105-commit-and-promote-api.md) | 避免在旧 write path 实现后再次重构；GIT-DP-01 后恢复 |
+| EVO-106 Agent Session/Scoped Token | Proposed / paused for activation | [Item](backlog/active/EVO-106-agent-session-and-scoped-token.md) | 与最终 GitWrite/Policy boundary 对齐后恢复 |
+| EVO-107 Webhook / EVO-104 Vibe Coding | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖 Agent write loop |
+| EVO-108/109 Index/Discovery | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 等稳定新 Push/Commit provenance |
+| EVO-121-A/B/E/F Experience | Proposed / paused | [Epic](backlog/active/EVO-121-product-experience-convergence.md) | 按真实 Activity/Discovery/cleanup 依赖恢复 |
+| EVO-111 / EVO-122 Legacy Cleanup | Proposed / paused | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) / [EVO-122](backlog/active/EVO-122-retire-prelaunch-registry-backend.md) | 在目标产品路径承接后清理 |
+| EVO-118-E Final Production Convergence | Proposed / final gate | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | GIT-DP-01、REL-01 residual、产品与 cleanup 后关闭 DEPLOY-01 |
 
-| Item | State | Owner Doc | Gate |
-|------|-------|-----------|------|
-| EVO-121 Product Experience Convergence | In Progress | [Epic](backlog/active/EVO-121-product-experience-convergence.md) | EVO-121-C/D Done；其余四个子 Story 按各自依赖激活，不得用空路由、假数据或 Legacy 兼容页提前拼 Shell。 |
-| EVO-105/106/107/104 Agent Write Loop | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖 EVO-118-B/F/H 与 Repo UI 基础；不得绕过 Typed Capability、Policy 和 Durable Event。 |
-| EVO-108/109 Index/Discovery | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 依赖稳定 Push/Commit Event 与 EVO-118-H；EVO-110 已 Dropped。 |
-| EVO-122 Pre-launch Registry Backend Retirement | Proposed / paused | [Epic](backlog/active/EVO-122-retire-prelaunch-registry-backend.md) | Repo-derived execute 承接后直接删除 legacy runtime/table；不建设双写兼容。 |
-| Iterations 018~020、027 | Superseded / Blocked for activation | [Iteration index](iterations/README.md) | 旧 Registry 主线被 Git-centric 方向替代，不 deliberate replan 则不激活。 |
-| Iterations 025/026 | Blocked for activation | [Iteration index](iterations/README.md) | Phase F 独立候选，不抢占 EVO-118 S1。 |
+## Completed Foundation That Must Be Preserved
 
-## Next
+| Capability / Gate | State | Evidence owner |
+|-------------------|-------|----------------|
+| SEC-01 API Key / MCP authorization | Closed | [EVO-118-B](backlog/active/EVO-118-B-api-key-mcp-authorization-hardening.md) |
+| SEC-02 Egress / SSRF | Closed | [EVO-118-C](backlog/active/EVO-118-C-http-tool-egress-security.md) |
+| DATA-01 filesystem single-instance durability | Closed historical | [EVO-118-D](backlog/active/EVO-118-D-git-storage-durability-and-recovery.md) / Iteration 053 |
+| DATA-02 Repo lifecycle | Closed historical | [EVO-118-F](backlog/active/EVO-118-F-repo-lifecycle-consistency.md) / Iteration 055 |
+| EVENT-01 Durable Outbox + Push Event | Closed | [EVO-118-H](backlog/active/EVO-118-H-durable-outbox-events.md) / Iterations 066-068 |
+| Runtime readiness/rate-limit/fail-closed | G-B/C/D Complete | [EVO-118-G](backlog/active/EVO-118-G-runtime-reliability-gates.md) |
+| Repo UI / Detail / Commit Evidence | Done / Complete | [EVO-112](backlog/active/EVO-112-repo-management-ui.md) |
+| First-run onboarding | Done / Complete | [EVO-120](backlog/active/EVO-120-first-run-repo-onboarding.md) |
+| Public/Auth Entry + Settings IA | Done / Complete | [EVO-121](backlog/active/EVO-121-product-experience-convergence.md) |
+| Stable bounded real Git E2E runner | Done / Complete | [EVO-125](backlog/active/EVO-125-git-smart-http-e2e-hang.md) |
 
-| Item | State | Owner Doc | Gate |
-|------|-------|-----------|------|
-| EVO-105/106 Agent Write Foundation | Proposed / next DoR | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | EVO-118-B/F/H 与 Repo UI 基础已满足；激活前仍需按 Story 依赖与安全门禁 refinement。 |
+这些完成项不会因为 EVO-126 被改写为“未完成”；新 data plane 必须保持其安全/行为语义，并在需要时重新证明 storage-specific evidence。
 
-## Later
+## Release Gates
 
-| Item | State | Owner Doc | Gate |
-|------|-------|-----------|------|
-| Repo-centric Web | Done / Complete | [EVO-120](backlog/active/EVO-120-first-run-repo-onboarding.md) / [EVO-112](backlog/active/EVO-112-repo-management-ui.md) | EVO-112-A/B/C 与 EVO-120 Done；最终 Entry/App Shell/Dashboard/Settings/Activity 收敛仍归 EVO-121。 |
-| Product Experience Convergence | In Progress | [EVO-121](backlog/active/EVO-121-product-experience-convergence.md) | Entry 已完成；App Shell / Dashboard / Settings / Activity / Legacy UI 删除按依赖分批完成。 |
-| Agent Integration + Vibe Coding | Proposed | [EVO-105/106/107/104](backlog/active/EVO-100-git-centric-platform-foundation.md) | S2 与 Repo UI 依赖满足。 |
-| Indexer + Discovery | Proposed | [EVO-108/109](backlog/active/EVO-100-git-centric-platform-foundation.md) | Durable Event + Agent write semantics 稳定。 |
-| Legacy Runtime Removal | Proposed / paused | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) / [EVO-122](backlog/active/EVO-122-retire-prelaunch-registry-backend.md) | Repo-derived read/execute 已承接，consumer inventory 为零。 |
-| EVO-118-E Final Production Convergence | Proposed / final gate | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | 目标 MVP、F/G/H 与 legacy cleanup 全部完成后关闭 DEPLOY-01。 |
-| Sandbox removal | Proposed | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) | Index/compat 迁移稳定后收尾。 |
-| SSH / LFS / Cross-repo search / Resource ACL | Proposal later | — | Phase E' 和 EVO-118 关闭后独立评估。 |
+| Gate | State | Meaning |
+|------|-------|---------|
+| SEC-01 | Closed | 不允许 WalGit 接入降低授权边界 |
+| SEC-02 | Closed | 后续 Webhook 等仍复用 Egress Policy |
+| DATA-01 | Closed historical | 证明旧 filesystem engine 的单实例 durability，不代表 object-store cutover |
+| DATA-02 | Closed historical | lifecycle 语义继续有效，reconciler 实现随 storage 迁移 |
+| EVENT-01 | Closed | WAL receive path 必须保持 Durable Outbox contract |
+| REL-01 | Partial | G-A remote Branch Protection evidence residual |
+| **GIT-DP-01** | **Open** | EVO-126 A-H + migration/recovery/protocol/context/bundle/cutover review |
+| DEPLOY-01 | Open / final | 最终 clean build/smoke 必须在 WalGit-backed data plane 上执行 |
 
-## Operating Review
+## Independent Later Candidates
 
-- EVO-118-A/Iteration 050 已由 PR #2 合并并关闭。
-- 当前产品方向仍是 Git hosting + Vibe Coding + capability discovery；EVO-118 是稳定化 Gate，不是产品回退。
-- EVO-118-B/Iteration 051 已由 PR #3 合并并关闭；merge commit `6de7845e1231efc04f94f16cb9ab0a410f6ad2d9`，最终 CI run `30567361095` 全绿，SEC-01 已解除。
-- EVO-118-C/Iteration 052 已由 PR #5 合并并关闭；实现 head `de762e2dae6bf5716e54c64e2277cb2e26592e36`，merge commit `936ed3b26a62840ddd94cf10e5075fd19e0a1c5c`，final-head CI #137 / run `30682419168` 全绿，SEC-02 已解除。
-- EVO-112-A 的 2026-06-29 本地历史成果已按冲突恢复流程迁移为 Iteration 054；历史事实保留，当前顺序由 ADR-0010 重排。
-- EVO-118-D / Iteration 053 已由 PR #7 合并并关闭；final Head `158ba98fb2d1e33fe5821f2e75431e86a5cf6ffd`，merge commit `932def05717b678f6f44dc23f137933d56158957`，required workflows 全绿，独立 Navigator `Complete`，DATA-01 已解除。
-- 当前启动顺序：EVO-118-G-B/C/D/H、EVO-120、EVO-112-C 与 EVO-121-C/D 已完成，G-A 保留 Partial residual；下一候选须重新执行 DoR，并按 EVO-105/106/107/104 → EVO-121-E/B → EVO-108/109 → EVO-121-A/F → EVO-111 → EVO-122-A/B/C → EVO-118-E（最终生产收敛）推进。
-- 安全、数据损坏或基础构建失败允许显式 P0 插队；DEPLOY-01 关闭前不得上线，但不阻塞普通产品开发。
-- Board 只反映 owner docs；Gate 关闭必须由 Story 验收、最新 exact-head CI、独立 Navigator 和实际验证共同证明。
+EVO-124 SQLite memory pool、EVO-123 dev port detection、EVO-080 Wasmer/WASI spike、EVO-081 internal docs、EVO-057 CORS、EVO-012/013/014/044 等继续保留在 [Product Backlog](backlog/PRODUCT-BACKLOG.md)，不得静默抢占当前 P0，除非出现安全/数据损坏/基础构建紧急问题。
+
+## Operating Rule
+
+Board 不定义新状态。状态变化先更新 owner item/Iteration/Baseline，再反映到这里。EVO-126 实施必须按 `START-ITERATION.md` 新建 Iteration，不得把本次 product-pivot 写进旧 Planned/Closed Iteration。
