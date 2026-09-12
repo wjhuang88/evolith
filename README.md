@@ -81,6 +81,8 @@ Browser / Git Client / MCP Client / Future Agent SDK
 - [API 合约](./docs/reference/API-CONTRACT.md)
 - [实施路线图](./docs/roadmap/IMPLEMENTATION-ROADMAP.md)
 - [经验与已知陷阱](./EVOLUTION.md)
+- [贡献指南](./CONTRIBUTING.md)
+- [商业授权说明](./COMMERCIAL-LICENSING.md)
 
 ## 环境要求
 
@@ -133,6 +135,20 @@ bun run type-check
 bun run build
 ```
 
-## 许可证
+## 开源与商业模式
 
-MIT License
+Evolith 核心代码采用 **GNU Affero General Public License v3.0 only (`AGPL-3.0-only`)** 开源。完整条款见 [`LICENSE`](./LICENSE)。
+
+AGPL 允许个人和企业使用、修改、分发以及商业化 Evolith，但使用者需要遵守许可证义务。对于通过网络向用户提供服务的修改版本，AGPL 对相应源代码的提供有专门要求。
+
+为了同时保持开放社区和长期商业化能力，Evolith 采用**开源许可 + 商业授权**的双轨模式：
+
+- **开源路径**：按照 `AGPL-3.0-only` 使用 Evolith。
+- **商业授权路径**：对于需要闭源集成、专有修改、不同分发条件、企业合同条款或希望避免 AGPL 约束的组织，可与项目方协商独立商业许可证。
+- **官方云服务**：项目方计划以 Evolith / Evolith Cloud 提供托管服务。云服务订阅属于独立的服务关系，并不自动改变代码本身的开源许可。
+
+AGPL 本身并不禁止第三方在遵守许可证和其他权利要求的前提下基于 Evolith 提供商业服务。官方云服务的竞争力将来自持续研发、托管运维、集成、企业能力、支持与服务等级等，而不是通过把开源许可证伪装成“禁止竞争”的 source-available 条款。
+
+软件许可证不授予 Evolith 名称、Logo 或品牌的商标使用权。第三方不得以容易造成官方背书、官方服务或合作关系误解的方式使用 Evolith 品牌。
+
+商业授权策略与适用场景见 [`COMMERCIAL-LICENSING.md`](./COMMERCIAL-LICENSING.md)，贡献者政策见 [`CONTRIBUTING.md`](./CONTRIBUTING.md)。
