@@ -166,11 +166,22 @@ jobs:
         working-directory: backend
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      - name: Reclaim Rust build disk before tests
+        working-directory: backend
+        run: |
+          printf 'Disk before Rust target cleanup:\n'
+          df -h .
+          du -sh target || true
+          cargo clean
+          printf 'Disk after Rust target cleanup:\n'
+          df -h .
+
       - name: Backend test (SQLite)
         working-directory: backend
         env:
           DATABASE__DATABASE_TYPE: sqlite
           DATABASE__URL: "sqlite::memory:"
+          CARGO_PROFILE_TEST_DEBUG: "0"
         run: cargo test --workspace
 
       - name: Build application recovery binary
@@ -191,6 +202,7 @@ jobs:
         env:
           DATABASE__DATABASE_TYPE: postgres
           DATABASE__URL: "postgres://evolith:evolith@localhost:5432/evolith_test"
+          CARGO_PROFILE_TEST_DEBUG: "0"
         run: cargo test --workspace
 
       - name: Production Compose clean build diagnostic (release/manual)
