@@ -58,5 +58,12 @@
 - `gh api .../branches/main/protection` 返回 HTTP 403（仓库权限/计划限制），无法证明远端
   required checks 已配置；该项保留为外部治理 residual。
 
-闭环状态：`Partial`。待具备仓库管理员权限后补查 Branch Protection，并在 Iteration 056
-记录结果。
+### 2026-09-12 CI runner disk headroom follow-up
+
+- PR #21 的 `ci` run `34500683820` 已通过 whitespace、Markdown、Frontend、DATA-01、Backend fmt/check/clippy，随后在 `Backend test (SQLite)` 链接阶段失败。
+- 失败日志明确为 GitHub hosted runner `No space left on device`；没有测试断言失败证据，独立 `data-durability-container` run 同一 head 已成功。
+- 根因边界：单 job 恢复 Rust `target` cache 后连续执行 check/clippy/test，测试链接阶段与既有编译产物叠加形成磁盘峰值。
+- 修复保持所有质量门禁：在 workspace test 前执行 `cargo clean` 回收 check/clippy 编译产物，并将 CI test profile debug info 设为 `0` 降低链接产物体积；不跳过、不条件化、不缩小 `cargo test --workspace`。
+- 新 CI run 必须证明 SQLite workspace test、application recovery drill 和后续必需步骤真实通过；若再次出现容量失败则继续按 CI 基础设施缺陷处理，不把重跑成功冒充根因闭环。
+
+闭环状态：`Partial`。待 CI disk-headroom follow-up 的真实 PR run 通过，并在具备仓库管理员权限后补查 Branch Protection；结果继续记录到 Iteration 056。
