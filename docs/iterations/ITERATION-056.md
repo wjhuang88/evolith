@@ -79,6 +79,7 @@ python3 scripts/tests/check-markdown-links.py
 | --- | --- | --- |
 | 2026-08-08 | activation | Iteration 055 已关闭；018/019/020/027 继续 Superseded/Blocked，025/026 继续按原阻塞处置且不影响当前主线。EVO-118-G 拆为 G-A/B/C/D，激活 G-A。 |
 | 2026-08-08 | verification | Frontend lint/type-check/build、Backend fmt/check/clippy/test、workflow YAML 解析通过；Branch Protection API 返回 403，required-check 远端配置无法核验。 |
+| 2026-09-12 | follow-up | PR #21 run `34500683820` 在通过 whitespace/link/frontend/DATA-01/fmt/check/clippy 后，于 SQLite workspace test 链接阶段出现 hosted runner `No space left on device`。保持验收范围不变，增加 test 前 `cargo clean` 与 test profile debug-info reduction；新 PR run 作为容量修复证据，Branch Protection residual 不变。 |
 
 ## 9. 变更请求
 
@@ -89,8 +90,8 @@ python3 scripts/tests/check-markdown-links.py
 ## 10. Review
 
 - 完成：workflow 接线与本地质量门禁。
-- 未完成：远端 required check 配置证据（外部权限 residual）。
-- 验证结果：本地前后端门禁及 YAML 解析通过。
+- 未完成：远端 required check 配置证据（外部权限 residual）；2026-09-12 runner disk-headroom follow-up 等待真实 PR run 复验。
+- 验证结果：本地前后端门禁及 YAML 解析通过；disk-headroom 修复不得用静态配置替代真实 Actions 证据。
 - 闭环状态：`Partial`
 - 残余归口：EVO-118-G-A；其他 G 子项按父项表执行。
 
