@@ -52,6 +52,28 @@ MIT license, but the Axum Router/AppState/Auth/UI/Product Policy boundary is not
 - The committed Evolith `backend/Cargo.lock` is part of this baseline because crates.io
   transitive versions are not fixed by the WalGit Git SHA alone.
 
+## Temporary bisync compatibility patch
+
+The pinned WalGit revision still uses `gix 0.86`, whose `gix-protocol 0.64` dependency
+requires `bisync ^0.3.0`. The original `bisync 0.3.0/0.3.1` releases were withdrawn
+(yanked), so a clean Cargo resolution cannot select them. Gitoxide fixed the upstream problem
+in [PR #2940](https://github.com/GitoxideLabs/gitoxide/pull/2940) and released
+`gix-protocol 0.65.1` / `gix 0.87.1`, but those versions are outside WalGit's current
+`gix = "0.86"` requirement.
+
+Evolith therefore applies one narrow `[patch.crates-io]` exception:
+
+- package identity exposed to `gix-protocol`: `bisync 0.3.2`;
+- local shim: `backend/third_party/bisync-compat`;
+- implementation dependency: exact crates.io `bisync2 = 0.3.2`;
+- `bisync2` is a maintained API-compatible fork of the withdrawn `bisync` crate;
+- the shim contains no copied implementation; it only re-exports `bisync2` under the
+  package name expected by `gix-protocol`.
+
+This is a compatibility exception, not a permanent platform dependency. Remove the patch when
+the pinned WalGit revision moves to a gix generation that no longer depends on withdrawn
+`bisync`.
+
 ## Upgrade procedure
 
 A WalGit revision change is a deliberate dependency review, not a floating update:
@@ -64,8 +86,10 @@ A WalGit revision change is a deliberate dependency review, not a floating updat
    Rust-version requirements.
 5. Run Rust 1.90 `fmt/check/clippy/test`, `cargo tree -p service-git`, exact-head CI,
    durability/recovery workflows and any Story-specific protocol tests.
-6. Update this baseline and `THIRD_PARTY_NOTICES.md` if revision/license attribution changes.
-7. Do not advance EVO-126-B+ if the pinned graph cannot be reproduced from a clean checkout.
+6. Re-check whether the temporary `bisync` compatibility patch is still required; remove it
+   when WalGit's gix requirement includes the upstream replacement.
+7. Update this baseline and `THIRD_PARTY_NOTICES.md` if revision/license attribution changes.
+8. Do not advance EVO-126-B+ if the pinned graph cannot be reproduced from a clean checkout.
 
 ## Runtime statement
 
