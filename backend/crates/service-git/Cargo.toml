@@ -13,3 +13,10 @@ tokio.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+
+# WalGit engine boundary. These are compile-time dependencies only in EVO-126-A;
+# runtime behavior remains the existing filesystem/subprocess implementation until later stories.
+walgit-config.workspace = true
+walgit-store.workspace = true
+walgit-git.workspace = true
+walgit-wal.workspace = true

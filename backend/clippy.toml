@@ -1,5 +1,5 @@
 # Clippy configuration
-msrv = "1.88"
+msrv = "1.90"
 
 # Allow certain patterns
 allow-dbg-in-tests = true

@@ -103,7 +103,7 @@
 
 ## Current Known Traps
 
-1. Rust MSRV 是 **1.88**；以 `backend/Cargo.toml` 和 Dockerfile 为准。
+1. Rust MSRV 是 **1.90**；以 `backend/Cargo.toml` 和 Dockerfile 为准。
 2. 当前是**模块化单体**，不是多个独立微服务。
 3. 嵌套配置使用双下划线，例如 `DATABASE__URL`、`GIT_STORAGE__BASE_PATH`。
 4. `VITE_API_URL` 通常包含 `/api/v1`，除非 Gateway 明确重写。

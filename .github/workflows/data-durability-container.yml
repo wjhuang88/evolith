@@ -50,7 +50,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.90.0
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
