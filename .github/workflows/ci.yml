@@ -156,7 +156,7 @@ jobs:
 
       - name: Resolve WalGit lock compatibility (EVO-126-A temporary)
         working-directory: backend
-        run: cargo update -p gix-validate -p libc
+        run: cargo update -p gix-validate -p gix-trace -p gix-utils -p libc
 
       - name: Backend format check
         working-directory: backend
