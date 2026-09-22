@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
+COPY third_party ./third_party
 
 RUN mkdir -p src && \
     echo "fn main() {}" > src/main.rs && \
