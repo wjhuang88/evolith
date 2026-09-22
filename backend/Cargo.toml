@@ -56,6 +56,7 @@ members = [
     "crates/service-audit",
     "crates/service-git",
 ]
+exclude = ["third_party/bisync-compat"]
 
 [workspace.lints.clippy]
 unwrap_used = "deny"
@@ -63,7 +64,7 @@ unwrap_used = "deny"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.88"
+rust-version = "1.90"
 authors = ["Evolith Team"]
 license = "AGPL-3.0-only"
 repository = "https://github.com/wjhuang88/evolith"
@@ -83,6 +84,14 @@ bollard = "0.21.0"
 
 # Git operations
 gix = "0.78.0"
+
+# WalGit engine primitives.
+# Keep every crate on the same exact upstream revision; do not use branch = "main".
+# walgit-server is intentionally excluded: Evolith owns the HTTP/auth/product boundary.
+walgit-config = { git = "https://github.com/tobi/walgit", rev = "80e9a20b29e29aefd16a4dae6f8e274cce85cca5" }
+walgit-store = { git = "https://github.com/tobi/walgit", rev = "80e9a20b29e29aefd16a4dae6f8e274cce85cca5" }
+walgit-git = { git = "https://github.com/tobi/walgit", rev = "80e9a20b29e29aefd16a4dae6f8e274cce85cca5" }
+walgit-wal = { git = "https://github.com/tobi/walgit", rev = "80e9a20b29e29aefd16a4dae6f8e274cce85cca5" }
 
 # Web framework
 actix-web = "4.13.0"
@@ -177,6 +186,12 @@ infra = { path = "crates/infra" }
 common = { path = "crates/common" }
 service-audit = { path = "crates/service-audit" }
 service-git = { path = "crates/service-git" }
+
+[patch.crates-io]
+# WalGit's pinned gix 0.86 -> gix-protocol 0.64 still requires the withdrawn/yanked
+# bisync ^0.3 crate. Keep the WalGit revision fixed and replace only that package
+# identity with a local compatibility shim backed by maintained bisync2 0.3.2.
+bisync = { path = "third_party/bisync-compat" }
 
 [profile.release]
 lto = true

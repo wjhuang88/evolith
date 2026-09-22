@@ -61,7 +61,7 @@ Browser / Git Client / MCP Client / Future Agent SDK
 
 | 层级 | 当前选型 |
 |------|----------|
-| 后端 | Rust 1.88 + Actix-web + Tokio |
+| 后端 | Rust 1.90 + Actix-web + Tokio |
 | Git | Git Smart HTTP subprocess + `gix` 上下文读取 |
 | 数据库 | SQLite（开发）/ PostgreSQL 16（生产） |
 | 缓存 | Redis 7，可按配置启用 |
@@ -89,7 +89,7 @@ Browser / Git Client / MCP Client / Future Agent SDK
 
 | 依赖 | 最低要求 | 说明 |
 |------|----------|------|
-| Rust | 1.88 | 与 Workspace `rust-version` 和 Builder 镜像一致 |
+| Rust | 1.90 | 与 Workspace `rust-version` 和 Builder 镜像一致 |
 | Bun | 1.3.14 | 前端安装、构建和开发脚本 |
 | Git | 2.x | Git 服务验证 |
 | curl | 稳定版本 | 健康检查 |

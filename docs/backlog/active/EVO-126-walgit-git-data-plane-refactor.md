@@ -2,7 +2,7 @@
 
 - **类型**：Epic / Architecture / Git Data Plane
 - **优先级**：P0
-- **状态**：Proposed / accepted direction
+- **状态**：In Progress / accepted direction
 - **GitHub Issue**：[wjhuang88/evolith#12](https://github.com/wjhuang88/evolith/issues/12)
 - **决策**：[ADR-0011](../../decisions/ADR-0011-walgit-backed-git-data-plane.md)
 - **整体基线**：[Project Status Baseline 2026-09-10](../../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)
@@ -19,16 +19,16 @@
 
 ## 子 Story
 
-| 子 Story | 独立结果 | 状态 | 依赖 | GitHub |
-|----------|----------|------|------|--------|
-| [EVO-126-A](EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.90 + exact WalGit pin + license boundary | Ready | 无 | [#13](https://github.com/wjhuang88/evolith/issues/13) |
-| [EVO-126-B](EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Proposed | A | [#14](https://github.com/wjhuang88/evolith/issues/14) |
-| [EVO-126-C](EVO-126-C-smart-http-read-path.md) | Smart HTTP read path v0/v2 | Proposed | B | [#15](https://github.com/wjhuang88/evolith/issues/15) |
-| [EVO-126-D](EVO-126-D-wal-receive-pack-write-path.md) | receive-pack -> WAL publish + durable push event | Proposed | B | [#16](https://github.com/wjhuang88/evolith/issues/16) |
-| [EVO-126-E](EVO-126-E-repo-context-walgit.md) | Repo Context parity on RepoHandle/ObjectAccess | Proposed | B | [#17](https://github.com/wjhuang88/evolith/issues/17) |
-| [EVO-126-F](EVO-126-F-object-store-operations-migration.md) | object-store config/readiness/migration/recovery | Proposed | B; final acceptance uses C/D/E | [#18](https://github.com/wjhuang88/evolith/issues/18) |
-| [EVO-126-G](EVO-126-G-bundle-uri-agent-clone.md) | secure bundle-uri Agent clone acceleration | Proposed | C/F | [#19](https://github.com/wjhuang88/evolith/issues/19) |
-| [EVO-126-H](EVO-126-H-cutover-retire-legacy-git-engine.md) | default cutover + legacy Git engine retirement | Proposed | C/D/E/F/G | [#20](https://github.com/wjhuang88/evolith/issues/20) |
+| 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 | GitHub |
+|----------|----------|------|------|----------|--------|
+| [EVO-126-A](EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.90 + exact WalGit pin + license boundary | In Progress | 无 | Iteration 069 | [#13](https://github.com/wjhuang88/evolith/issues/13) |
+| [EVO-126-B](EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Proposed | A | - | [#14](https://github.com/wjhuang88/evolith/issues/14) |
+| [EVO-126-C](EVO-126-C-smart-http-read-path.md) | Smart HTTP read path v0/v2 | Proposed | B | - | [#15](https://github.com/wjhuang88/evolith/issues/15) |
+| [EVO-126-D](EVO-126-D-wal-receive-pack-write-path.md) | receive-pack -> WAL publish + durable push event | Proposed | B | - | [#16](https://github.com/wjhuang88/evolith/issues/16) |
+| [EVO-126-E](EVO-126-E-repo-context-walgit.md) | Repo Context parity on RepoHandle/ObjectAccess | Proposed | B | - | [#17](https://github.com/wjhuang88/evolith/issues/17) |
+| [EVO-126-F](EVO-126-F-object-store-operations-migration.md) | object-store config/readiness/migration/recovery | Proposed | B; final acceptance uses C/D/E | - | [#18](https://github.com/wjhuang88/evolith/issues/18) |
+| [EVO-126-G](EVO-126-G-bundle-uri-agent-clone.md) | secure bundle-uri Agent clone acceleration | Proposed | C/F | - | [#19](https://github.com/wjhuang88/evolith/issues/19) |
+| [EVO-126-H](EVO-126-H-cutover-retire-legacy-git-engine.md) | default cutover + legacy Git engine retirement | Proposed | C/D/E/F/G | - | [#20](https://github.com/wjhuang88/evolith/issues/20) |
 
 ## Epic 完成条件
 

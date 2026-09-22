@@ -48,7 +48,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 
 ## Root Entrypoints
 
-- [AGENTS.md](../AGENTS.md) — Agent 主启动文档、硬约束和 Task Router；其中 Rust 1.88/filesystem Git 在 EVO-126-A/H 前仍是 current runtime fact。
+- [AGENTS.md](../AGENTS.md) — Agent 主启动文档、硬约束和 Task Router；其中 Rust 1.90 由 EVO-126-A 建立；filesystem Git 在 EVO-126-H 前仍是 current runtime fact。
 - [CLAUDE.md](../CLAUDE.md) — Claude Code 重定向入口。
 - [GEMINI.md](../GEMINI.md) — Gemini CLI 重定向入口。
 
@@ -60,7 +60,8 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [项目地图](reference/PROJECT-MAP.md) — 代码结构和关键路径。
 - [API 合约](reference/API-CONTRACT.md) — HTTP API、认证与错误响应。
 - [API Key 与 MCP 授权合约](reference/API-KEY-AUTHORIZATION.md) — API Keys/MCP/scope 安全细化契约。
-- [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本；Rust 版本实际变更由 EVO-126-A 更新。
+- [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本；Rust 1.90 基线由 EVO-126-A 维护。
+- [WalGit Dependency Baseline](reference/WALGIT-DEPENDENCY-BASELINE.md) — exact upstream SHA、允许的 engine crates、禁止的 server boundary、lock/license 与升级流程。
 - [配置参考](reference/CONFIG.md) — 当前配置；object-store Git 配置由 EVO-126-F 更新。
 - [权限](reference/PERMISSIONS.md) — owner/admin/member 与 Typed Capability。
 - [多租户设计](reference/MULTI-TENANT.md) — 租户模型和隔离边界。
@@ -106,7 +107,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [Operating Board](BOARD.md) — 当前 Now/Next/Blocked/Done 派生视图。
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
 - [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — WalGit Git Data Plane Epic。
-- [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — 下一 Ready Story。
+- [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — Iteration 069 In Progress；Rust 1.90 + exact WalGit dependency boundary。
 - [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic；E 为最终 release gate，G-A 有 residual。
 - [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) — Git-centric product foundation；Agent/Discovery 子项等待新 data plane。
 - [EVO-121](backlog/active/EVO-121-product-experience-convergence.md) — Experience Convergence；C/D Done，A/B/E/F 待激活。

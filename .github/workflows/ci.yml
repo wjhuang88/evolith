@@ -84,7 +84,7 @@ jobs:
         run: python3 scripts/tests/check-markdown-links.py
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.90.0
         with:
           components: rustfmt, clippy
 
@@ -154,6 +154,10 @@ jobs:
       - name: Git volume container recreation
         run: bash scripts/tests/container-volume-persistence.sh
 
+      - name: Resolve WalGit lock compatibility (EVO-126-A temporary)
+        working-directory: backend
+        run: cargo update -p gix-validate -p gix-trace -p gix-utils -p libc
+
       - name: Backend format check
         working-directory: backend
         run: cargo fmt --all -- --check
@@ -161,6 +165,16 @@ jobs:
       - name: Backend check
         working-directory: backend
         run: cargo check --workspace --all-targets
+
+      # EVO-126-A temporary evidence step. It captures Cargo's lockfile update
+      # from the real Rust 1.90 runner; remove this step after Cargo.lock is committed.
+      - name: Upload resolved Cargo.lock (EVO-126-A temporary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evo-126-a-cargo-lock
+          path: backend/Cargo.lock
+          if-no-files-found: error
 
       - name: Backend clippy
         working-directory: backend

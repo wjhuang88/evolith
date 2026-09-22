@@ -22,7 +22,7 @@
 
 | 技术 | 当前基线 | 用途 |
 |------|----------|------|
-| Rust | 1.88 | Workspace MSRV；与生产 Builder 镜像一致 |
+| Rust | 1.90 | Workspace MSRV；与生产 Builder 镜像一致 |
 | Edition | 2021 | Workspace edition |
 | Cargo resolver | 2 | Workspace 依赖解析 |
 | Debian | bookworm-slim | 生产运行镜像 |
@@ -202,7 +202,7 @@ cargo build --release
 
 ### 4.1 Lite
 
-- Rust 1.88。
+- Rust 1.90。
 - Bun 1.3.14。
 - SQLite 内存数据库。
 - legacy Sandbox 关闭。
@@ -223,7 +223,7 @@ MinIO 仍可由开发 Compose 启动，但当前 Git-centric 主线使用 Git �
 
 `backend/Dockerfile` 当前：
 
-- Builder：`rust:1.88-slim-bookworm`
+- Builder：`rust:1.90-slim-bookworm`
 - Runtime：`debian:bookworm-slim`
 - Runtime 包含 `git`、`curl`、CA 和 OpenSSL 运行库
 - 非 root 用户 `evolith`

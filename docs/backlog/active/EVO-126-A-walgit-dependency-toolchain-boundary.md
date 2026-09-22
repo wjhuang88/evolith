@@ -3,11 +3,19 @@
 - **父 Epic**：[EVO-126](EVO-126-walgit-git-data-plane-refactor.md)
 - **类型**：Technical / Dependency / Supply Chain
 - **优先级**：P0
-- **状态**：Ready
+- **状态**：In Progress
 - **GitHub Issue**：[#13](https://github.com/wjhuang88/evolith/issues/13)
+- **当前迭代**：[Iteration 069](../../iterations/ITERATION-069.md)
 - **依赖或阻塞**：无
 - **解锁内容**：EVO-126-B
 - **影响范围**：backend / deploy / docs
+
+## Activation Snapshot
+
+- 2026-09-22 inventory 后激活到 Iteration 069。
+- WalGit upstream snapshot：`80e9a20b29e29aefd16a4dae6f8e274cce85cca5`（`main` at activation）。
+- Upstream workspace 当前声明 `rust-version = "1.90"`、edition 2024、license MIT。
+- 本 Story 只建立可重复编译/供应链边界；filesystem Git runtime 在本 Story 结束后仍保持当前实现。
 
 ## 工程目标
 
