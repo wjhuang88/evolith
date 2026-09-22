@@ -81,6 +81,7 @@ Browser / Git Client / MCP Client / Future Agent SDK
 - [API 合约](./docs/reference/API-CONTRACT.md)
 - [实施路线图](./docs/roadmap/IMPLEMENTATION-ROADMAP.md)
 - [经验与已知陷阱](./EVOLUTION.md)
+- [贡献指南](./CONTRIBUTING.md)
 
 ## 环境要求
 
@@ -133,6 +134,14 @@ bun run type-check
 bun run build
 ```
 
-## 许可证
+## 开源许可
 
-MIT License
+Evolith 采用 **GNU Affero General Public License v3.0 only (`AGPL-3.0-only`)** 开源。完整许可证文本见 [`LICENSE`](./LICENSE)。
+
+你可以在 AGPLv3 条款允许的范围内使用、研究、修改、分发和商业使用 Evolith。对于修改后的版本，特别是通过网络向用户提供服务的版本，请注意 AGPLv3 关于对应源代码提供的要求。
+
+项目依赖的第三方软件、库、资源或其他组件仍分别受其各自许可证约束；Evolith 的许可证不会替代这些第三方条款。
+
+欢迎参与项目开发。提交代码、文档或其他可版权化贡献前，请先阅读 [`CONTRIBUTING.md`](./CONTRIBUTING.md)。
+
+> Evolith 当前首先以开放源码项目的方式建设。任何未来的托管服务、企业服务或其他商业安排如有规划，将另行说明，不构成本许可证的一部分。
