@@ -67,14 +67,15 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
+      - name: Install CI system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client protobuf-compiler
+          protoc --version
+
       - name: Build application binary (locked)
         working-directory: backend
         run: cargo build --locked --bin evolith
-
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
 
       - name: Validate recreation script
         run: bash -n scripts/tests/backend-container-recreation.sh
