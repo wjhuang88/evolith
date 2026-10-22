@@ -12,10 +12,16 @@
 - Snapshot selected: 2026-09-22
 - Upstream workspace version: `0.1.0`
 - Upstream Rust MSRV: `1.90`
+- Evolith integration Rust baseline: `1.94.1`
 - Upstream edition: `2024`
 - License: MIT
 
 Cargo manifests are authoritative for the pin. Branch, tag or `main` dependencies are not allowed.
+
+The upstream MSRV and the integration MSRV are intentionally recorded separately. WalGit itself
+advertises Rust 1.90, but Evolith's full resolved graph currently includes existing `sqlx 0.9.0`
+(Rust 1.94.0) and current AWS SDK patch releases reached through WalGit store defaults
+(Rust 1.94.1). Therefore EVO-126-A validates and publishes Rust 1.94.1 as the Evolith baseline.
 
 ## Allowed engine crates
 
@@ -51,6 +57,8 @@ MIT license, but the Axum Router/AppState/Auth/UI/Product Policy boundary is not
   EVO-126-F; A only proves the pinned graph compiles and is locked.
 - The committed Evolith `backend/Cargo.lock` is part of this baseline because crates.io
   transitive versions are not fixed by the WalGit Git SHA alone.
+- Evolith itself is `AGPL-3.0-only`; WalGit and bisync2 remain third-party permissive dependencies
+  under their own license notices.
 
 ## Temporary bisync compatibility patch
 
@@ -84,12 +92,15 @@ A WalGit revision change is a deliberate dependency review, not a floating updat
 3. Update all allowed WalGit workspace dependencies to the same revision.
 4. Regenerate and review `backend/Cargo.lock`; inspect new/removed transitive dependencies and
    Rust-version requirements.
-5. Run Rust 1.90 `fmt/check/clippy/test`, `cargo tree -p service-git`, exact-head CI,
-   durability/recovery workflows and any Story-specific protocol tests.
-6. Re-check whether the temporary `bisync` compatibility patch is still required; remove it
+5. Derive the required Evolith integration Rust version from the complete locked graph; do not
+   assume WalGit's own MSRV is sufficient for the host workspace.
+6. Run the selected Evolith Rust baseline (`1.94.1` for this pin) through
+   `fmt/check/clippy/test`, `cargo tree -p service-git`, exact-head CI, durability/recovery
+   workflows and any Story-specific protocol tests.
+7. Re-check whether the temporary `bisync` compatibility patch is still required; remove it
    when WalGit's gix requirement includes the upstream replacement.
-7. Update this baseline and `THIRD_PARTY_NOTICES.md` if revision/license attribution changes.
-8. Do not advance EVO-126-B+ if the pinned graph cannot be reproduced from a clean checkout.
+8. Update this baseline and `THIRD_PARTY_NOTICES.md` if revision/license attribution changes.
+9. Do not advance EVO-126-B+ if the pinned graph cannot be reproduced from a clean checkout.
 
 ## Runtime statement
 
