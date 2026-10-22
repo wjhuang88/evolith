@@ -83,11 +83,11 @@ PR exact-head CI 还必须证明现有 frontend、DATA-01 durability 与 applica
 
 | 项目 | 本轮记录 |
 |------|----------|
-| 请求结果 | 正式启动 WalGit 重构第一切片，建立可重复的 Rust 1.90 + pinned WalGit engine dependency 基线 |
+| 请求结果 | 正式启动 WalGit 重构第一切片，建立可重复的 Rust toolchain + pinned WalGit engine dependency 基线 |
 | 产物 | toolchain/Cargo/Docker/CI 版本同步；WalGit exact-SHA deps/lock；THIRD_PARTY_NOTICES；依赖/升级说明 |
 | 状态同步归口 | EVO-126-A item、EVO-126 Epic、Product Backlog、Board、Iteration 069、GitHub #12/#13 |
 | Story/BDD 归口 | Technical Story；BDD 不适用，使用命令级 build/test/lock/license 验收 |
-| 验证证据 | Rust 1.90 fmt/check/clippy/test、cargo tree/lock 检查、文档检查、exact-head CI 与 durability/recovery |
+| 验证证据 | amended target: Rust 1.94.1 fmt/check/clippy/test、cargo tree/lock 检查、文档检查、exact-head CI 与 durability/recovery |
 | 残余工作归口 | service-git v2 engine boundary -> EVO-126-B；任何 upstream incompatibility 留在 A/Iteration 069，不透传到 B |
 
 ## 8. 实际激活与执行记录
@@ -96,23 +96,34 @@ PR exact-head CI 还必须证明现有 frontend、DATA-01 durability 与 applica
 |------|------|------|
 | 2026-09-22 | activation | PR #21 已合入 main（`d15217b`）；库存盘点后选择唯一 P0 Ready Story EVO-126-A，旧 Blocked/Superseded/Closed-Partial iteration disposition 如上，不阻塞本轮。 |
 | 2026-09-22 | verification | WalGit `main` activation snapshot 为 `80e9a20b29e29aefd16a4dae6f8e274cce85cca5`；upstream workspace 声明 Rust 1.90 / edition 2024 / MIT。选择 exact SHA 作为本轮 pin，禁止 floating main。 |
+| 2026-09-22 | dependency | clean resolution 发现 WalGit gix 0.86 -> gix-protocol 0.64 仍依赖已 withdrawn/yanked 的 `bisync ^0.3`；采用本地 package-identity shim + maintained `bisync2 = 0.3.2`，不漂移 WalGit SHA。 |
+| 2026-10-22 | verification | clean resolved graph 显示现有 `sqlx 0.9.0` 要求 Rust 1.94.0，WalGit 默认 store/AWS 当前 patch graph 要求 Rust 1.94.1；因此 1.90 无法作为 Evolith 集成 MSRV。 |
 
 ## 9. 变更请求
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
 |------|------|------|------|------------|
-| - | - | - | - | - |
+| 2026-10-22 | scope-change | 接受：Evolith integration toolchain/MSRV 从计划的 1.90 修正为 1.94.1；WalGit upstream 自身 MSRV 仍记录为 1.90 | 当前 Story 验收、Cargo/Docker/CI/dev 文档改为 1.94.1；不改变 data-plane 架构、Story 边界或 runtime Git path | 保留 exact WalGit pin、bisync shim、service-git dependency boundary；移除所有只为 1.90 解析失败服务的临时结论，最终 CI 不保留临时 lock update/write step |
+
+### 9.1 修订后的当前验收标准
+
+- [ ] Evolith workspace / rust-toolchain / builder / CI / Clippy / current docs 统一为 Rust 1.94.1。
+- [ ] exact WalGit SHA、`walgit-server` exclusion、temporary bisync compatibility boundary 保持可审计。
+- [ ] committed `Cargo.lock` 可从 clean checkout 直接构建，不需要临时 `cargo update` 或 yanked crate。
+- [ ] Rust 1.94.1 下 fmt/check/clippy/test、dependency tree、frontend、durability/recovery exact-head CI 全部通过。
+- [ ] Evolith 项目许可证保持 `AGPL-3.0-only`；第三方 WalGit/bisync2 attribution 保持各自许可证事实。
+- [ ] filesystem Git runtime 行为不变。
 
 ## 10. Review
 
-- 完成：待实施。
-- 未完成：EVO-126-A 全部技术验收。
-- 验证结果：activation inventory 与 upstream pin snapshot 已完成；runtime 验证待实现后执行。
+- 完成：activation、exact WalGit pin、dependency boundary、bisync compatibility design、Rust 1.94.1 scope-change 已记录并进入实现。
+- 未完成：最终 Cargo.lock、临时 CI step 清理、full exact-head CI、governance closure。
+- 验证结果：2026-09-22 CI 已证明 1.90 被 dependency MSRV 阻断；2026-10-22 按真实依赖图修订工具链，最终验证待新 head Actions。
 - 闭环状态：`Partial`
 - 残余归口：尚未收口；本 Iteration 保持 Active。
 
 ## 11. Retrospective
 
-- 做得好的：待收口。
-- 需要调整的：待收口。
-- 写入 EVOLUTION：若出现可复用的 Rust/WalGit dependency 或 CI 经验则在收口时决定。
+- 做得好的：没有通过 floating WalGit main 或强行锁 yanked crate 绕过供应链问题。
+- 需要调整的：不能把上游项目的 MSRV 直接等同于集成项目可用 MSRV；必须以完整 resolved graph 验证。
+- 写入 EVOLUTION：收口时记录“integration MSRV must be derived from full locked dependency graph”。
