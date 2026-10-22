@@ -64,9 +64,9 @@ unwrap_used = "deny"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.90"
+rust-version = "1.94.1"
 authors = ["Evolith Team"]
-license = "MIT"
+license = "AGPL-3.0-only"
 repository = "https://github.com/wjhuang88/evolith"
 
 [workspace.dependencies]
