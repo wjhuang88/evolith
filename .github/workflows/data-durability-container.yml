@@ -67,13 +67,9 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
-      - name: Resolve WalGit lock compatibility (EVO-126-A temporary)
+      - name: Build application binary (locked)
         working-directory: backend
-        run: cargo update -p gix-validate -p gix-trace -p gix-utils -p libc
-
-      - name: Build application binary
-        working-directory: backend
-        run: cargo build --bin evolith
+        run: cargo build --locked --bin evolith
 
       - name: Install PostgreSQL client
         run: |
