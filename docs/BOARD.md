@@ -9,7 +9,7 @@
 | Item | State | Owner Doc | Gate / Next action |
 |------|-------|-----------|--------------------|
 | EVO-126 WalGit Git Data Plane | In Progress / accepted direction | [Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) | GIT-DP-01 Open；Epic 不直接进入 Iteration |
-| EVO-126-A Dependency/Toolchain Boundary | **In Progress / Iteration 069** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | pin WalGit `80e9a20...`、升级 Rust 1.90、建立 MIT/supply-chain boundary；runtime Git path 不切换 |
+| EVO-126-A Dependency/Toolchain Boundary | **In Progress / Iteration 069** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | pin WalGit `80e9a20...`、Evolith integration Rust 1.94.1、AGPL + third-party license/supply-chain boundary；runtime Git path 不切换 |
 | EVO-118-G-A CI Merge Gates | Review / Partial residual | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056 保留；Branch Protection 远端证据在 release closure 前处理 |
 
 ## Planned Sequence
