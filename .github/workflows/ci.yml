@@ -161,7 +161,18 @@ jobs:
 
       - name: Backend check (locked)
         working-directory: backend
-        run: cargo check --locked --workspace --all-targets
+        shell: bash
+        run: |
+          set +e
+          cargo check --locked --workspace --all-targets 2>&1 | tee /tmp/evolith-cargo-check.log
+          status=${PIPESTATUS[0]}
+          if [[ "$status" -ne 0 ]]; then
+            printf '\n=== Rust compiler errors ===\n'
+            grep -n -E '(^| )error(\[|:)|could not compile' /tmp/evolith-cargo-check.log | tail -n 120 || true
+            printf '\n=== Cargo check tail ===\n'
+            tail -n 260 /tmp/evolith-cargo-check.log
+          fi
+          exit "$status"
 
       - name: Backend clippy (locked)
         working-directory: backend
