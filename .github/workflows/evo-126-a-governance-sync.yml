@@ -1,0 +1,84 @@
+name: evo-126-a-governance-sync
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: evo-126-a-governance-sync-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  governance-sync:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'agent/evo-126-a-walgit-dependency-boundary'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Verify exact event head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Apply bounded governance sync
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          evolution = Path('EVOLUTION.md')
+          text = evolution.read_text()
+          old_row = '| 19 | 新 migration 在 fresh schema 通过，但已有环境升级仍可能失败或丢状态 | 测试只从空库执行全部 migration，没有从前一版本携带已有行升级 | 双数据库从前一 migration 建表并插入代表性行，再执行新 migration 验证数据/状态保留 |'
+          new_row = old_row + '\n| 20 | 上游依赖项目声明的 MSRV 可用，但 host workspace clean build 仍失败 | upstream MSRV 只覆盖其自身 workspace；host 既有依赖与实际 lockfile transitive patch 可能要求更高 Rust，SDK family 还可能出现内部类型 generation 不一致 | 以完整 `Cargo.lock` + clean locked build 推导 integration MSRV；对成组 SDK 依赖优先对齐上游已验证 lock family，不把单 crate semver 可解析当作可编译证据 |'
+          if old_row not in text:
+              raise SystemExit('EVOLUTION quick-reference anchor not found')
+          text = text.replace(old_row, new_row, 1)
+
+          anchor = '### 2026-08-10 异步 E2E 不得用同步子进程阻塞 runtime'
+          entry = '''### 2026-10-23 - 集成 MSRV 与 SDK family 必须来自完整 locked dependency graph\n\n- Trigger: EVO-126-A 将 WalGit exact-SHA engine crates 引入 Evolith `service-git` 编译边界。\n- Symptom: WalGit upstream workspace 声明 Rust 1.90，但 Evolith clean resolution 需要 Rust 1.94.1；随后 `cargo check --locked` 又因 AWS SDK/Smithy 同名类型来自不同 generation 而失败。\n- Root cause: upstream MSRV 只证明 upstream 自身 workspace 的最低编译版本，不包含 host workspace 既有依赖；同时 Git dependency 的 exact SHA 也不会固定 crates.io transitive patch，AWS/Smithy 这类成组 SDK 若 lock 到跨 generation 版本，即使 Cargo 能解析也可能在类型层不兼容。\n- Fix: 将 Evolith integration baseline 正式 scope-change 到 Rust 1.94.1；提交真实 `Cargo.lock`；对照 pinned WalGit 自身 lock 将 AWS/Smithy family 对齐到已验证组合；CI 改为 `--locked` 并新增 `cargo tree --locked -p service-git` dependency-boundary gate。\n- Prevention: dependency upgrade 必须区分 upstream MSRV 与 host integration MSRV；用 clean locked graph 推导工具链；对大型 SDK family 优先保持同一已验证 generation；临时 lock-update/self-commit 只能用于生成证据，最终 workflow 必须恢复只读。\n- Promoted to rule/check: `docs/reference/WALGIT-DEPENDENCY-BASELINE.md`、`docs/roadmap/CURRENT-EXECUTION-PLAN-2026-09.md`、`.github/workflows/ci.yml`。\n\n'''
+          if anchor not in text:
+              raise SystemExit('EVOLUTION Part 2 anchor not found')
+          text = text.replace(anchor, entry + anchor, 1)
+          evolution.write_text(text)
+
+          index = Path('docs/iterations/README.md')
+          text = index.read_text()
+          old_iteration = '| [Iteration 069](ITERATION-069.md) | **Active** | EVO-126-A WalGit dependency/toolchain boundary；Rust 1.90 + exact SHA pin + MIT/supply-chain boundary |'
+          new_iteration = '| [Iteration 069](ITERATION-069.md) | **Review** | EVO-126-A WalGit dependency/toolchain boundary；Evolith Rust 1.94.1 integration baseline + exact SHA pin + license/supply-chain boundary；final governance exact-head CI 待闭合 |'
+          if old_iteration not in text:
+              raise SystemExit('Iteration 069 inventory anchor not found')
+          text = text.replace(old_iteration, new_iteration, 1)
+          activation = '- 2026-09-22 按 START-ITERATION inventory 激活 Iteration 069 / EVO-126-A。018/019/020/027 继续 Superseded direction；025/026 继续 Blocked for activation；056 保持 Closed / Partial residual，均不阻塞当前 P0。'
+          review = activation + '\n- 2026-10-23 Iteration 069 进入 Review：technical head `2412c04` 的 `ci` #272 与 durability #114 全绿；Navigator 无 blocking implementation finding，治理同步与 permanent locked dependency-tree gate 进入 final exact-head 验证。'
+          if activation not in text:
+              raise SystemExit('Iteration 069 activation anchor not found')
+          text = text.replace(activation, review, 1)
+          index.write_text(text)
+          PY
+
+      - name: Commit only bounded governance files
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          changed="$(git status --porcelain | awk '{print $2}' | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = $'EVOLUTION.md\ndocs/iterations/README.md'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add EVOLUTION.md docs/iterations/README.md
+          test "$(git diff --cached --name-only | sort)" = $'EVOLUTION.md\ndocs/iterations/README.md'
+          git commit -m 'docs(walgit): sync review governance evidence (#13) [model: GPT-5.6 Sol]'
+          git push origin "HEAD:${HEAD_REF}"
