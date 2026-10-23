@@ -4,6 +4,8 @@
 
 Accepted（2026-09-10）
 
+Implementation amendment（2026-10-22）：WalGit upstream workspace 的 MSRV 仍为 Rust 1.90，但 EVO-126-A 的 clean resolved integration graph 证明 Evolith 当前依赖组合需要 Rust 1.94.1；该修订不改变本 ADR 的 data-plane 架构决策。
+
 ## 背景
 
 Evolith 已经完成 filesystem-backed Git Alpha：Repo CRUD、Smart HTTP、真实 clone/pull/push、Repo Context、单实例 Git durability/recovery、Repo lifecycle 与 durable Push Event 均有实现和证据。
@@ -48,7 +50,7 @@ WalGit 提供 Rust crates 级的 Git engine primitives：object-store abstractio
 
 优点：复用困难的 Git/WAL/storage/protocol 机制，同时保持 Evolith 对产品语义、Actix adapter 和模块化单体的所有权；`service-git` 可成为稳定 anti-corruption layer。
 
-缺点：需要 Rust 1.90、pre-1.0 upstream pinning、较大迁移和新的 object-store 运维边界；需要对衍生代码做许可证治理。
+缺点：WalGit upstream 自身需要 Rust 1.90，而 Evolith 当前完整 integration graph 实际要求 Rust 1.94.1；同时存在 pre-1.0 upstream pinning、较大迁移、新 object-store 运维边界与衍生代码许可证治理成本。
 
 ## 决策
 
@@ -147,11 +149,22 @@ Registry/open -> RepoHandle freshness/sync -> ObjectAccess
 
 ### 8. Dependency / license governance
 
-- Evolith MSRV 先升级到 Rust 1.90。
+- WalGit upstream workspace 当前声明 Rust 1.90；Evolith integration toolchain/MSRV 以完整 locked graph 为准，EVO-126-A 当前基线为 Rust 1.94.1。
 - WalGit Git dependencies 必须 pin exact commit SHA；禁止依赖移动 `main`。
 - 上游升级单独评审，不在无关 Story 中自动漂移。
 - substantial copied/derived code 必须保留 WalGit MIT copyright/permission notice；仓库维护 `THIRD_PARTY_NOTICES.md`。
+- Evolith 自身继续按 `AGPL-3.0-only` 发布；第三方 permissive license notice 不被项目许可证覆盖或改写。
 - WalGit pre-1.0 API 变化由 `service-git` adapter 吸收，不传播到产品层。
+- 临时 transitive compatibility patch 必须有来源、license、移除条件；不得通过 yanked crate 或 floating upstream 绕过 clean resolution。
+
+## 2026-10-22 实施修订依据
+
+EVO-126-A 在 exact WalGit revision `80e9a20b29e29aefd16a4dae6f8e274cce85cca5` 上得到两项依赖事实：
+
+1. WalGit 的 `gix 0.86 -> gix-protocol 0.64` 仍要求已 withdrawn/yanked 的 `bisync ^0.3`。Evolith 使用本地 package-identity shim，把该 API 映射到 maintained `bisync2 = 0.3.2`；该 patch 在 WalGit/gix 升级后必须重新验证并优先删除。
+2. clean resolved graph 中，Evolith 既有 `sqlx 0.9.0` 要求 Rust 1.94.0，WalGit 默认 store/AWS 当前 patch graph 中的 AWS SDK 要求 Rust 1.94.1，因此不能以 WalGit 自身 1.90 MSRV 代表 Evolith 集成 MSRV。
+
+上述修订不改变 C 方案、object-store/WAL target、service-git anti-corruption boundary 或 A~H 顺序。
 
 ## 后果
 

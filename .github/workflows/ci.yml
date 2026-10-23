@@ -84,7 +84,7 @@ jobs:
         run: python3 scripts/tests/check-markdown-links.py
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.94.1
         with:
           components: rustfmt, clippy
 
@@ -113,10 +113,11 @@ jobs:
         working-directory: frontend
         run: bun run lint
 
-      - name: Install PostgreSQL client
+      - name: Install CI system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client protobuf-compiler
+          protoc --version
 
       - name: Durability script syntax
         run: |
@@ -158,13 +159,40 @@ jobs:
         working-directory: backend
         run: cargo fmt --all -- --check
 
-      - name: Backend check
+      - name: WalGit dependency boundary (locked)
         working-directory: backend
-        run: cargo check --workspace --all-targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree --locked -p service-git | tee /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-config v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-store v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-git v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-wal v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'https://github.com/tobi/walgit?rev=80e9a20b29e29aefd16a4dae6f8e274cce85cca5' /tmp/evolith-service-git-tree.txt
+          if grep -Fq 'walgit-server ' /tmp/evolith-service-git-tree.txt; then
+            echo 'walgit-server must not enter the Evolith service-git dependency boundary' >&2
+            exit 1
+          fi
 
-      - name: Backend clippy
+      - name: Backend check (locked)
         working-directory: backend
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        shell: bash
+        run: |
+          set +e
+          cargo check --locked --workspace --all-targets 2>&1 | tee /tmp/evolith-cargo-check.log
+          status=${PIPESTATUS[0]}
+          if [[ "$status" -ne 0 ]]; then
+            printf '\n=== Rust compiler errors ===\n'
+            grep -n -E '(^| )error(\[|:)|could not compile' /tmp/evolith-cargo-check.log | tail -n 120 || true
+            printf '\n=== Cargo check tail ===\n'
+            tail -n 260 /tmp/evolith-cargo-check.log
+          fi
+          exit "$status"
+
+      - name: Backend clippy (locked)
+        working-directory: backend
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - name: Reclaim Rust build disk before tests
         working-directory: backend
@@ -176,17 +204,17 @@ jobs:
           printf 'Disk after Rust target cleanup:\n'
           df -h .
 
-      - name: Backend test (SQLite)
+      - name: Backend test (SQLite, locked)
         working-directory: backend
         env:
           DATABASE__DATABASE_TYPE: sqlite
           DATABASE__URL: "sqlite::memory:"
           CARGO_PROFILE_TEST_DEBUG: "0"
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
 
-      - name: Build application recovery binary
+      - name: Build application recovery binary (locked)
         working-directory: backend
-        run: cargo build --bin evolith
+        run: cargo build --locked --bin evolith
 
       - name: Application-level recovery drill
         env:
@@ -196,14 +224,14 @@ jobs:
           EVOLITH_APP_VERSION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: bash scripts/tests/application-recovery-drill.sh
 
-      - name: Backend test (PostgreSQL release/manual)
+      - name: Backend test (PostgreSQL release/manual, locked)
         if: github.event_name != 'pull_request'
         working-directory: backend
         env:
           DATABASE__DATABASE_TYPE: postgres
           DATABASE__URL: "postgres://evolith:evolith@localhost:5432/evolith_test"
           CARGO_PROFILE_TEST_DEBUG: "0"
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
 
       - name: Production Compose clean build diagnostic (release/manual)
         id: production_build

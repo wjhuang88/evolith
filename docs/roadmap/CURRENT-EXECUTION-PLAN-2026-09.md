@@ -6,6 +6,8 @@
 > 整体基线：[PROJECT-STATUS-BASELINE-2026-09-10](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)
 > 决策：[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)
 > 当前 P0 Epic：[EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md)
+>
+> 2026-10-22 execution amendment：WalGit upstream 自身 MSRV 仍为 Rust 1.90；EVO-126-A clean resolved graph 证明 Evolith integration baseline 必须为 Rust 1.94.1。该修订只改变 G1 toolchain acceptance，不改变 A~H 顺序或 data-plane 目标。
 
 本文自 2026-09-10 起作为**唯一当前激活顺序 owner**。`PRODUCTION-READINESS-PLAN-2026-07.md` 与 `TWO-MONTH-PLAN-2026-07.md` 保留为历史计划基线，不覆写其当时目标、状态和证据。
 
@@ -48,11 +50,11 @@ Exit：Current implementation 与 Accepted target 不混淆；下一 Story 唯�
 
 ### EVO-126-A
 
-目标：Rust 1.90、exact WalGit dependency pin、license/supply-chain boundary。
+目标：Evolith Rust 1.94.1 integration baseline、exact WalGit dependency pin、license/supply-chain boundary。WalGit upstream workspace 自身仍声明 Rust 1.90。
 
 进入：无硬实现依赖。
 
-退出：workspace 在 Rust 1.90 全量门禁通过；当前 filesystem Git 行为不变。
+退出：workspace 在 Rust 1.94.1 全量门禁通过；Cargo.lock 可从 clean checkout 直接解析；当前 filesystem Git 行为不变。
 
 ## 5. Phase G2 — Engine Boundary
 
@@ -172,6 +174,8 @@ EVO-105 Commit API + PolicyEvaluator / Promote
 - 影响当前 Story 则按 CHANGE-CONTROL 记录；
 - 不影响则新建 dependency upgrade Story；
 - 如发现 WalGit engine 无法满足 hard requirement，应暂停 EVO-126 后续切片，形成 ADR amendment/superseding ADR，而不是在 service-git 中堆无归口 workaround。
+
+如果完整 locked graph 的 Rust MSRV 高于 WalGit upstream 自身 MSRV，以 Evolith 的 clean integration build 为准；变更必须同步 Story/Iteration/ADR/Current Plan，不能只修改 CI 镜像。
 
 ## 13. 完成声明
 
