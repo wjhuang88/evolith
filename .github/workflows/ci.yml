@@ -159,6 +159,22 @@ jobs:
         working-directory: backend
         run: cargo fmt --all -- --check
 
+      - name: WalGit dependency boundary (locked)
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo tree --locked -p service-git | tee /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-config v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-store v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-git v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'walgit-wal v0.1.0' /tmp/evolith-service-git-tree.txt
+          grep -F 'https://github.com/tobi/walgit?rev=80e9a20b29e29aefd16a4dae6f8e274cce85cca5' /tmp/evolith-service-git-tree.txt
+          if grep -Fq 'walgit-server ' /tmp/evolith-service-git-tree.txt; then
+            echo 'walgit-server must not enter the Evolith service-git dependency boundary' >&2
+            exit 1
+          fi
+
       - name: Backend check (locked)
         working-directory: backend
         shell: bash
