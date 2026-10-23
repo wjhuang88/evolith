@@ -9,15 +9,15 @@
 | Item | State | Owner Doc | Gate / Next action |
 |------|-------|-----------|--------------------|
 | EVO-126 WalGit Git Data Plane | In Progress / accepted direction | [Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) | GIT-DP-01 Open；Epic 不直接进入 Iteration |
-| EVO-126-A Dependency/Toolchain Boundary | **In Progress / Iteration 069** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | pin WalGit `80e9a20...`、Evolith integration Rust 1.94.1、AGPL + third-party license/supply-chain boundary；runtime Git path 不切换 |
+| EVO-126-A Dependency/Toolchain Boundary | **Review / Iteration 069** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | technical exact-head gates green；治理同步 + permanent locked dependency-tree gate 后 final exact-head CI；runtime Git path 不切换 |
 | EVO-118-G-A CI Merge Gates | Review / Partial residual | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056 保留；Branch Protection 远端证据在 release closure 前处理 |
 
 ## Planned Sequence
 
 | Order | Item | State | Dependency |
 |------:|------|-------|------------|
-| 1 | EVO-126-A toolchain/dependency | In Progress / Iteration 069 | none |
-| 2 | EVO-126-B service-git v2 engine boundary | Proposed | A |
+| 1 | EVO-126-A toolchain/dependency | Review / Iteration 069 | none |
+| 2 | EVO-126-B service-git v2 engine boundary | Proposed / next after A closure | A |
 | 3 | EVO-126-C Smart HTTP read | Proposed | B |
 | 4 | EVO-126-E Repo Context parity | Proposed | B |
 | 5 | EVO-126-D WAL receive-pack | Proposed | B |
