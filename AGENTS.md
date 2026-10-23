@@ -103,14 +103,14 @@
 
 ## Current Known Traps
 
-1. Rust MSRV 是 **1.90**；以 `backend/Cargo.toml` 和 Dockerfile 为准。
+1. Evolith 当前 integration MSRV 是 **1.94.1**；以 `backend/Cargo.toml`、`backend/rust-toolchain.toml`、Dockerfile 与 CI 为准。WalGit upstream 自身 MSRV 仍是 1.90，不能把 upstream MSRV 直接当作 host workspace 基线。
 2. 当前是**模块化单体**，不是多个独立微服务。
 3. 嵌套配置使用双下划线，例如 `DATABASE__URL`、`GIT_STORAGE__BASE_PATH`。
 4. `VITE_API_URL` 通常包含 `/api/v1`，除非 Gateway 明确重写。
 5. 浏览器状态变更受 CSRF；Git Smart HTTP 使用独立认证路径。
 6. Sandbox 默认关闭且待 EVO-111 删除；新功能不得依赖它。
 7. Git Smart HTTP 使用 git subprocess；Repo Context 使用 `gix`。
-8. Git Repo 在文件系统；多实例不能只共享 PostgreSQL。
+8. Git Repo 在文件系统；多实例不能只共享 PostgreSQL。WalGit-backed object-store/WAL data plane 是 ADR-0011 接受的目标，但 EVO-126-H 前不得写成 current runtime。
 9. Git 单实例持久化与恢复已由 EVO-118-D 关闭；Repo 生命周期一致性已由 EVO-118-F 关闭。
 10. Embedded Frontend 已是目标交付形态；production build/Compose 最终收敛归 EVO-118-E，并按 ADR-0010 在产品开发与清理后执行。
 11. API Key 管理、Typed Capability 与 MCP `execute` 已由 EVO-118-B 硬化；历史 legacy Key 仍需按权限合约轮换，不能重新接受任意权限字符串。
@@ -118,12 +118,12 @@
 13. `.evolith/policy.yaml` Parser 已有，不代表策略三态已经执行；行为归 EVO-105。
 14. `commit:<scope>` 当前不能被视为真实 Branch/Path 限制；Agent 写入设计必须重新验证。
 15. Repo 创建/删除已通过 EVO-118-F 生命周期状态与 Reconciler 收敛；Seed 是真实 Initial Commit。后续不得退回 best-effort warning 或直接删除未知 disk-only 数据。
-16. Push 后内存异步任务不是可靠事件边界；Webhook/Indexer 依赖 EVO-118-H。
-17. CI 当前历史配置为 Tag-driven；PR/Main Gate 归 EVO-118-G。
+16. Push 后内存异步任务不是可靠事件边界；Webhook/Indexer 已有 Durable Outbox 基础，但 WalGit receive path 仍必须在 EVO-126-D 重新证明 durable provenance。
+17. PR/Main CI Gate 已建立；EVO-118-G-A 仍有远端 Branch Protection 证据 residual，不能把 CI 全绿等同于远端规则已核验。
 18. `/health` 成功不证明 DB/Git Storage ready；发布使用 readiness 503 语义。
 19. SMTP/Redis 的生产降级必须按职责 fail closed，不能用开发 fallback 返回假成功。
 20. 文件或代码存在不等于完成；验证、状态同步和残余归口缺失时必须报告 `Partial`。
-21. EVO-118 的 SEC-01/SEC-02/DATA-01/DATA-02 已关闭；当前先推进 G/H 与目标产品链，EVO-118-E 保留为最后发布 Gate。
+21. 当前 P0 是 EVO-126 WalGit Git Data Plane 重构；在 GIT-DP-01/EVO-126-H 关闭前，不恢复 EVO-105/106/107/104 主产品写入链。
 22. GitHub Actions required CI 通过不等于安全/发布复验通过；必须同时关闭 Navigator、稳定契约和治理状态。
 23. 实现 PR 合并后仍需回写 merge commit、owner Story/Iteration、Gate 和派生入口；合并本身不会自动完成治理收口。
 24. 项目尚未上线；ADR-0009 已取消 EVO-110 旧表双写、回填和旧 API 兼容。Repo-derived read/execute 承接后由 EVO-121-F/EVO-122 直接删除旧 UI/runtime/table，不得重新建设 Legacy 兼容层。
@@ -145,12 +145,12 @@ Evolith 是 Git-centric AI development platform：
 ### Current Maturity
 
 - Engineering foundation：较完整。
-- Git backend：Alpha foundation。
+- Git backend：Alpha foundation；WalGit engine dependency boundary 已在 EVO-126-A 建立，runtime cutover 尚未发生。
 - Web product：EVO-112-A/B/C Repo UI、Repo Detail、Commit Evidence 与 EVO-120 Onboarding 已实现；最终 Entry/App Shell/Dashboard/Settings/Activity 与 Vibe Coding 仍未实现。
 - Agent loop：Commit/Promote/Session/Webhook 未实现。
-- Production：SEC-01/SEC-02/DATA-01/DATA-02 已关闭；仍被 DEPLOY-01 生产构建阻断。
+- Production：SEC-01/SEC-02/DATA-01/DATA-02 已关闭；仍被 DEPLOY-01 生产构建阻断，且 GIT-DP-01 在 EVO-126-H 前保持 Open。
 
-不得把 EVO-103/116 或已关闭的安全 Gate 描述成平台整体生产就绪。
+不得把 EVO-103/116、EVO-126-A 或已关闭的安全 Gate 描述成平台整体生产就绪。
 
 ### Current Execution State
 
@@ -159,22 +159,20 @@ Evolith 是 Git-centric AI development platform：
 - EVO-118-F Done / Complete，Iteration 055 Closed / Complete，DATA-02 已关闭。
 - EVO-118-G 已拆为 G-A/B/C/D；G-B/C/D Complete，G-A 因远端 Branch Protection 证据保持 Partial。
 - EVO-118-H / Iteration 060 Closed / Partial 后拆为 H-A/B/C；H-A/H-B/H-C 与 Iterations 066/067/068 Done / Closed / Complete，EVENT-01 Durable Outbox 基础 Gate 已解除；EVO-125 已关闭完整 Smart HTTP E2E 残余。
-- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。EVO-105/106 的 H 硬依赖已满足，下一候选需按 DoR 重新激活。
-- EVO-118-E 保持 Proposed / final release gate。
+- EVO-120、EVO-112-A/B/C 与 EVO-121-C/D Done / Complete；Iterations 064/065 Closed / Complete。
+- ADR-0011 已接受 WalGit-backed Git Data Plane；EVO-126 是当前 P0。EVO-126-A 已完成技术门禁与 Navigator 审查，合并前保持当前 PR/Iteration 收口流程；EVO-126-B 是下一依赖切片。
+- EVO-105/106/107/104 暂停激活，依赖 GIT-DP-01/EVO-126-H；EVO-118-E 保持 Proposed / final release gate。
 
 ### Current Order
 
 ```text
-EVO-118-A ✓
-→ EVO-118-B ✓
-→ EVO-118-C ✓
-→ EVO-118-D ✓
-→ EVO-118-F ✓
-→ EVO-118-G-A/B/C/D（G-B/C/D ✓；G-A Partial residual）
-→ EVO-118-H-A ✓ → H-B ✓ → H-C ✓（EVENT-01 基础 Gate ✓）
-→ EVO-120 ✓ / EVO-112-A/B/C ✓
-→ EVO-121-C/D ✓
-→ EVO-105/106/107/104
+EVO-126-A（当前收口）
+→ EVO-126-B
+→ EVO-126-C / EVO-126-E / EVO-126-D（按依赖小批次）
+→ EVO-126-F
+→ EVO-126-G
+→ EVO-126-H / GIT-DP-01 Close
+→ EVO-105 / EVO-106 / EVO-107 / EVO-104
 → EVO-121-E/B
 → EVO-108/109
 → EVO-121-A/F
@@ -190,9 +188,10 @@ EVO-118-A ✓
 ```bash
 cd backend
 cargo fmt --all -- --check
-cargo check --workspace --all-targets
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo tree --locked -p service-git
+cargo check --locked --workspace --all-targets
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
 ```
 
 ### Frontend
