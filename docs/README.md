@@ -26,14 +26,14 @@
 2. [ADR-0011 WalGit-backed Git Data Plane](decisions/ADR-0011-walgit-backed-git-data-plane.md) — 接受 object-store/WAL data plane；Evolith 保持唯一控制面；ADR-0006 只保留为当前 Alpha/历史实现依据。
 3. [WalGit Git Data Plane Refactor Design](design/WALGIT-GIT-DATA-PLANE-REFACTOR.md) — `service-git v2`、Smart HTTP、WAL write、Repo Context、bundle-uri、migration/recovery 的目标设计。
 4. [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — **唯一当前激活顺序 owner**。
-5. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 架构重构；A Ready，B~H Proposed；GitHub tracking #12~#20。
+5. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 架构重构；A 正在 Review/收口，B 是 A 关闭后的下一依赖切片，C~H 继续按依赖 Proposed；GitHub tracking #12~#20。
 6. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC/DATA/EVENT 历史 Gate 与 DEPLOY-01；涉及新 data plane 时必须与新 Project Status Baseline 联读。
 7. [Security Review](sop/SECURITY-REVIEW.md)、[Release](sop/RELEASE.md)、[Document Check](sop/DOC-CHECK.md) — Git write、storage、迁移与收口强制门禁。
 
 当前执行链：
 
 ```text
-EVO-126-A
+EVO-126-A（当前收口）
 → EVO-126-B
 → EVO-126-C / E / D（按依赖小批次）
 → EVO-126-F
@@ -48,7 +48,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 
 ## Root Entrypoints
 
-- [AGENTS.md](../AGENTS.md) — Agent 主启动文档、硬约束和 Task Router；其中 Rust 1.90 由 EVO-126-A 建立；filesystem Git 在 EVO-126-H 前仍是 current runtime fact。
+- [AGENTS.md](../AGENTS.md) — Agent 主启动文档、硬约束和 Task Router；Evolith integration Rust 1.94.1 基线由 EVO-126-A 建立，WalGit upstream 自身仍声明 1.90；filesystem Git 在 EVO-126-H 前仍是 current runtime fact。
 - [CLAUDE.md](../CLAUDE.md) — Claude Code 重定向入口。
 - [GEMINI.md](../GEMINI.md) — Gemini CLI 重定向入口。
 
@@ -60,7 +60,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [项目地图](reference/PROJECT-MAP.md) — 代码结构和关键路径。
 - [API 合约](reference/API-CONTRACT.md) — HTTP API、认证与错误响应。
 - [API Key 与 MCP 授权合约](reference/API-KEY-AUTHORIZATION.md) — API Keys/MCP/scope 安全细化契约。
-- [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本；Rust 1.90 基线由 EVO-126-A 维护。
+- [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本；Evolith integration Rust 1.94.1 基线由 EVO-126-A 维护。
 - [WalGit Dependency Baseline](reference/WALGIT-DEPENDENCY-BASELINE.md) — exact upstream SHA、允许的 engine crates、禁止的 server boundary、lock/license 与升级流程。
 - [配置参考](reference/CONFIG.md) — 当前配置；object-store Git 配置由 EVO-126-F 更新。
 - [权限](reference/PERMISSIONS.md) — owner/admin/member 与 Typed Capability。
@@ -93,7 +93,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [迭代中需求变更](sop/CHANGE-CONTROL.md) — 变更分类与 product-pivot/replan。
 - [本地开发](sop/LOCAL-DEV.md) — Lite/Full 模式和常用命令。
 - [新增功能](sop/NEW-FEATURE.md) — 后端、前端、测试、文档落地顺序。
-- [API 契约优先](sop/CONTRACT-FIRST.md) — Contract First。
+- [API 合约优先](sop/CONTRACT-FIRST.md) — Contract First。
 - [数据库迁移](sop/DATABASE-MIGRATION.md) — SQLite/PostgreSQL 双轨。
 - [测试与验证](sop/TESTING.md) — 风险匹配验证。
 - [任务收口与完成声明](sop/TASK-CLOSURE.md) — Complete/Partial/Blocked。
@@ -107,7 +107,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [Operating Board](BOARD.md) — 当前 Now/Next/Blocked/Done 派生视图。
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
 - [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — WalGit Git Data Plane Epic。
-- [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — Iteration 069 In Progress；Rust 1.90 + exact WalGit dependency boundary。
+- [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — Iteration 069 Review/收口；Evolith Rust 1.94.1 + exact WalGit dependency boundary，filesystem runtime 未切换。
 - [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic；E 为最终 release gate，G-A 有 residual。
 - [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) — Git-centric product foundation；Agent/Discovery 子项等待新 data plane。
 - [EVO-121](backlog/active/EVO-121-product-experience-convergence.md) — Experience Convergence；C/D Done，A/B/E/F 待激活。
