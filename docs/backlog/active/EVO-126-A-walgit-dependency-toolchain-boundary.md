@@ -3,10 +3,10 @@
 - **父 Epic**：[EVO-126](EVO-126-walgit-git-data-plane-refactor.md)
 - **类型**：Technical / Dependency / Supply Chain
 - **优先级**：P0
-- **状态**：In Progress
+- **状态**：Review
 - **GitHub Issue**：[#13](https://github.com/wjhuang88/evolith/issues/13)
 - **当前迭代**：[Iteration 069](../../iterations/ITERATION-069.md)
-- **依赖或阻塞**：无；当前剩余是 lockfile + full CI closure
+- **依赖或阻塞**：无；实现与技术门禁已通过，当前只剩治理同步后的 final exact-head CI
 - **解锁内容**：EVO-126-B
 - **影响范围**：backend / deploy / docs
 
@@ -34,12 +34,12 @@
 ## Acceptance
 
 - [ ] Rust 1.94.1 下 `cargo fmt --all -- --check` 通过。
-- [ ] `cargo check --workspace --all-targets` 通过。
-- [ ] `cargo test --workspace` 通过。
+- [ ] `cargo check --locked --workspace --all-targets` 通过。
+- [ ] `cargo test --locked --workspace` 通过。
 - [ ] strict clippy 通过。
 - [ ] `Cargo.lock` 对 WalGit 使用 exact pinned Git revision；不存在 branch=`main`/floating dependency。
 - [ ] clean checkout 不需要 yanked crate 或临时 `cargo update` 才能解析依赖图。
-- [ ] `walgit-server` 不进入 runtime dependency graph；WalGit types 仍只允许进入 `service-git` implementation boundary。
+- [ ] `cargo tree --locked -p service-git` 证明四个允许的 WalGit engine crates 在边界内，且 `walgit-server` 不进入 runtime dependency graph；WalGit types 仍只允许进入 `service-git` implementation boundary。
 - [ ] 当前 clone/push/pull 行为未切换，filesystem 引擎仍是 runtime current implementation。
 - [ ] third-party notice 满足 WalGit MIT 与 bisync2 MIT attribution；Evolith package metadata 保持 `AGPL-3.0-only`。
 
@@ -58,11 +58,19 @@
 cd backend
 rustc --version
 cargo fmt --all -- --check
-cargo check --workspace --all-targets
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo tree -p service-git
+cargo tree --locked -p service-git
+cargo check --locked --workspace --all-targets
+cargo test --locked --workspace
+cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
+
+## Review evidence
+
+- Technical validation head `2412c04bd151845d5401facb8459df742a9f9501`：`ci` #272 与 `data-durability-container` #114 全绿。
+- `ci` #272 已通过 exact-head、whitespace、Markdown、frontend install/type-check/build/lint、durability backup/restore、PostgreSQL durability、Git volume recreation、Rust fmt/check/clippy/workspace tests、locked recovery binary 与 application recovery drill。
+- `data-durability-container` #114 已从 clean checkout 完成 locked binary build，并通过真实 Backend container recreation with same Git volume。
+- Navigator 审查确认 direct WalGit types 只进入 `service-git` Cargo boundary、`walgit-server` 未被引入；为把计划中的 `cargo tree` 从人工检查升级为可重复证据，已新增 permanent locked dependency-boundary CI gate。
+- 当前等待：包含上述治理同步与 dependency-tree gate 的 final exact-head CI。
 
 ## 不做
 
