@@ -1,6 +1,6 @@
 # Iteration 069: WalGit Dependency and Toolchain Boundary
 
-> 文档状态：Active
+> 文档状态：Review
 > 计划发布日期：2026-09-22
 > 计划目标：完成 EVO-126-A，在不改变当前 filesystem Git runtime 的前提下建立 Rust 1.90、WalGit exact-SHA dependency 与 MIT/supply-chain 可重复编译基线。
 >
@@ -98,6 +98,11 @@ PR exact-head CI 还必须证明现有 frontend、DATA-01 durability 与 applica
 | 2026-09-22 | verification | WalGit `main` activation snapshot 为 `80e9a20b29e29aefd16a4dae6f8e274cce85cca5`；upstream workspace 声明 Rust 1.90 / edition 2024 / MIT。选择 exact SHA 作为本轮 pin，禁止 floating main。 |
 | 2026-09-22 | dependency | clean resolution 发现 WalGit gix 0.86 -> gix-protocol 0.64 仍依赖已 withdrawn/yanked 的 `bisync ^0.3`；采用本地 package-identity shim + maintained `bisync2 = 0.3.2`，不漂移 WalGit SHA。 |
 | 2026-10-22 | verification | clean resolved graph 显示现有 `sqlx 0.9.0` 要求 Rust 1.94.0，WalGit 默认 store/AWS 当前 patch graph 要求 Rust 1.94.1；因此 1.90 无法作为 Evolith 集成 MSRV。 |
+| 2026-10-22 | build-fix | `walgit-proto` build script 需要 `protoc`；将 `protobuf-compiler` 加入主 CI、durability CI 与 production Docker builder，并显式检查 `protoc --version`。 |
+| 2026-10-23 | lock-fix | 首个 `cargo check --locked` 暴露 AWS SDK/Smithy family 类型冲突；对照 pinned WalGit 自身 `Cargo.lock`，将 AWS/Smithy family 对齐到其已验证版本组合，最终 lock 只保留 `aws-smithy-schema 0.2.0`，未漂移 WalGit SHA。 |
+| 2026-10-23 | verification | technical head `2412c04bd151845d5401facb8459df742a9f9501` 的 `ci` #272 与 `data-durability-container` #114 全绿：fmt/check/clippy/workspace tests、frontend、DATA durability、locked build、application recovery 与真实 Backend container recreation 均通过。 |
+| 2026-10-23 | navigator | Navigator 检查未发现 runtime/API 边界泄漏：四个 WalGit engine crates 只进入 `service-git` Cargo implementation boundary，`walgit-server` 未引入；发现 current-fact 文档漂移与 `cargo tree` 证据缺口，已进入治理修正。 |
+| 2026-10-23 | gate-hardening | 将计划验证中的 `cargo tree -p service-git` 升级为 permanent `cargo tree --locked -p service-git` CI gate，显式断言四个允许 engine crates 存在、exact WalGit source rev 可见且 `walgit-server` 不存在。 |
 
 ## 9. 变更请求
 
@@ -116,14 +121,14 @@ PR exact-head CI 还必须证明现有 frontend、DATA-01 durability 与 applica
 
 ## 10. Review
 
-- 完成：activation、exact WalGit pin、dependency boundary、bisync compatibility design、Rust 1.94.1 scope-change 已记录并进入实现。
-- 未完成：最终 Cargo.lock、临时 CI step 清理、full exact-head CI、governance closure。
-- 验证结果：2026-09-22 CI 已证明 1.90 被 dependency MSRV 阻断；2026-10-22 按真实依赖图修订工具链，最终验证待新 head Actions。
+- 完成：activation、exact WalGit pin、dependency boundary、bisync compatibility boundary、Rust 1.94.1 scope-change、committed lockfile、`protoc` build dependency、AWS/Smithy coherent lock family 与 technical exact-head validation 已完成。
+- Navigator：no blocking implementation findings。已识别并正在修正 current-fact 文档漂移，同时把 dependency-tree 人工验收升级为 permanent CI gate。
+- 验证结果：head `2412c04bd151845d5401facb8459df742a9f9501` 上 `ci` #272 / `data-durability-container` #114 全绿；治理同步后的 final exact-head CI 尚待完成。
 - 闭环状态：`Partial`
-- 残余归口：尚未收口；本 Iteration 保持 Active。
+- 残余归口：只剩 final governance exact-head CI 与状态同步；service-git v2 engine implementation 明确归 EVO-126-B，不混入本 Iteration。
 
 ## 11. Retrospective
 
-- 做得好的：没有通过 floating WalGit main 或强行锁 yanked crate 绕过供应链问题。
-- 需要调整的：不能把上游项目的 MSRV 直接等同于集成项目可用 MSRV；必须以完整 resolved graph 验证。
-- 写入 EVOLUTION：收口时记录“integration MSRV must be derived from full locked dependency graph”。
+- 做得好的：没有通过 floating WalGit main、强行锁 yanked crate或删减 object-store 默认依赖来绕过供应链/编译问题；所有临时 write/self-update workflow 都已在最终 runtime CI 前移除。
+- 需要调整的：不能把上游项目的 MSRV 直接等同于集成项目可用 MSRV；必须以完整 resolved locked graph 验证。复杂 SDK family 还必须保持同一 generation 的内部类型一致，不能只看单 crate semver 可解析。
+- 写入 EVOLUTION：收口时记录“integration MSRV must be derived from full locked dependency graph”，并附 AWS/Smithy coherent-lock 经验。
