@@ -28,12 +28,22 @@
 | 17 | `frontend/src/lib/api/members` 返回 `ApiResponse` 而非 `Member[]` | 后端 handler 走统一 `ApiResponse<T>` 包装；前端按字段读取 `.data?.members` | 在调用方 `membersResponse?.data?.members ?? []` 而不是直接把响应赋给 `setState` |
 | 18 | `tenant?.id` 在闭包中被 TypeScript 推断为 `string \| undefined` | TS 对可选链的窄化在闭包边界不可靠；尤其 `await` 之后 | 在闭包外显式 `const tid: string = tenantId` 二次断言后使用 |
 | 19 | 新 migration 在 fresh schema 通过，但已有环境升级仍可能失败或丢状态 | 测试只从空库执行全部 migration，没有从前一版本携带已有行升级 | 双数据库从前一 migration 建表并插入代表性行，再执行新 migration 验证数据/状态保留 |
+| 20 | 上游依赖项目声明的 MSRV 可用，但 host workspace clean build 仍失败 | upstream MSRV 只覆盖其自身 workspace；host 既有依赖与实际 lockfile transitive patch 可能要求更高 Rust，SDK family 还可能出现内部类型 generation 不一致 | 以完整 `Cargo.lock` + clean locked build 推导 integration MSRV；对成组 SDK 依赖优先对齐上游已验证 lock family，不把单 crate semver 可解析当作可编译证据 |
 
 ---
 
 ## Part 2: 经验条目
 
 > 新经验按时间倒序追加。避免重复记录同一问题。
+
+### 2026-10-23 - 集成 MSRV 与 SDK family 必须来自完整 locked dependency graph
+
+- Trigger: EVO-126-A 将 WalGit exact-SHA engine crates 引入 Evolith `service-git` 编译边界。
+- Symptom: WalGit upstream workspace 声明 Rust 1.90，但 Evolith clean resolution 需要 Rust 1.94.1；随后 `cargo check --locked` 又因 AWS SDK/Smithy 同名类型来自不同 generation 而失败。
+- Root cause: upstream MSRV 只证明 upstream 自身 workspace 的最低编译版本，不包含 host workspace 既有依赖；同时 Git dependency 的 exact SHA 也不会固定 crates.io transitive patch，AWS/Smithy 这类成组 SDK 若 lock 到跨 generation 版本，即使 Cargo 能解析也可能在类型层不兼容。
+- Fix: 将 Evolith integration baseline 正式 scope-change 到 Rust 1.94.1；提交真实 `Cargo.lock`；对照 pinned WalGit 自身 lock 将 AWS/Smithy family 对齐到已验证组合；CI 改为 `--locked` 并新增 `cargo tree --locked -p service-git` dependency-boundary gate。
+- Prevention: dependency upgrade 必须区分 upstream MSRV 与 host integration MSRV；用 clean locked graph 推导工具链；对大型 SDK family 优先保持同一已验证 generation；临时 lock-update/self-commit 只能用于生成证据，最终 workflow 必须恢复只读。
+- Promoted to rule/check: `docs/reference/WALGIT-DEPENDENCY-BASELINE.md`、`docs/roadmap/CURRENT-EXECUTION-PLAN-2026-09.md`、`.github/workflows/ci.yml`。
 
 ### 2026-08-10 异步 E2E 不得用同步子进程阻塞 runtime
 **现象**: Smart HTTP 真实 clone/push/pull E2E 的前两次 clone 与 push 成功，但最后一次 clone 偶发在 39 秒后报认证失败，历史运行还出现 224 秒和数小时无进展；API key 状态与服务端直接鉴权均正常。
