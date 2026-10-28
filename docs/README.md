@@ -27,19 +27,21 @@
 3. [WalGit Git Data Plane Refactor Design](design/WALGIT-GIT-DATA-PLANE-REFACTOR.md) — `service-git v2`、Smart HTTP、WAL write、Repo Context、bundle-uri、migration/recovery 的目标设计。
 4. [ADR-0012 GraphQL Application API](decisions/ADR-0012-graphql-application-api.md) + [GraphQL Migration Design](design/GRAPHQL-APPLICATION-API-MIGRATION.md) — canonical application API、schema/codegen/security 和 protocol exceptions。
 5. [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) — **唯一当前激活顺序 owner**。
-6. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 架构重构；A 正在 Review/收口，B 是 A 关闭后的下一依赖切片，C~H 继续按依赖 Proposed；GitHub tracking #12~#20。
+6. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 Git data-plane 重构；A Done，B Ready，C~H 按依赖推进；GitHub tracking #12~#20。
 7. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC/DATA/EVENT 历史 Gate 与 DEPLOY-01；涉及新 data plane 时必须与新 Project Status Baseline 联读。
 8. [Security Review](sop/SECURITY-REVIEW.md)、[Release](sop/RELEASE.md)、[Document Check](sop/DOC-CHECK.md) — Git write、storage、迁移与收口强制门禁。
 
 当前执行链：
 
 ```text
-EVO-126-A（当前收口）
-→ EVO-126-B
-→ EVO-126-C / E / D（按依赖小批次）
-→ EVO-126-F
-→ EVO-126-G
-→ EVO-126-H / GIT-DP-01 Close
+EVO-127-A GraphQL foundation
+→ EVO-127-B / C / F non-Git application slices
+→ EVO-126-B service-git v2 boundary
+→ EVO-127-D Repository CRUD GraphQL
+→ EVO-126-C / E / D Git protocol/context engine slices
+→ EVO-127-E Repo Context GraphQL
+→ EVO-127-G / API-GQL-01 Close
+→ EVO-126-F / G / H / GIT-DP-01 Close
 → EVO-105 / 106 / 107 / 104
 → Experience / Discovery / legacy cleanup
 → EVO-118-E final production convergence
@@ -59,7 +61,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [生产就绪与项目完成度基线](reference/PRODUCTION-READINESS-BASELINE.md) — Release Gates 与历史生产证据。
 - [架构设计](reference/ARCHITECTURE.md) — 当前代码/运行架构；在 EVO-126-H 前继续描述 filesystem-backed runtime。
 - [项目地图](reference/PROJECT-MAP.md) — 代码结构和关键路径。
-- [API 合约](reference/API-CONTRACT.md) — HTTP API、认证与错误响应。
+- [API 合约](reference/API-CONTRACT.md) — 当前 REST runtime 合约；EVO-127 迁移期间 application/business 部分逐步由 GraphQL schema/ADR-0012 替代，protocol endpoints 继续保留。
 - [API Key 与 MCP 授权合约](reference/API-KEY-AUTHORIZATION.md) — API Keys/MCP/scope 安全细化契约。
 - [技术栈](reference/TECH-STACK.md) — Manifest/Lockfile 技术版本；Evolith integration Rust 1.94.1 基线由 EVO-126-A 维护。
 - [WalGit Dependency Baseline](reference/WALGIT-DEPENDENCY-BASELINE.md) — exact upstream SHA、允许的 engine crates、禁止的 server boundary、lock/license 与升级流程。
@@ -111,7 +113,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
 - [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — WalGit Git Data Plane Epic。
 - [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) — GraphQL Application API Migration Epic；A-G 见 GitHub #27-#33。
-- [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — Iteration 069 Review/收口；Evolith Rust 1.94.1 + exact WalGit dependency boundary，filesystem runtime 未切换。
+- [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — Done / Iteration 069 Closed；Rust 1.94.1 + exact WalGit dependency boundary 已由 PR #24 合入，filesystem runtime 尚未切换。
 - [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic；E 为最终 release gate，G-A 有 residual。
 - [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) — Git-centric product foundation；Agent/Discovery 子项等待新 data plane。
 - [EVO-121](backlog/active/EVO-121-product-experience-convergence.md) — Experience Convergence；C/D Done，A/B/E/F 待激活。
@@ -121,7 +123,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 
 - [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) — 当前唯一激活顺序 owner；GraphQL + Git data-plane convergence。
 - [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — 历史执行基线，2026-10 起不再拥有当前顺序。
-- [实施路线图](roadmap/IMPLEMENTATION-ROADMAP.md) — 阶段级长期路线；涉及当前启动顺序时服从 2026-09 plan。
+- [实施路线图](roadmap/IMPLEMENTATION-ROADMAP.md) — 阶段级长期路线；涉及当前启动顺序时服从 2026-10 plan。
 - [Production Readiness Plan 2026-07](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 历史执行基线；2026-09 起不再拥有当前激活顺序。
 - [Two-Month Phase E' Plan](roadmap/TWO-MONTH-PLAN-2026-07.md) — 2026-06-29 历史计划基线。
 - [工程化路线图](roadmap/ENGINEERING-ROADMAP.md) — 治理和工程能力。
