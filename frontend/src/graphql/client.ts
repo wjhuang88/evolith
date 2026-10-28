@@ -33,7 +33,7 @@ const client = new GraphQLClient(GRAPHQL_ENDPOINT, {
 
 export function executeGraphQL<TResult, TVariables extends Variables>(
   document: TypedDocumentNode<TResult, TVariables>,
-  variables?: TVariables,
+  variables: TVariables,
 ): Promise<TResult> {
   return client.request<TResult, TVariables>(document, variables);
 }
