@@ -1,7 +1,9 @@
 # GraphQL Application API Contract
 
-> Owner: EVO-127 / ADR-0012  
-> Foundation implementation: EVO-127-A / Iteration 070  
+> Owner: EVO-127 / ADR-0012
+>
+> Foundation implementation: EVO-127-A / Iteration 070
+>
 > Canonical executable schema: [`graphql/schema.graphql`](graphql/schema.graphql)
 
 ## 1. Scope
