@@ -31,18 +31,24 @@ ADR-0002-cli-friendly-interface-replaces-snippet.md
 | [ADR-0009](ADR-0009-no-prelaunch-registry-compatibility.md) | Accepted | 未上线阶段取消旧 Registry 双写/迁移兼容，改为 Repo-derived 承接后直接删除 |
 | [ADR-0010](ADR-0010-final-production-convergence-after-product-completion.md) | Accepted | EVO-118-E 在目标产品开发与清理完成后执行；DEPLOY-01 只阻止上线，不阻止继续开发 |
 | [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) | **Accepted** | `service-git` 重构为 WalGit-backed object-store/WAL Git Data Plane；Evolith 保持唯一产品控制面；新增 GIT-DP-01 |
+| [ADR-0012](ADR-0012-graphql-application-api.md) | **Accepted** | GraphQL 成为 canonical application/business API；Actix/服务层保留，Git Smart HTTP/MCP/health/callback 等协议端点保持原生 |
 
 ## 当前架构决策入口
 
-2026-09-10 起，Git Data Plane 相关的新实现先读：
+Git Data Plane 实现先读：
 
 1. [Project Status Baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md) — 区分当前实现与已接受目标。
-2. [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) — 长期决策与 supersede 关系。
+2. [ADR-0011](ADR-0011-walgit-backed-git-data-plane.md) — Git data-plane 长期决策与 supersede 关系。
 3. [WalGit Refactor Design](../design/WALGIT-GIT-DATA-PLANE-REFACTOR.md) — 实施级边界。
-4. [Current Execution Plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — 当前激活顺序。
-5. [EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — 可执行 Epic/Story。
+4. [EVO-126](../backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — 可执行 Epic/Story。
 
-在 EVO-126-H cutover 前，ADR-0006 描述的 subprocess/filesystem 仍是**当前运行事实**；ADR-0011 描述的是**已接受目标**，不得混淆。
+Application API / frontend-backend interaction 新实现先读：
+
+1. [ADR-0012](ADR-0012-graphql-application-api.md) — GraphQL canonical application API 与协议端点例外。
+2. [GraphQL Migration Design](../design/GRAPHQL-APPLICATION-API-MIGRATION.md) — schema/context/security/codegen/vertical migration 设计。
+3. [EVO-127](../backlog/active/EVO-127-graphql-application-api-migration.md) — A-G migration family 与依赖。
+
+在 EVO-126-H cutover 前，ADR-0006 描述的 subprocess/filesystem 仍是 Git **当前运行事实**；ADR-0011 描述的是 Git data-plane **已接受目标**。在 EVO-127-G 完成前，REST `/api/v1` 仍可能作为 bounded migration runtime 与 GraphQL 共存；ADR-0012 描述的是 application API **已接受目标**。两类 current-vs-target 都不得混淆。
 
 ## 模板
 
