@@ -20,14 +20,17 @@
 | 1 | EVO-127-A GraphQL platform foundation | Proposed / next candidate | governance baseline merged + inventory |
 | 2 | EVO-127-B/C/F non-Git GraphQL slices | Proposed | EVO-127-A (+ B for C) |
 | 3 | EVO-126-B service-git v2 engine boundary | Ready | A Done |
-| 3 | EVO-126-C Smart HTTP read | Proposed | B |
-| 4 | EVO-126-E Repo Context parity | Proposed | B |
-| 5 | EVO-126-D WAL receive-pack | Proposed | B |
-| 6 | EVO-126-F object-store operations/migration | Proposed | B + final parity C/D/E |
-| 7 | EVO-126-G bundle-uri | Proposed | C/F |
-| 8 | EVO-126-H cutover/legacy Git engine removal | Proposed | C/D/E/F/G |
+| 4 | EVO-127-D Repository CRUD GraphQL | Proposed | EVO-127-A + EVO-126-B |
+| 5 | EVO-126-C Smart HTTP read | Proposed | EVO-126-B |
+| 6 | EVO-126-E Repo Context parity | Proposed | EVO-126-B |
+| 7 | EVO-126-D WAL receive-pack | Proposed | EVO-126-B |
+| 8 | EVO-127-E Repo Context GraphQL | Proposed | EVO-127-A + EVO-126-E |
+| 9 | EVO-127-G REST business API retirement | Proposed | EVO-127-B/C/D/E/F |
+| 10 | EVO-126-F object-store operations/migration | Proposed | B + final parity C/D/E |
+| 11 | EVO-126-G bundle-uri | Proposed | C/F |
+| 12 | EVO-126-H cutover/legacy Git engine removal | Proposed | C/D/E/F/G |
 
-C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；A/B/H 的边界不可跳过。
+C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；GraphQL Repo/Context 切片必须等待对应 service-git 边界稳定。
 
 ## Paused / Waiting for GIT-DP-01
 
@@ -39,7 +42,7 @@ C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；A/B/H
 | EVO-108/109 Index/Discovery | Proposed | [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) | 等稳定新 Push/Commit provenance |
 | EVO-121-A/B/E/F Experience | Proposed / paused | [Epic](backlog/active/EVO-121-product-experience-convergence.md) | 按真实 Activity/Discovery/cleanup 依赖恢复 |
 | EVO-111 / EVO-122 Legacy Cleanup | Proposed / paused | [EVO-111](backlog/active/EVO-111-deprecate-sandbox-runtime.md) / [EVO-122](backlog/active/EVO-122-retire-prelaunch-registry-backend.md) | 在目标产品路径承接后清理 |
-| EVO-118-E Final Production Convergence | Proposed / final gate | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | GIT-DP-01、REL-01 residual、产品与 cleanup 后关闭 DEPLOY-01 |
+| EVO-118-E Final Production Convergence | Proposed / final gate | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | GIT-DP-01、API-GQL-01、REL-01 residual、产品与 cleanup 后关闭 DEPLOY-01 |
 
 ## Completed Foundation That Must Be Preserved
 
@@ -56,13 +59,13 @@ C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；A/B/H
 | Public/Auth Entry + Settings IA | Done / Complete | [EVO-121](backlog/active/EVO-121-product-experience-convergence.md) |
 | Stable bounded real Git E2E runner | Done / Complete | [EVO-125](backlog/active/EVO-125-git-smart-http-e2e-hang.md) |
 
-这些完成项不会因为 EVO-126 被改写为“未完成”；新 data plane 必须保持其安全/行为语义，并在需要时重新证明 storage-specific evidence。
+这些完成项不会因为 EVO-126/EVO-127 被改写为“未完成”；新 data plane / GraphQL application API 必须保持其安全与行为语义，并在迁移切片中重新证明相关 evidence。
 
 ## Release Gates
 
 | Gate | State | Meaning |
 |------|-------|---------|
-| SEC-01 | Closed | 不允许 WalGit 接入降低授权边界 |
+| SEC-01 | Closed | 不允许 WalGit/GraphQL 接入降低授权边界 |
 | SEC-02 | Closed | 后续 Webhook 等仍复用 Egress Policy |
 | DATA-01 | Closed historical | 证明旧 filesystem engine 的单实例 durability，不代表 object-store cutover |
 | DATA-02 | Closed historical | lifecycle 语义继续有效，reconciler 实现随 storage 迁移 |
@@ -70,7 +73,7 @@ C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；A/B/H
 | REL-01 | Partial | G-A remote Branch Protection evidence residual |
 | **GIT-DP-01** | **Open** | EVO-126 A-H + migration/recovery/protocol/context/bundle/cutover review |
 | **API-GQL-01** | **Open** | EVO-127 A-G；GraphQL canonical application API + REST business API retirement |
-| DEPLOY-01 | Open / final | 最终 clean build/smoke 必须在 WalGit-backed data plane 上执行 |
+| DEPLOY-01 | Open / final | 最终 clean build/smoke 必须在 WalGit-backed data plane 与完成的 application API target 上执行 |
 
 ## Independent Later Candidates
 
@@ -78,4 +81,4 @@ EVO-124 SQLite memory pool、EVO-123 dev port detection、EVO-080 Wasmer/WASI sp
 
 ## Operating Rule
 
-Board 不定义新状态。状态变化先更新 owner item/Iteration/Baseline，再反映到这里。EVO-126 实施必须按 `START-ITERATION.md` 新建 Iteration，不得把本次 product-pivot 写进旧 Planned/Closed Iteration。
+Board 不定义新状态。状态变化先更新 owner item/Iteration/Baseline，再反映到这里。EVO-126/EVO-127 实施必须按 `START-ITERATION.md` 新建 Iteration，不得把 product-pivot 写进旧 Planned/Closed Iteration。
