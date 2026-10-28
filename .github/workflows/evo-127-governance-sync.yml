@@ -1,0 +1,141 @@
+name: evo-127-governance-sync
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  governance-sync:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'agent/evo-127-graphql-architecture-baseline'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Verify exact event head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Apply bounded governance synchronization
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, *, required=True):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  if required:
+                      raise SystemExit(f'anchor not found: {path}: {old[:80]!r}')
+                  return
+              p.write_text(text.replace(old, new, 1))
+
+          # Close EVO-126-A owner Story after PR #24 exact-head gates and merge.
+          p = Path('docs/backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md')
+          text = p.read_text()
+          text = text.replace('- **状态**：Review', '- **状态**：Done / Complete')
+          text = text.replace('- **依赖或阻塞**：无；实现与技术门禁已通过，当前只剩治理同步后的 final exact-head CI', '- **依赖或阻塞**：无；PR #24 已合入 `main` (`09316a6`)')
+          text = text.replace('- [ ] ', '- [x] ')
+          text = text.replace('- 当前等待：包含上述治理同步与 dependency-tree gate 的 final exact-head CI。', '- Final exact-head `ci` #282 与 `data-durability-container` #124 全绿；PR #24 已 squash merge 为 `09316a6ba3a68fb6e7d30bbba6bf5cc563897696`。')
+          p.write_text(text)
+
+          # Close Iteration 069 without rewriting its protected original plan baseline.
+          p = Path('docs/iterations/ITERATION-069.md')
+          text = p.read_text()
+          text = text.replace('> 文档状态：Review', '> 文档状态：Closed / Complete')
+          revised = '### 9.1 修订后的当前验收标准\n\n- [ ] Evolith workspace / rust-toolchain / builder / CI / Clippy / current docs 统一为 Rust 1.94.1。\n- [ ] exact WalGit SHA、`walgit-server` exclusion、temporary bisync compatibility boundary 保持可审计。\n- [ ] committed `Cargo.lock` 可从 clean checkout 直接构建，不需要临时 `cargo update` 或 yanked crate。\n- [ ] Rust 1.94.1 下 fmt/check/clippy/test、dependency tree、frontend、durability/recovery exact-head CI 全部通过。\n- [ ] Evolith 项目许可证保持 `AGPL-3.0-only`；第三方 WalGit/bisync2 attribution 保持各自许可证事实。\n- [ ] filesystem Git runtime 行为不变。'
+          revised_done = revised.replace('- [ ] ', '- [x] ')
+          if revised not in text:
+              raise SystemExit('Iteration 069 revised acceptance anchor missing')
+          text = text.replace(revised, revised_done, 1)
+          text = text.replace('- 验证结果：head `2412c04bd151845d5401facb8459df742a9f9501` 上 `ci` #272 / `data-durability-container` #114 全绿；治理同步后的 final exact-head CI 尚待完成。\n- 闭环状态：`Partial`\n- 残余归口：只剩 final governance exact-head CI 与状态同步；service-git v2 engine implementation 明确归 EVO-126-B，不混入本 Iteration。', '- 验证结果：technical head `2412c04` 的 `ci` #272 / durability #114 全绿；final governance head `493f9f3` 的 `ci` #282 / durability #124 再次全绿，并通过 permanent locked dependency-tree gate。\n- 合并：PR #24 -> `main` merge `09316a6ba3a68fb6e7d30bbba6bf5cc563897696`。\n- 闭环状态：`Complete`\n- 残余归口：service-git v2 engine implementation 归 EVO-126-B；本 Iteration 无未归口残余。')
+          close_row = '| 2026-10-28 | closure | final exact-head `493f9f3` 的 `ci` #282 与 durability #124 全绿；PR #24 squash merge 为 `09316a6`；EVO-126-A Closed / Complete，EVO-126-B 解除硬依赖。 |\n'
+          marker = '\n## 9. 变更请求\n'
+          if close_row not in text:
+              text = text.replace(marker, '\n' + close_row + marker, 1)
+          p.write_text(text)
+
+          # EVO-126 parent + B next state.
+          replace('docs/backlog/active/EVO-126-walgit-git-data-plane-refactor.md', '| [EVO-126-A](EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | In Progress | 无 | Iteration 069 | [#13](https://github.com/wjhuang88/evolith/issues/13) |', '| [EVO-126-A](EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | Done / Complete | 无 | Iteration 069 Closed | [#13](https://github.com/wjhuang88/evolith/issues/13) |')
+          replace('docs/backlog/active/EVO-126-walgit-git-data-plane-refactor.md', '| [EVO-126-B](EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Proposed | A | - | [#14](https://github.com/wjhuang88/evolith/issues/14) |', '| [EVO-126-B](EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Ready | A Done | - | [#14](https://github.com/wjhuang88/evolith/issues/14) |')
+          replace('docs/backlog/active/EVO-126-B-service-git-v2-engine-boundary.md', '- **状态**：Proposed', '- **状态**：Ready')
+          replace('docs/backlog/active/EVO-126-B-service-git-v2-engine-boundary.md', '- **依赖或阻塞**：EVO-126-A', '- **依赖或阻塞**：EVO-126-A Done / PR #24 merged `09316a6`')
+
+          # Iteration inventory.
+          replace('docs/iterations/README.md', '| [Iteration 069](ITERATION-069.md) | **Review** | EVO-126-A WalGit dependency/toolchain boundary；Evolith Rust 1.94.1 integration baseline + exact SHA pin + license/supply-chain boundary；final governance exact-head CI 待闭合 |', '| [Iteration 069](ITERATION-069.md) | Closed / Complete | EVO-126-A WalGit dependency/toolchain boundary；Rust 1.94.1 + exact WalGit SHA + locked supply-chain boundary；PR #24 merged `09316a6` |')
+          replace('docs/iterations/README.md', '- 2026-10-23 Iteration 069 进入 Review：technical head `2412c04` 的 `ci` #272 与 durability #114 全绿；Navigator 无 blocking implementation finding，治理同步与 permanent locked dependency-tree gate 进入 final exact-head 验证。', '- 2026-10-23 Iteration 069 进入 Review：technical head `2412c04` 的 `ci` #272 与 durability #114 全绿；Navigator 无 blocking implementation finding。\n- 2026-10-28 Iteration 069 Closed / Complete：final head `493f9f3` 的 `ci` #282 与 durability #124 全绿，permanent dependency-tree gate 通过；PR #24 merge `09316a6`，EVO-126-B 解锁。')
+
+          # Product backlog: close A, expose B and GraphQL architecture family.
+          p = Path('docs/backlog/PRODUCT-BACKLOG.md')
+          text = p.read_text()
+          old_a = '| EVO-126-A | WalGit dependency and toolchain boundary | **Review** | **P0** | Iteration 069；Evolith Rust 1.94.1 + exact upstream pin + AGPL/third-party supply-chain boundary；技术门禁已绿，等待治理同步后的 final exact-head CI；不改 runtime Git path | [Item](active/EVO-126-A-walgit-dependency-toolchain-boundary.md)<br>[Epic](active/EVO-126-walgit-git-data-plane-refactor.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) |'
+          new_rows = '| EVO-126-B | service-git v2 engine boundary | **Ready** | **P0** | A 已由 PR #24 完成；建立 WalGit Registry/Store application boundary；Repo GraphQL migration 依赖该边界 | [Item](active/EVO-126-B-service-git-v2-engine-boundary.md)<br>[Epic](active/EVO-126-walgit-git-data-plane-refactor.md) |\n| EVO-127 | GraphQL Application API Migration | **Proposed / accepted direction** | **P0** | ADR-0012；GraphQL 成为 application/business API，protocol endpoints 保持原生；A 是首个可激活 foundation Story | [Epic](active/EVO-127-graphql-application-api-migration.md)<br>[ADR-0012](../decisions/ADR-0012-graphql-application-api.md)<br>[Design](../design/GRAPHQL-APPLICATION-API-MIGRATION.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) |'
+          if old_a not in text:
+              raise SystemExit('Product backlog A row anchor missing')
+          text = text.replace(old_a, new_rows, 1)
+          text = text.replace('| [EVO-126-A](active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | **Review / Iteration 069** | none |', '| [EVO-126-A](active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | **Done / Iteration 069 Closed** | none |', 1)
+          text = text.replace('| [EVO-126-B](active/EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Proposed | A |', '| [EVO-126-B](active/EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | **Ready** | A Done |', 1)
+          p.write_text(text)
+
+          # Board: new current plan and current candidate set.
+          p = Path('docs/BOARD.md')
+          text = p.read_text()
+          text = text.replace('> **2026-09-10 replan**：当前整体状态以 [Project Status Baseline](reference/PROJECT-STATUS-BASELINE-2026-09-10.md) 为准；当前执行顺序以 [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 为准。新增 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / GIT-DP-01，先完成 WalGit-backed Git Data Plane，再恢复 Agent Write Loop。', '> **2026-10-28 replan**：Git data-plane 继续归 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / ADR-0011；application API 新增 [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) / ADR-0012。当前执行顺序以 [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为唯一 owner。')
+          text = text.replace('| EVO-126-A Dependency/Toolchain Boundary | **Review / Iteration 069** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | technical exact-head gates green；治理同步 + permanent locked dependency-tree gate 后 final exact-head CI；runtime Git path 不切换 |', '| EVO-127 GraphQL Application API | **Proposed / accepted direction** | [Epic](backlog/active/EVO-127-graphql-application-api-migration.md) | next candidate EVO-127-A foundation；Repo/Context slices wait for EVO-126-B/E |\n| EVO-126-B service-git v2 Engine Boundary | **Ready** | [Item](backlog/active/EVO-126-B-service-git-v2-engine-boundary.md) | A Done；与 GraphQL foundation 按 2026-10 plan 依赖收敛 |')
+          text = text.replace('| 1 | EVO-126-A toolchain/dependency | Review / Iteration 069 | none |\n| 2 | EVO-126-B service-git v2 engine boundary | Proposed / next after A closure | A |', '| 1 | EVO-127-A GraphQL platform foundation | Proposed / next candidate | governance baseline merged + inventory |\n| 2 | EVO-127-B/C/F non-Git GraphQL slices | Proposed | EVO-127-A (+ B for C) |\n| 3 | EVO-126-B service-git v2 engine boundary | Ready | A Done |', 1)
+          if '| **API-GQL-01** |' not in text:
+              text = text.replace('| **GIT-DP-01** | **Open** | EVO-126 A-H + migration/recovery/protocol/context/bundle/cutover review |', '| **GIT-DP-01** | **Open** | EVO-126 A-H + migration/recovery/protocol/context/bundle/cutover review |\n| **API-GQL-01** | **Open** | EVO-127 A-G；GraphQL canonical application API + REST business API retirement |', 1)
+          p.write_text(text)
+
+          # Docs map: make 2026-10 plan and GraphQL baseline discoverable.
+          p = Path('docs/README.md')
+          text = p.read_text()
+          text = text.replace('> **2026-09-10 架构改线**：Evolith 已接受 WalGit-backed Git Data Plane 作为长期目标。当前 runtime 仍是 filesystem-backed Git；实现改造归 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md)。当前整体状态以 [Project Status Baseline 2026-09-10](reference/PROJECT-STATUS-BASELINE-2026-09-10.md) 为准，当前激活顺序以 [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 为准。', '> **2026-10-28 架构改线**：WalGit-backed Git Data Plane 继续由 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) 推进；GraphQL application API 由 [ADR-0012](decisions/ADR-0012-graphql-application-api.md) / [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) 接管。当前 Git runtime 仍是 filesystem-backed，当前 application runtime 仍可包含 REST；当前激活顺序以 [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为准。')
+          text = text.replace('4. [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — **唯一当前激活顺序 owner**。', '4. [ADR-0012 GraphQL Application API](decisions/ADR-0012-graphql-application-api.md) + [GraphQL Migration Design](design/GRAPHQL-APPLICATION-API-MIGRATION.md) — canonical application API、schema/codegen/security 和 protocol exceptions。\n5. [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) — **唯一当前激活顺序 owner**。')
+          text = text.replace('5. [EVO-126 Epic]', '6. [EVO-126 Epic]', 1)
+          text = text.replace('6. [Production Readiness Baseline]', '7. [Production Readiness Baseline]', 1)
+          text = text.replace('7. [Security Review]', '8. [Security Review]', 1)
+          if '- [ADR-0012](decisions/ADR-0012-graphql-application-api.md)' not in text:
+              text = text.replace('## Architecture / Design\n\n', '## Architecture / Design\n\n- [ADR-0012](decisions/ADR-0012-graphql-application-api.md) — GraphQL canonical application API 与 protocol-native exception 决策。\n- [GraphQL Migration Design](design/GRAPHQL-APPLICATION-API-MIGRATION.md) — backend schema/context/security、frontend codegen/transport 与 vertical migration 设计。\n')
+          if '- [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md)' not in text:
+              text = text.replace('- [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — WalGit Git Data Plane Epic。', '- [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — WalGit Git Data Plane Epic。\n- [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) — GraphQL Application API Migration Epic；A-G 见 GitHub #27-#33。')
+          text = text.replace('- [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — 当前唯一激活顺序 owner。', '- [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) — 当前唯一激活顺序 owner；GraphQL + Git data-plane convergence。\n- [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — 历史执行基线，2026-10 起不再拥有当前顺序。')
+          p.write_text(text)
+
+          # Mark old execution plan as historical without overwriting its plan body.
+          p = Path('docs/roadmap/CURRENT-EXECUTION-PLAN-2026-09.md')
+          text = p.read_text()
+          note = '> **Superseded as current-order owner on 2026-10-28 by [Current Execution Plan 2026-10](CURRENT-EXECUTION-PLAN-2026-10.md). This file remains the historical 2026-09 baseline.**\n\n'
+          if note not in text:
+              lines = text.splitlines(True)
+              lines.insert(1, '\n' + note)
+              text = ''.join(lines)
+          p.write_text(text)
+          PY
+
+      - name: Commit only governance owner files
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          expected=$'docs/BOARD.md\ndocs/README.md\ndocs/backlog/PRODUCT-BACKLOG.md\ndocs/backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md\ndocs/backlog/active/EVO-126-B-service-git-v2-engine-boundary.md\ndocs/backlog/active/EVO-126-walgit-git-data-plane-refactor.md\ndocs/iterations/ITERATION-069.md\ndocs/iterations/README.md\ndocs/roadmap/CURRENT-EXECUTION-PLAN-2026-09.md'
+          changed="$(git status --porcelain | awk '{print $2}' | sort)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $changed
+          git commit -m 'docs(governance): close EVO-126-A and route EVO-127 (#26) [model: GPT-5.6 Sol]'
+          git push origin "HEAD:${HEAD_REF}"
