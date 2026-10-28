@@ -1,5 +1,8 @@
-import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
-import { GraphQLClient, type Variables } from 'graphql-request';
+import {
+  GraphQLClient,
+  type RequestOptions,
+  type Variables,
+} from 'graphql-request';
 
 import { getToken, isTokenExpired } from '@/lib/api/client';
 
@@ -32,8 +35,7 @@ const client = new GraphQLClient(GRAPHQL_ENDPOINT, {
 });
 
 export function executeGraphQL<TResult, TVariables extends Variables>(
-  document: TypedDocumentNode<TResult, TVariables>,
-  variables: TVariables,
+  options: RequestOptions<TVariables, TResult>,
 ): Promise<TResult> {
-  return client.request<TResult, TVariables>(document, variables);
+  return client.request<TResult, TVariables>(options);
 }
