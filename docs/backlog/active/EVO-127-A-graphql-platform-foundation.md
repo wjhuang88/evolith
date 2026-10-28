@@ -3,9 +3,9 @@
 - **父 Epic**：[EVO-127](EVO-127-graphql-application-api-migration.md)
 - **类型**：Technical / API Contract / Platform
 - **优先级**：P0
-- **状态**：Ready after current iteration inventory closure
+- **状态**：In Progress / Iteration 070
 - **GitHub Issue**：[#27](https://github.com/wjhuang88/evolith/issues/27)
-- **依赖或阻塞**：ADR-0012 / EVO-127 governance baseline merged；当前非终态 Iteration 必须先按 START-ITERATION 处置
+- **依赖或阻塞**：ADR-0012 / EVO-127 governance baseline 已合并；START-ITERATION inventory 已完成
 - **解锁内容**：EVO-127-B/C/F；为 D/E 提供 GraphQL 基础
 - **影响范围**：backend / frontend / docs / CI
 
@@ -44,3 +44,9 @@
 ## 不做
 
 业务域迁移、REST 删除、subscriptions、federation、cursor pagination redesign。
+
+## 执行归口
+
+- **Iteration**：[Iteration 070](../../iterations/ITERATION-070.md)
+- **激活日期**：2026-10-28
+- **当前阶段**：Driver implementation；安全/跨层改动完成后进入 Navigator review。

@@ -2,24 +2,25 @@
 
 > Derived operating view only. Owner docs define status, scope, acceptance criteria, validation evidence and lifecycle state. Update owner docs first, then reflect the current operating state here.
 >
-> **2026-10-28 replan**：Git data-plane 继续归 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / ADR-0011；application API 新增 [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) / ADR-0012。当前执行顺序以 [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为唯一 owner。
+> **2026-10-28 execution state**：Git data-plane 继续归 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / ADR-0011；application API 归 [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) / ADR-0012。当前执行顺序以 [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为唯一 owner。
 
 ## Now
 
 | Item | State | Owner Doc | Gate / Next action |
 |------|-------|-----------|--------------------|
+| EVO-127-A GraphQL Platform Foundation | **In Progress / Iteration 070** | [Item](backlog/active/EVO-127-A-graphql-platform-foundation.md) / [Iteration](iterations/ITERATION-070.md) | Driver implementation：`/graphql` + schema/error/security + SDL/codegen foundation；完成后 Navigator + exact-head gates |
+| EVO-127 GraphQL Application API | **In Progress / accepted direction** | [Epic](backlog/active/EVO-127-graphql-application-api-migration.md) | API-GQL-01 Open；A active，B/C/F 由 A 解锁，Repo/Context slices 仍等待 EVO-126 边界 |
 | EVO-126 WalGit Git Data Plane | In Progress / accepted direction | [Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) | GIT-DP-01 Open；Epic 不直接进入 Iteration |
-| EVO-127 GraphQL Application API | **Proposed / accepted direction** | [Epic](backlog/active/EVO-127-graphql-application-api-migration.md) | next candidate EVO-127-A foundation；Repo/Context slices wait for EVO-126-B/E |
-| EVO-126-B service-git v2 Engine Boundary | **Ready** | [Item](backlog/active/EVO-126-B-service-git-v2-engine-boundary.md) | A Done；与 GraphQL foundation 按 2026-10 plan 依赖收敛 |
+| EVO-126-B service-git v2 Engine Boundary | **Ready** | [Item](backlog/active/EVO-126-B-service-git-v2-engine-boundary.md) | A Done；在 EVO-127-A foundation 后按 2026-10 plan 进入下一 data-plane slice |
 | EVO-118-G-A CI Merge Gates | Review / Partial residual | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056 保留；Branch Protection 远端证据在 release closure 前处理 |
 
 ## Planned Sequence
 
 | Order | Item | State | Dependency |
 |------:|------|-------|------------|
-| 1 | EVO-127-A GraphQL platform foundation | Proposed / next candidate | governance baseline merged + inventory |
+| 1 | EVO-127-A GraphQL platform foundation | **In Progress / Iteration 070** | governance baseline merged + inventory complete |
 | 2 | EVO-127-B/C/F non-Git GraphQL slices | Proposed | EVO-127-A (+ B for C) |
-| 3 | EVO-126-B service-git v2 engine boundary | Ready | A Done |
+| 3 | EVO-126-B service-git v2 engine boundary | Ready | EVO-126-A Done |
 | 4 | EVO-127-D Repository CRUD GraphQL | Proposed | EVO-127-A + EVO-126-B |
 | 5 | EVO-126-C Smart HTTP read | Proposed | EVO-126-B |
 | 6 | EVO-126-E Repo Context parity | Proposed | EVO-126-B |

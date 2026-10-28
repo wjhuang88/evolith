@@ -8,6 +8,7 @@
 
 | Iteration | 状态 | 目标/处置 |
 |-----------|------|-----------|
+| [Iteration 070](ITERATION-070.md) | **Active / In Progress** | EVO-127-A GraphQL platform/schema/codegen foundation；`/graphql`、security controls、SDL drift gate、frontend typed transport |
 | [Iteration 069](ITERATION-069.md) | Closed / Complete | EVO-126-A WalGit dependency/toolchain boundary；Rust 1.94.1 + exact WalGit SHA + locked supply-chain boundary；PR #24 merged `09316a6` |
 | [Iteration 068](ITERATION-068.md) | Closed / Complete | EVO-118-H-C durable producer/subscriber、双数据库与完整 Smart HTTP E2E 闭合；EVO-125 Done |
 | [Iteration 067](ITERATION-067.md) | Closed / Complete | EVO-118-H-B Outbox Worker Runtime；独立进程、bounded delivery、101 backlog/recovery 与 confirmed replay 闭合 |
@@ -16,14 +17,14 @@
 | [Iteration 018](ITERATION-018.md) | Blocked for activation / Superseded direction | 旧 Skill 导入计划，被 Git-centric EVO-100/108 替代 |
 | [Iteration 019](ITERATION-019.md) | Blocked for activation / Superseded direction | 旧 Skill 多来源计划，不 deliberate replan 则不激活 |
 | [Iteration 020](ITERATION-020.md) | Blocked for activation / Superseded direction | 旧 Skill 版本计划，被 Git 原生历史与 Indexer 替代 |
-| [Iteration 025](ITERATION-025.md) | Blocked for activation | 租户设置与审计详情；需 refinement，不抢占 EVO-118 S1 |
+| [Iteration 025](ITERATION-025.md) | Blocked for activation | 租户设置与审计详情；需 refinement，不抢占当前 P0 |
 | [Iteration 026](ITERATION-026.md) | Blocked for activation | Stripe Webhook/计费；需安全与 Mock 验收 refinement |
 | [Iteration 027](ITERATION-027.md) | Blocked for activation / Superseded direction | 旧 Skill 发现计划，被 EVO-108/109 替代 |
-| [Iteration 056](ITERATION-056.md) | Closed / Partial | EVO-118-G-A PR/Main 自动质量门禁 |
+| [Iteration 056](ITERATION-056.md) | Closed / Partial | EVO-118-G-A PR/Main 自动质量门禁；remote Branch Protection evidence residual |
 | [Iteration 057](ITERATION-057.md) | Closed / Complete | EVO-118-G-B Runtime Readiness |
 | [Iteration 058](ITERATION-058.md) | Closed / Complete | EVO-118-G-C Caller-aware Rate Limits |
 | [Iteration 059](ITERATION-059.md) | Closed / Complete | EVO-118-G-D Production Dependency Fail Closed |
-| [Iteration 060](ITERATION-060.md) | Closed / Partial | EVO-118-H Durable Outbox Boundary；后续运行态与业务接入仍归 H |
+| [Iteration 060](ITERATION-060.md) | Closed / Partial | EVO-118-H Durable Outbox Boundary；后续运行态与业务接入已由 H-A/B/C 完成 |
 | [Iteration 061](ITERATION-061.md) | Closed / Complete | EVO-112-B Repo Detail Read-only；四子路由、真实 Repo CRUD/Context、桌面/移动浏览器验收闭合 |
 | [Iteration 062](ITERATION-062.md) | Closed / Complete | EVO-120 First-run Repo Onboarding；seeded Repo 创建、登录分流、失败恢复与桌面/移动浏览器验收闭合 |
 | [Iteration 063](ITERATION-063.md) | Closed / Complete | EVO-112-C Commit Evidence；tenant-scoped detail API、Commit list deep link、404 与桌面/390px 浏览器验收闭合 |
@@ -31,6 +32,8 @@
 
 ### 当前启动结论
 
+- 2026-10-28 PR #34 GraphQL governance baseline 在 exact-head `ci #300` 与 `data-durability-container #140` 全绿后合入 `main` (`9c6e904`)；EVO-127-A 具备启动前置。
+- 2026-10-28 按 START-ITERATION inventory 复核：069 已 Closed / Complete；018/019/020/027 继续 Superseded direction；025/026 继续 Blocked for activation；056 保持 Closed / Partial residual，均不阻塞当前 P0，因此激活 Iteration 070 / EVO-127-A。
 - Iteration 050 已 Closed / Complete，PR #2 已 merge。
 - Iteration 051 已 Closed / Complete；PR #3 已合并并解除 SEC-01。
 - Iteration 052 已 Closed / Complete；Navigator accepted runtime security，CI #125 全绿，稳定权限/API 契约及治理关闭完成，SEC-02 已解除。
@@ -42,22 +45,21 @@
 - Iteration 057 已 Closed / Complete；G-B readiness 运行态 200/503 与容器探针证据闭合。
 - Iteration 058 已 Closed / Complete；caller-aware 限流与单 Key 上限证据闭合。
 - Iteration 059 已 Closed / Complete；生产关键依赖 fail-closed 与日志脱敏证据闭合。
-- Iteration 060 已 Closed / Partial；H 的双数据库 Outbox 最小边界已交付，PG 并发、Worker 生命周期和业务接入继续归 EVO-118-H，EVENT-01 未关闭。
+- Iteration 060 已 Closed / Partial；H 的双数据库 Outbox 最小边界已交付，后续 H-A/B/C 已完成并关闭 EVENT-01。
 - Iteration 061 已 Closed / Complete；EVO-112-B 的四子路由、Repo Context/CRUD、异常状态与桌面/移动真实浏览器证据闭合。
 - Iteration 062 已 Closed / Complete；EVO-120 的无 Repo onboarding、seeded create -> Overview、已有 Repo `/dashboard` 分流、安全站内 redirect 与失败恢复证据闭合。
 - Iteration 063 已 Closed / Complete；EVO-112-C 的普通 Git Commit list -> evidence deep link、未来可复用 URL 与真实浏览器证据闭合。
 - Iteration 064 已 Closed / Complete；EVO-121-C 的 public/auth entry、完整 deep link、403/5xx、join/register/verification continuity 与 truthful landing 已闭合。
 - Iteration 065 已 Closed / Complete；EVO-121-D 的 `/settings/*`、user menu、角色 deep-link、error/retry、truthful read-only 与桌面/移动证据闭合。
 - 2026-08-09 复核确认 EVO-105/106 对 H 是硬依赖；H 的剩余范围拆为 H-A/B/C，Iteration 066 激活 H-A，Iteration 060 保持 Closed / Partial。
-- Iteration 066 已 Closed / Complete；H-A 的 paired 012 upgrade、recoverable/fenced claim 与 PostgreSQL concurrency 证据闭合。父 H / EVENT-01 保持未完成；H-B 后续已由 Iteration 067 完成。
-- Iteration 067 已 Closed / Complete；H-B 的独立 Worker、bounded delivery、双数据库 101 backlog/crash recovery、confirmed replay 与 Navigator 证据闭合。父 H / EVENT-01 保持未完成，下一依赖切片为 H-C。
+- Iteration 066 已 Closed / Complete；H-A 的 paired 012 upgrade、recoverable/fenced claim 与 PostgreSQL concurrency 证据闭合。父 H / EVENT-01 当时保持未完成；后续 H-B/C 已完成。
+- Iteration 067 已 Closed / Complete；H-B 的独立 Worker、bounded delivery、双数据库 101 backlog/crash recovery、confirmed replay 与 Navigator 证据闭合；后续 H-C 已完成。
 - Iteration 068 已 Closed / Complete；H-C 的 Push -> Durable Event -> Worker -> Repo metadata 双数据库闭环及完整 Smart HTTP E2E 通过，EVO-125 已关闭。
 - 2026-09-22 按 START-ITERATION inventory 激活 Iteration 069 / EVO-126-A。018/019/020/027 继续 Superseded direction；025/026 继续 Blocked for activation；056 保持 Closed / Partial residual，均不阻塞当前 P0。
 - 2026-10-23 Iteration 069 进入 Review：technical head `2412c04` 的 `ci` #272 与 durability #114 全绿；Navigator 无 blocking implementation finding。
 - 2026-10-28 Iteration 069 Closed / Complete：final head `493f9f3` 的 `ci` #282 与 durability #124 全绿，permanent dependency-tree gate 通过；PR #24 merge `09316a6`，EVO-126-B 解锁。
-- Iteration 054 继续 Closed / Complete；EVO-112-B 不等待最终 DEPLOY-01。
-- 当前严格顺序见 [Current Execution Plan 2026-09](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md)；旧 Production Readiness Plan 仅保留历史执行基线。
-- 安全、数据损坏或基础构建失败 P0 可显式插队；普通产品工作按 F/G/H 直接依赖推进，最终 DEPLOY-01 不作为开发前置。
+- 当前严格顺序见 [Current Execution Plan 2026-10](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md)；旧 Production Readiness Plan 与 2026-09 plan 保留历史/前序执行基线。
+- 安全、数据损坏或基础构建失败 P0 可显式插队；普通产品工作按 2026-10 plan 的 GraphQL/WalGit 依赖链推进，最终 DEPLOY-01 不作为开发前置。
 
 ## 最近完成的 Git-centric / Readiness Iterations
 
@@ -73,7 +75,7 @@
 | [Iteration 049](ITERATION-049.md) | Closed | EVO-103 acceptance hardening |
 | [Iteration 050](ITERATION-050.md) | Closed / Complete | 项目体检治理基线与生产就绪重排；EVO-118-A Done |
 | [Iteration 051](ITERATION-051.md) | Closed / Complete | API Key/MCP 授权边界硬化；EVO-118-B Done，SEC-01 解除 |
-| [Iteration 052](ITERATION-052.md) | Closed / Complete | HTTP Tool Egress / SSRF 安全边界、稳定契约和治理关闭；EVO-118-C Done，SEC-02 解除 |
+| [Iteration 052](ITERATION-052.md) | Closed / Complete | HTTP Tool 出站安全与 SSRF 防护；EVO-118-C Done，SEC-02 解除 |
 | [Iteration 053](ITERATION-053.md) | Closed / Complete | EVO-118-D PostgreSQL + Git durability/recovery；PR #7 merged `932def0`，DATA-01 解除 |
 | [Iteration 054](ITERATION-054.md) | Closed / Complete | EVO-112-A Repo UI Shell 本地历史成果恢复；PR #8 merged `1216624`，exact-head CI 全绿 |
 | [Iteration 055](ITERATION-055.md) | Closed / Complete | EVO-118-F Repo lifecycle、真实 Initial Commit、Reconciler 与 DATA-02 关闭 |
@@ -137,7 +139,7 @@
 - `Planned` 文档一旦提交，目标、候选 Story、不做事项、计划验证和风险不可被不同目标覆写。
 - 同目标执行只追加事实、证据、Review 和偏差。
 - 目标变化时保留原计划，标记 Deferred/Blocked/Superseded，并使用新编号。
-- 原 [Two-Month Phase E' Plan](../roadmap/TWO-MONTH-PLAN-2026-07.md) 与 [Production Readiness Plan 2026-07](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) 均作为历史计划基线保留；当前激活顺序由 [Current Execution Plan 2026-09](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 接管。
+- 原 [Two-Month Phase E' Plan](../roadmap/TWO-MONTH-PLAN-2026-07.md) 与 [Production Readiness Plan 2026-07](../roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) 均作为历史计划基线保留；当前激活顺序由 [Current Execution Plan 2026-10](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 接管。
 
 ## 新 Iteration 要求
 
