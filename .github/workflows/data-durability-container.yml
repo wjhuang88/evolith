@@ -20,7 +20,7 @@ env:
 jobs:
   backend-container-recreation:
     name: Evolith Backend container recreation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     services:
       postgres:
@@ -67,10 +67,15 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
-      - name: Install CI system dependencies
+      - name: Install pinned CI system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client protobuf-compiler
+          sudo apt-get install -y postgresql-client-16 protobuf-compiler
+          pg_dump_version="$(pg_dump --version)"
+          psql_version="$(psql --version)"
+          printf '%s\n%s\n' "$pg_dump_version" "$psql_version"
+          [[ "$pg_dump_version" == "pg_dump (PostgreSQL) 16."* ]]
+          [[ "$psql_version" == "psql (PostgreSQL) 16."* ]]
           protoc --version
 
       - name: Build application binary (locked)
