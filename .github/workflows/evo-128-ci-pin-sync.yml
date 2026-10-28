@@ -24,27 +24,18 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          install_old = '          sudo apt-get install -y postgresql-client protobuf-compiler'
+          install_new = "          sudo apt-get install -y postgresql-client-16 protobuf-compiler\n          pg_dump_version=\"$(pg_dump --version)\"\n          psql_version=\"$(psql --version)\"\n          printf '%s\\n%s\\n' \"$pg_dump_version\" \"$psql_version\"\n          [[ \"$pg_dump_version\" == \"pg_dump (PostgreSQL) 16.\"* ]]\n          [[ \"$psql_version\" == \"psql (PostgreSQL) 16.\"* ]]"
           for path in [Path('.github/workflows/ci.yml'), Path('.github/workflows/data-durability-container.yml')]:
               text = path.read_text()
-              text = text.replace('runs-on: ubuntu-latest', 'runs-on: ubuntu-24.04')
-              old = '''      - name: Install CI system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client protobuf-compiler
-          protoc --version'''
-              new = '''      - name: Install pinned CI system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-16 protobuf-compiler
-          pg_dump_version="$(pg_dump --version)"
-          psql_version="$(psql --version)"
-          printf '%s\\n%s\\n' "$pg_dump_version" "$psql_version"
-          [[ "$pg_dump_version" == "pg_dump (PostgreSQL) 16."* ]]
-          [[ "$psql_version" == "psql (PostgreSQL) 16."* ]]
-          protoc --version'''
-              if old not in text:
-                  raise SystemExit(f'system dependency anchor missing: {path}')
-              path.write_text(text.replace(old, new, 1))
+              if 'runs-on: ubuntu-latest' not in text:
+                  raise SystemExit(f'runner anchor missing: {path}')
+              if install_old not in text:
+                  raise SystemExit(f'postgres client anchor missing: {path}')
+              text = text.replace('runs-on: ubuntu-latest', 'runs-on: ubuntu-24.04', 1)
+              text = text.replace('- name: Install CI system dependencies', '- name: Install pinned CI system dependencies', 1)
+              text = text.replace(install_old, install_new, 1)
+              path.write_text(text)
           PY
       - name: Commit only workflow pins when changed
         shell: bash
