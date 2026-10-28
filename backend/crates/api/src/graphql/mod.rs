@@ -157,8 +157,8 @@ mod tests {
         assert_eq!(body["errors"][0]["extensions"]["retryable"], false);
     }
 
-    #[test]
-    fn graphiql_is_explicit_dev_only() {
+    #[actix_rt::test]
+    async fn graphiql_is_explicit_dev_only() {
         assert!(!graphiql_allowed(false, Some("true")));
         assert!(!graphiql_allowed(true, None));
         assert!(!graphiql_allowed(true, Some("false")));
