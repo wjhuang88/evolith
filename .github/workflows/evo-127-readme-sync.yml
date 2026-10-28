@@ -28,26 +28,10 @@ jobs:
           text = text.replace(
               '6. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 架构重构；A 正在 Review/收口，B 是 A 关闭后的下一依赖切片，C~H 继续按依赖 Proposed；GitHub tracking #12~#20。',
               '6. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 Git data-plane 重构；A Done，B Ready，C~H 按依赖推进；GitHub tracking #12~#20。')
-          old_chain = '''EVO-126-A（当前收口）
-→ EVO-126-B
-→ EVO-126-C / E / D（按依赖小批次）
-→ EVO-126-F
-→ EVO-126-G
-→ EVO-126-H / GIT-DP-01 Close
-→ EVO-105 / 106 / 107 / 104
-→ Experience / Discovery / legacy cleanup
-→ EVO-118-E final production convergence'''
-          new_chain = '''EVO-127-A GraphQL foundation
-→ EVO-127-B / C / F non-Git application slices
-→ EVO-126-B service-git v2 boundary
-→ EVO-127-D Repository CRUD GraphQL
-→ EVO-126-C / E / D Git protocol/context engine slices
-→ EVO-127-E Repo Context GraphQL
-→ EVO-127-G / API-GQL-01 Close
-→ EVO-126-F / G / H / GIT-DP-01 Close
-→ EVO-105 / 106 / 107 / 104
-→ Experience / Discovery / legacy cleanup
-→ EVO-118-E final production convergence'''
+          old_chain = "EVO-126-A（当前收口）\n→ EVO-126-B\n→ EVO-126-C / E / D（按依赖小批次）\n→ EVO-126-F\n→ EVO-126-G\n→ EVO-126-H / GIT-DP-01 Close\n→ EVO-105 / 106 / 107 / 104\n→ Experience / Discovery / legacy cleanup\n→ EVO-118-E final production convergence"
+          new_chain = "EVO-127-A GraphQL foundation\n→ EVO-127-B / C / F non-Git application slices\n→ EVO-126-B service-git v2 boundary\n→ EVO-127-D Repository CRUD GraphQL\n→ EVO-126-C / E / D Git protocol/context engine slices\n→ EVO-127-E Repo Context GraphQL\n→ EVO-127-G / API-GQL-01 Close\n→ EVO-126-F / G / H / GIT-DP-01 Close\n→ EVO-105 / 106 / 107 / 104\n→ Experience / Discovery / legacy cleanup\n→ EVO-118-E final production convergence"
+          if old_chain not in text:
+              raise SystemExit('execution chain anchor missing')
           text = text.replace(old_chain, new_chain, 1)
           text = text.replace(
               '- [API 合约](reference/API-CONTRACT.md) — HTTP API、认证与错误响应。',
