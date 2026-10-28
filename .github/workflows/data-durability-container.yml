@@ -50,7 +50,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -67,14 +67,15 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
-      - name: Build application binary
-        working-directory: backend
-        run: cargo build --bin evolith
-
-      - name: Install PostgreSQL client
+      - name: Install CI system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client protobuf-compiler
+          protoc --version
+
+      - name: Build application binary (locked)
+        working-directory: backend
+        run: cargo build --locked --bin evolith
 
       - name: Validate recreation script
         run: bash -n scripts/tests/backend-container-recreation.sh

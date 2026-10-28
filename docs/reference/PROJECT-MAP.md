@@ -85,7 +85,7 @@ SQLite 适合 Lite 开发，PostgreSQL 是生产主路径。MySQL Repository 未
 
 ## 版本事实源
 
-- Rust MSRV：`backend/Cargo.toml`，当前为 1.88。
+- Rust MSRV：`backend/Cargo.toml`，当前为 1.90。
 - Rust 解析依赖：`backend/Cargo.lock`。
 - 前端直接依赖：`frontend/package.json`。
 - 前端解析依赖：`frontend/bun.lock`。

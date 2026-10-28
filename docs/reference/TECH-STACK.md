@@ -22,10 +22,12 @@
 
 | 技术 | 当前基线 | 用途 |
 |------|----------|------|
-| Rust | 1.88 | Workspace MSRV；与生产 Builder 镜像一致 |
+| Rust | 1.94.1 | Evolith integration MSRV；与生产 Builder/CI/dev toolchain 一致 |
 | Edition | 2021 | Workspace edition |
 | Cargo resolver | 2 | Workspace 依赖解析 |
 | Debian | bookworm-slim | 生产运行镜像 |
+
+WalGit pinned upstream workspace 自身声明 Rust 1.90；Evolith 使用 1.94.1 是完整 resolved graph 的集成要求，不是对 WalGit upstream MSRV 的改写。
 
 Release Profile：
 
@@ -55,14 +57,17 @@ strip = true
 
 | 技术 | 当前声明 | 用途 |
 |------|----------|------|
-| Git CLI | 系统包 | Smart HTTP 服务 subprocess |
-| `gix` | 0.78.0 | Repo Context：revision、tree、blob 和 diff |
+| Git CLI | 系统包 | 当前 Smart HTTP 服务 subprocess |
+| `gix` | 0.78.0 | 当前 Repo Context：revision、tree、blob 和 diff |
+| `walgit-config/store/git/wal` | exact Git revision `80e9a20b...` | EVO-126 compile-time engine boundary；尚未成为 runtime 主路径 |
 
 实现边界：
 
-- Smart HTTP 使用 Git subprocess 处理标准协议流。
-- Repository Context 使用 `gix` 读取对象和历史。
-- Git 仓库当前存储在服务端文件系统，不在 PostgreSQL 或 MinIO 中。
+- 当前 Smart HTTP 仍使用 Git subprocess 处理标准协议流。
+- 当前 Repository Context 仍使用 `gix 0.78` 读取对象和历史。
+- Git 仓库当前仍存储在服务端文件系统，不在 PostgreSQL 或 object store 中。
+- EVO-126-A 只把 WalGit engine crates 放入 `service-git` dependency boundary；`walgit-server` 不作为 runtime dependency，流量切换归后续 B~H Stories。
+- WalGit pinned graph 当前内部使用 `gix 0.86`；重复 gix generation 在 A Story 暂时允许，由 `service-git` boundary 隔离。
 
 ### 2.4 数据与基础设施
 
@@ -73,7 +78,7 @@ strip = true
 | PostgreSQL | 16-alpine | 生产数据库 | 支持 |
 | MySQL | SQLx feature 保留 | 非主路径 | Repository 未实现，启动时拒绝 |
 | Redis | crate 1.2.2 / image 7-alpine | 缓存 | 可选 |
-| MinIO | Compose image | 早期对象存储基础设施 | 非 Git 主存储路径 |
+| MinIO | Compose image | 早期对象存储基础设施 | 非当前 Git 主存储路径；EVO-126-F 才定义目标 object-store production config |
 
 SQLx 当前启用了 `sqlite`、`postgres` 和 `mysql` feature，但 feature 存在不等于业务支持。生产主服务只支持 SQLite 和 PostgreSQL 分支。
 
@@ -202,7 +207,7 @@ cargo build --release
 
 ### 4.1 Lite
 
-- Rust 1.88。
+- Rust 1.94.1。
 - Bun 1.3.14。
 - SQLite 内存数据库。
 - legacy Sandbox 关闭。
@@ -214,16 +219,16 @@ cargo build --release
 - 嵌入式 React SPA。
 - PostgreSQL 16。
 - Redis 可选。
-- Git 仓库持久卷。
+- Git 仓库当前持久卷；WalGit object-store cutover 尚未完成。
 - Nginx / Platform LB 可选。
 
-MinIO 仍可由开发 Compose 启动，但当前 Git-centric 主线使用 Git 文件系统，不应把 MinIO 视为仓库数据层。
+MinIO 仍可由开发 Compose 启动，但当前 Git-centric runtime 使用 Git 文件系统，不应把 MinIO 视为已生效的仓库数据层。
 
 ### 4.3 容器
 
 `backend/Dockerfile` 当前：
 
-- Builder：`rust:1.88-slim-bookworm`
+- Builder：`rust:1.94.1-slim-bookworm`
 - Runtime：`debian:bookworm-slim`
 - Runtime 包含 `git`、`curl`、CA 和 OpenSSL 运行库
 - 非 root 用户 `evolith`
@@ -231,7 +236,7 @@ MinIO 仍可由开发 Compose 启动，但当前 Git-centric 主线使用 Git �
 
 ## 5. CI 基线
 
-`.github/workflows/ci.yml` 当前只在 `v*.*.*` Tag push 时运行。
+`.github/workflows/ci.yml` 当前对 targeting `main` 的 Pull Request、`main` push、semver tag 和手动 dispatch 提供验证；PR 使用 exact-head checkout。
 
 实际门禁：
 
@@ -247,15 +252,19 @@ Backend:
   cargo check --workspace --all-targets
   cargo clippy --workspace --all-targets -- -D warnings
   cargo test --workspace                  # SQLite
+  application recovery drill
+
+Release/manual additionally:
   cargo test --workspace                  # PostgreSQL env
+  production Compose diagnostic
 ```
 
-CI 启动 PostgreSQL 16 Service。Tag-only 是当前发布驱动策略，不要在文档中描述为每次 Push 或 PR 自动执行。
+CI 同时执行既有 durability/recovery gates；生产发布是否允许仍由 Release/Gate 文档决定，不能把 CI success 等同于生产就绪。
 
 ## 6. 版本升级规则
 
 1. 先修改 Manifest 和 Lockfile，并完成 breaking migration。
-2. Rust 依赖升级后检查实际 MSRV，统一更新 Workspace、Dockerfile 和 README。
+2. Rust 依赖升级后检查**完整 locked dependency graph** 的实际 MSRV，统一更新 Workspace、rust-toolchain、Dockerfile、CI、README 和本 Reference；不能只采用单个 upstream 项目的 MSRV。
 3. 前端升级后以 `package.json` + `bun.lock` 为事实源。
 4. 不把“latest”当作固定版本号写入稳定 Reference。
 5. 依赖 feature 存在不等于产品能力完整支持。
@@ -267,6 +276,7 @@ CI 启动 PostgreSQL 16 Service。Tag-only 是当前发布驱动策略，不要�
 - [项目地图](./PROJECT-MAP.md)
 - [配置参考](./CONFIG.md)
 - [测试](./TESTING.md)
+- [WalGit Dependency Baseline](./WALGIT-DEPENDENCY-BASELINE.md)
 - [本地开发](../sop/LOCAL-DEV.md)
 - [发布](../sop/RELEASE.md)
 - [全量依赖 latest 迁移记录](../backlog/archive/2026-Q2/EVO-086-全量依赖-latest-迁移.md)
