@@ -20,8 +20,8 @@ use crate::state::AppState;
 
 pub use context::GraphQLRequestContext;
 pub use schema::{
-    build_schema, EvolithSchema, GRAPHQL_MAX_BODY_BYTES, GRAPHQL_MAX_COMPLEXITY,
-    GRAPHQL_MAX_DEPTH, GRAPHQL_MAX_DIRECTIVES,
+    build_schema, EvolithSchema, GRAPHQL_MAX_BODY_BYTES, GRAPHQL_MAX_COMPLEXITY, GRAPHQL_MAX_DEPTH,
+    GRAPHQL_MAX_DIRECTIVES,
 };
 
 use error::{enrich_response_errors, GraphQLTransportError};
@@ -79,7 +79,10 @@ async fn graphiql(state: web::Data<AppState>) -> HttpResponse {
 fn graphiql_allowed(is_development: bool, configured: Option<&str>) -> bool {
     is_development
         && configured.is_some_and(|value| {
-            matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes")
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes"
+            )
         })
 }
 

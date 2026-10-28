@@ -34,10 +34,8 @@ mod tests {
     async fn foundation_query_is_available() {
         let response = build_schema()
             .execute(
-                Request::new(
-                    "{ graphqlFoundation { service transport version } requestId }",
-                )
-                .data(context()),
+                Request::new("{ graphqlFoundation { service transport version } requestId }")
+                    .data(context()),
             )
             .await;
 

@@ -63,7 +63,10 @@ mod tests {
         let mut response = Response::from_errors(vec![ServerError::new("broken", None)]);
         enrich_response_errors(&mut response, "req-123");
 
-        let Some(extensions) = response.errors.first().and_then(|error| error.extensions.as_ref())
+        let Some(extensions) = response
+            .errors
+            .first()
+            .and_then(|error| error.extensions.as_ref())
         else {
             panic!("missing GraphQL error extensions");
         };
