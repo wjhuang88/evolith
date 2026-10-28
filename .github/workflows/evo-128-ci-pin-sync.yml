@@ -1,0 +1,63 @@
+name: evo-128-ci-pin-sync
+
+on:
+  push:
+    branches:
+      - agent/evo-128-ci-postgres-major
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/agent/evo-128-ci-postgres-major'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/evo-128-ci-postgres-major
+          fetch-depth: 0
+      - name: Pin CI runner and PostgreSQL client major
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for path in [Path('.github/workflows/ci.yml'), Path('.github/workflows/data-durability-container.yml')]:
+              text = path.read_text()
+              text = text.replace('runs-on: ubuntu-latest', 'runs-on: ubuntu-24.04')
+              old = '''      - name: Install CI system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client protobuf-compiler
+          protoc --version'''
+              new = '''      - name: Install pinned CI system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16 protobuf-compiler
+          pg_dump_version="$(pg_dump --version)"
+          psql_version="$(psql --version)"
+          printf '%s\\n%s\\n' "$pg_dump_version" "$psql_version"
+          [[ "$pg_dump_version" == "pg_dump (PostgreSQL) 16."* ]]
+          [[ "$psql_version" == "psql (PostgreSQL) 16."* ]]
+          protoc --version'''
+              if old not in text:
+                  raise SystemExit(f'system dependency anchor missing: {path}')
+              path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit only workflow pins when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git status --porcelain | awk '{print $2}' | sort)"
+          if [[ -z "$changed" ]]; then
+            echo 'workflow pins already aligned'
+            exit 0
+          fi
+          test "$changed" = $'.github/workflows/ci.yml\n.github/workflows/data-durability-container.yml'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/ci.yml .github/workflows/data-durability-container.yml
+          git commit -m 'fix(ci): pin PostgreSQL durability environment to major 16 (#35) [model: GPT-5.6 Sol]'
+          git push origin HEAD:agent/evo-128-ci-postgres-major
