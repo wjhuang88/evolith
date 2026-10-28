@@ -1,6 +1,6 @@
 # Iteration 069: WalGit Dependency and Toolchain Boundary
 
-> 文档状态：Review
+> 文档状态：Closed / Complete
 > 计划发布日期：2026-09-22
 > 计划目标：完成 EVO-126-A，在不改变当前 filesystem Git runtime 的前提下建立 Rust 1.90、WalGit exact-SHA dependency 与 MIT/supply-chain 可重复编译基线。
 >
@@ -104,6 +104,8 @@ PR exact-head CI 还必须证明现有 frontend、DATA-01 durability 与 applica
 | 2026-10-23 | navigator | Navigator 检查未发现 runtime/API 边界泄漏：四个 WalGit engine crates 只进入 `service-git` Cargo implementation boundary，`walgit-server` 未引入；发现 current-fact 文档漂移与 `cargo tree` 证据缺口，已进入治理修正。 |
 | 2026-10-23 | gate-hardening | 将计划验证中的 `cargo tree -p service-git` 升级为 permanent `cargo tree --locked -p service-git` CI gate，显式断言四个允许 engine crates 存在、exact WalGit source rev 可见且 `walgit-server` 不存在。 |
 
+| 2026-10-28 | closure | final exact-head `493f9f3` 的 `ci` #282 与 durability #124 全绿；PR #24 squash merge 为 `09316a6`；EVO-126-A Closed / Complete，EVO-126-B 解除硬依赖。 |
+
 ## 9. 变更请求
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
@@ -112,20 +114,21 @@ PR exact-head CI 还必须证明现有 frontend、DATA-01 durability 与 applica
 
 ### 9.1 修订后的当前验收标准
 
-- [ ] Evolith workspace / rust-toolchain / builder / CI / Clippy / current docs 统一为 Rust 1.94.1。
-- [ ] exact WalGit SHA、`walgit-server` exclusion、temporary bisync compatibility boundary 保持可审计。
-- [ ] committed `Cargo.lock` 可从 clean checkout 直接构建，不需要临时 `cargo update` 或 yanked crate。
-- [ ] Rust 1.94.1 下 fmt/check/clippy/test、dependency tree、frontend、durability/recovery exact-head CI 全部通过。
-- [ ] Evolith 项目许可证保持 `AGPL-3.0-only`；第三方 WalGit/bisync2 attribution 保持各自许可证事实。
-- [ ] filesystem Git runtime 行为不变。
+- [x] Evolith workspace / rust-toolchain / builder / CI / Clippy / current docs 统一为 Rust 1.94.1。
+- [x] exact WalGit SHA、`walgit-server` exclusion、temporary bisync compatibility boundary 保持可审计。
+- [x] committed `Cargo.lock` 可从 clean checkout 直接构建，不需要临时 `cargo update` 或 yanked crate。
+- [x] Rust 1.94.1 下 fmt/check/clippy/test、dependency tree、frontend、durability/recovery exact-head CI 全部通过。
+- [x] Evolith 项目许可证保持 `AGPL-3.0-only`；第三方 WalGit/bisync2 attribution 保持各自许可证事实。
+- [x] filesystem Git runtime 行为不变。
 
 ## 10. Review
 
 - 完成：activation、exact WalGit pin、dependency boundary、bisync compatibility boundary、Rust 1.94.1 scope-change、committed lockfile、`protoc` build dependency、AWS/Smithy coherent lock family 与 technical exact-head validation 已完成。
 - Navigator：no blocking implementation findings。已识别并正在修正 current-fact 文档漂移，同时把 dependency-tree 人工验收升级为 permanent CI gate。
-- 验证结果：head `2412c04bd151845d5401facb8459df742a9f9501` 上 `ci` #272 / `data-durability-container` #114 全绿；治理同步后的 final exact-head CI 尚待完成。
-- 闭环状态：`Partial`
-- 残余归口：只剩 final governance exact-head CI 与状态同步；service-git v2 engine implementation 明确归 EVO-126-B，不混入本 Iteration。
+- 验证结果：technical head `2412c04` 的 `ci` #272 / durability #114 全绿；final governance head `493f9f3` 的 `ci` #282 / durability #124 再次全绿，并通过 permanent locked dependency-tree gate。
+- 合并：PR #24 -> `main` merge `09316a6ba3a68fb6e7d30bbba6bf5cc563897696`。
+- 闭环状态：`Complete`
+- 残余归口：service-git v2 engine implementation 归 EVO-126-B；本 Iteration 无未归口残余。
 
 ## 11. Retrospective
 

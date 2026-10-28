@@ -3,9 +3,9 @@
 - **父 Epic**：[EVO-126](EVO-126-walgit-git-data-plane-refactor.md)
 - **类型**：Technical / Architecture / Git Engine
 - **优先级**：P0
-- **状态**：Proposed
+- **状态**：Ready
 - **GitHub Issue**：[#14](https://github.com/wjhuang88/evolith/issues/14)
-- **依赖或阻塞**：EVO-126-A
+- **依赖或阻塞**：EVO-126-A Done / PR #24 merged `09316a6`
 - **解锁内容**：EVO-126-C / D / E / F
 - **影响范围**：backend / docs
 

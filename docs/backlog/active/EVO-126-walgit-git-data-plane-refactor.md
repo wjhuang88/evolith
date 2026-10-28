@@ -21,8 +21,8 @@
 
 | 子 Story | 独立结果 | 状态 | 依赖 | 所属迭代 | GitHub |
 |----------|----------|------|------|----------|--------|
-| [EVO-126-A](EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | In Progress | 无 | Iteration 069 | [#13](https://github.com/wjhuang88/evolith/issues/13) |
-| [EVO-126-B](EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Proposed | A | - | [#14](https://github.com/wjhuang88/evolith/issues/14) |
+| [EVO-126-A](EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | Done / Complete | 无 | Iteration 069 Closed | [#13](https://github.com/wjhuang88/evolith/issues/13) |
+| [EVO-126-B](EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Ready | A Done | - | [#14](https://github.com/wjhuang88/evolith/issues/14) |
 | [EVO-126-C](EVO-126-C-smart-http-read-path.md) | Smart HTTP read path v0/v2 | Proposed | B | - | [#15](https://github.com/wjhuang88/evolith/issues/15) |
 | [EVO-126-D](EVO-126-D-wal-receive-pack-write-path.md) | receive-pack -> WAL publish + durable push event | Proposed | B | - | [#16](https://github.com/wjhuang88/evolith/issues/16) |
 | [EVO-126-E](EVO-126-E-repo-context-walgit.md) | Repo Context parity on RepoHandle/ObjectAccess | Proposed | B | - | [#17](https://github.com/wjhuang88/evolith/issues/17) |
