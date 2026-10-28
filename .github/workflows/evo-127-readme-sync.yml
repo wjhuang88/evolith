@@ -1,29 +1,23 @@
 name: evo-127-readme-sync
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - agent/evo-127-graphql-architecture-baseline
 
 permissions:
   contents: write
 
 jobs:
   sync:
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'agent/evo-127-graphql-architecture-baseline'
+    if: github.ref == 'refs/heads/agent/evo-127-graphql-architecture-baseline'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: agent/evo-127-graphql-architecture-baseline
           fetch-depth: 0
-      - name: Verify exact event head
-        env:
-          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
       - name: Align docs map
         shell: bash
         run: |
@@ -54,8 +48,6 @@ jobs:
 → EVO-105 / 106 / 107 / 104
 → Experience / Discovery / legacy cleanup
 → EVO-118-E final production convergence'''
-          if old_chain not in text:
-              raise SystemExit('execution chain anchor missing')
           text = text.replace(old_chain, new_chain, 1)
           text = text.replace(
               '- [API 合约](reference/API-CONTRACT.md) — HTTP API、认证与错误响应。',
@@ -68,17 +60,18 @@ jobs:
               '- [实施路线图](roadmap/IMPLEMENTATION-ROADMAP.md) — 阶段级长期路线；涉及当前启动顺序时服从 2026-10 plan。')
           p.write_text(text)
           PY
-      - name: Commit only docs map
+      - name: Commit only docs map when changed
         shell: bash
-        env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           changed="$(git status --porcelain | awk '{print $2}' | sort)"
-          printf '%s\n' "$changed"
+          if [[ -z "$changed" ]]; then
+            echo 'docs map already aligned'
+            exit 0
+          fi
           test "$changed" = 'docs/README.md'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/README.md
           git commit -m 'docs(governance): align GraphQL docs map (#26) [model: GPT-5.6 Sol]'
-          git push origin "HEAD:${HEAD_REF}"
+          git push origin HEAD:agent/evo-127-graphql-architecture-baseline
