@@ -1,5 +1,8 @@
 # Evolith 当前执行计划（2026-09）
 
+> **Superseded as current-order owner on 2026-10-28 by [Current Execution Plan 2026-10](CURRENT-EXECUTION-PLAN-2026-10.md). This file remains the historical 2026-09 baseline.**
+
+
 > 状态：Current execution ordering
 > 生效：2026-09-10
 > 触发：WalGit-backed Git Data Plane architecture pivot

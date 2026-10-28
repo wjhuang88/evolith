@@ -10,7 +10,8 @@
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
 | EVO-126 | WalGit-backed Git Data Plane Refactor | In Progress / accepted direction | **P0** | 新增 GIT-DP-01；object store/WAL 为长期 Git data plane，Evolith 保持 control-plane ownership | [Epic](active/EVO-126-walgit-git-data-plane-refactor.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)<br>[Design](../design/WALGIT-GIT-DATA-PLANE-REFACTOR.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) |
-| EVO-126-A | WalGit dependency and toolchain boundary | **Review** | **P0** | Iteration 069；Evolith Rust 1.94.1 + exact upstream pin + AGPL/third-party supply-chain boundary；技术门禁已绿，等待治理同步后的 final exact-head CI；不改 runtime Git path | [Item](active/EVO-126-A-walgit-dependency-toolchain-boundary.md)<br>[Epic](active/EVO-126-walgit-git-data-plane-refactor.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) |
+| EVO-126-B | service-git v2 engine boundary | **Ready** | **P0** | A 已由 PR #24 完成；建立 WalGit Registry/Store application boundary；Repo GraphQL migration 依赖该边界 | [Item](active/EVO-126-B-service-git-v2-engine-boundary.md)<br>[Epic](active/EVO-126-walgit-git-data-plane-refactor.md) |
+| EVO-127 | GraphQL Application API Migration | **Proposed / accepted direction** | **P0** | ADR-0012；GraphQL 成为 application/business API，protocol endpoints 保持原生；A 是首个可激活 foundation Story | [Epic](active/EVO-127-graphql-application-api-migration.md)<br>[ADR-0012](../decisions/ADR-0012-graphql-application-api.md)<br>[Design](../design/GRAPHQL-APPLICATION-API-MIGRATION.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) |
 | EVO-118-G-A | PR/Main 自动质量门禁 | Review / Partial | P1 | Iteration 056 保留；Branch Protection 远端证据 residual，release 前必须闭合，不阻塞新 Iteration 的 EVO-126-A | [Item](active/EVO-118-G-A-ci-merge-gates.md)<br>[Iteration 056](../iterations/ITERATION-056.md) |
 | EVO-105 | Commit API + Promote API | Proposed / paused for activation | P0 | 原产品下一步；为避免旧/new Git write path 双重重构，新增依赖 GIT-DP-01 / EVO-126-H | [Item](active/EVO-105-commit-and-promote-api.md)<br>[ADR-0007](../decisions/ADR-0007-agent-write-and-production-delivery-boundaries.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) |
 | EVO-106 | Agent Session API + Scoped Token | Proposed / paused for activation | P0 | 与 EVO-105 共同恢复；不得在旧 generic receive-pack 上固定最终 Agent write architecture | [Item](active/EVO-106-agent-session-and-scoped-token.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) |
@@ -20,8 +21,8 @@
 
 | ID | Result | Status | Dependency | GitHub |
 | --- | --- | --- | --- | --- |
-| [EVO-126-A](active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | **Review / Iteration 069** | none | [#13](https://github.com/wjhuang88/evolith/issues/13) |
-| [EVO-126-B](active/EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | Proposed | A | [#14](https://github.com/wjhuang88/evolith/issues/14) |
+| [EVO-126-A](active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | Rust 1.94.1 integration baseline + exact WalGit pin + license boundary | **Done / Iteration 069 Closed** | none | [#13](https://github.com/wjhuang88/evolith/issues/13) |
+| [EVO-126-B](active/EVO-126-B-service-git-v2-engine-boundary.md) | service-git v2 + Store/Registry lifecycle | **Ready** | A Done | [#14](https://github.com/wjhuang88/evolith/issues/14) |
 | [EVO-126-C](active/EVO-126-C-smart-http-read-path.md) | Smart HTTP read path v0/v2 | Proposed | B | [#15](https://github.com/wjhuang88/evolith/issues/15) |
 | [EVO-126-D](active/EVO-126-D-wal-receive-pack-write-path.md) | receive-pack -> WAL publish + durable Push event | Proposed | B | [#16](https://github.com/wjhuang88/evolith/issues/16) |
 | [EVO-126-E](active/EVO-126-E-repo-context-walgit.md) | Repo Context on RepoHandle/ObjectAccess | Proposed | B | [#17](https://github.com/wjhuang88/evolith/issues/17) |

@@ -2,7 +2,7 @@
 
 本文档定义 Evolith 的工程文档组织和当前关键入口。新增文档前先判断归口，避免把稳定事实、执行顺序、操作流程和历史计划混在一起。
 
-> **2026-09-10 架构改线**：Evolith 已接受 WalGit-backed Git Data Plane 作为长期目标。当前 runtime 仍是 filesystem-backed Git；实现改造归 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md)。当前整体状态以 [Project Status Baseline 2026-09-10](reference/PROJECT-STATUS-BASELINE-2026-09-10.md) 为准，当前激活顺序以 [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 为准。
+> **2026-10-28 架构改线**：WalGit-backed Git Data Plane 继续由 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) 推进；GraphQL application API 由 [ADR-0012](decisions/ADR-0012-graphql-application-api.md) / [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) 接管。当前 Git runtime 仍是 filesystem-backed，当前 application runtime 仍可包含 REST；当前激活顺序以 [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为准。
 
 ## 文档分层
 
@@ -25,10 +25,11 @@
 1. [Project Status Baseline 2026-09-10](reference/PROJECT-STATUS-BASELINE-2026-09-10.md) — 当前实现、已完成能力、未完成计划、GIT-DP-01 与目标架构的统一基线。
 2. [ADR-0011 WalGit-backed Git Data Plane](decisions/ADR-0011-walgit-backed-git-data-plane.md) — 接受 object-store/WAL data plane；Evolith 保持唯一控制面；ADR-0006 只保留为当前 Alpha/历史实现依据。
 3. [WalGit Git Data Plane Refactor Design](design/WALGIT-GIT-DATA-PLANE-REFACTOR.md) — `service-git v2`、Smart HTTP、WAL write、Repo Context、bundle-uri、migration/recovery 的目标设计。
-4. [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — **唯一当前激活顺序 owner**。
-5. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 架构重构；A 正在 Review/收口，B 是 A 关闭后的下一依赖切片，C~H 继续按依赖 Proposed；GitHub tracking #12~#20。
-6. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC/DATA/EVENT 历史 Gate 与 DEPLOY-01；涉及新 data plane 时必须与新 Project Status Baseline 联读。
-7. [Security Review](sop/SECURITY-REVIEW.md)、[Release](sop/RELEASE.md)、[Document Check](sop/DOC-CHECK.md) — Git write、storage、迁移与收口强制门禁。
+4. [ADR-0012 GraphQL Application API](decisions/ADR-0012-graphql-application-api.md) + [GraphQL Migration Design](design/GRAPHQL-APPLICATION-API-MIGRATION.md) — canonical application API、schema/codegen/security 和 protocol exceptions。
+5. [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) — **唯一当前激活顺序 owner**。
+6. [EVO-126 Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — P0 架构重构；A 正在 Review/收口，B 是 A 关闭后的下一依赖切片，C~H 继续按依赖 Proposed；GitHub tracking #12~#20。
+7. [Production Readiness Baseline](reference/PRODUCTION-READINESS-BASELINE.md) — SEC/DATA/EVENT 历史 Gate 与 DEPLOY-01；涉及新 data plane 时必须与新 Project Status Baseline 联读。
+8. [Security Review](sop/SECURITY-REVIEW.md)、[Release](sop/RELEASE.md)、[Document Check](sop/DOC-CHECK.md) — Git write、storage、迁移与收口强制门禁。
 
 当前执行链：
 
@@ -73,6 +74,8 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 
 ## Architecture / Design
 
+- [ADR-0012](decisions/ADR-0012-graphql-application-api.md) — GraphQL canonical application API 与 protocol-native exception 决策。
+- [GraphQL Migration Design](design/GRAPHQL-APPLICATION-API-MIGRATION.md) — backend schema/context/security、frontend codegen/transport 与 vertical migration 设计。
 - [ADR-0011](decisions/ADR-0011-walgit-backed-git-data-plane.md) — WalGit-backed Git Data Plane 决策。
 - [WalGit Refactor Design](design/WALGIT-GIT-DATA-PLANE-REFACTOR.md) — 本轮 Git engine 重构实施设计。
 - [ADR-0004 Git-Centric Storage](decisions/ADR-0004-git-centric-storage.md) — Git 事实源核心决策；storage 实现后果被 ADR-0011 更新。
@@ -107,6 +110,7 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 - [Operating Board](BOARD.md) — 当前 Now/Next/Blocked/Done 派生视图。
 - [Product Backlog](backlog/PRODUCT-BACKLOG.md) — 当前优先级与 Required Reads。
 - [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) — WalGit Git Data Plane Epic。
+- [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) — GraphQL Application API Migration Epic；A-G 见 GitHub #27-#33。
 - [EVO-126-A](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) — Iteration 069 Review/收口；Evolith Rust 1.94.1 + exact WalGit dependency boundary，filesystem runtime 未切换。
 - [EVO-118](backlog/active/EVO-118-production-readiness-and-security-hardening.md) — Production Readiness Epic；E 为最终 release gate，G-A 有 residual。
 - [EVO-100](backlog/active/EVO-100-git-centric-platform-foundation.md) — Git-centric product foundation；Agent/Discovery 子项等待新 data plane。
@@ -115,7 +119,8 @@ EVO-118-G-A / Iteration 056 的 Review/Partial residual 保留并在 release 前
 
 ## Roadmap / Proposals
 
-- [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — 当前唯一激活顺序 owner。
+- [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) — 当前唯一激活顺序 owner；GraphQL + Git data-plane convergence。
+- [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) — 历史执行基线，2026-10 起不再拥有当前顺序。
 - [实施路线图](roadmap/IMPLEMENTATION-ROADMAP.md) — 阶段级长期路线；涉及当前启动顺序时服从 2026-09 plan。
 - [Production Readiness Plan 2026-07](roadmap/PRODUCTION-READINESS-PLAN-2026-07.md) — 历史执行基线；2026-09 起不再拥有当前激活顺序。
 - [Two-Month Phase E' Plan](roadmap/TWO-MONTH-PLAN-2026-07.md) — 2026-06-29 历史计划基线。

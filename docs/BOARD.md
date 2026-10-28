@@ -2,22 +2,24 @@
 
 > Derived operating view only. Owner docs define status, scope, acceptance criteria, validation evidence and lifecycle state. Update owner docs first, then reflect the current operating state here.
 >
-> **2026-09-10 replan**：当前整体状态以 [Project Status Baseline](reference/PROJECT-STATUS-BASELINE-2026-09-10.md) 为准；当前执行顺序以 [Current Execution Plan 2026-09](roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 为准。新增 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / GIT-DP-01，先完成 WalGit-backed Git Data Plane，再恢复 Agent Write Loop。
+> **2026-10-28 replan**：Git data-plane 继续归 [EVO-126](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) / ADR-0011；application API 新增 [EVO-127](backlog/active/EVO-127-graphql-application-api-migration.md) / ADR-0012。当前执行顺序以 [Current Execution Plan 2026-10](roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为唯一 owner。
 
 ## Now
 
 | Item | State | Owner Doc | Gate / Next action |
 |------|-------|-----------|--------------------|
 | EVO-126 WalGit Git Data Plane | In Progress / accepted direction | [Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) | GIT-DP-01 Open；Epic 不直接进入 Iteration |
-| EVO-126-A Dependency/Toolchain Boundary | **Review / Iteration 069** | [Item](backlog/active/EVO-126-A-walgit-dependency-toolchain-boundary.md) | technical exact-head gates green；治理同步 + permanent locked dependency-tree gate 后 final exact-head CI；runtime Git path 不切换 |
+| EVO-127 GraphQL Application API | **Proposed / accepted direction** | [Epic](backlog/active/EVO-127-graphql-application-api-migration.md) | next candidate EVO-127-A foundation；Repo/Context slices wait for EVO-126-B/E |
+| EVO-126-B service-git v2 Engine Boundary | **Ready** | [Item](backlog/active/EVO-126-B-service-git-v2-engine-boundary.md) | A Done；与 GraphQL foundation 按 2026-10 plan 依赖收敛 |
 | EVO-118-G-A CI Merge Gates | Review / Partial residual | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056 保留；Branch Protection 远端证据在 release closure 前处理 |
 
 ## Planned Sequence
 
 | Order | Item | State | Dependency |
 |------:|------|-------|------------|
-| 1 | EVO-126-A toolchain/dependency | Review / Iteration 069 | none |
-| 2 | EVO-126-B service-git v2 engine boundary | Proposed / next after A closure | A |
+| 1 | EVO-127-A GraphQL platform foundation | Proposed / next candidate | governance baseline merged + inventory |
+| 2 | EVO-127-B/C/F non-Git GraphQL slices | Proposed | EVO-127-A (+ B for C) |
+| 3 | EVO-126-B service-git v2 engine boundary | Ready | A Done |
 | 3 | EVO-126-C Smart HTTP read | Proposed | B |
 | 4 | EVO-126-E Repo Context parity | Proposed | B |
 | 5 | EVO-126-D WAL receive-pack | Proposed | B |
@@ -67,6 +69,7 @@ C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；A/B/H
 | EVENT-01 | Closed | WAL receive path 必须保持 Durable Outbox contract |
 | REL-01 | Partial | G-A remote Branch Protection evidence residual |
 | **GIT-DP-01** | **Open** | EVO-126 A-H + migration/recovery/protocol/context/bundle/cutover review |
+| **API-GQL-01** | **Open** | EVO-127 A-G；GraphQL canonical application API + REST business API retirement |
 | DEPLOY-01 | Open / final | 最终 clean build/smoke 必须在 WalGit-backed data plane 上执行 |
 
 ## Independent Later Candidates
