@@ -1,0 +1,73 @@
+name: evo-127-a-bootstrap
+
+on:
+  push:
+    branches:
+      - agent/evo-127-a-graphql-foundation
+
+permissions:
+  contents: write
+
+concurrency:
+  group: evo-127-a-bootstrap
+  cancel-in-progress: true
+
+jobs:
+  generate-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout branch head
+        uses: actions/checkout@v4
+        with:
+          ref: agent/evo-127-a-graphql-foundation
+          fetch-depth: 0
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.94.1
+        with:
+          components: rustfmt, clippy
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.14
+
+      - name: Format and resolve backend lockfile
+        working-directory: backend
+        run: |
+          cargo fmt --all
+          cargo check -p api --all-targets
+
+      - name: Export canonical GraphQL SDL
+        working-directory: backend
+        run: |
+          mkdir -p ../docs/reference/graphql
+          cargo run -p api --bin export_graphql_schema > ../docs/reference/graphql/schema.graphql
+
+      - name: Install frontend dependencies and generate typed operations
+        working-directory: frontend
+        run: |
+          bun install
+          bun run graphql:codegen
+          bun run type-check
+          bun run lint
+
+      - name: Run focused backend GraphQL tests and clippy
+        working-directory: backend
+        run: |
+          cargo test -p api graphql
+          cargo clippy -p api --all-targets -- -D warnings
+
+      - name: Commit generated foundation artifacts
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(graphql): generate locked foundation artifacts (#27) [model: GPT-5.6 Sol]"
+          git push origin HEAD:agent/evo-127-a-graphql-foundation

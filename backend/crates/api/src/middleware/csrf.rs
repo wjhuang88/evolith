@@ -2,8 +2,9 @@
 //!
 //! Implements double-submit cookie pattern for CSRF protection.
 //! - A non-httpOnly `csrf_token` cookie is set on login/register/refresh
-//! - State-changing requests (POST/PUT/PATCH/DELETE) must include
-//!   an `X-CSRF-Token` header matching the cookie value
+//! - Existing REST state-changing requests preserve the historical CSRF behavior.
+//! - `/graphql` requires CSRF only when the browser session cookie is present; bearer/API-key-only
+//!   callers without a session cookie are not coupled to browser CSRF state.
 
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse},
@@ -12,6 +13,8 @@ use actix_web::{
 };
 use std::future::{ready, Ready};
 use std::pin::Pin;
+
+use crate::middleware::rbac::JWT_COOKIE_NAME;
 
 /// CSRF cookie name
 pub const CSRF_COOKIE_NAME: &str = "csrf_token";
@@ -71,6 +74,18 @@ impl CsrfMiddleware {
             *method,
             Method::POST | Method::PUT | Method::PATCH | Method::DELETE
         )
+    }
+
+    fn requires_csrf_for_request(req: &ServiceRequest) -> bool {
+        if !Self::requires_csrf(req.method()) {
+            return false;
+        }
+
+        if req.path() == "/graphql" {
+            return req.cookie(JWT_COOKIE_NAME).is_some();
+        }
+
+        true
     }
 
     fn is_exempt_path(path: &str, exempt_paths: &[String]) -> bool {
@@ -134,7 +149,7 @@ where
             return Box::pin(fut);
         }
 
-        if !CsrfMiddleware::requires_csrf(req.method()) {
+        if !CsrfMiddleware::requires_csrf_for_request(&req) {
             let fut = self.service.call(req);
             return Box::pin(fut);
         }
@@ -179,6 +194,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use actix_web::{cookie::Cookie, http::header::AUTHORIZATION, test::TestRequest};
 
     #[test]
     fn test_requires_csrf() {
@@ -189,6 +205,27 @@ mod tests {
         assert!(!CsrfMiddleware::requires_csrf(&Method::GET));
         assert!(!CsrfMiddleware::requires_csrf(&Method::HEAD));
         assert!(!CsrfMiddleware::requires_csrf(&Method::OPTIONS));
+    }
+
+    #[test]
+    fn graphql_csrf_depends_on_session_cookie_not_bearer_header() {
+        let bearer_only = TestRequest::post()
+            .uri("/graphql")
+            .insert_header((AUTHORIZATION, "Bearer token"))
+            .to_srv_request();
+        assert!(!CsrfMiddleware::requires_csrf_for_request(&bearer_only));
+
+        let session = TestRequest::post()
+            .uri("/graphql")
+            .cookie(Cookie::new(JWT_COOKIE_NAME, "session-token"))
+            .to_srv_request();
+        assert!(CsrfMiddleware::requires_csrf_for_request(&session));
+    }
+
+    #[test]
+    fn rest_state_changes_keep_historical_csrf_requirement() {
+        let request = TestRequest::post().uri("/api/v1/tools").to_srv_request();
+        assert!(CsrfMiddleware::requires_csrf_for_request(&request));
     }
 
     #[test]

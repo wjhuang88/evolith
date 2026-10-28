@@ -24,6 +24,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg
         // Health check - public (no auth required)
         .configure(health::configure)
+        // Canonical browser/application GraphQL API. Protocol-native endpoints remain separate.
+        .configure(crate::graphql::configure)
         // MCP endpoint - requires API key auth, handled separately
         .service(web::scope("/mcp").configure(mcp::configure))
         // Smart HTTP git endpoints at /repos/ (auth-required via global rbac_middleware)
