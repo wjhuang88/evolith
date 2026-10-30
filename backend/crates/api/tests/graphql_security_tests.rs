@@ -17,8 +17,12 @@ fn foundation_query() -> serde_json::Value {
 
 #[actix_rt::test]
 async fn graphql_cookie_session_without_csrf_fails_closed() {
-    let app = test::init_service(App::new().wrap(CsrfMiddleware::new()).configure(graphql::configure))
-        .await;
+    let app = test::init_service(
+        App::new()
+            .wrap(CsrfMiddleware::new())
+            .configure(graphql::configure),
+    )
+    .await;
     let request = test::TestRequest::post()
         .uri("/graphql")
         .cookie(Cookie::new(JWT_COOKIE_NAME, "session-token"))
@@ -29,13 +33,20 @@ async fn graphql_cookie_session_without_csrf_fails_closed() {
         .await
         .expect_err("cookie-authenticated GraphQL POST must require CSRF");
 
-    assert_eq!(error.as_response_error().status_code(), StatusCode::FORBIDDEN);
+    assert_eq!(
+        error.as_response_error().status_code(),
+        StatusCode::FORBIDDEN
+    );
 }
 
 #[actix_rt::test]
 async fn graphql_cookie_session_with_double_submit_csrf_passes_transport_gate() {
-    let app = test::init_service(App::new().wrap(CsrfMiddleware::new()).configure(graphql::configure))
-        .await;
+    let app = test::init_service(
+        App::new()
+            .wrap(CsrfMiddleware::new())
+            .configure(graphql::configure),
+    )
+    .await;
     let request = test::TestRequest::post()
         .uri("/graphql")
         .cookie(Cookie::new(JWT_COOKIE_NAME, "session-token"))
@@ -50,8 +61,12 @@ async fn graphql_cookie_session_with_double_submit_csrf_passes_transport_gate() 
 
 #[actix_rt::test]
 async fn graphql_bearer_only_request_is_not_blocked_by_browser_csrf() {
-    let app = test::init_service(App::new().wrap(CsrfMiddleware::new()).configure(graphql::configure))
-        .await;
+    let app = test::init_service(
+        App::new()
+            .wrap(CsrfMiddleware::new())
+            .configure(graphql::configure),
+    )
+    .await;
     let request = test::TestRequest::post()
         .uri("/graphql")
         .insert_header((header::AUTHORIZATION, "Bearer api-client-token"))
