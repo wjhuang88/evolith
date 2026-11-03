@@ -34,11 +34,14 @@ pub enum CsrfError {
 }
 
 impl actix_web::ResponseError for CsrfError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::FORBIDDEN
+    }
+
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
         use crate::dto::common::ApiResponse;
-        use actix_web::http::StatusCode;
 
-        actix_web::HttpResponse::build(StatusCode::FORBIDDEN)
+        actix_web::HttpResponse::build(self.status_code())
             .json(ApiResponse::<()>::error("CSRF_ERROR", &self.to_string()))
     }
 }
