@@ -2,7 +2,7 @@
 
 - **类型**：Epic / Architecture / API Contract / Frontend Integration
 - **优先级**：P0
-- **状态**：Proposed / accepted direction
+- **状态**：In Progress / accepted direction
 - **GitHub Issue**：[#26](https://github.com/wjhuang88/evolith/issues/26)
 - **决策**：[ADR-0012](../../decisions/ADR-0012-graphql-application-api.md)
 - **目标设计**：[GraphQL Application API Migration](../../design/GRAPHQL-APPLICATION-API-MIGRATION.md)
@@ -34,7 +34,7 @@ Frontend：
 
 | Story | 独立结果 | 状态 | 依赖 | GitHub |
 |---|---|---|---|---|
-| EVO-127-A | GraphQL platform/schema/codegen foundation | Proposed | governance baseline | [#27](https://github.com/wjhuang88/evolith/issues/27) |
+| EVO-127-A | GraphQL platform/schema/codegen foundation | **In Progress / Iteration 070** | governance baseline | [#27](https://github.com/wjhuang88/evolith/issues/27) |
 | EVO-127-B | Auth/session GraphQL migration | Proposed | A | [#28](https://github.com/wjhuang88/evolith/issues/28) |
 | EVO-127-C | Tenant admin/API keys/billing/audit migration | Proposed | A/B | [#29](https://github.com/wjhuang88/evolith/issues/29) |
 | EVO-127-D | Repository CRUD GraphQL migration | Proposed | A + EVO-126-B | [#30](https://github.com/wjhuang88/evolith/issues/30) |

@@ -3,6 +3,7 @@
 //! This crate handles HTTP routing, request handling, and response formatting.
 
 pub mod dto;
+pub mod graphql;
 pub mod handlers;
 pub mod middleware;
 pub mod routes;

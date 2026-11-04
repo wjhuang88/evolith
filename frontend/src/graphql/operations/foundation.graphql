@@ -1,0 +1,8 @@
+query GraphQLFoundationStatus {
+  graphqlFoundation {
+    service
+    transport
+    version
+  }
+  requestId
+}

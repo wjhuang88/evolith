@@ -97,6 +97,8 @@ walgit-wal = { git = "https://github.com/tobi/walgit", rev = "80e9a20b29e29aefd1
 actix-web = "4.13.0"
 actix-cors = "0.7.1"
 actix-web-httpauth = "0.8.2"
+async-graphql = { version = "7.2.1", default-features = false, features = ["graphiql"] }
+async-graphql-actix-web = "7.2.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }

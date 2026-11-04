@@ -3,19 +3,20 @@
 > Compact routing and prioritization surface. Executable context lives in `docs/backlog/active/`; completed/deferred/dropped history stays in owner item/archive records.
 > Status and DoR rules: [Requirement Intake](../sop/REQUIREMENT-INTAKE.md). Completion rules: [Iteration Workflow](../sop/ITERATION-WORKFLOW.md).
 
-> **2026-09-10 product/architecture replan**：Evolith 接受 [ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)，新增 P0 [EVO-126](active/EVO-126-walgit-git-data-plane-refactor.md) 与 GIT-DP-01。当前 runtime 仍是 filesystem-backed Git；Agent Write Loop 暂停激活，待 EVO-126-H cutover。当前整体状态见 [Project Status Baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md)，当前顺序只以 [2026-09 Execution Plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) 为 owner。
+> **2026-10-28 execution replan**：Evolith 同时推进 [ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) 下的 WalGit Git data plane 与 [ADR-0012](../decisions/ADR-0012-graphql-application-api.md) 下的 GraphQL application API。当前 runtime 仍是 filesystem-backed Git + REST-first application API；Agent Write Loop 暂停激活，待 EVO-126-H cutover。当前顺序只以 [2026-10 Execution Plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) 为 owner。
 
 ## Current Priorities
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-126 | WalGit-backed Git Data Plane Refactor | In Progress / accepted direction | **P0** | 新增 GIT-DP-01；object store/WAL 为长期 Git data plane，Evolith 保持 control-plane ownership | [Epic](active/EVO-126-walgit-git-data-plane-refactor.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)<br>[Design](../design/WALGIT-GIT-DATA-PLANE-REFACTOR.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-09.md) |
+| EVO-126 | WalGit-backed Git Data Plane Refactor | In Progress / accepted direction | **P0** | 新增 GIT-DP-01；object store/WAL 为长期 Git data plane，Evolith 保持 control-plane ownership | [Epic](active/EVO-126-walgit-git-data-plane-refactor.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md)<br>[Design](../design/WALGIT-GIT-DATA-PLANE-REFACTOR.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) |
+| EVO-127 | GraphQL Application API Migration | **In Progress / accepted direction** | **P0** | ADR-0012；GraphQL 成为 application/business API，protocol endpoints 保持原生；A 已进入 Iteration 070 | [Epic](active/EVO-127-graphql-application-api-migration.md)<br>[ADR-0012](../decisions/ADR-0012-graphql-application-api.md)<br>[Design](../design/GRAPHQL-APPLICATION-API-MIGRATION.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) |
+| EVO-127-A | GraphQL platform/schema/codegen foundation | **In Progress / Iteration 070** | **P0** | 建立 `/graphql`、schema/error/security、SDL drift gate 与 frontend typed transport；不迁完整业务域 | [Item](active/EVO-127-A-graphql-platform-foundation.md)<br>[Iteration 070](../iterations/ITERATION-070.md) |
 | EVO-126-B | service-git v2 engine boundary | **Ready** | **P0** | A 已由 PR #24 完成；建立 WalGit Registry/Store application boundary；Repo GraphQL migration 依赖该边界 | [Item](active/EVO-126-B-service-git-v2-engine-boundary.md)<br>[Epic](active/EVO-126-walgit-git-data-plane-refactor.md) |
-| EVO-127 | GraphQL Application API Migration | **Proposed / accepted direction** | **P0** | ADR-0012；GraphQL 成为 application/business API，protocol endpoints 保持原生；A 是首个可激活 foundation Story | [Epic](active/EVO-127-graphql-application-api-migration.md)<br>[ADR-0012](../decisions/ADR-0012-graphql-application-api.md)<br>[Design](../design/GRAPHQL-APPLICATION-API-MIGRATION.md)<br>[Current plan](../roadmap/CURRENT-EXECUTION-PLAN-2026-10.md) |
-| EVO-118-G-A | PR/Main 自动质量门禁 | Review / Partial | P1 | Iteration 056 保留；Branch Protection 远端证据 residual，release 前必须闭合，不阻塞新 Iteration 的 EVO-126-A | [Item](active/EVO-118-G-A-ci-merge-gates.md)<br>[Iteration 056](../iterations/ITERATION-056.md) |
+| EVO-118-G-A | PR/Main 自动质量门禁 | Review / Partial | P1 | Iteration 056 保留；Branch Protection 远端证据 residual，release 前必须闭合，不阻塞当前 P0 | [Item](active/EVO-118-G-A-ci-merge-gates.md)<br>[Iteration 056](../iterations/ITERATION-056.md) |
 | EVO-105 | Commit API + Promote API | Proposed / paused for activation | P0 | 原产品下一步；为避免旧/new Git write path 双重重构，新增依赖 GIT-DP-01 / EVO-126-H | [Item](active/EVO-105-commit-and-promote-api.md)<br>[ADR-0007](../decisions/ADR-0007-agent-write-and-production-delivery-boundaries.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) |
 | EVO-106 | Agent Session API + Scoped Token | Proposed / paused for activation | P0 | 与 EVO-105 共同恢复；不得在旧 generic receive-pack 上固定最终 Agent write architecture | [Item](active/EVO-106-agent-session-and-scoped-token.md)<br>[Security Review](../sop/SECURITY-REVIEW.md)<br>[ADR-0011](../decisions/ADR-0011-walgit-backed-git-data-plane.md) |
-| EVO-118-E | 最终 Embedded Frontend 生产构建与部署收敛 | Proposed / final release gate | P0 | 产品、legacy cleanup、REL-01 residual 与 GIT-DP-01 完成后关闭 DEPLOY-01 | [Item](active/EVO-118-E-production-build-deployment-convergence.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Project baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md) |
+| EVO-118-E | 最终 Embedded Frontend 生产构建与部署收敛 | Proposed / final release gate | P0 | 产品、legacy cleanup、REL-01 residual、GIT-DP-01 与 API-GQL-01 完成后关闭 DEPLOY-01 | [Item](active/EVO-118-E-production-build-deployment-convergence.md)<br>[Release SOP](../sop/RELEASE.md)<br>[Project baseline](../reference/PROJECT-STATUS-BASELINE-2026-09-10.md) |
 
 ## EVO-126 Execution Family
 
@@ -31,6 +32,20 @@
 | [EVO-126-H](active/EVO-126-H-cutover-retire-legacy-git-engine.md) | default cutover + legacy Git engine retirement | Proposed | C/D/E/F/G | [#20](https://github.com/wjhuang88/evolith/issues/20) |
 
 Parent tracking: [EVO-126 GitHub #12](https://github.com/wjhuang88/evolith/issues/12). Epic 不直接进入 Iteration；一次只选择满足 DoR 的子 Story。
+
+## EVO-127 Execution Family
+
+| ID | Result | Status | Dependency | GitHub |
+| --- | --- | --- | --- | --- |
+| [EVO-127-A](active/EVO-127-A-graphql-platform-foundation.md) | GraphQL platform/schema/codegen/security foundation | **In Progress / Iteration 070** | governance baseline merged + inventory | [#27](https://github.com/wjhuang88/evolith/issues/27) |
+| [EVO-127-B](active/EVO-127-B-graphql-auth-session.md) | Auth/session/invitation GraphQL migration | Proposed | A | [#28](https://github.com/wjhuang88/evolith/issues/28) |
+| [EVO-127-C](active/EVO-127-C-graphql-tenant-admin.md) | Tenant admin/API keys/billing/audit GraphQL | Proposed | A/B | [#29](https://github.com/wjhuang88/evolith/issues/29) |
+| [EVO-127-D](active/EVO-127-D-graphql-repository-management.md) | Repository CRUD GraphQL | Proposed | A + EVO-126-B | [#30](https://github.com/wjhuang88/evolith/issues/30) |
+| [EVO-127-E](active/EVO-127-E-graphql-repo-context.md) | Repo Context GraphQL | Proposed | A + EVO-126-E | [#31](https://github.com/wjhuang88/evolith/issues/31) |
+| [EVO-127-F](active/EVO-127-F-graphql-capabilities.md) | Tools/Skills/Snippets application GraphQL | Proposed | A | [#32](https://github.com/wjhuang88/evolith/issues/32) |
+| [EVO-127-G](active/EVO-127-G-graphql-rest-retirement.md) | frontend full cutover + REST business API retirement | Proposed | B-F | [#33](https://github.com/wjhuang88/evolith/issues/33) |
+
+Parent tracking: [EVO-127 GitHub #26](https://github.com/wjhuang88/evolith/issues/26). API-GQL-01 仅在 A-G 完成并完成 REST business retirement 后关闭。
 
 ## Active Product / Platform Items
 
@@ -56,10 +71,10 @@ Parent tracking: [EVO-126 GitHub #12](https://github.com/wjhuang88/evolith/issue
 
 | ID | Title | Status | Priority | Decision Context | Required Reads |
 | --- | --- | --- | --- | --- | --- |
-| EVO-124 | SQLite 内存数据库连接池共享一致性 | Proposed | P1 | 独立运行时债务；不与 EVO-126 混改 | [Item](active/EVO-124-sqlite-memory-pool-isolation.md) |
+| EVO-124 | SQLite 内存数据库连接池共享一致性 | Proposed | P1 | 独立运行时债务；不与 EVO-126/127 混改 | [Item](active/EVO-124-sqlite-memory-pool-isolation.md) |
 | EVO-123 | 本地启动端口检测只识别监听进程 | Proposed | P2 | 独立 dev tooling 债务 | [Item](active/EVO-123-dev-port-listener-detection.md) |
 | EVO-080 | Wasmer/WASI runtime spike | Ready / later | P1 | 仅在 Sandbox 删除后仍有明确 runtime 需求时评估 | [Item](active/EVO-080-spike-验证-wasmer-wasi-替代-docker-sandbox-可行性.md) |
-| EVO-081 | 内部 Markdown 文档页面 | Ready / later | P1 | 独立产品候选，不抢占 Git Data Plane P0 | [Item](active/EVO-081-内部文档页面基于独立-markdown-目录渲染.md) |
+| EVO-081 | 内部 Markdown 文档页面 | Ready / later | P1 | 独立产品候选，不抢占当前 P0 | [Item](active/EVO-081-内部文档页面基于独立-markdown-目录渲染.md) |
 | EVO-057 | 生产 CORS Origin 可配置化 | Ready / later | P2 | release hardening 候选 | [Item](active/EVO-057-生产-cors-origin-可配置化.md) |
 | EVO-012 | 租户设置保存 | Proposed / later | P2 | Phase F 独立候选 | [Item](active/EVO-012-租户设置保存.md) |
 | EVO-013 | Audit log detail 接口 | Proposed / later | P2 | Phase F 独立候选 | [Item](active/EVO-013-audit-log-detail-接口.md) |
@@ -79,7 +94,8 @@ Parent tracking: [EVO-126 GitHub #12](https://github.com/wjhuang88/evolith/issue
 
 1. 先读本文件确定 priority/status，再读目标行全部 `Required Reads`。
 2. Git data-plane 工作必须同时读 Project Status Baseline、ADR-0011、Refactor Design 和 Current Execution Plan。
-3. `Ready` 只代表 Story 满足 DoR；开始 Iteration 前仍需按 `START-ITERATION.md` 盘点现有非终态库存。
-4. Current implementation 与 Accepted target 不得混写：EVO-126-H 前 filesystem/subprocess 仍是 runtime fact。
-5. 历史 DATA-01/DATA-02/EVENT-01 完成证据继续有效；GIT-DP-01 是架构迁移新增 Gate，不追溯否定历史结果。
-6. 不在本 compact backlog 保存长验收/执行日志；进入各 active item、Iteration 或 Review evidence。
+3. GraphQL application API 工作必须同时读 ADR-0012、GraphQL Migration Design、API Contract 和 Current Execution Plan。
+4. `Ready` 只代表 Story 满足 DoR；开始 Iteration 前仍需按 `START-ITERATION.md` 盘点现有非终态库存。
+5. Current implementation 与 Accepted target 不得混写：EVO-126-H 前 filesystem/subprocess 仍是 runtime fact；EVO-127 domain migration 落地前对应业务仍以现有 REST route 为 runtime fact。
+6. 历史 DATA-01/DATA-02/EVENT-01 完成证据继续有效；GIT-DP-01/API-GQL-01 是架构迁移新增 Gate，不追溯否定历史结果。
+7. 不在本 compact backlog 保存长验收/执行日志；进入各 active item、Iteration 或 Review evidence。

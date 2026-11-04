@@ -1,0 +1,36 @@
+type GraphQLFoundationInfo {
+	service: String!
+	transport: String!
+	version: String!
+}
+
+type MutationRoot {
+	"""
+	Foundation-only mutation used to keep a stable root while domain mutations migrate later.
+	"""
+	graphqlFoundationNoop: Boolean!
+}
+
+type QueryRoot {
+	"""
+	Minimal application-API smoke field. Product domains migrate in later EVO-127 slices.
+	"""
+	graphqlFoundation: GraphQLFoundationInfo!
+	"""
+	Correlation identifier for the current HTTP request.
+	"""
+	requestId: String!
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+schema {
+	query: QueryRoot
+	mutation: MutationRoot
+}

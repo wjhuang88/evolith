@@ -12,6 +12,7 @@ use api::configure_routes;
 mod frontend;
 
 use api::middleware::csrf::CsrfMiddleware;
+use api::middleware::graphql_optional_auth_middleware;
 use api::middleware::rate_limit::{caller_rate_limit_middleware, CallerRateLimiter};
 use api::middleware::request_id::RequestIdMiddleware;
 use api::middleware::security_headers::SecurityHeadersMiddleware;
@@ -205,6 +206,9 @@ Set SANDBOX__ENABLED=false to disable skill execution explicitly.",
             .app_data(rate_limiter.clone())
             .wrap(CsrfMiddleware::new())
             .wrap(from_fn(caller_rate_limit_middleware))
+            // `/graphql` may be public, but supplied credentials must be resolved before the
+            // caller-aware limiter and schema execute.
+            .wrap(from_fn(graphql_optional_auth_middleware))
             .wrap(from_fn(api::middleware::rbac::rbac_middleware))
             .wrap(RequestIdMiddleware::new())
             .wrap(middleware::Logger::default())
