@@ -8,8 +8,8 @@
 
 | Item | State | Owner Doc | Gate / Next action |
 |------|-------|-----------|--------------------|
-| EVO-127-A GraphQL Platform Foundation | **Review / Iteration 070** | [Item](backlog/active/EVO-127-A-graphql-platform-foundation.md) / [Iteration](iterations/ITERATION-070.md) | Driver + focused bootstrap + Navigator 已完成；等待 PR exact-head `ci` + `data-durability-container`，通过并合并后 closure |
-| EVO-127 GraphQL Application API | **In Progress / accepted direction** | [Epic](backlog/active/EVO-127-graphql-application-api-migration.md) | API-GQL-01 Open；A Review，B/C/F 由 A merge 后解锁；Repo/Context slices 仍等待 EVO-126 边界 |
+| EVO-127-B GraphQL Auth/Session Migration | **In Progress / Iteration 071** | [Item](backlog/active/EVO-127-B-graphql-auth-session.md) / [Iteration](iterations/ITERATION-071.md) | A 已在 PR #37 完成；先交付 authenticated/anonymous `currentSession`；auth mutation、cookie、frontend E2E 后续 B 继续 |
+| EVO-127 GraphQL Application API | **In Progress / accepted direction** | [Epic](backlog/active/EVO-127-graphql-application-api-migration.md) | API-GQL-01 Open；A Done，B In Progress / Iteration 071，C/F 已解锁尚未启动；Repo/Context slices 仍等待 EVO-126 边界 |
 | EVO-126 WalGit Git Data Plane | In Progress / accepted direction | [Epic](backlog/active/EVO-126-walgit-git-data-plane-refactor.md) | GIT-DP-01 Open；Epic 不直接进入 Iteration |
 | EVO-126-B service-git v2 Engine Boundary | **Ready** | [Item](backlog/active/EVO-126-B-service-git-v2-engine-boundary.md) | A Done；在 EVO-127-A foundation 后按 2026-10 plan 进入下一 data-plane slice |
 | EVO-118-G-A CI Merge Gates | Review / Partial residual | [Item](backlog/active/EVO-118-G-A-ci-merge-gates.md) | Iteration 056 保留；Branch Protection 远端证据在 release closure 前处理 |
@@ -18,8 +18,8 @@
 
 | Order | Item | State | Dependency |
 |------:|------|-------|------------|
-| 1 | EVO-127-A GraphQL platform foundation | **Review / Iteration 070** | exact-head gates + merge/closure |
-| 2 | EVO-127-B/C/F non-Git GraphQL slices | Proposed | EVO-127-A (+ B for C) |
+| 1 | EVO-127-A GraphQL platform foundation | **Done / Iteration 070 Closed** | PR #37 merged `3b864039`；main `ci #308` success |
+| 2 | EVO-127-B/C/F non-Git GraphQL slices | **B In Progress / Iteration 071**；C/F Proposed | A Done (+ B for C) |
 | 3 | EVO-126-B service-git v2 engine boundary | Ready | EVO-126-A Done |
 | 4 | EVO-127-D Repository CRUD GraphQL | Proposed | EVO-127-A + EVO-126-B |
 | 5 | EVO-126-C Smart HTTP read | Proposed | EVO-126-B |
@@ -46,6 +46,8 @@ C/E/D 的具体激活顺序可在 refinement 时按依赖和风险调整；Graph
 | EVO-118-E Final Production Convergence | Proposed / final gate | [Item](backlog/active/EVO-118-E-production-build-deployment-convergence.md) | GIT-DP-01、API-GQL-01、REL-01 residual、产品与 cleanup 后关闭 DEPLOY-01 |
 
 ## Completed Foundation That Must Be Preserved
+
+- EVO-127-A / Iteration 070 已 Closed / Complete：PR #37 merge `3b864039`；exact-head `ci #307` + durability `#146` success；post-merge main `ci #308` success；GraphQL schema/security/codegen foundation 保持权威。EVO-127-B 负责后续认证业务迁移，不再把 A 当作当前 WIP。
 
 | Capability / Gate | State | Evidence owner |
 |-------------------|-------|----------------|

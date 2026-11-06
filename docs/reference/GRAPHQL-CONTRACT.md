@@ -17,7 +17,7 @@ The following remain outside GraphQL by design:
 - health/readiness endpoints;
 - callback/webhook endpoints where an external protocol defines the transport.
 
-During EVO-127-A, existing `/api/v1/*` business routes remain compatibility paths. Domain migration and REST retirement are owned by later EVO-127 slices.
+After EVO-127-A, existing `/api/v1/*` business routes remain transitional paths. EVO-127-B begins the auth/session domain migration with a read-only session-identity slice; REST auth handlers remain authoritative until the mutation, cookie, frontend and E2E cutover passes.
 
 ## 2. Endpoint
 
@@ -32,7 +32,7 @@ During EVO-127-A, existing `/api/v1/*` business routes remain compatibility path
   - maximum complexity: **1000**;
   - maximum directives: **20**.
 
-The foundation schema intentionally exposes only a smoke query and a no-op mutation root. Product domain fields are added by later vertical migration stories.
+The foundation schema exposes a smoke query and a no-op mutation root. EVO-127-B adds the first domain field, `currentSession`, without changing the auth mutation or cookie behavior yet.
 
 Example:
 
@@ -67,6 +67,23 @@ GraphQL reuses the existing Evolith credential and authorization model; resolver
 - If a caller supplies an invalid credential, the request fails closed rather than silently degrading to anonymous.
 
 Resolved identity is inserted as the existing `CurrentUser` principal and copied into GraphQL request context together with the request ID.
+
+### `currentSession` (EVO-127-B first read slice)
+
+`currentSession` is nullable. It returns `null` for anonymous requests and reflects the server-validated `CurrentUser` identity for authenticated callers: `userId`, `tenantId`, `role` and `tenantRole`. It does not expose JWTs, cookies, passwords or API key material. It is a claims-level read model, **not** yet a replacement for `/api/v1/auth/me`, which additionally returns persisted user profile fields.
+
+```graphql
+query CurrentSession {
+  currentSession {
+    userId
+    tenantId
+    role
+    tenantRole
+  }
+}
+```
+
+Invalid supplied credentials still fail at the existing optional-auth middleware; they must never be treated as a valid anonymous session. Later EVO-127-B slices own login/register/refresh/logout, cookie response handling, persisted viewer profile and generated frontend auth operation cutover.
 
 ## 4. CSRF contract
 

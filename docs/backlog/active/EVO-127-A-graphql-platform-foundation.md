@@ -3,7 +3,7 @@
 - **父 Epic**：[EVO-127](EVO-127-graphql-application-api-migration.md)
 - **类型**：Technical / API Contract / Platform
 - **优先级**：P0
-- **状态**：Review / Iteration 070 / exact-head gates pending
+- **状态**：Done / Iteration 070 Closed / Complete（2026-11-04）
 - **GitHub Issue**：[#27](https://github.com/wjhuang88/evolith/issues/27)
 - **依赖或阻塞**：ADR-0012 / EVO-127 governance baseline 已合并；START-ITERATION inventory 已完成
 - **解锁内容**：EVO-127-B/C/F；为 D/E 提供 GraphQL 基础
@@ -26,13 +26,13 @@
 
 ## Acceptance
 
-- [ ] Rust 1.94.1 `fmt/check/clippy/test --locked` 通过（focused bootstrap 已通过；正式 exact-head workspace CI 待 PR）。
+- [x] Rust 1.94.1 `fmt/check/clippy/test --locked` 通过；final head `cfe90b8` 的 `ci #307` success。
 - [x] Frontend codegen/type-check/lint 通过；build 与完整回归由正式 exact-head CI 再证明。
 - [x] schema SDL 和 generated artifacts drift gate 已进入正式 `ci.yml`。
 - [x] depth/complexity/batch abuse negative tests 已实现；bootstrap focused tests 通过。
-- [x] cookie+CSRF 与 bearer-only request behavior 有真实 `/graphql` Actix integration tests；正式 workspace gate 待 PR。
+- [x] cookie+CSRF 与 bearer-only request behavior 有真实 `/graphql` Actix integration tests；正式 workspace gate 通过。
 - [x] GraphiQL 只允许 development 明确启用，production 默认关闭。
-- [ ] `/api/v1` 现有业务路由在本 Story 保持行为不变（实现未改这些 routes；完整 regression 由 exact-head CI 证明）。
+- [x] `/api/v1` 现有业务路由在本 Story 保持行为不变；exact-head workspace + recovery gates success。
 
 ## 已落地证据
 
@@ -63,4 +63,4 @@
 
 - **Iteration**：[Iteration 070](../../iterations/ITERATION-070.md)
 - **激活日期**：2026-10-28
-- **当前阶段**：Navigator Review；Driver/focused gates 完成，等待 PR exact-head full gates 后才能进入 Done/closure。
+- **当前阶段**：Done / Closed。PR #37 merged `3b864039420a080f936f0cef270bff458c201b0c`；final head `ci #307` + durability `#146` success；post-merge `main` `ci #308` success；Issue #27 closed。EVO-127-B/C/F 已解除 A 依赖，API-GQL-01 保持 Open。

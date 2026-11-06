@@ -1,6 +1,6 @@
 # Iteration 070: EVO-127-A GraphQL Platform Foundation
 
-> 文档状态：Review / exact-head gates pending
+> 文档状态：Closed / Complete（2026-11-04；见实际验证/收口记录）
 > 计划发布日期：2026-10-28
 > 计划目标：建立 Evolith canonical application GraphQL 的最小可扩展 platform/schema/codegen/security foundation，同时保持现有 `/api/v1` 行为不变。
 >
@@ -151,6 +151,9 @@ python3 scripts/tests/check-markdown-links.py
 | 2026-10-28 | Navigator | 复核 middleware 顺序：Request-ID → global RBAC public transport boundary → GraphQL optional credential resolution → caller-aware rate limit → GraphQL cookie-aware CSRF → handler；未新建第二套 auth/cache 模型。 |
 | 2026-10-28 | hardening | 临时 bootstrap workflow 已删除；正式 `ci.yml` 接管 SDL / generated-client drift gate；新增真实 `/graphql` cookie-CSRF/bearer transport integration tests。 |
 
+| 2026-11-03 | fix / validation | 发现 `CsrfError::error_response()` 返回 403 但 `status_code()` 默认状态不一致；补齐 `status_code() = FORBIDDEN`，保留 REST/GraphQL security semantics；正式 exact-head `ci #307` 和 `data-durability-container #146` 在 `cfe90b850f14fbcba5f259e6c199f486b6ed2a1c` 均成功。 |
+| 2026-11-04 | merge / closure | PR #37 合入 `main`，merge `3b864039420a080f936f0cef270bff458c201b0c`；Issue #27 Closed / Completed；合并后 `ci #308` 在该 merge SHA 成功（2026-11-04 00:47 UTC），无残余 EVO-127-A release blocker。 |
+
 ## 10. 变更请求
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
@@ -160,13 +163,13 @@ python3 scripts/tests/check-markdown-links.py
 ## 11. Review
 
 - 完成：Driver implementation、focused bootstrap gates、generated artifacts、Navigator architecture/security review、正式 drift gates 与新增 security tests 均已落分支。
-- 未完成：正式 PR exact-head `ci` + `data-durability-container` 尚未取得；在这两条 gate 通过并合并前不得声明 Complete。
-- 验证结果：bootstrap run #6 success；canonical SDL / Codegen 产物已提交；正式 full workspace/regression gates 待 PR。
-- 闭环状态：`Review / Partial`。
+- 最终验证：PR #37 final head `cfe90b8` 的 `ci #307` 与 `data-durability-container #146` 全绿；包含 SQLite workspace tests、schema/codegen drift、frontend、durability/recovery 等正式 gates。合并后 `main` 的 `ci #308` 亦成功。
+- 合并与 Issue：PR #37 merge `3b864039420a080f936f0cef270bff458c201b0c`；GitHub Issue #27 已 Closed / Completed。
+- 闭环状态：`Closed / Complete`。
 - 残余归口：EVO-127-B~G / EVO-126 dependent slices；不把 domain migration 混入本 Iteration。
 
 ## 12. Retrospective
 
 - 做得好的：先用一次性 branch-only bootstrap 在真实 Rust/Bun runner 上校正 lockfile、SDL 与 Codegen，再把可重复规则迁入正式 CI，避免手工伪造生成产物。
-- 需要调整的：`graphql-request 7.4` 对 variables 使用 conditional tuple；Evolith wrapper 应镜像其公开 `RequestOptions<V,T>` object overload，不复制内部 conditional type。
+- 需要调整的：`graphql-request 7.4` 对 variables 使用 conditional tuple；Evolith wrapper 应镜像其公开 `RequestOptions<V,T>` object overload，不复制内部 conditional type。CSRF 错误的 `ResponseError::status_code()` 与实际 `error_response()` 必须一致，不能只断言 HTTP response 而漏掉 error-object 状态。
 - 写入 EVOLUTION：该 GraphQL client 类型陷阱如在后续 slice 再次出现，再升级为通用故障速查；本轮先记录在 Iteration review。
