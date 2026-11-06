@@ -21,6 +21,8 @@ pub fn build_schema() -> EvolithSchema {
 mod tests {
     use super::*;
     use crate::graphql::context::GraphQLRequestContext;
+    use crate::middleware::rbac::CurrentUser;
+    use domain::user::TenantRole;
     use async_graphql::{Object, Request};
 
     fn context() -> GraphQLRequestContext {
@@ -52,6 +54,57 @@ mod tests {
             .execute(Request::new(format!("{{ {selections} }}")).data(context()))
             .await;
 
+        assert!(!response.errors.is_empty());
+    }
+
+    #[actix_rt::test]
+    async fn current_session_is_null_for_anonymous_callers() {
+        let response = build_schema()
+            .execute(
+                Request::new("{ currentSession { userId tenantId role tenantRole } }")
+                    .data(context()),
+            )
+            .await;
+
+        assert!(response.errors.is_empty(), "{:?}", response.errors);
+        let data = response.data.into_json().expect("serializable GraphQL data");
+        assert!(data["currentSession"].is_null());
+    }
+
+    #[actix_rt::test]
+    async fn current_session_reads_only_the_authenticated_principal() {
+        let user_id = uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111")
+            .expect("valid user ID");
+        let tenant_id = uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222")
+            .expect("valid tenant ID");
+        let mut request_context = context();
+        request_context.principal = Some(CurrentUser {
+            user_id,
+            tenant_id,
+            role: "user".to_string(),
+            tenant_role: TenantRole::Owner,
+        });
+
+        let response = build_schema()
+            .execute(
+                Request::new("{ currentSession { userId tenantId role tenantRole } }")
+                    .data(request_context),
+            )
+            .await;
+
+        assert!(response.errors.is_empty(), "{:?}", response.errors);
+        let data = response.data.into_json().expect("serializable GraphQL data");
+        assert_eq!(data["currentSession"]["userId"], user_id.to_string());
+        assert_eq!(data["currentSession"]["tenantId"], tenant_id.to_string());
+        assert_eq!(data["currentSession"]["role"], "user");
+        assert_eq!(data["currentSession"]["tenantRole"], "owner");
+    }
+
+    #[actix_rt::test]
+    async fn session_schema_does_not_expose_credentials() {
+        let response = build_schema()
+            .execute(Request::new("{ currentSession { token } }").data(context()))
+            .await;
         assert!(!response.errors.is_empty());
     }
 
