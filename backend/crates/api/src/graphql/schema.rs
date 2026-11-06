@@ -22,8 +22,8 @@ mod tests {
     use super::*;
     use crate::graphql::context::GraphQLRequestContext;
     use crate::middleware::rbac::CurrentUser;
-    use domain::user::TenantRole;
     use async_graphql::{Object, Request};
+    use domain::user::TenantRole;
 
     fn context() -> GraphQLRequestContext {
         GraphQLRequestContext {
@@ -67,16 +67,19 @@ mod tests {
             .await;
 
         assert!(response.errors.is_empty(), "{:?}", response.errors);
-        let data = response.data.into_json().expect("serializable GraphQL data");
+        let data = response
+            .data
+            .into_json()
+            .expect("serializable GraphQL data");
         assert!(data["currentSession"].is_null());
     }
 
     #[actix_rt::test]
     async fn current_session_reads_only_the_authenticated_principal() {
-        let user_id = uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111")
-            .expect("valid user ID");
-        let tenant_id = uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222")
-            .expect("valid tenant ID");
+        let user_id =
+            uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111").expect("valid user ID");
+        let tenant_id =
+            uuid::Uuid::parse_str("22222222-2222-2222-2222-222222222222").expect("valid tenant ID");
         let mut request_context = context();
         request_context.principal = Some(CurrentUser {
             user_id,
@@ -93,7 +96,10 @@ mod tests {
             .await;
 
         assert!(response.errors.is_empty(), "{:?}", response.errors);
-        let data = response.data.into_json().expect("serializable GraphQL data");
+        let data = response
+            .data
+            .into_json()
+            .expect("serializable GraphQL data");
         assert_eq!(data["currentSession"]["userId"], user_id.to_string());
         assert_eq!(data["currentSession"]["tenantId"], tenant_id.to_string());
         assert_eq!(data["currentSession"]["role"], "user");
