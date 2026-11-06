@@ -8,7 +8,8 @@
 
 | Iteration | 状态 | 目标/处置 |
 |-----------|------|-----------|
-| [Iteration 070](ITERATION-070.md) | **Active / In Progress** | EVO-127-A GraphQL platform/schema/codegen foundation；`/graphql`、security controls、SDL drift gate、frontend typed transport |
+| [Iteration 071](ITERATION-071.md) | **Active / In Progress** | EVO-127-B Auth/session GraphQL migration；read-only `currentSession` first slice；cookie/mutation/frontend parity pending |
+| [Iteration 070](ITERATION-070.md) | Closed / Complete | EVO-127-A GraphQL foundation；PR #37 merge `3b864039`；final `ci #307` + durability `#146` success；post-merge main `ci #308` success |
 | [Iteration 069](ITERATION-069.md) | Closed / Complete | EVO-126-A WalGit dependency/toolchain boundary；Rust 1.94.1 + exact WalGit SHA + locked supply-chain boundary；PR #24 merged `09316a6` |
 | [Iteration 068](ITERATION-068.md) | Closed / Complete | EVO-118-H-C durable producer/subscriber、双数据库与完整 Smart HTTP E2E 闭合；EVO-125 Done |
 | [Iteration 067](ITERATION-067.md) | Closed / Complete | EVO-118-H-B Outbox Worker Runtime；独立进程、bounded delivery、101 backlog/recovery 与 confirmed replay 闭合 |
@@ -31,6 +32,8 @@
 | [Iteration 064](ITERATION-064.md) | Closed / Complete | EVO-121-C Public/Auth Entry；安全 deep link、统一 Repo resolver、forbidden/retry、join 与 Git-centric landing 验收闭合 |
 
 ### 当前启动结论
+
+- 2026-11-06 已核验 EVO-127-A：PR #37 于 2026-11-04 合并 `3b864039`，final head `ci #307` / `data-durability-container #146` 全绿，合并后 `main ci #308` 成功；Issue #27 Closed。Iteration 070 收口为 Closed / Complete，EVO-127-B 依赖已解除。按 START-ITERATION inventory 维持 018/019/020/027 Blocked/Superseded、025/026 Blocked、056 Closed/Partial，其余最近迭代均 Closed；启动 Iteration 071 / EVO-127-B，A 不再占据 In Progress WIP。
 
 - 2026-10-28 PR #34 GraphQL governance baseline 在 exact-head `ci #300` 与 `data-durability-container #140` 全绿后合入 `main` (`9c6e904`)；EVO-127-A 具备启动前置。
 - 2026-10-28 按 START-ITERATION inventory 复核：069 已 Closed / Complete；018/019/020/027 继续 Superseded direction；025/026 继续 Blocked for activation；056 保持 Closed / Partial residual，均不阻塞当前 P0，因此激活 Iteration 070 / EVO-127-A。
