@@ -47,16 +47,19 @@ impl QueryRoot {
         ctx: &Context<'_>,
     ) -> async_graphql::Result<Option<GraphQLSessionInfo>> {
         let request = ctx.data::<GraphQLRequestContext>()?;
-        Ok(request.principal.as_ref().map(|principal| GraphQLSessionInfo {
-            user_id: principal.user_id.to_string(),
-            tenant_id: principal.tenant_id.to_string(),
-            role: principal.role.clone(),
-            tenant_role: match &principal.tenant_role {
-                TenantRole::Owner => "owner",
-                TenantRole::Admin => "admin",
-                TenantRole::Member => "member",
-            }
-            .to_owned(),
-        }))
+        Ok(request
+            .principal
+            .as_ref()
+            .map(|principal| GraphQLSessionInfo {
+                user_id: principal.user_id.to_string(),
+                tenant_id: principal.tenant_id.to_string(),
+                role: principal.role.clone(),
+                tenant_role: match &principal.tenant_role {
+                    TenantRole::Owner => "owner",
+                    TenantRole::Admin => "admin",
+                    TenantRole::Member => "member",
+                }
+                .to_owned(),
+            }))
     }
 }
