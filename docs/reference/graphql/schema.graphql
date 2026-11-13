@@ -17,6 +17,16 @@ type GraphQLSessionInfo {
 	tenantRole: String!
 }
 
+type GraphQLViewer {
+	id: String!
+	email: String!
+	username: String!
+	role: String!
+	tenantId: String!
+	tenantRole: String!
+	emailVerified: Boolean!
+}
+
 type MutationRoot {
 	"""
 	Foundation-only mutation used to keep a stable root while domain mutations migrate later.
@@ -37,6 +47,10 @@ type QueryRoot {
 	Authenticated caller claims, or null when no credentials were supplied.
 	"""
 	currentSession: GraphQLSessionInfo
+	"""
+	Persisted user profile for an authenticated caller, never exposed anonymously.
+	"""
+	viewer: GraphQLViewer!
 }
 
 """
