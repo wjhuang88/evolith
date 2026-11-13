@@ -4,6 +4,19 @@ type GraphQLFoundationInfo {
 	version: String!
 }
 
+"""
+Public representation of the resolved caller's session claims.
+
+Never includes credentials or tokens. A null `currentSession` means the transport
+supplied no authenticated principal, not that a credential was valid but expired.
+"""
+type GraphQLSessionInfo {
+	userId: String!
+	tenantId: String!
+	role: String!
+	tenantRole: String!
+}
+
 type MutationRoot {
 	"""
 	Foundation-only mutation used to keep a stable root while domain mutations migrate later.
@@ -20,6 +33,10 @@ type QueryRoot {
 	Correlation identifier for the current HTTP request.
 	"""
 	requestId: String!
+	"""
+	Authenticated caller claims, or null when no credentials were supplied.
+	"""
+	currentSession: GraphQLSessionInfo
 }
 
 """
