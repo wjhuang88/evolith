@@ -1373,3 +1373,107 @@ async fn test_csrf_exempt_git_post_passes_without_token() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
 }
+
+#[actix_rt::test]
+async fn graphql_viewer_returns_persisted_profile_and_rejects_wrong_tenant_claims() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::graphql_optional_auth_middleware))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let register_req = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "graphql-viewer@example.com",
+            "username": "graphqlviewer",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    let register_resp = test::call_service(&app, register_req).await;
+    assert_eq!(register_resp.status(), actix_web::http::StatusCode::CREATED);
+    let registered: ApiResponse<AuthResponseData> = test::read_body_json(register_resp).await;
+    let auth = registered.data.expect("registered user and JWT");
+
+    let query = serde_json::json!({
+        "query": "{ viewer { id email username role tenantId tenantRole emailVerified } }"
+    });
+    let request = test::TestRequest::post()
+        .uri("/graphql")
+        .insert_header(("Authorization", format!("Bearer {}", auth.token)))
+        .set_json(&query)
+        .to_request();
+    let response = test::call_service(&app, request).await;
+    assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert!(body.get("errors").is_none(), "{body}");
+    assert_eq!(body["data"]["viewer"]["id"], auth.user.id);
+    assert_eq!(body["data"]["viewer"]["email"], "graphql-viewer@example.com");
+    assert_eq!(body["data"]["viewer"]["username"], "graphqlviewer");
+    assert_eq!(body["data"]["viewer"]["tenantId"], auth.user.tenant_id);
+    assert_eq!(body["data"]["viewer"]["tenantRole"], "owner");
+    assert_eq!(body["data"]["viewer"]["emailVerified"], false);
+
+    let bad_tenant_token = JwtHandler::new(&create_test_config().jwt)
+        .generate_token(
+            Uuid::parse_str(&auth.user.id).expect("valid registered ID"),
+            "user",
+            Uuid::new_v4(),
+            "owner",
+        )
+        .expect("sign a mismatched tenant claim")
+        .0;
+    let mismatch_request = test::TestRequest::post()
+        .uri("/graphql")
+        .insert_header(("Authorization", format!("Bearer {bad_tenant_token}")))
+        .set_json(&query)
+        .to_request();
+    let mismatch_response = test::call_service(&app, mismatch_request).await;
+    assert_eq!(mismatch_response.status(), actix_web::http::StatusCode::OK);
+    let mismatch: serde_json::Value = test::read_body_json(mismatch_response).await;
+    assert_eq!(mismatch["errors"][0]["extensions"]["code"], "UNAUTHORIZED");
+    assert!(mismatch["data"].get("viewer").is_none_or(|value| value.is_null()));
+}
+
+#[actix_rt::test]
+async fn graphql_viewer_requires_auth_and_fails_closed_on_invalid_bearer() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::graphql_optional_auth_middleware))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let query = serde_json::json!({ "query": "{ viewer { id email } }" });
+    let anonymous = test::TestRequest::post()
+        .uri("/graphql")
+        .set_json(&query)
+        .to_request();
+    let response = test::call_service(&app, anonymous).await;
+    assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(body["errors"][0]["extensions"]["code"], "UNAUTHORIZED");
+    assert!(body["data"].get("viewer").is_none_or(|value| value.is_null()));
+
+    let invalid = test::TestRequest::post()
+        .uri("/graphql")
+        .insert_header(("Authorization", "Bearer invalid-token"))
+        .set_json(&query)
+        .to_request();
+    let error = test::try_call_service(&app, invalid)
+        .await
+        .expect_err("invalid supplied Bearer must be rejected by optional auth");
+    assert_eq!(
+        error.as_response_error().status_code(),
+        actix_web::http::StatusCode::UNAUTHORIZED
+    );
+}
