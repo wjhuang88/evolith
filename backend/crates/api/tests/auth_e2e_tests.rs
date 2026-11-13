@@ -1413,7 +1413,10 @@ async fn graphql_viewer_returns_persisted_profile_and_rejects_wrong_tenant_claim
     let body: serde_json::Value = test::read_body_json(response).await;
     assert!(body.get("errors").is_none(), "{body}");
     assert_eq!(body["data"]["viewer"]["id"], auth.user.id);
-    assert_eq!(body["data"]["viewer"]["email"], "graphql-viewer@example.com");
+    assert_eq!(
+        body["data"]["viewer"]["email"],
+        "graphql-viewer@example.com"
+    );
     assert_eq!(body["data"]["viewer"]["username"], "graphqlviewer");
     assert_eq!(body["data"]["viewer"]["tenantId"], auth.user.tenant_id);
     assert_eq!(body["data"]["viewer"]["tenantRole"], "owner");
@@ -1437,7 +1440,9 @@ async fn graphql_viewer_returns_persisted_profile_and_rejects_wrong_tenant_claim
     assert_eq!(mismatch_response.status(), actix_web::http::StatusCode::OK);
     let mismatch: serde_json::Value = test::read_body_json(mismatch_response).await;
     assert_eq!(mismatch["errors"][0]["extensions"]["code"], "UNAUTHORIZED");
-    assert!(mismatch["data"].get("viewer").is_none_or(|value| value.is_null()));
+    assert!(mismatch["data"]
+        .get("viewer")
+        .is_none_or(|value| value.is_null()));
 }
 
 #[actix_rt::test]
@@ -1462,7 +1467,9 @@ async fn graphql_viewer_requires_auth_and_fails_closed_on_invalid_bearer() {
     assert_eq!(response.status(), actix_web::http::StatusCode::OK);
     let body: serde_json::Value = test::read_body_json(response).await;
     assert_eq!(body["errors"][0]["extensions"]["code"], "UNAUTHORIZED");
-    assert!(body["data"].get("viewer").is_none_or(|value| value.is_null()));
+    assert!(body["data"]
+        .get("viewer")
+        .is_none_or(|value| value.is_null()));
 
     let invalid = test::TestRequest::post()
         .uri("/graphql")
