@@ -83,7 +83,33 @@ query CurrentSession {
 }
 ```
 
-Invalid supplied credentials still fail at the existing optional-auth middleware; they must never be treated as a valid anonymous session. Later EVO-127-B slices own login/register/refresh/logout, cookie response handling, persisted viewer profile and generated frontend auth operation cutover.
+Invalid supplied credentials still fail at the existing optional-auth middleware; they must never be treated as a valid anonymous session.
+
+### `viewer` (EVO-127-B persisted-profile read slice)
+
+`viewer` is a **non-null, authenticated** query. Unlike `currentSession`'s claims-only projection, it loads the current user's persisted record through Evolith's `UserRepository` and returns only `id`, `email`, `username`, `role`, `tenantId`, `tenantRole` and `emailVerified`. This is the read-model parity target for REST `GET /api/v1/auth/me`; no password hash, verification/reset token or credential-bearing fields enter the GraphQL schema.
+
+```graphql
+query CurrentViewer {
+  viewer {
+    id
+    email
+    username
+    role
+    tenantId
+    tenantRole
+    emailVerified
+  }
+}
+```
+
+- Anonymous query: GraphQL error `extensions.code = UNAUTHORIZED`.
+- Supplied invalid Bearer/API key: rejected by the existing optional-auth middleware, before schema execution; never silently returns anonymous data.
+- Existing JWT user with absent repository row: `USER_NOT_FOUND`.
+- If JWT tenant claim does not match the persisted user's tenant: `UNAUTHORIZED`, with no profile fields returned.
+- Repository failure: `INTERNAL_ERROR` without returning internal details. Request ID and `retryable` continue to be enriched by the shared GraphQL error handler.
+
+Frontend auth consumers still use REST until typed operations plus login/register/refresh/logout cookie parity and E2E are ready. Those mutations, cookie response handling and full browser cutover remain EVO-127-B work; REST business-route retirement remains EVO-127-G.
 
 ## 4. CSRF contract
 
