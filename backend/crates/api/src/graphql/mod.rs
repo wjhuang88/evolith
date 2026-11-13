@@ -3,6 +3,7 @@
 //! GraphQL owns browser/application business operations. Protocol-native Git Smart HTTP, MCP,
 //! health/readiness and callback endpoints remain outside this module.
 
+mod auth;
 mod context;
 mod error;
 mod mutation;
@@ -50,13 +51,18 @@ async fn graphql_post(
         principal,
     };
 
-    let request = payload
+    let mut request = payload
         .into_inner()
         .into_single()
         .map_err(|_| GraphQLTransportError::BatchNotSupported {
             request_id: request_id.clone(),
         })?
         .data(request_context);
+
+    // Domain repos enter GraphQL as Evolith-owned interfaces, not as Actix transport types.
+    if let Some(state) = http_request.app_data::<web::Data<AppState>>() {
+        request = request.data(state.user_repo.clone());
+    }
 
     let mut response = schema.execute(request).await;
     enrich_response_errors(&mut response, &request_id);
