@@ -62,4 +62,9 @@ impl QueryRoot {
                 .to_owned(),
             }))
     }
+
+    /// Persisted user profile for an authenticated caller, never exposed anonymously.
+    async fn viewer(&self, ctx: &Context<'_>) -> async_graphql::Result<super::auth::GraphQLViewer> {
+        super::auth::viewer(ctx).await
+    }
 }
