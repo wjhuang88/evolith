@@ -11,6 +11,7 @@ use crate::middleware::auth::AuthenticatedUser;
 use crate::middleware::csrf::CSRF_COOKIE_NAME;
 use crate::middleware::rbac::JWT_COOKIE_NAME;
 use crate::state::AppState;
+use crate::middleware::session_cookies::issue_login_cookies;
 use validator::Validate;
 
 /// User login. Password validation/JWT issuance is shared with future GraphQL.
@@ -47,29 +48,9 @@ pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AppState>) ->
         }
     };
 
-    // HTTP transport retains the existing cookie semantics unchanged.
-    let is_production = state.config.is_production();
-    let csrf_token = Uuid::new_v4().to_string();
-
-    let jwt_cookie = Cookie::build(JWT_COOKIE_NAME, &token)
-        .path("/")
-        .http_only(true)
-        .same_site(SameSite::Lax)
-        .secure(is_production)
-        .max_age(Duration::seconds(
-            expires_at - chrono::Utc::now().timestamp(),
-        ))
-        .finish();
-
-    let csrf_cookie = Cookie::build(CSRF_COOKIE_NAME, &csrf_token)
-        .path("/")
-        .http_only(false)
-        .same_site(SameSite::Lax)
-        .secure(is_production)
-        .max_age(Duration::seconds(
-            expires_at - chrono::Utc::now().timestamp(),
-        ))
-        .finish();
+    // HTTP transport retains existing JWT/CSRF cookie semantics using a shared builder.
+    let [jwt_cookie, csrf_cookie] =
+        issue_login_cookies(&token, expires_at, state.config.is_production());
 
     HttpResponse::Ok()
         .cookie(jwt_cookie)
