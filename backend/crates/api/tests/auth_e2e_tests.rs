@@ -530,7 +530,6 @@ async fn test_login_success() {
     let set_cookies = resp
         .headers()
         .get_all(actix_web::http::header::SET_COOKIE)
-        .into_iter()
         .map(|value| value.to_str().expect("valid Set-Cookie header").to_owned())
         .collect::<Vec<_>>();
     assert_eq!(set_cookies.len(), 2);
@@ -606,7 +605,6 @@ async fn test_login_wrong_password() {
     assert!(
         resp.headers()
             .get_all(actix_web::http::header::SET_COOKIE)
-            .into_iter()
             .next()
             .is_none(),
         "failed login must not overwrite browser session cookies"
