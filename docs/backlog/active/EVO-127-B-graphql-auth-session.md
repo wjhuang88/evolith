@@ -18,6 +18,13 @@
 - 复用既有 `CurrentUser` 和 optional-auth middleware，绝不在 resolver 解析原始 credentials，绝不引入第二套 auth 规则；invalid supplied credential 继续 fail closed。
 - 后续同 Story 依次处理 domain auth service extraction、login/register/refresh/logout 的 cookie/CSRF response boundary、password/email/invitation 与 frontend typed GraphQL/E2E cutover。Stage 1 合并不代表本 Story Done。
 
+## 第二只读切片（PR following #38）
+
+- `viewer` 读取持久化用户 Profile，字段 parity 对齐原 `GET /api/v1/auth/me`，但暂不迁移 frontend consumer。
+- 查询必须有经过现有 middleware 验证的 principal；tenant claim 与 persisted user tenant 不一致拒绝；无效 Bearer/API Key 继续在 transport fail closed。
+- 实际 HTTP 集成测试覆盖注册获得真实 JWT、Bearer viewer 成功、匿名缺凭证、无效 Bearer、跨租户 claims 拒绝。成功仅证明 read model；cookie/mutation/browser parity 仍属本 Story 剩余工作。
+- PR #38 first slice 在 exact-head `ci #310` + durability `#148` 全绿后已 merge `ba66e867b4f8ed12dba68bfe95908178d85582d8`；本 Story 未关闭。
+
 ## BDD / Security acceptance
 
 1. Given 无凭证的匿名调用者；When 查询 `currentSession`；Then 只得到 `null`，不泄露 identity/credential。
