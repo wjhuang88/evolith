@@ -1606,6 +1606,30 @@ async fn graphql_login_uses_shared_auth_service_and_issues_browser_cookies() {
     assert!(profile.get("errors").is_none(), "{profile}");
     assert_eq!(profile["data"]["viewer"]["email"], "graphql-login@example.com");
     assert_eq!(profile["data"]["viewer"]["tenantRole"], "owner");
+
+    // GraphQL aliases must not amplify password checks beyond the caller-aware rate limit.
+    let duplicate = test::TestRequest::post()
+        .uri("/graphql")
+        .set_json(serde_json::json!({
+            "query": "mutation Login($email: String!, $password: String!) { first: login(email: $email, password: $password) { token } second: login(email: $email, password: $password) { token } }",
+            "variables": { "email": "graphql-login@example.com", "password": "TestPassword123!" }
+        }))
+        .to_request();
+    let duplicate_response = test::call_service(&app, duplicate).await;
+    assert_eq!(duplicate_response.status(), actix_web::http::StatusCode::OK);
+    assert!(
+        duplicate_response
+            .headers()
+            .get_all(actix_web::http::header::SET_COOKIE)
+            .next()
+            .is_none(),
+        "partial mutation errors must suppress all session cookie writes"
+    );
+    let duplicate_body: serde_json::Value = test::read_body_json(duplicate_response).await;
+    assert_eq!(
+        duplicate_body["errors"][0]["extensions"]["code"],
+        "LOGIN_ALREADY_ATTEMPTED"
+    );
 }
 
 #[actix_rt::test]
