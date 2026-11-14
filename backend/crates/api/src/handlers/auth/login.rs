@@ -42,10 +42,8 @@ pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AppState>) ->
             ));
         }
         Err(LoginError::Internal) => {
-            return HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
-                "INTERNAL_ERROR",
-                "Login failed",
-            ));
+            return HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error("INTERNAL_ERROR", "Login failed"));
         }
     };
 
