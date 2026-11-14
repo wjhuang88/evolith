@@ -17,7 +17,7 @@ The following remain outside GraphQL by design:
 - health/readiness endpoints;
 - callback/webhook endpoints where an external protocol defines the transport.
 
-After EVO-127-A, existing `/api/v1/*` business routes remain transitional paths. EVO-127-B begins the auth/session domain migration with a read-only session-identity slice; REST auth handlers remain authoritative until the mutation, cookie, frontend and E2E cutover passes.
+After EVO-127-A, existing `/api/v1/*` business routes remain transitional paths. EVO-127-B progressively migrates auth/session through read models and a shared-service-backed `login` mutation. REST auth handlers and frontend consumers remain authoritative until all auth mutations, stale-session recovery, and browser E2E cutover pass.
 
 ## 2. Endpoint
 
@@ -32,7 +32,7 @@ After EVO-127-A, existing `/api/v1/*` business routes remain transitional paths.
   - maximum complexity: **1000**;
   - maximum directives: **20**.
 
-The foundation schema exposes a smoke query and a no-op mutation root. EVO-127-B adds the first domain field, `currentSession`, without changing the auth mutation or cookie behavior yet.
+The foundation schema exposes a smoke query and a no-op mutation root. EVO-127-B adds domain queries `currentSession` / `viewer` and the shared-service-backed `login` mutation without retiring REST auth.
 
 Example:
 
@@ -108,6 +108,27 @@ query CurrentViewer {
 - Existing JWT user with absent repository row: `USER_NOT_FOUND`.
 - If JWT tenant claim does not match the persisted user's tenant: `UNAUTHORIZED`, with no profile fields returned.
 - Repository failure: `INTERNAL_ERROR` without returning internal details. Request ID and `retryable` continue to be enriched by the shared GraphQL error handler.
+
+### `login` mutation (EVO-127-B shared auth service slice)
+
+`login(email: String!, password: String!): GraphQLLoginPayload!` calls the same `service-auth::LoginService` as REST `POST /api/v1/auth/login`. Password verification, JWT signing, role normalization and tenant fallback remain single-source service logic; GraphQL resolvers never read raw JWT cookies or access password-hash fields.
+
+```graphql
+mutation Login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    token
+    expiresAt
+    user { id email username role tenantId tenantRole emailVerified }
+    tenant { id name slug plan }
+  }
+}
+```
+
+- Success returns the JWT for **temporary REST-browser compatibility**; this is sensitive credential material and must not be cached, logged or exposed to other GraphQL operations. `expiresAt` is a **string containing Unix epoch seconds**, not GraphQL Int32.
+- The HTTP transport, not the resolver, emits `Set-Cookie` for `evolith_token` (httpOnly) plus `csrf_token` (JavaScript-readable) with `Path=/`, `SameSite=Lax`, expiry and environment-specific `Secure`. REST and GraphQL share the same cookie builder.
+- Cookie writes are staged per request and committed only when the **entire GraphQL execution** has no errors. Invalid input returns `VALIDATION_ERROR`, wrong email/password returns `INVALID_CREDENTIALS`; neither writes cookies. At most **one** login attempt (including rejected attempts) is permitted per GraphQL HTTP request, so aliases cannot amplify password verification beyond request rate limits; subsequent aliases return `LOGIN_ALREADY_ATTEMPTED` and the entire response has no Set-Cookie. If a first login alias succeeds before a later field errors, the transport clears partial GraphQL `data` so no signed JWT escapes in a failed response. Any GraphQL request that attempts login also receives `Cache-Control: no-store`. The common GraphQL error envelope adds `requestId` and `retryable`.
+- A new browser with **no session cookie** may login without a CSRF header. A request carrying a session cookie still requires matching double-submit CSRF, even for login. Invalid/stale supplied JWTs or API keys remain rejected by the existing optional-auth middleware **before** the mutation executes.
+- **Remaining cutover blocker:** a browser with an expired/malformed but still-present JWT cookie cannot yet recover by calling GraphQL `login`; the existing REST login route remains available. Do not migrate frontend login to GraphQL until this recovery path and browser E2E are solved. Also, GraphQL `register`, `refresh`, `logout`, password/email/invitation mutation parity remains outstanding.
 
 Frontend auth consumers still use REST until typed operations plus login/register/refresh/logout cookie parity and E2E are ready. Those mutations, cookie response handling and full browser cutover remain EVO-127-B work; REST business-route retirement remains EVO-127-G.
 

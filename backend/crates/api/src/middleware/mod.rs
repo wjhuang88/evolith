@@ -8,6 +8,7 @@ pub mod rate_limit;
 pub mod rbac;
 pub mod request_id;
 pub mod security_headers;
+pub mod session_cookies;
 pub mod tenant;
 
 pub use api_key_scope::{
