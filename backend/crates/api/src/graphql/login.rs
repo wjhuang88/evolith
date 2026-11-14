@@ -52,6 +52,10 @@ impl LoginCookieIntentStore {
         Ok(())
     }
 
+    pub fn was_attempted(&self) -> bool {
+        self.attempted.load(Ordering::SeqCst)
+    }
+
     pub fn take(&self) -> Option<LoginCookieIntent> {
         self.pending.lock().ok()?.take()
     }
