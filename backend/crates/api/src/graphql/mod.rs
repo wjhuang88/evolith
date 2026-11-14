@@ -80,11 +80,21 @@ async fn graphql_post(
     let mut response = schema.execute(request).await;
     enrich_response_errors(&mut response, &request_id);
 
+    let pending_login = cookie_intents.take();
+    if pending_login.is_some() && !response.errors.is_empty() {
+        // A preceding login alias may already have returned a signed JWT before a later
+        // mutation fails. Remove all partial data so a failed request cannot disclose it.
+        response.data = async_graphql::Value::Null;
+    }
+
     let mut builder = HttpResponse::Ok();
-    // Apply Set-Cookie only after the entire GraphQL request succeeds; partial mutation errors
-    // must never accidentally issue a browser session.
+    if cookie_intents.was_attempted() {
+        builder.insert_header((actix_web::http::header::CACHE_CONTROL, "no-store"));
+    }
+
+    // Only a fully successful GraphQL response may issue a browser session.
     if response.errors.is_empty() {
-        if let Some(intent) = cookie_intents.take() {
+        if let Some(intent) = pending_login {
             let is_production = http_request
                 .app_data::<web::Data<AppState>>()
                 .is_some_and(|state| state.config.is_production());
