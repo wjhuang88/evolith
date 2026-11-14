@@ -112,6 +112,8 @@ python3 scripts/tests/check-markdown-links.py
 | 2026-11-14 | viewer merged | GraphQL persisted `viewer` 切片 PR #39 merged `856673d412986d68bdb284a574258fb85d9136d8`；final head `1696750a` 的 `ci #313` / durability `#150` 均 success，main after PR #38 的 `ci #311` success。本 Story 仍 In Progress；完整 auth mutation/browser cutover 未完成。 |
 | 2026-11-14 | login service extraction | 第三切片抽离 `service-auth::LoginService`，保留 REST 登录校验/JWT/user/tenant 业务结果与 Cookie 运输边界；对成功 JWT httpOnly、CSRF 非 httpOnly、SameSite/Path/Max-Age 和错误密码无 Set-Cookie 添回归测试。GraphQL mutation 与 cookie side effects 在后续切片实现，提交后待 exact-head CI/durability 证明。 |
 
+| 2026-11-14 | GraphQL login slice | 在 shared `LoginService` 上实现 GraphQL `login`；HTTP transport 共享 JWT/CSRF cookie builder，resolver 只暂存 cookie 意图，成功时附加 Set-Cookie。正反向 HTTP tests 覆盖 JWT/CSRF、正常 login→viewer、invalid creds、stale cookie fail closed；此分支依赖第三切片 PR #40，待 exact-head CI/durability 门禁。Frontend 切换 blocked 于 stale-cookie 恢复和其他 auth mutations。 |
+
 ## 9. 变更请求
 
 | 日期 | 类型 | 决策 | 影响 | 半成品处理 |
