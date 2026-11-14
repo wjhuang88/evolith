@@ -16,9 +16,9 @@ use std::{env, sync::Arc};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse};
 use async_graphql::{http::GraphiQLSource, BatchRequest};
 
+use crate::middleware::session_cookies::issue_login_cookies;
 use crate::middleware::{CurrentUser, RequestIdExt};
 use crate::state::AppState;
-use crate::middleware::session_cookies::issue_login_cookies;
 use service_auth::LoginService;
 
 use login::LoginCookieIntentStore;
