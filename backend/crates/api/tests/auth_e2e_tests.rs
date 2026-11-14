@@ -1554,6 +1554,10 @@ async fn graphql_login_uses_shared_auth_service_and_issues_browser_cookies() {
         .to_request();
     let response = test::call_service(&app, request).await;
     assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+    assert_eq!(
+        response.headers()[actix_web::http::header::CACHE_CONTROL],
+        "no-store"
+    );
 
     let cookies = response
         .headers()
@@ -1633,6 +1637,10 @@ async fn graphql_login_uses_shared_auth_service_and_issues_browser_cookies() {
         duplicate_body["errors"][0]["extensions"]["code"],
         "LOGIN_ALREADY_ATTEMPTED"
     );
+    assert!(
+        duplicate_body["data"].is_null(),
+        "a failed multi-alias mutation must not reveal a signed JWT in partial data"
+    );
 }
 
 #[actix_rt::test]
@@ -1656,6 +1664,10 @@ async fn graphql_login_rejects_invalid_credentials_and_does_not_issue_cookies() 
         .to_request();
     let response = test::call_service(&app, wrong_password).await;
     assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+    assert_eq!(
+        response.headers()[actix_web::http::header::CACHE_CONTROL],
+        "no-store"
+    );
     assert!(response
         .headers()
         .get_all(actix_web::http::header::SET_COOKIE)
