@@ -35,7 +35,7 @@
 ## 第四切片：GraphQL `login`（父切片：shared LoginService）
 
 - 在第三切片 `service-auth::LoginService` 基础上增加 `login(email,password)` GraphQL mutation，复用同一查人、密码校验、JWT 签发与 tenant 回填逻辑，不复制 REST 登录业务规则。
-- HTTP 层复用 JWT/CSRF cookie builder；mutation resolver 仅暂存 cookie 写入意图，整个 GraphQL 响应无错误时才写入。返回 JWT 仅为旧 frontend token 兼容，`expiresAt` 以 epoch seconds 字符串表达，不可缓存/记录。
+- HTTP 层复用 JWT/CSRF cookie builder；mutation resolver 仅暂存 cookie 写入意图，整个 GraphQL 响应无错误时才写入。每个 HTTP GraphQL 请求仅允许一次 login 尝试（防 mutation aliases 放大 Argon2 计算，错误码 `LOGIN_ALREADY_ATTEMPTED`）。返回 JWT 仅为旧 frontend token 兼容，`expiresAt` 以 epoch seconds 字符串表达，不可缓存/记录。
 - 集成测试锁定真实 REST 注册 → GraphQL login → Bearer viewer；HTTP Set-Cookie 两项属性、无效 credentials、参数校验错误、已有 session 无 CSRF、stale cookie / invalid Bearer fail closed。
 - **阻塞浏览器切换的残余**：无效/过期但仍存在的 browser JWT cookie 会被可选认证中间件提前拒绝，暂不迁移 frontend login；后续另立受限 recovery 方案并以负向 E2E 验证。register/refresh/logout/password/email/invitation mutations 亦未完。
 
