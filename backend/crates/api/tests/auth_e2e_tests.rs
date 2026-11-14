@@ -1604,7 +1604,10 @@ async fn graphql_login_uses_shared_auth_service_and_issues_browser_cookies() {
     let profile: serde_json::Value =
         test::read_body_json(test::call_service(&app, viewer).await).await;
     assert!(profile.get("errors").is_none(), "{profile}");
-    assert_eq!(profile["data"]["viewer"]["email"], "graphql-login@example.com");
+    assert_eq!(
+        profile["data"]["viewer"]["email"],
+        "graphql-login@example.com"
+    );
     assert_eq!(profile["data"]["viewer"]["tenantRole"], "owner");
 
     // GraphQL aliases must not amplify password checks beyond the caller-aware rate limit.
@@ -1653,15 +1656,16 @@ async fn graphql_login_rejects_invalid_credentials_and_does_not_issue_cookies() 
         .to_request();
     let response = test::call_service(&app, wrong_password).await;
     assert_eq!(response.status(), actix_web::http::StatusCode::OK);
-    assert!(
-        response
-            .headers()
-            .get_all(actix_web::http::header::SET_COOKIE)
-            .next()
-            .is_none()
-    );
+    assert!(response
+        .headers()
+        .get_all(actix_web::http::header::SET_COOKIE)
+        .next()
+        .is_none());
     let body: serde_json::Value = test::read_body_json(response).await;
-    assert_eq!(body["errors"][0]["extensions"]["code"], "INVALID_CREDENTIALS");
+    assert_eq!(
+        body["errors"][0]["extensions"]["code"],
+        "INVALID_CREDENTIALS"
+    );
     assert_eq!(body["errors"][0]["extensions"]["retryable"], false);
     assert!(body["errors"][0]["extensions"]["requestId"].is_string());
 
@@ -1694,19 +1698,28 @@ async fn graphql_login_preserves_cookie_csrf_and_invalid_bearer_fail_closed() {
     });
     let without_csrf = test::TestRequest::post()
         .uri("/graphql")
-        .cookie(actix_web::cookie::Cookie::new("evolith_token", "stale-token"))
+        .cookie(actix_web::cookie::Cookie::new(
+            "evolith_token",
+            "stale-token",
+        ))
         .set_json(&operation)
         .to_request();
     let error = test::try_call_service(&app, without_csrf)
         .await
         .expect_err("cookie session without double-submit CSRF must be rejected");
-    assert_eq!(error.as_response_error().status_code(), actix_web::http::StatusCode::FORBIDDEN);
+    assert_eq!(
+        error.as_response_error().status_code(),
+        actix_web::http::StatusCode::FORBIDDEN
+    );
 
     // When CSRF is supplied, stale credentials are still rejected by optional-auth:
     // do not silently let an expired browser session become anonymous.
     let stale = test::TestRequest::post()
         .uri("/graphql")
-        .cookie(actix_web::cookie::Cookie::new("evolith_token", "stale-token"))
+        .cookie(actix_web::cookie::Cookie::new(
+            "evolith_token",
+            "stale-token",
+        ))
         .cookie(actix_web::cookie::Cookie::new("csrf_token", "csrf-value"))
         .insert_header(("X-CSRF-Token", "csrf-value"))
         .set_json(&operation)
@@ -1714,7 +1727,10 @@ async fn graphql_login_preserves_cookie_csrf_and_invalid_bearer_fail_closed() {
     let error = test::try_call_service(&app, stale)
         .await
         .expect_err("stale cookie must not bypass credential validation");
-    assert_eq!(error.as_response_error().status_code(), actix_web::http::StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        error.as_response_error().status_code(),
+        actix_web::http::StatusCode::UNAUTHORIZED
+    );
 
     let invalid_bearer = test::TestRequest::post()
         .uri("/graphql")
@@ -1724,5 +1740,8 @@ async fn graphql_login_preserves_cookie_csrf_and_invalid_bearer_fail_closed() {
     let error = test::try_call_service(&app, invalid_bearer)
         .await
         .expect_err("invalid supplied Bearer must be rejected");
-    assert_eq!(error.as_response_error().status_code(), actix_web::http::StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        error.as_response_error().status_code(),
+        actix_web::http::StatusCode::UNAUTHORIZED
+    );
 }
