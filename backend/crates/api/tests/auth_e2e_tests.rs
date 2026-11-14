@@ -1518,3 +1518,191 @@ async fn graphql_viewer_requires_auth_and_fails_closed_on_invalid_bearer() {
         actix_web::http::StatusCode::UNAUTHORIZED
     );
 }
+
+#[actix_rt::test]
+async fn graphql_login_uses_shared_auth_service_and_issues_browser_cookies() {
+    let pool = setup_test_db().await;
+    let app_state = build_app_state(pool);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(app_state))
+            .wrap(from_fn(api::middleware::graphql_optional_auth_middleware))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .wrap(api::middleware::CsrfMiddleware::new())
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let register = test::TestRequest::post()
+        .uri("/api/v1/auth/register")
+        .set_json(serde_json::json!({
+            "email": "graphql-login@example.com",
+            "username": "graphqllogin",
+            "password": "TestPassword123!",
+        }))
+        .to_request();
+    assert_eq!(
+        test::call_service(&app, register).await.status(),
+        actix_web::http::StatusCode::CREATED
+    );
+
+    let operation = serde_json::json!({
+        "query": "mutation Login($email: String!, $password: String!) { login(email: $email, password: $password) { token expiresAt user { id email tenantId tenantRole } tenant { id name slug plan } } }",
+        "variables": { "email": "graphql-login@example.com", "password": "TestPassword123!" }
+    });
+    let request = test::TestRequest::post()
+        .uri("/graphql")
+        .set_json(&operation)
+        .to_request();
+    let response = test::call_service(&app, request).await;
+    assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+
+    let cookies = response
+        .headers()
+        .get_all(actix_web::http::header::SET_COOKIE)
+        .into_iter()
+        .map(|value| value.to_str().expect("valid Set-Cookie").to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(cookies.len(), 2);
+    let jwt_cookie = cookies
+        .iter()
+        .find(|value| value.starts_with("evolith_token="))
+        .expect("session cookie");
+    let csrf_cookie = cookies
+        .iter()
+        .find(|value| value.starts_with("csrf_token="))
+        .expect("CSRF cookie");
+    assert!(jwt_cookie.contains("HttpOnly"));
+    assert!(!csrf_cookie.contains("HttpOnly"));
+    for cookie in [&jwt_cookie, &csrf_cookie] {
+        assert!(cookie.contains("Path=/"));
+        assert!(cookie.contains("SameSite=Lax"));
+        assert!(cookie.contains("Max-Age="));
+    }
+
+    let payload: serde_json::Value = test::read_body_json(response).await;
+    assert!(payload.get("errors").is_none(), "{payload}");
+    let token = payload["data"]["login"]["token"]
+        .as_str()
+        .expect("login JWT");
+    let expires_at = payload["data"]["login"]["expiresAt"]
+        .as_str()
+        .expect("string epoch seconds")
+        .parse::<i64>()
+        .expect("numeric epoch");
+    assert!(expires_at > chrono::Utc::now().timestamp());
+    assert!(jwt_cookie.contains(token));
+    assert_eq!(
+        payload["data"]["login"]["user"]["email"],
+        "graphql-login@example.com"
+    );
+    assert_eq!(payload["data"]["login"]["user"]["tenantRole"], "owner");
+
+    // Reuse the real signed JWT at the existing GraphQL viewer auth boundary.
+    let viewer = test::TestRequest::post()
+        .uri("/graphql")
+        .insert_header(("Authorization", format!("Bearer {token}")))
+        .set_json(serde_json::json!({ "query": "{ viewer { email tenantRole } }" }))
+        .to_request();
+    let profile: serde_json::Value =
+        test::read_body_json(test::call_service(&app, viewer).await).await;
+    assert!(profile.get("errors").is_none(), "{profile}");
+    assert_eq!(profile["data"]["viewer"]["email"], "graphql-login@example.com");
+    assert_eq!(profile["data"]["viewer"]["tenantRole"], "owner");
+}
+
+#[actix_rt::test]
+async fn graphql_login_rejects_invalid_credentials_and_does_not_issue_cookies() {
+    let pool = setup_test_db().await;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(build_app_state(pool)))
+            .wrap(from_fn(api::middleware::graphql_optional_auth_middleware))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .wrap(api::middleware::CsrfMiddleware::new())
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let wrong_password = test::TestRequest::post()
+        .uri("/graphql")
+        .set_json(serde_json::json!({
+            "query": "mutation { login(email: \"absent@example.com\", password: \"WrongPassword123!\") { token } }"
+        }))
+        .to_request();
+    let response = test::call_service(&app, wrong_password).await;
+    assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+    assert!(
+        response
+            .headers()
+            .get_all(actix_web::http::header::SET_COOKIE)
+            .into_iter()
+            .next()
+            .is_none()
+    );
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(body["errors"][0]["extensions"]["code"], "INVALID_CREDENTIALS");
+    assert_eq!(body["errors"][0]["extensions"]["retryable"], false);
+    assert!(body["errors"][0]["extensions"]["requestId"].is_string());
+
+    let invalid_email = test::TestRequest::post()
+        .uri("/graphql")
+        .set_json(serde_json::json!({
+            "query": "mutation { login(email: \"not-an-email\", password: \"x\") { token } }"
+        }))
+        .to_request();
+    let response = test::call_service(&app, invalid_email).await;
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(body["errors"][0]["extensions"]["code"], "VALIDATION_ERROR");
+}
+
+#[actix_rt::test]
+async fn graphql_login_preserves_cookie_csrf_and_invalid_bearer_fail_closed() {
+    let pool = setup_test_db().await;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(build_app_state(pool)))
+            .wrap(from_fn(api::middleware::graphql_optional_auth_middleware))
+            .wrap(from_fn(api::middleware::rbac::rbac_middleware))
+            .wrap(api::middleware::CsrfMiddleware::new())
+            .configure(routes::configure_routes),
+    )
+    .await;
+
+    let operation = serde_json::json!({
+        "query": "mutation { login(email: \"user@example.com\", password: \"TestPassword123!\") { token } }"
+    });
+    let without_csrf = test::TestRequest::post()
+        .uri("/graphql")
+        .cookie(actix_web::cookie::Cookie::new("evolith_token", "stale-token"))
+        .set_json(&operation)
+        .to_request();
+    let error = test::try_call_service(&app, without_csrf)
+        .await
+        .expect_err("cookie session without double-submit CSRF must be rejected");
+    assert_eq!(error.as_response_error().status_code(), actix_web::http::StatusCode::FORBIDDEN);
+
+    // When CSRF is supplied, stale credentials are still rejected by optional-auth:
+    // do not silently let an expired browser session become anonymous.
+    let stale = test::TestRequest::post()
+        .uri("/graphql")
+        .cookie(actix_web::cookie::Cookie::new("evolith_token", "stale-token"))
+        .cookie(actix_web::cookie::Cookie::new("csrf_token", "csrf-value"))
+        .insert_header(("X-CSRF-Token", "csrf-value"))
+        .set_json(&operation)
+        .to_request();
+    let error = test::try_call_service(&app, stale)
+        .await
+        .expect_err("stale cookie must not bypass credential validation");
+    assert_eq!(error.as_response_error().status_code(), actix_web::http::StatusCode::UNAUTHORIZED);
+
+    let invalid_bearer = test::TestRequest::post()
+        .uri("/graphql")
+        .insert_header(("Authorization", "Bearer invalid-token"))
+        .set_json(&operation)
+        .to_request();
+    let error = test::try_call_service(&app, invalid_bearer)
+        .await
+        .expect_err("invalid supplied Bearer must be rejected");
+    assert_eq!(error.as_response_error().status_code(), actix_web::http::StatusCode::UNAUTHORIZED);
+}
