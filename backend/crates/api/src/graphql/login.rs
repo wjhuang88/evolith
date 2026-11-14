@@ -1,6 +1,9 @@
 //! GraphQL login transport adapter. Credential verification happens only in service-auth.
 
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 
 use async_graphql::{Context, Error, ErrorExtensions, SimpleObject};
 use service_auth::{LoginError, LoginService};
@@ -17,12 +20,26 @@ pub struct LoginCookieIntent {
 ///
 /// GraphQL execution and cookie writes are separate: a failed operation never sets cookies.
 #[derive(Default)]
-pub struct LoginCookieIntentStore(Mutex<Option<LoginCookieIntent>>);
+pub struct LoginCookieIntentStore {
+    attempted: AtomicBool,
+    pending: Mutex<Option<LoginCookieIntent>>,
+}
 
 impl LoginCookieIntentStore {
+    /// One password-verification attempt per HTTP request, regardless of GraphQL aliases.
+    pub fn begin_login(&self) -> async_graphql::Result<()> {
+        if self.attempted.swap(true, Ordering::SeqCst) {
+            return Err(auth_error(
+                "LOGIN_ALREADY_ATTEMPTED",
+                "Only one login attempt is allowed per request",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn schedule(&self, token: String, expires_at: i64) -> async_graphql::Result<()> {
         let mut pending = self
-            .0
+            .pending
             .lock()
             .map_err(|_| auth_error("INTERNAL_ERROR", "Login failed"))?;
         if pending.is_some() {
@@ -36,7 +53,7 @@ impl LoginCookieIntentStore {
     }
 
     pub fn take(&self) -> Option<LoginCookieIntent> {
-        self.0.lock().ok()?.take()
+        self.pending.lock().ok()?.take()
     }
 }
 
@@ -78,6 +95,8 @@ pub async fn login(
     email: String,
     password: String,
 ) -> async_graphql::Result<GraphQLLoginPayload> {
+    // Guard before Argon2 verification: one GraphQL HTTP request is one login attempt.
+    ctx.data::<Arc<LoginCookieIntentStore>>()?.begin_login()?;
     let input = LoginRequest { email, password };
     input
         .validate()
