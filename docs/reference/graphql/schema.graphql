@@ -4,6 +4,36 @@ type GraphQLFoundationInfo {
 	version: String!
 }
 
+type GraphQLLoginPayload {
+	"""
+	JWT for compatibility with the current browser auth consumer.
+	"""
+	token: String!
+	"""
+	Unix expiry timestamp in seconds, encoded as String to avoid GraphQL Int32 overflow.
+	"""
+	expiresAt: String!
+	user: GraphQLLoginUser!
+	tenant: GraphQLLoginTenant!
+}
+
+type GraphQLLoginTenant {
+	id: String!
+	name: String!
+	slug: String!
+	plan: String!
+}
+
+type GraphQLLoginUser {
+	id: String!
+	email: String!
+	username: String!
+	role: String!
+	tenantId: String!
+	tenantRole: String!
+	emailVerified: Boolean!
+}
+
 """
 Public representation of the resolved caller's session claims.
 
@@ -32,6 +62,10 @@ type MutationRoot {
 	Foundation-only mutation used to keep a stable root while domain mutations migrate later.
 	"""
 	graphqlFoundationNoop: Boolean!
+	"""
+	Authenticate with email and password and issue a browser session.
+	"""
+	login(email: String!, password: String!): GraphQLLoginPayload!
 }
 
 type QueryRoot {
