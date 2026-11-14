@@ -2,6 +2,7 @@
 
 use actix_web::cookie::{time::Duration, Cookie, SameSite};
 use actix_web::{web, HttpResponse, Responder};
+use service_auth::{LoginError, LoginOutcome, LoginService};
 use uuid::Uuid;
 
 use crate::dto::auth_dto::*;
@@ -12,9 +13,8 @@ use crate::middleware::rbac::JWT_COOKIE_NAME;
 use crate::state::AppState;
 use validator::Validate;
 
-/// User login
+/// User login. Password validation/JWT issuance is shared with future GraphQL.
 pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AppState>) -> impl Responder {
-    // Validate request
     if let Err(errors) = body.validate() {
         return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
             "VALIDATION_ERROR",
@@ -22,85 +22,35 @@ pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AppState>) ->
         ));
     }
 
-    // Find user by email
-    let user = match state.user_repo.find_by_email(&body.email).await {
-        Ok(Some(user)) => user,
-        Ok(None) => {
+    let service = LoginService::new(
+        state.user_repo.clone(),
+        state.tenant_repo.clone(),
+        state.hasher.clone(),
+        state.jwt.clone(),
+    );
+    let LoginOutcome {
+        token,
+        expires_at,
+        user,
+        tenant,
+    } = match service.authenticate(&body.email, &body.password).await {
+        Ok(outcome) => outcome,
+        Err(LoginError::InvalidCredentials) => {
             return HttpResponse::Unauthorized().json(ApiResponse::<()>::error(
                 "INVALID_CREDENTIALS",
                 "Invalid email or password",
             ));
         }
-        Err(e) => {
-            tracing::error!("Failed to find user by email: {}", e);
+        Err(LoginError::Internal) => {
             return HttpResponse::InternalServerError()
                 .json(ApiResponse::<()>::error("INTERNAL_ERROR", "Login failed"));
         }
     };
 
-    // Verify password
-    match state
-        .hasher
-        .verify_password(&body.password, &user.password_hash)
-    {
-        Ok(true) => {}
-        Ok(false) => {
-            return HttpResponse::Unauthorized().json(ApiResponse::<()>::error(
-                "INVALID_CREDENTIALS",
-                "Invalid email or password",
-            ));
-        }
-        Err(e) => {
-            tracing::error!("Password verification error: {}", e);
-            return HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("INTERNAL_ERROR", "Login failed"));
-        }
-    }
-
-    // Serialize role and tenant_role to string for JWT
-    let role_str = serde_json::to_value(&user.role)
-        .ok()
-        .and_then(|v| v.as_str().map(String::from))
-        .unwrap_or_else(|| "user".to_string());
-    let tenant_role_str = serde_json::to_value(&user.tenant_role)
-        .ok()
-        .and_then(|v| v.as_str().map(String::from))
-        .unwrap_or_else(|| "member".to_string());
-
-    // Generate JWT token
-    let (token, expires_at) =
-        match state
-            .jwt
-            .generate_token(user.id, &role_str, user.tenant_id, &tenant_role_str)
-        {
-            Ok(result) => result,
-            Err(e) => {
-                tracing::error!("Failed to generate token: {}", e);
-                return HttpResponse::InternalServerError()
-                    .json(ApiResponse::<()>::error("INTERNAL_ERROR", "Login failed"));
-            }
-        };
-
-    // Get tenant info
-    let tenant_info = match state.tenant_repo.find_by_id(user.tenant_id).await {
-        Ok(Some(tenant)) => TenantInfo {
-            id: tenant.id.to_string(),
-            name: tenant.name,
-            slug: tenant.slug,
-            plan: format!("{}", tenant.plan),
-        },
-        _ => TenantInfo {
-            id: user.tenant_id.to_string(),
-            name: "Unknown".to_string(),
-            slug: "unknown".to_string(),
-            plan: "free".to_string(),
-        },
-    };
-
+    // HTTP transport retains the existing cookie semantics unchanged.
     let is_production = state.config.is_production();
     let csrf_token = Uuid::new_v4().to_string();
 
-    // Build httpOnly JWT cookie
     let jwt_cookie = Cookie::build(JWT_COOKIE_NAME, &token)
         .path("/")
         .http_only(true)
@@ -111,7 +61,6 @@ pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AppState>) ->
         ))
         .finish();
 
-    // Build non-httpOnly CSRF cookie (readable by JS)
     let csrf_cookie = Cookie::build(CSRF_COOKIE_NAME, &csrf_token)
         .path("/")
         .http_only(false)
@@ -129,15 +78,20 @@ pub async fn login(body: web::Json<LoginRequest>, state: web::Data<AppState>) ->
             token,
             expires_at,
             user: UserInfo {
-                id: user.id.to_string(),
+                id: user.id,
                 email: user.email,
                 username: user.username,
-                role: role_str,
-                tenant_id: user.tenant_id.to_string(),
-                tenant_role: tenant_role_str,
+                role: user.role,
+                tenant_id: user.tenant_id,
+                tenant_role: user.tenant_role,
                 email_verified: user.email_verified,
             },
-            tenant: tenant_info,
+            tenant: TenantInfo {
+                id: tenant.id,
+                name: tenant.name,
+                slug: tenant.slug,
+                plan: tenant.plan,
+            },
         }))
 }
 

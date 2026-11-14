@@ -526,6 +526,30 @@ async fn test_login_success() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
 
+    // Guard the REST cookie contract during login business-logic extraction.
+    let set_cookies = resp
+        .headers()
+        .get_all(actix_web::http::header::SET_COOKIE)
+        .map(|value| value.to_str().expect("valid Set-Cookie header").to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(set_cookies.len(), 2);
+    let session_cookie = set_cookies
+        .iter()
+        .find(|value| value.starts_with("evolith_token="))
+        .expect("httpOnly JWT cookie");
+    assert!(session_cookie.contains("HttpOnly"));
+    assert!(session_cookie.contains("SameSite=Lax"));
+    assert!(session_cookie.contains("Path=/"));
+    assert!(session_cookie.contains("Max-Age="));
+    let csrf_cookie = set_cookies
+        .iter()
+        .find(|value| value.starts_with("csrf_token="))
+        .expect("JS-readable double-submit CSRF cookie");
+    assert!(!csrf_cookie.contains("HttpOnly"));
+    assert!(csrf_cookie.contains("SameSite=Lax"));
+    assert!(csrf_cookie.contains("Path=/"));
+    assert!(csrf_cookie.contains("Max-Age="));
+
     let body = test::read_body(resp).await;
     let result: ApiResponse<AuthResponseData> =
         serde_json::from_slice(&body).expect("Failed to parse response");
@@ -536,6 +560,7 @@ async fn test_login_success() {
     assert_eq!(data.user.email, "login@example.com");
     assert_eq!(data.user.username, "loginuser");
     assert_eq!(data.user.tenant_id, auth_data.user.tenant_id);
+    assert!(session_cookie.contains(&data.token));
 }
 
 #[actix_rt::test]
@@ -577,6 +602,13 @@ async fn test_login_wrong_password() {
 
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
+    assert!(
+        resp.headers()
+            .get_all(actix_web::http::header::SET_COOKIE)
+            .next()
+            .is_none(),
+        "failed login must not overwrite browser session cookies"
+    );
 
     let body = test::read_body(resp).await;
     let result: ApiResponse<AuthResponseData> =

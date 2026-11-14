@@ -25,6 +25,13 @@
 - 实际 HTTP 集成测试覆盖注册获得真实 JWT、Bearer viewer 成功、匿名缺凭证、无效 Bearer、跨租户 claims 拒绝。成功仅证明 read model；cookie/mutation/browser parity 仍属本 Story 剩余工作。
 - PR #38 first slice 在 exact-head `ci #310` + durability `#148` 全绿后已 merge `ba66e867b4f8ed12dba68bfe95908178d85582d8`；本 Story 未关闭。
 
+## 第三切片：transport-independent login service extraction
+
+- PR #39 persisted `viewer` 已由 exact-head `ci #313` 和 durability `#150` 通过后 merge `856673d412986d68bdb284a574258fb85d9136d8`。完整 EVO-127-B 尚未完成。
+- 从 REST 登录 handler 提取密码查验、JWT 签发、用户及租户响应结果计算到 `service-auth::LoginService`，使用现有 `UserRepository` / `TenantRepository` / `Argon2Hasher` / `JwtHandler`；不创建第二套认证存储或新 token 规则。
+- REST handler 保留输入校验、HTTP 状态及 JWT/CSRF Cookie 赋值，沿用原 `SameSite=Lax`、`Secure` 环境逻辑、`HttpOnly`、`Path=/` 与 `Max-Age`。登录成功与错误密码的 Cookie 正负向集成测试锁定契约。
+- 此步骤仅为后续 GraphQL `login` mutation 准备共用的认证服务；未引入新的 GraphQL 字段，也不影响 frontend 或 REST 登陆路径。后续需要单独实现 GraphQL Set-Cookie transport、过期 cookie recovery 和 browser E2E 才能切换。
+
 ## BDD / Security acceptance
 
 1. Given 无凭证的匿名调用者；When 查询 `currentSession`；Then 只得到 `null`，不泄露 identity/credential。
