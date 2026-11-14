@@ -6,18 +6,22 @@
 mod auth;
 mod context;
 mod error;
+mod login;
 mod mutation;
 mod query;
 mod schema;
 
-use std::env;
+use std::{env, sync::Arc};
 
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse};
 use async_graphql::{http::GraphiQLSource, BatchRequest};
-use async_graphql_actix_web::GraphQLResponse;
 
 use crate::middleware::{CurrentUser, RequestIdExt};
 use crate::state::AppState;
+use crate::middleware::session_cookies::issue_login_cookies;
+use service_auth::LoginService;
+
+use login::LoginCookieIntentStore;
 
 pub use context::GraphQLRequestContext;
 pub use schema::{
@@ -41,7 +45,7 @@ async fn graphql_post(
     schema: web::Data<EvolithSchema>,
     http_request: HttpRequest,
     payload: web::Json<BatchRequest>,
-) -> Result<GraphQLResponse, GraphQLTransportError> {
+) -> Result<HttpResponse, GraphQLTransportError> {
     let request_id = http_request
         .get_request_id()
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
@@ -51,22 +55,46 @@ async fn graphql_post(
         principal,
     };
 
+    let cookie_intents = Arc::new(LoginCookieIntentStore::default());
     let mut request = payload
         .into_inner()
         .into_single()
         .map_err(|_| GraphQLTransportError::BatchNotSupported {
             request_id: request_id.clone(),
         })?
-        .data(request_context);
+        .data(request_context)
+        .data(Arc::clone(&cookie_intents));
 
-    // Domain repos enter GraphQL as Evolith-owned interfaces, not as Actix transport types.
+    // Established auth/repository services enter GraphQL as interfaces, not HTTP credentials.
     if let Some(state) = http_request.app_data::<web::Data<AppState>>() {
-        request = request.data(state.user_repo.clone());
+        request = request
+            .data(state.user_repo.clone())
+            .data(LoginService::new(
+                state.user_repo.clone(),
+                state.tenant_repo.clone(),
+                state.hasher.clone(),
+                state.jwt.clone(),
+            ));
     }
 
     let mut response = schema.execute(request).await;
     enrich_response_errors(&mut response, &request_id);
-    Ok(response.into())
+
+    let mut builder = HttpResponse::Ok();
+    // Apply Set-Cookie only after the entire GraphQL request succeeds; partial mutation errors
+    // must never accidentally issue a browser session.
+    if response.errors.is_empty() {
+        if let Some(intent) = cookie_intents.take() {
+            let is_production = http_request
+                .app_data::<web::Data<AppState>>()
+                .is_some_and(|state| state.config.is_production());
+            let [jwt_cookie, csrf_cookie] =
+                issue_login_cookies(&intent.token, intent.expires_at, is_production);
+            builder.cookie(jwt_cookie);
+            builder.cookie(csrf_cookie);
+        }
+    }
+    Ok(builder.json(response))
 }
 
 async fn graphiql(state: web::Data<AppState>) -> HttpResponse {
