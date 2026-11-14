@@ -10,8 +10,8 @@ use crate::dto::common::ApiResponse;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::middleware::csrf::CSRF_COOKIE_NAME;
 use crate::middleware::rbac::JWT_COOKIE_NAME;
-use crate::state::AppState;
 use crate::middleware::session_cookies::issue_login_cookies;
+use crate::state::AppState;
 use validator::Validate;
 
 /// User login. Password validation/JWT issuance is shared with future GraphQL.
